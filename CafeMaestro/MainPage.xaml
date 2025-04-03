@@ -1,0 +1,68 @@
+﻿<?xml version="1.0" encoding="UTF-8" ?>
+<ContentPage xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
+             x:Class="CafeMaestro.MainPage"
+             Title="CafeMaestro">
+
+    <ScrollView>
+        <VerticalStackLayout Padding="30,20" Spacing="15">
+            <Image Source="dotnet_bot.png" HeightRequest="100" Aspect="AspectFit" />
+
+            <Label Text="CafeMaestro" FontSize="32" HorizontalOptions="Center" />
+            <Label Text="Coffee Roasting Tracker" FontSize="24" HorizontalOptions="Center" />
+
+            <Label Text="Green Bean Selection:" />
+            <Picker x:Name="BeanPicker" Title="Select Bean Type">
+                <Picker.Items>
+                    <x:String>Ethiopian Yirgacheffe</x:String>
+                    <x:String>Colombian Supremo</x:String>
+                    <x:String>Sumatra Mandheling</x:String>
+                    <x:String>Costa Rican Tarrazu</x:String>
+                    <x:String>Brazilian Santos</x:String>
+                    <x:String>Kenyan AA</x:String>
+                    <x:String>Guatemalan Antigua</x:String>
+                    <x:String>Other</x:String>
+                </Picker.Items>
+            </Picker>
+
+            <Label Text="Roasting Temperature (°C):" />
+            <Entry x:Name="TemperatureEntry" Keyboard="Numeric" Placeholder="Enter temperature" />
+
+            <Label Text="Roasting Time:" />
+            <Grid ColumnDefinitions="*, Auto, *, Auto" ColumnSpacing="5">
+                <Entry x:Name="RoastMinutesEntry" Grid.Column="0" Keyboard="Numeric" Placeholder="Min" />
+                <Label Text="min" Grid.Column="1" VerticalOptions="Center" />
+                <Entry x:Name="RoastSecondsEntry" Grid.Column="2" Keyboard="Numeric" Placeholder="Sec" />
+                <Label Text="sec" Grid.Column="3" VerticalOptions="Center" />
+            </Grid>
+
+            <!-- Manual Time Entry UI -->
+            <VerticalStackLayout x:Name="ManualTimeEntryContainer" IsVisible="True">
+                <RadioButton x:Name="ManualEntryRadioButton" Content="Manual Entry" IsChecked="True" />
+                <RadioButton x:Name="UseTimerRadioButton" Content="Use Timer" />
+            </VerticalStackLayout>
+
+            <!-- Timer UI -->
+            <VerticalStackLayout x:Name="TimerContainer" IsVisible="False" Spacing="10">
+                <Label x:Name="TimerDisplay" Text="00:00" FontSize="48" HorizontalOptions="Center" />
+                <HorizontalStackLayout HorizontalOptions="Center" Spacing="10">
+                    <Button x:Name="StartTimerButton" Text="Start" />
+                    <Button x:Name="PauseTimerButton" Text="Pause" IsEnabled="False" />
+                    <Button x:Name="StopTimerButton" Text="Stop" IsEnabled="False" />
+                </HorizontalStackLayout>
+            </VerticalStackLayout>
+
+            <Label Text="Batch Weight (g):" />
+            <Entry x:Name="BatchWeightEntry" Keyboard="Numeric" Placeholder="Enter batch weight" />
+
+            <Label Text="Final Weight (g):" />
+            <Entry x:Name="FinalWeightEntry" Keyboard="Numeric" Placeholder="Enter final weight" />
+
+            <Button x:Name="CalculateButton" Text="Calculate Loss %" Clicked="OnCalculateClicked" />
+
+            <Label x:Name="LossPercentLabel" Text="Weight Loss: --" FontSize="18" />
+            <Label x:Name="RoastSummaryLabel" Text="Roast Summary: --" FontSize="18" />
+        </VerticalStackLayout>
+    </ScrollView>
+
+</ContentPage>
