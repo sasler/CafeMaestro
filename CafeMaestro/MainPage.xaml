@@ -46,10 +46,14 @@
             <VerticalStackLayout x:Name="TimerContainer" IsVisible="False" Spacing="10">
                 <Label x:Name="TimerDisplay" Text="00:00" FontSize="48" HorizontalOptions="Center" />
                 <HorizontalStackLayout HorizontalOptions="Center" Spacing="10">
-                    <Button x:Name="StartTimerButton" Text="▶" Clicked="StartTimer_Clicked" FontSize="24" Padding="10" HorizontalOptions="Center" VerticalOptions="Center" />
-                    <Button x:Name="PauseTimerButton" Text="⏸" IsEnabled="False" Clicked="PauseTimer_Clicked" FontSize="24" Padding="10" HorizontalOptions="Center" VerticalOptions="Center" />
-                    <Button x:Name="StopTimerButton" Text="⏹" IsEnabled="False" Clicked="StopTimer_Clicked" FontSize="24" Padding="10" HorizontalOptions="Center" VerticalOptions="Center" />
-                    <Button x:Name="ResetTimerButton" Text="🔄" Clicked="ResetTimer_Clicked" FontSize="24" Padding="10" HorizontalOptions="Center" VerticalOptions="Center" />
+                    <ImageButton x:Name="StartTimerButton" Source="timer_play_icon.png" Clicked="StartTimer_Clicked" 
+                                 BackgroundColor="Transparent" WidthRequest="60" HeightRequest="60" />
+                    <ImageButton x:Name="PauseTimerButton" Source="timer_pause_icon.png" Clicked="PauseTimer_Clicked" 
+                                 BackgroundColor="Transparent" WidthRequest="60" HeightRequest="60" IsEnabled="False" />
+                    <ImageButton x:Name="StopTimerButton" Source="timer_stop_icon.png" Clicked="StopTimer_Clicked" 
+                                 BackgroundColor="Transparent" WidthRequest="60" HeightRequest="60" IsEnabled="False" />
+                    <ImageButton x:Name="ResetTimerButton" Source="timer_reset_icon.png" Clicked="ResetTimer_Clicked" 
+                                 BackgroundColor="Transparent" WidthRequest="60" HeightRequest="60" />
                 </HorizontalStackLayout>
             </VerticalStackLayout>
 
