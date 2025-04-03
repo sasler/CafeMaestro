@@ -38,17 +38,17 @@
 
             <!-- Manual Time Entry UI -->
             <VerticalStackLayout x:Name="ManualTimeEntryContainer" IsVisible="True">
-                <RadioButton x:Name="ManualEntryRadioButton" Content="Manual Entry" IsChecked="True" />
-                <RadioButton x:Name="UseTimerRadioButton" Content="Use Timer" />
+                <RadioButton x:Name="ManualEntryRadioButton" Content="Manual Entry" IsChecked="True" CheckedChanged="TimeEntryMethod_CheckedChanged" />
+                <RadioButton x:Name="UseTimerRadioButton" Content="Use Timer" CheckedChanged="TimeEntryMethod_CheckedChanged" />
             </VerticalStackLayout>
 
             <!-- Timer UI -->
             <VerticalStackLayout x:Name="TimerContainer" IsVisible="False" Spacing="10">
                 <Label x:Name="TimerDisplay" Text="00:00" FontSize="48" HorizontalOptions="Center" />
                 <HorizontalStackLayout HorizontalOptions="Center" Spacing="10">
-                    <Button x:Name="StartTimerButton" Text="Start" />
-                    <Button x:Name="PauseTimerButton" Text="Pause" IsEnabled="False" />
-                    <Button x:Name="StopTimerButton" Text="Stop" IsEnabled="False" />
+                    <Button x:Name="StartTimerButton" Text="Start" Clicked="StartTimer_Clicked" />
+                    <Button x:Name="PauseTimerButton" Text="Pause" IsEnabled="False" Clicked="PauseTimer_Clicked" />
+                    <Button x:Name="StopTimerButton" Text="Stop" IsEnabled="False" Clicked="StopTimer_Clicked" />
                 </HorizontalStackLayout>
             </VerticalStackLayout>
 
