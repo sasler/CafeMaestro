@@ -46,9 +46,10 @@
             <VerticalStackLayout x:Name="TimerContainer" IsVisible="False" Spacing="10">
                 <Label x:Name="TimerDisplay" Text="00:00" FontSize="48" HorizontalOptions="Center" />
                 <HorizontalStackLayout HorizontalOptions="Center" Spacing="10">
-                    <Button x:Name="StartTimerButton" Text="Start" Clicked="StartTimer_Clicked" />
-                    <Button x:Name="PauseTimerButton" Text="Pause" IsEnabled="False" Clicked="PauseTimer_Clicked" />
-                    <Button x:Name="StopTimerButton" Text="Stop" IsEnabled="False" Clicked="StopTimer_Clicked" />
+                    <Button x:Name="StartTimerButton" Text="▶" Clicked="StartTimer_Clicked" FontSize="24" Padding="10" HorizontalOptions="Center" VerticalOptions="Center" />
+                    <Button x:Name="PauseTimerButton" Text="⏸" IsEnabled="False" Clicked="PauseTimer_Clicked" FontSize="24" Padding="10" HorizontalOptions="Center" VerticalOptions="Center" />
+                    <Button x:Name="StopTimerButton" Text="⏹" IsEnabled="False" Clicked="StopTimer_Clicked" FontSize="24" Padding="10" HorizontalOptions="Center" VerticalOptions="Center" />
+                    <Button x:Name="ResetTimerButton" Text="🔄" Clicked="ResetTimer_Clicked" FontSize="24" Padding="10" HorizontalOptions="Center" VerticalOptions="Center" />
                 </HorizontalStackLayout>
             </VerticalStackLayout>
 
