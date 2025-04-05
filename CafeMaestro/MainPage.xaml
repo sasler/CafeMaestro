@@ -47,13 +47,94 @@
                 <Label x:Name="TimerDisplay" Text="00:00" FontSize="48" HorizontalOptions="Center" />
                 <HorizontalStackLayout HorizontalOptions="Center" Spacing="10">
                     <ImageButton x:Name="StartTimerButton" Source="timer_play_icon.png" Clicked="StartTimer_Clicked" 
-                                 BackgroundColor="Transparent" WidthRequest="60" HeightRequest="60" />
+                                 BackgroundColor="Transparent" WidthRequest="60" HeightRequest="60" >
+                        <VisualStateManager.VisualStateGroups>
+                            <VisualStateGroup x:Name="CommonStates">
+                                <VisualState x:Name="Normal" />
+                                <VisualState x:Name="PointerOver">
+                                    <VisualState.Setters>
+                                        <Setter Property="Scale" Value="1.1" />
+                                        <Setter Property="Opacity" Value="0.8" />
+                                    </VisualState.Setters>
+                                </VisualState>
+                                <VisualState x:Name="Pressed">
+                                    <VisualState.Setters>
+                                        <Setter Property="Opacity" Value="0.5" />
+                                    </VisualState.Setters>
+                                </VisualState>
+                            </VisualStateGroup>
+                        </VisualStateManager.VisualStateGroups>
+                    </ImageButton>
                     <ImageButton x:Name="PauseTimerButton" Source="timer_pause_icon.png" Clicked="PauseTimer_Clicked" 
-                                 BackgroundColor="Transparent" WidthRequest="60" HeightRequest="60" IsEnabled="False" />
+                                 BackgroundColor="Transparent" WidthRequest="60" HeightRequest="60" IsEnabled="False">
+                        <VisualStateManager.VisualStateGroups>
+                            <VisualStateGroup x:Name="CommonStates">
+                                <VisualState x:Name="Normal" />
+                                <VisualState x:Name="PointerOver">
+                                    <VisualState.Setters>
+                                        <Setter Property="Scale" Value="1.1" />
+                                        <Setter Property="Opacity" Value="0.8" />
+                                    </VisualState.Setters>
+                                </VisualState>
+                                <VisualState x:Name="Pressed">
+                                    <VisualState.Setters>
+                                        <Setter Property="Scale" Value="0.9" />
+                                        <Setter Property="BackgroundColor" Value="#333333" />
+                                    </VisualState.Setters>
+                                </VisualState>
+                                <VisualState x:Name="Disabled">
+                                    <VisualState.Setters>
+                                        <Setter Property="Opacity" Value="0.5" />
+                                    </VisualState.Setters>
+                                </VisualState>
+                            </VisualStateGroup>
+                        </VisualStateManager.VisualStateGroups>
+                    </ImageButton>
                     <ImageButton x:Name="StopTimerButton" Source="timer_stop_icon.png" Clicked="StopTimer_Clicked" 
-                                 BackgroundColor="Transparent" WidthRequest="60" HeightRequest="60" IsEnabled="False" />
+                                 BackgroundColor="Transparent" WidthRequest="60" HeightRequest="60" IsEnabled="False">
+                        <VisualStateManager.VisualStateGroups>
+                            <VisualStateGroup x:Name="CommonStates">
+                                <VisualState x:Name="Normal" />
+                                <VisualState x:Name="PointerOver">
+                                    <VisualState.Setters>
+                                        <Setter Property="Scale" Value="1.1" />
+                                        <Setter Property="Opacity" Value="0.8" />
+                                    </VisualState.Setters>
+                                </VisualState>
+                                <VisualState x:Name="Pressed">
+                                    <VisualState.Setters>
+                                        <Setter Property="Scale" Value="0.9" />
+                                        <Setter Property="BackgroundColor" Value="#333333" />
+                                    </VisualState.Setters>
+                                </VisualState>
+                                <VisualState x:Name="Disabled">
+                                    <VisualState.Setters>
+                                        <Setter Property="Opacity" Value="0.5" />
+                                    </VisualState.Setters>
+                                </VisualState>
+                            </VisualStateGroup>
+                        </VisualStateManager.VisualStateGroups>
+                    </ImageButton>
                     <ImageButton x:Name="ResetTimerButton" Source="timer_reset_icon.png" Clicked="ResetTimer_Clicked" 
-                                 BackgroundColor="Transparent" WidthRequest="60" HeightRequest="60" />
+                                 BackgroundColor="Transparent" WidthRequest="60" HeightRequest="60">
+                        <VisualStateManager.VisualStateGroups>
+                            <VisualStateGroup x:Name="CommonStates">
+                                <VisualState x:Name="Normal" />
+                                <VisualState x:Name="PointerOver">
+                                    <VisualState.Setters>
+                                        <Setter Property="Scale" Value="1.1" />
+                                        <Setter Property="Opacity" Value="0.8" />
+                                    </VisualState.Setters>
+                                </VisualState>
+                                <VisualState x:Name="Pressed">
+                                    <VisualState.Setters>
+                                        <Setter Property="Scale" Value="0.9" />
+                                        <Setter Property="BackgroundColor" Value="#333333" />
+                                    </VisualState.Setters>
+                                </VisualState>
+                            </VisualStateGroup>
+                        </VisualStateManager.VisualStateGroups>
+                    </ImageButton>
                 </HorizontalStackLayout>
             </VerticalStackLayout>
 
