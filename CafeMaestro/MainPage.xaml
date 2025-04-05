@@ -29,25 +29,18 @@
             <Entry x:Name="TemperatureEntry" Keyboard="Numeric" Placeholder="Enter temperature" />
 
             <Label Text="Roasting Time:" />
-            <Grid ColumnDefinitions="*, Auto, *, Auto" ColumnSpacing="5">
-                <Entry x:Name="RoastMinutesEntry" Grid.Column="0" Keyboard="Numeric" Placeholder="Min" />
-                <Label Text="min" Grid.Column="1" VerticalOptions="Center" />
-                <Entry x:Name="RoastSecondsEntry" Grid.Column="2" Keyboard="Numeric" Placeholder="Sec" />
-                <Label Text="sec" Grid.Column="3" VerticalOptions="Center" />
-            </Grid>
-
-            <!-- Manual Time Entry UI -->
-            <VerticalStackLayout x:Name="ManualTimeEntryContainer" IsVisible="True">
-                <RadioButton x:Name="ManualEntryRadioButton" Content="Manual Entry" IsChecked="True" CheckedChanged="TimeEntryMethod_CheckedChanged" />
-                <RadioButton x:Name="UseTimerRadioButton" Content="Use Timer" CheckedChanged="TimeEntryMethod_CheckedChanged" />
-            </VerticalStackLayout>
-
-            <!-- Timer UI -->
-            <VerticalStackLayout x:Name="TimerContainer" IsVisible="False" Spacing="10">
-                <Label x:Name="TimerDisplay" Text="00:00" FontSize="48" HorizontalOptions="Center" />
+            <!-- Single input timer UI with right-to-left input behavior -->
+            <VerticalStackLayout Spacing="10">
+                <Frame BorderColor="LightGray" Padding="8" CornerRadius="5" HorizontalOptions="Center">
+                    <Entry x:Name="TimeEntry" Text="00:00" FontSize="48" HorizontalTextAlignment="Center"
+                           WidthRequest="180" Keyboard="Numeric" MaxLength="5" 
+                           Focused="TimeEntry_Focused" 
+                           Unfocused="TimeEntry_Unfocused"
+                           TextChanged="TimeEntry_TextChanged" />
+                </Frame>
                 <HorizontalStackLayout HorizontalOptions="Center" Spacing="10">
                     <ImageButton x:Name="StartTimerButton" Source="timer_play_icon.png" Clicked="StartTimer_Clicked" 
-                                 BackgroundColor="Transparent" WidthRequest="60" HeightRequest="60" >
+                                 BackgroundColor="Transparent" WidthRequest="60" HeightRequest="60">
                         <VisualStateManager.VisualStateGroups>
                             <VisualStateGroup x:Name="CommonStates">
                                 <VisualState x:Name="Normal" />
@@ -59,7 +52,8 @@
                                 </VisualState>
                                 <VisualState x:Name="Pressed">
                                     <VisualState.Setters>
-                                        <Setter Property="Opacity" Value="0.5" />
+                                        <Setter Property="Scale" Value="0.9" />
+                                        <Setter Property="BackgroundColor" Value="#333333" />
                                     </VisualState.Setters>
                                 </VisualState>
                             </VisualStateGroup>
@@ -136,6 +130,8 @@
                         </VisualStateManager.VisualStateGroups>
                     </ImageButton>
                 </HorizontalStackLayout>
+                <Label x:Name="TimerInstructionLabel" Text="Enter time: 1=10s, 12=1m12s, 123=12m30s..." 
+                       FontSize="12" TextColor="Gray" HorizontalOptions="Center" />
             </VerticalStackLayout>
 
             <Label Text="Batch Weight (g):" />

@@ -1,12 +1,15 @@
 ﻿namespace CafeMaestro;
 
 using Microsoft.Maui.Controls;
-using Microsoft.Maui.ApplicationModel; // Added for MainThread access
+using Microsoft.Maui.ApplicationModel;
 using System;
+using System.Linq;
 
 public partial class MainPage : ContentPage
 {
     private TimerService timerService;
+    private bool isTimerUpdating = false; // Flag to prevent recursive updates
+    private string temporaryDigitsBuffer = ""; // Store digits before formatting
 
     public MainPage()
     {
@@ -15,9 +18,6 @@ public partial class MainPage : ContentPage
         // Initialize TimerService
         timerService = new TimerService();
         timerService.TimeUpdated += OnTimeUpdated;
-
-        // Set initial timer visibility
-        UpdateTimerVisibility();
 
         // Attach event handlers for weight entry text changes
         BatchWeightEntry.TextChanged += OnWeightEntryTextChanged;
@@ -101,21 +101,10 @@ public partial class MainPage : ContentPage
             return false;
         }
 
-        // Validate roasting minutes
-        if (string.IsNullOrWhiteSpace(RoastMinutesEntry.Text) ||
-            !int.TryParse(RoastMinutesEntry.Text, out roastMinutes) ||
-            roastMinutes < 0)
+        // Parse and validate time
+        if (!ParseTimeEntry(out roastMinutes, out roastSeconds))
         {
-            DisplayAlert("Validation Error", "Please enter valid minutes (0 or more).", "OK");
-            return false;
-        }
-
-        // Validate roasting seconds
-        if (string.IsNullOrWhiteSpace(RoastSecondsEntry.Text) ||
-            !int.TryParse(RoastSecondsEntry.Text, out roastSeconds) ||
-            roastSeconds < 0 || roastSeconds > 59)
-        {
-            DisplayAlert("Validation Error", "Please enter valid seconds (0-59).", "OK");
+            DisplayAlert("Validation Error", "Please enter a valid roast time.", "OK");
             return false;
         }
 
@@ -127,6 +116,36 @@ public partial class MainPage : ContentPage
         }
 
         return true;
+    }
+
+    private bool ParseTimeEntry(out int minutes, out int seconds)
+    {
+        minutes = 0;
+        seconds = 0;
+
+        string timeText = TimeEntry.Text?.Trim() ?? "";
+        
+        // Check for MM:SS format
+        string[] parts = timeText.Split(':');
+        if (parts.Length == 2)
+        {
+            if (!int.TryParse(parts[0], out minutes) || 
+                !int.TryParse(parts[1], out seconds))
+            {
+                return false;
+            }
+            
+            if (seconds >= 60)
+            {
+                // Convert excess seconds to minutes
+                minutes += seconds / 60;
+                seconds = seconds % 60;
+            }
+            
+            return true;
+        }
+        
+        return false;
     }
 
     private string GetRoastLevel(double lossPercentage)
@@ -156,7 +175,117 @@ public partial class MainPage : ContentPage
 
     private void OnTimeUpdated(TimeSpan elapsedTime)
     {
-        TimerDisplay.Text = $"{elapsedTime.Minutes:D2}:{elapsedTime.Seconds:D2}";
+        if (!isTimerUpdating)
+        {
+            isTimerUpdating = true;
+            TimeEntry.Text = $"{elapsedTime.Minutes:D2}:{elapsedTime.Seconds:D2}";
+            isTimerUpdating = false;
+        }
+    }
+
+    // When time entry is focused, clear the field for easier input
+    private void TimeEntry_Focused(object sender, FocusEventArgs e)
+    {
+        if (sender is Entry entry && e.IsFocused)
+        {
+            // Clear the field to allow fresh input
+            isTimerUpdating = true;
+            entry.Text = "";
+            isTimerUpdating = false;
+        }
+    }
+
+    private void TimeEntry_TextChanged(object sender, TextChangedEventArgs e)
+    {
+        if (isTimerUpdating)
+            return;
+
+        string text = e.NewTextValue ?? "";
+        
+        // Extract only the digits from input
+        string inputDigits = new string(text.Where(char.IsDigit).ToArray());
+        
+        // Store digits in our buffer for natural typing experience
+        if (!string.IsNullOrEmpty(inputDigits))
+        {
+            temporaryDigitsBuffer = inputDigits;
+            
+            // Don't auto-format yet - let user enter more digits first
+            return;
+        }
+        else if (string.IsNullOrEmpty(text) || !text.Contains(':'))
+        {
+            // Keep the field empty while user is typing
+            temporaryDigitsBuffer = "";
+            return;
+        }
+    }
+    
+    // Format time when the field loses focus
+    private void TimeEntry_Unfocused(object sender, FocusEventArgs e)
+    {
+        if (isTimerUpdating)
+            return;
+            
+        // Now apply the formatting using the buffered digits
+        if (!string.IsNullOrEmpty(temporaryDigitsBuffer))
+        {
+            isTimerUpdating = true;
+            
+            // Format based on how many digits were entered
+            switch (temporaryDigitsBuffer.Length)
+            {
+                case 1: // Single digit = seconds (units)
+                    TimeEntry.Text = $"00:0{temporaryDigitsBuffer}";
+                    break;
+                case 2: // Two digits = seconds (tens + units)
+                    TimeEntry.Text = $"00:{temporaryDigitsBuffer}";
+                    break;
+                case 3: // Three digits = 1 minute + seconds
+                    TimeEntry.Text = $"0{temporaryDigitsBuffer[0]}:{temporaryDigitsBuffer.Substring(1)}";
+                    break;
+                case 4: // Four digits = minutes + seconds
+                    TimeEntry.Text = $"{temporaryDigitsBuffer.Substring(0, 2)}:{temporaryDigitsBuffer.Substring(2)}";
+                    break;
+                default: // More than 4 digits - take last 4
+                    string lastFour = temporaryDigitsBuffer.Substring(temporaryDigitsBuffer.Length - 4);
+                    TimeEntry.Text = $"{lastFour.Substring(0, 2)}:{lastFour.Substring(2)}";
+                    break;
+            }
+            
+            // Clear the buffer
+            temporaryDigitsBuffer = "";
+            isTimerUpdating = false;
+        }
+        else
+        {
+            // If no digits were entered, reset to 00:00
+            isTimerUpdating = true;
+            TimeEntry.Text = "00:00";
+            isTimerUpdating = false;
+        }
+        
+        // Format properly if it contains a colon already
+        string text = TimeEntry.Text;
+        if (text.Contains(':'))
+        {
+            string[] parts = text.Split(':');
+            if (parts.Length == 2 && 
+                int.TryParse(parts[0], out int minutes) && 
+                int.TryParse(parts[1], out int seconds))
+            {
+                // Handle seconds overflow
+                if (seconds >= 60)
+                {
+                    minutes += seconds / 60;
+                    seconds = seconds % 60;
+                }
+                
+                isTimerUpdating = true;
+                TimeEntry.Text = $"{minutes:D2}:{seconds:D2}";
+                isTimerUpdating = false;
+            }
+        }
     }
 
     private void StartTimer_Clicked(object sender, EventArgs e)
@@ -165,6 +294,9 @@ public partial class MainPage : ContentPage
         StartTimerButton.IsEnabled = false;
         PauseTimerButton.IsEnabled = true;
         StopTimerButton.IsEnabled = true;
+
+        // Disable manual editing while timer is running
+        TimeEntry.IsEnabled = false;
     }
 
     private void PauseTimer_Clicked(object sender, EventArgs e)
@@ -172,58 +304,38 @@ public partial class MainPage : ContentPage
         timerService.Stop();
         StartTimerButton.IsEnabled = true;
         PauseTimerButton.IsEnabled = false;
+        
+        // Re-enable manual editing when timer is paused
+        TimeEntry.IsEnabled = true;
     }
 
     private void StopTimer_Clicked(object sender, EventArgs e)
     {
         timerService.Stop();
-        TimeSpan elapsedTime = timerService.GetElapsedTime();
-
-        // Populate the roasting time fields
-        RoastMinutesEntry.Text = elapsedTime.Minutes.ToString();
-        RoastSecondsEntry.Text = elapsedTime.Seconds.ToString();
-
-        // Switch back to manual entry view
-        ManualEntryRadioButton.IsChecked = true;
-
+        
         // Reset button states
         StartTimerButton.IsEnabled = true;
         PauseTimerButton.IsEnabled = false;
         StopTimerButton.IsEnabled = false;
+        
+        // Re-enable manual editing when timer is stopped
+        TimeEntry.IsEnabled = true;
     }
 
     private void ResetTimer_Clicked(object sender, EventArgs e)
     {
         timerService.Reset();
+        
+        isTimerUpdating = true;
+        TimeEntry.Text = "00:00";
+        isTimerUpdating = false;
+        
         StartTimerButton.IsEnabled = true;
         PauseTimerButton.IsEnabled = false;
         StopTimerButton.IsEnabled = false;
-    }
-
-    private void UseTimerValue_Clicked(object sender, EventArgs e)
-    {
-        timerService.Stop();
-        TimeSpan elapsedTime = timerService.GetElapsedTime();
-
-        // Populate the roasting time fields
-        RoastMinutesEntry.Text = elapsedTime.Minutes.ToString();
-        RoastSecondsEntry.Text = elapsedTime.Seconds.ToString();
-
-        // Switch back to manual entry view
-        ManualEntryRadioButton.IsChecked = true;
-    }
-
-    private void TimeEntryMethod_CheckedChanged(object sender, CheckedChangedEventArgs e)
-    {
-        UpdateTimerVisibility();
-    }
-
-    private void UpdateTimerVisibility()
-    {
-        bool useTimer = UseTimerRadioButton.IsChecked;
-
-        TimerContainer.IsVisible = useTimer;
-        ManualTimeEntryContainer.IsVisible = !useTimer;
+        
+        // Re-enable manual editing when timer is reset
+        TimeEntry.IsEnabled = true;
     }
 
     protected override void OnDisappearing()
