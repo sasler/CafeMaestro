@@ -29,14 +29,32 @@
             <Entry x:Name="TemperatureEntry" Keyboard="Numeric" Placeholder="Enter temperature" />
 
             <Label Text="Roasting Time:" />
-            <!-- Single input timer UI with right-to-left input behavior -->
+            <!-- Timer UI with digital watch styling -->
             <VerticalStackLayout Spacing="10">
-                <Frame BorderColor="LightGray" Padding="8" CornerRadius="5" HorizontalOptions="Center">
-                    <Entry x:Name="TimeEntry" Text="00:00" FontSize="48" HorizontalTextAlignment="Center"
-                           WidthRequest="180" Keyboard="Numeric" MaxLength="5" 
-                           Focused="TimeEntry_Focused" 
-                           Unfocused="TimeEntry_Unfocused"
-                           TextChanged="TimeEntry_TextChanged" />
+                <Frame BorderColor="LightGray" BackgroundColor="Black" Padding="10" CornerRadius="5" HorizontalOptions="Center">
+                    <Grid>
+                        <!-- Digital display label for the timer -->
+                        <Label x:Name="TimeDisplayLabel"
+                               Text="00:00"
+                               FontSize="48"
+                               HorizontalOptions="Center"
+                               HorizontalTextAlignment="Center"
+                               VerticalTextAlignment="Center"
+                               TextColor="#32FF6A"
+                               FontFamily="Digital7"
+                               BackgroundColor="Black" />
+                    
+                        <!-- Invisible entry for user input - same size as the label but transparent -->
+                        <Entry x:Name="TimeEntry"
+                               Text=""
+                               FontSize="1"
+                               Opacity="0"
+                               Keyboard="Numeric"
+                               MaxLength="5"
+                               Focused="TimeEntry_Focused"
+                               Unfocused="TimeEntry_Unfocused"
+                               TextChanged="TimeEntry_TextChanged" />
+                    </Grid>
                 </Frame>
                 <HorizontalStackLayout HorizontalOptions="Center" Spacing="10">
                     <ImageButton x:Name="StartTimerButton" Source="timer_play_icon.png" Clicked="StartTimer_Clicked" 
@@ -130,7 +148,7 @@
                         </VisualStateManager.VisualStateGroups>
                     </ImageButton>
                 </HorizontalStackLayout>
-                <Label x:Name="TimerInstructionLabel" Text="Enter time: 1=10s, 12=1m12s, 123=12m30s..." 
+                <Label x:Name="TimerInstructionLabel" Text="Tap timer to enter time: 1=1s, 12=12s, 123=1m:23s, 1234=12m:34s" 
                        FontSize="12" TextColor="Gray" HorizontalOptions="Center" />
             </VerticalStackLayout>
 

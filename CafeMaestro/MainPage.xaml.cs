@@ -178,7 +178,9 @@ public partial class MainPage : ContentPage
         if (!isTimerUpdating)
         {
             isTimerUpdating = true;
+            // Update both the invisible entry and the display label
             TimeEntry.Text = $"{elapsedTime.Minutes:D2}:{elapsedTime.Seconds:D2}";
+            TimeDisplayLabel.Text = $"{elapsedTime.Minutes:D2}:{elapsedTime.Seconds:D2}";
             isTimerUpdating = false;
         }
     }
@@ -191,6 +193,7 @@ public partial class MainPage : ContentPage
             // Clear the field to allow fresh input
             isTimerUpdating = true;
             entry.Text = "";
+            // Keep the display showing the current time
             isTimerUpdating = false;
         }
     }
@@ -210,7 +213,8 @@ public partial class MainPage : ContentPage
         {
             temporaryDigitsBuffer = inputDigits;
             
-            // Don't auto-format yet - let user enter more digits first
+            // Format the display in real-time based on how many digits were entered
+            UpdateTimeDisplayFromDigits(temporaryDigitsBuffer);
             return;
         }
         else if (string.IsNullOrEmpty(text) || !text.Contains(':'))
@@ -218,6 +222,36 @@ public partial class MainPage : ContentPage
             // Keep the field empty while user is typing
             temporaryDigitsBuffer = "";
             return;
+        }
+    }
+    
+    // Helper method to update the display based on digit input
+    private void UpdateTimeDisplayFromDigits(string digits)
+    {
+        if (string.IsNullOrEmpty(digits))
+        {
+            TimeDisplayLabel.Text = "00:00";
+            return;
+        }
+        
+        switch (digits.Length)
+        {
+            case 1: // Single digit = seconds (units)
+                TimeDisplayLabel.Text = $"00:0{digits}";
+                break;
+            case 2: // Two digits = seconds (tens + units)
+                TimeDisplayLabel.Text = $"00:{digits}";
+                break;
+            case 3: // Three digits = 1 minute + seconds
+                TimeDisplayLabel.Text = $"0{digits[0]}:{digits.Substring(1)}";
+                break;
+            case 4: // Four digits = minutes + seconds
+                TimeDisplayLabel.Text = $"{digits.Substring(0, 2)}:{digits.Substring(2)}";
+                break;
+            default: // More than 4 digits - take last 4
+                string lastFour = digits.Substring(digits.Length - 4);
+                TimeDisplayLabel.Text = $"{lastFour.Substring(0, 2)}:{lastFour.Substring(2)}";
+                break;
         }
     }
     
@@ -237,19 +271,24 @@ public partial class MainPage : ContentPage
             {
                 case 1: // Single digit = seconds (units)
                     TimeEntry.Text = $"00:0{temporaryDigitsBuffer}";
+                    TimeDisplayLabel.Text = $"00:0{temporaryDigitsBuffer}";
                     break;
                 case 2: // Two digits = seconds (tens + units)
                     TimeEntry.Text = $"00:{temporaryDigitsBuffer}";
+                    TimeDisplayLabel.Text = $"00:{temporaryDigitsBuffer}";
                     break;
                 case 3: // Three digits = 1 minute + seconds
                     TimeEntry.Text = $"0{temporaryDigitsBuffer[0]}:{temporaryDigitsBuffer.Substring(1)}";
+                    TimeDisplayLabel.Text = $"0{temporaryDigitsBuffer[0]}:{temporaryDigitsBuffer.Substring(1)}";
                     break;
                 case 4: // Four digits = minutes + seconds
                     TimeEntry.Text = $"{temporaryDigitsBuffer.Substring(0, 2)}:{temporaryDigitsBuffer.Substring(2)}";
+                    TimeDisplayLabel.Text = $"{temporaryDigitsBuffer.Substring(0, 2)}:{temporaryDigitsBuffer.Substring(2)}";
                     break;
                 default: // More than 4 digits - take last 4
                     string lastFour = temporaryDigitsBuffer.Substring(temporaryDigitsBuffer.Length - 4);
                     TimeEntry.Text = $"{lastFour.Substring(0, 2)}:{lastFour.Substring(2)}";
+                    TimeDisplayLabel.Text = $"{lastFour.Substring(0, 2)}:{lastFour.Substring(2)}";
                     break;
             }
             
@@ -262,6 +301,7 @@ public partial class MainPage : ContentPage
             // If no digits were entered, reset to 00:00
             isTimerUpdating = true;
             TimeEntry.Text = "00:00";
+            TimeDisplayLabel.Text = "00:00";
             isTimerUpdating = false;
         }
         
@@ -283,6 +323,7 @@ public partial class MainPage : ContentPage
                 
                 isTimerUpdating = true;
                 TimeEntry.Text = $"{minutes:D2}:{seconds:D2}";
+                TimeDisplayLabel.Text = $"{minutes:D2}:{seconds:D2}";
                 isTimerUpdating = false;
             }
         }
@@ -328,6 +369,7 @@ public partial class MainPage : ContentPage
         
         isTimerUpdating = true;
         TimeEntry.Text = "00:00";
+        TimeDisplayLabel.Text = "00:00";
         isTimerUpdating = false;
         
         StartTimerButton.IsEnabled = true;
