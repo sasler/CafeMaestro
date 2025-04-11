@@ -111,6 +111,40 @@ public partial class SettingsPage : ContentPage
     {
         try
         {
+            // Use folder picker instead of file picker to let user select a destination folder
+            string initialFolder = Path.GetDirectoryName(_appDataService.DataFilePath);
+            
+            #if WINDOWS
+            // On Windows, use the folder picker
+            var folderPicker = new Windows.Storage.Pickers.FolderPicker();
+            folderPicker.SuggestedStartLocation = Windows.Storage.Pickers.PickerLocationId.DocumentsLibrary;
+            folderPicker.FileTypeFilter.Add("*");
+            
+            // Get the current window handle
+            var window = System.Diagnostics.Process.GetCurrentProcess().MainWindowHandle;
+            // Associate the folder picker with the window
+            WinRT.Interop.InitializeWithWindow.Initialize(folderPicker, window);
+            
+            var folder = await folderPicker.PickSingleFolderAsync();
+            if (folder != null)
+            {
+                // Prompt user for filename
+                string fileName = await DisplayPromptAsync(
+                    "Create Data File", 
+                    "Enter a filename for your data file:", 
+                    initialValue: "cafemaestro_data.json",
+                    maxLength: 100);
+                    
+                if (string.IsNullOrWhiteSpace(fileName))
+                    return;
+                
+                // Ensure filename has .json extension
+                if (!fileName.EndsWith(".json", StringComparison.OrdinalIgnoreCase))
+                    fileName += ".json";
+                
+                string filePath = Path.Combine(folder.Path, fileName);
+            #else
+            // For other platforms, use the standard file picker
             var customFileType = new FilePickerFileType(
                 new Dictionary<DevicePlatform, IEnumerable<string>>
                 {
@@ -122,7 +156,7 @@ public partial class SettingsPage : ContentPage
 
             var options = new PickOptions
             {
-                PickerTitle = "Create New Data File (Choose Location)",
+                PickerTitle = "Choose location for new data file (.json)",
                 FileTypes = customFileType
             };
 
@@ -136,6 +170,7 @@ public partial class SettingsPage : ContentPage
                 {
                     filePath += ".json";
                 }
+            #endif
                 
                 // Check if file exists
                 if (File.Exists(filePath))
@@ -148,22 +183,36 @@ public partial class SettingsPage : ContentPage
                         return;
                 }
                 
-                // Create new empty data file
-                bool success = await _appDataService.CreateEmptyDataFileAsync(filePath);
-                
-                if (success)
+                try
                 {
-                    // Save preference
-                    await _preferencesService.SaveAppDataFilePathAsync(filePath);
+                    // Ensure the directory exists before creating the file
+                    string directory = Path.GetDirectoryName(filePath);
+                    if (!string.IsNullOrEmpty(directory) && !Directory.Exists(directory))
+                    {
+                        Directory.CreateDirectory(directory);
+                    }
                     
-                    // Update display
-                    await LoadCurrentDataFilePath();
+                    // Create new empty data file
+                    bool success = await _appDataService.CreateEmptyDataFileAsync(filePath);
                     
-                    await DisplayAlert("Success", $"Created new data file: {Path.GetFileName(filePath)}", "OK");
+                    if (success)
+                    {
+                        // Save preference
+                        await _preferencesService.SaveAppDataFilePathAsync(filePath);
+                        
+                        // Update display
+                        await LoadCurrentDataFilePath();
+                        
+                        await DisplayAlert("Success", $"Created new data file: {Path.GetFileName(filePath)}", "OK");
+                    }
+                    else
+                    {
+                        await DisplayAlert("Error", "Failed to create data file", "OK");
+                    }
                 }
-                else
+                catch (Exception ex)
                 {
-                    await DisplayAlert("Error", "Failed to create data file", "OK");
+                    await DisplayAlert("Error", $"Error creating file: {ex.Message}", "OK");
                 }
             }
         }

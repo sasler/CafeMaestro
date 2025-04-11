@@ -169,8 +169,28 @@ namespace CafeMaestro.Services
                 // Set file path
                 SetCustomFilePath(filePath);
                 
-                // Save empty data
-                return await SaveAppDataAsync(emptyData);
+                // Make sure directory exists
+                string directory = Path.GetDirectoryName(filePath);
+                if (!string.IsNullOrEmpty(directory) && !Directory.Exists(directory))
+                {
+                    Directory.CreateDirectory(directory);
+                }
+                
+                // Create and save empty data to the file directly to ensure it works
+                string jsonString = JsonSerializer.Serialize(emptyData, _jsonOptions);
+                await File.WriteAllTextAsync(filePath, jsonString);
+                
+                // Verify file was created
+                if (!File.Exists(filePath))
+                {
+                    return false;
+                }
+                
+                // Update cache
+                _cachedData = emptyData;
+                _isDirty = false;
+                
+                return true;
             }
             catch (Exception ex)
             {
