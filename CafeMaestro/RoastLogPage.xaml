@@ -42,12 +42,18 @@
         </RefreshView>
 
         <HorizontalStackLayout Grid.Row="2" Spacing="10" Margin="0,10,0,0" HorizontalOptions="Center">
+            <Button x:Name="DataFileButton" 
+                   Text="Data File"
+                   Clicked="DataFileButton_Clicked"
+                   BackgroundColor="#008000"
+                   TextColor="White"
+                   WidthRequest="120" />
             <Button x:Name="ExportButton" 
                    Text="Export to CSV"
                    Clicked="ExportButton_Clicked"
                    BackgroundColor="#0078D4"
                    TextColor="White"
-                   WidthRequest="160" />
+                   WidthRequest="120" />
             <Button x:Name="BackButton" 
                    Text="Back" 
                    Clicked="BackButton_Clicked"

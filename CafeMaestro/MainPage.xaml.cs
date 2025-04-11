@@ -14,6 +14,7 @@ public partial class MainPage : ContentPage
     private TimerService timerService;
     private RoastDataService roastDataService;
     private BeanService beanService;
+    private PreferencesService preferencesService;
     private bool isTimerUpdating = false; // Flag to prevent recursive updates
     private string temporaryDigitsBuffer = ""; // Store digits before formatting
     
@@ -29,6 +30,7 @@ public partial class MainPage : ContentPage
         timerService = Application.Current?.Handler?.MauiContext?.Services.GetService<TimerService>() ?? new TimerService();
         roastDataService = Application.Current?.Handler?.MauiContext?.Services.GetService<RoastDataService>() ?? new RoastDataService();
         beanService = Application.Current?.Handler?.MauiContext?.Services.GetService<BeanService>() ?? new BeanService();
+        preferencesService = Application.Current?.Handler?.MauiContext?.Services.GetService<PreferencesService>() ?? new PreferencesService();
         
         timerService.TimeUpdated += OnTimeUpdated;
 
@@ -41,6 +43,31 @@ public partial class MainPage : ContentPage
         
         // Handle bean selection changes
         BeanPicker.SelectedIndexChanged += BeanPicker_SelectedIndexChanged;
+        
+        // Initialize the data file path
+        InitializeDataFilePath();
+    }
+    
+    private async void InitializeDataFilePath()
+    {
+        try
+        {
+            // Check if user has a saved file path preference
+            string savedFilePath = await preferencesService.GetRoastDataFilePathAsync();
+            
+            if (!string.IsNullOrEmpty(savedFilePath))
+            {
+                // If file exists, use it
+                if (File.Exists(savedFilePath))
+                {
+                    roastDataService.SetCustomFilePath(savedFilePath);
+                }
+            }
+        }
+        catch (Exception ex)
+        {
+            await DisplayAlert("Error", $"Failed to initialize data file: {ex.Message}", "OK");
+        }
     }
     
     protected override void OnAppearing()
@@ -48,6 +75,8 @@ public partial class MainPage : ContentPage
         base.OnAppearing();
         // Refresh beans when returning to this page
         LoadBeans();
+        // Re-initialize data file path in case it was changed in another page
+        InitializeDataFilePath();
     }
     
     private async void LoadBeans()
@@ -104,7 +133,8 @@ public partial class MainPage : ContentPage
     
     private async void ManageBeans_Clicked(object sender, EventArgs e)
     {
-        await Navigation.PushAsync(new BeanInventoryPage());
+        // Navigate to the BeanInventoryPage using Shell navigation
+        await Shell.Current.GoToAsync(nameof(BeanInventoryPage));
     }
 
     private bool ValidateInputs(out double batchWeight, out double finalWeight, out double temperature, 
@@ -529,8 +559,8 @@ public partial class MainPage : ContentPage
 
     private async void ViewLogs_Clicked(object sender, EventArgs e)
     {
-        // Navigate to the RoastLogPage
-        await Navigation.PushAsync(new RoastLogPage());
+        // Navigate to the RoastLogPage using Shell navigation
+        await Shell.Current.GoToAsync(nameof(RoastLogPage));
     }
 
     private void ClearForm()

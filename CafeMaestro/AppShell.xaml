@@ -7,9 +7,49 @@
     Shell.FlyoutBehavior="Flyout"
     Title="CafeMaestro">
 
-    <ShellContent
-        Title="Home"
-        ContentTemplate="{DataTemplate local:MainPage}"
-        Route="MainPage" />
+    <Shell.FlyoutHeader>
+        <Grid HeightRequest="120" BackgroundColor="#512BD4">
+            <Label Text="CafeMaestro" 
+                   FontSize="28" 
+                   TextColor="White" 
+                   HorizontalOptions="Center" 
+                   VerticalOptions="Center" 
+                   FontAttributes="Bold" />
+        </Grid>
+    </Shell.FlyoutHeader>
+
+    <FlyoutItem Title="Home" Icon="home_icon.png">
+        <ShellContent 
+            Title="Coffee Roasting"
+            ContentTemplate="{DataTemplate local:MainPage}"
+            Route="MainPage" />
+    </FlyoutItem>
+
+    <FlyoutItem Title="Roast Log" Icon="log_icon.png">
+        <ShellContent 
+            Title="Roast History"
+            ContentTemplate="{DataTemplate local:RoastLogPage}"
+            Route="RoastLogPage" />
+    </FlyoutItem>
+
+    <FlyoutItem Title="Bean Inventory" Icon="beans_icon.png">
+        <ShellContent 
+            Title="Bean Inventory"
+            ContentTemplate="{DataTemplate local:BeanInventoryPage}"
+            Route="BeanInventoryPage" />
+    </FlyoutItem>
+    
+    <FlyoutItem Title="Settings" Icon="settings_icon.png">
+        <ShellContent 
+            Title="Settings"
+            ContentTemplate="{DataTemplate local:SettingsPage}"
+            Route="SettingsPage" />
+    </FlyoutItem>
+
+    <Shell.FlyoutFooter>
+        <StackLayout Padding="20">
+            <Label Text="Coffee Roasting App" HorizontalOptions="Center" />
+        </StackLayout>
+    </Shell.FlyoutFooter>
 
 </Shell>

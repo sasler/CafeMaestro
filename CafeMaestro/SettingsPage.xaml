@@ -1,0 +1,60 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<ContentPage xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
+             x:Class="CafeMaestro.SettingsPage"
+             Title="Settings">
+    <ScrollView>
+        <VerticalStackLayout Padding="20" Spacing="20">
+            <Label Text="Settings" FontSize="24" HorizontalOptions="Center" Margin="0,0,0,20" />
+            
+            <Frame BorderColor="LightGray" Padding="16" CornerRadius="8">
+                <VerticalStackLayout Spacing="16">
+                    <Label Text="Data File Location" FontSize="18" FontAttributes="Bold" />
+                    
+                    <Label x:Name="DataFilePath" 
+                           Text="Loading..." 
+                           FontSize="14"
+                           LineBreakMode="CharacterWrap" />
+                    
+                    <HorizontalStackLayout Spacing="10" HorizontalOptions="Center">
+                        <Button x:Name="SelectDataFileButton" 
+                                Text="Select File" 
+                                Clicked="SelectDataFileButton_Clicked"
+                                BackgroundColor="#008000"
+                                TextColor="White"
+                                WidthRequest="110" />
+                        
+                        <Button x:Name="CreateDataFileButton" 
+                                Text="Create New" 
+                                Clicked="CreateDataFileButton_Clicked"
+                                BackgroundColor="#0078D4"
+                                TextColor="White"
+                                WidthRequest="110" />
+                        
+                        <Button x:Name="UseDefaultButton" 
+                                Text="Use Default" 
+                                Clicked="UseDefaultButton_Clicked"
+                                BackgroundColor="#512BD4"
+                                TextColor="White"
+                                WidthRequest="110" />
+                    </HorizontalStackLayout>
+                </VerticalStackLayout>
+            </Frame>
+            
+            <Frame BorderColor="LightGray" Padding="16" CornerRadius="8">
+                <VerticalStackLayout Spacing="8">
+                    <Label Text="About" FontSize="18" FontAttributes="Bold" />
+                    
+                    <Label Text="CafeMaestro - Coffee Roasting App" FontSize="16" />
+                    
+                    <HorizontalStackLayout Spacing="5">
+                        <Label Text="Version:" FontSize="14" />
+                        <Label x:Name="VersionLabel" Text="1.0.0" FontSize="14" />
+                    </HorizontalStackLayout>
+                    
+                    <Label Text="© 2025 CafeMaestro Team" FontSize="14" TextColor="Gray" />
+                </VerticalStackLayout>
+            </Frame>
+        </VerticalStackLayout>
+    </ScrollView>
+</ContentPage>

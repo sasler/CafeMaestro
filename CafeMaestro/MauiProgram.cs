@@ -21,6 +21,7 @@ public static class MauiProgram
 		builder.Services.AddSingleton<RoastDataService>();
 		builder.Services.AddSingleton<BeanService>();
 		builder.Services.AddSingleton<TimerService>();
+		builder.Services.AddSingleton<PreferencesService>();
 
 #if DEBUG
 		builder.Logging.AddDebug();

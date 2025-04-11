@@ -57,6 +57,12 @@
 		<MauiImage Update="Resources\Images\timer_pause_icon.svg" BaseSize="60,60" />
 		<MauiImage Update="Resources\Images\timer_stop_icon.svg" BaseSize="60,60" />
 		<MauiImage Update="Resources\Images\timer_reset_icon.svg" BaseSize="60,60" />
+		
+		<!-- Navigation Menu Icons -->
+		<MauiImage Update="Resources\Images\home_icon.svg" BaseSize="24,24" />
+		<MauiImage Update="Resources\Images\log_icon.svg" BaseSize="24,24" />
+		<MauiImage Update="Resources\Images\beans_icon.svg" BaseSize="24,24" />
+		<MauiImage Update="Resources\Images\settings_icon.svg" BaseSize="24,24" />
 
 		<!-- Custom Fonts -->
 		<MauiFont Include="Resources\Fonts\*" />
