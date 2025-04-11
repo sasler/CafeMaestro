@@ -10,32 +10,19 @@ namespace CafeMaestro.Services
 {
     public class RoastDataService
     {
-        private string _folderPath;
-        private string _filePath;
-        private readonly string _defaultFileName = "roast_log.json";
+        private readonly AppDataService _appDataService;
         private readonly JsonSerializerOptions _jsonOptions;
         
         // Property to get/set the current data file path
         public string DataFilePath 
         { 
-            get => _filePath;
-            set
-            {
-                _filePath = value;
-                _folderPath = Path.GetDirectoryName(_filePath);
-            }
+            get => _appDataService.DataFilePath;
+            set => _appDataService.DataFilePath = value;
         }
 
-        public RoastDataService()
+        public RoastDataService(AppDataService appDataService)
         {
-            // Default initialization using app data directory
-            _folderPath = Path.Combine(FileSystem.AppDataDirectory, "RoastData");
-            
-            // Create the directory if it doesn't exist
-            if (!Directory.Exists(_folderPath))
-                Directory.CreateDirectory(_folderPath);
-                
-            _filePath = Path.Combine(_folderPath, _defaultFileName);
+            _appDataService = appDataService;
             
             _jsonOptions = new JsonSerializerOptions
             {
@@ -50,29 +37,21 @@ namespace CafeMaestro.Services
             if (string.IsNullOrWhiteSpace(filePath))
                 return;
                 
-            DataFilePath = filePath;
-            
-            // Ensure the directory exists
-            var directory = Path.GetDirectoryName(filePath);
-            if (!string.IsNullOrEmpty(directory) && !Directory.Exists(directory))
-                Directory.CreateDirectory(directory);
+            _appDataService.SetCustomFilePath(filePath);
         }
 
         public async Task<bool> SaveRoastDataAsync(RoastData roastData)
         {
             try
             {
-                // Load existing data first
-                var existingData = await LoadRoastDataAsync();
+                // Load full app data
+                var appData = await _appDataService.LoadAppDataAsync();
                 
                 // Add the new data
-                existingData.Add(roastData);
+                appData.RoastLogs.Add(roastData);
                 
-                // Save everything back to the file
-                string jsonString = JsonSerializer.Serialize(existingData, _jsonOptions);
-                await File.WriteAllTextAsync(_filePath, jsonString);
-                
-                return true;
+                // Save updated app data
+                return await _appDataService.SaveAppDataAsync(appData);
             }
             catch (Exception ex)
             {
@@ -85,13 +64,10 @@ namespace CafeMaestro.Services
         {
             try
             {
-                if (!File.Exists(_filePath))
-                    return new List<RoastData>();
-                    
-                string jsonString = await File.ReadAllTextAsync(_filePath);
-                var roastDataList = JsonSerializer.Deserialize<List<RoastData>>(jsonString, _jsonOptions);
+                // Load full app data
+                var appData = await _appDataService.LoadAppDataAsync();
                 
-                return roastDataList ?? new List<RoastData>();
+                return appData.RoastLogs ?? new List<RoastData>();
             }
             catch (Exception ex)
             {

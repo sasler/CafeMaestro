@@ -6,143 +6,70 @@ namespace CafeMaestro;
 public partial class BeanEditPage : ContentPage
 {
     private readonly BeanService _beanService;
-    private Bean _bean;
-    private bool _isEditMode;
+    private readonly AppDataService _appDataService;
+    private readonly Bean _bean;
 
-    public BeanEditPage(Bean? beanToEdit = null)
+    public BeanEditPage(Bean bean)
     {
         InitializeComponent();
 
-        // Get service from DI
+        // Get services from DI
+        _appDataService = Application.Current?.Handler?.MauiContext?.Services.GetService<AppDataService>() ?? 
+                         new AppDataService();
         _beanService = Application.Current?.Handler?.MauiContext?.Services.GetService<BeanService>() ?? 
-                       new BeanService();
-        
-        _isEditMode = beanToEdit != null;
-        
-        if (_isEditMode)
-        {
-            _bean = beanToEdit ?? new Bean();
-            PageTitleLabel.Text = "Edit Bean";
-            LoadBeanData();
-        }
-        else
-        {
-            _bean = new Bean();
-            
-            // Set default values
-            PurchaseDatePicker.Date = DateTime.Now;
-            if (ProcessPicker.Items.Count > 0)
-                ProcessPicker.SelectedIndex = 0;
-        }
-    }
+                      new BeanService(_appDataService);
 
-    private void LoadBeanData()
-    {
-        CoffeeNameEntry.Text = _bean.CoffeeName;
-        CountryEntry.Text = _bean.Country;
-        VarietyEntry.Text = _bean.Variety;
-        
-        // Find the process in the picker items
-        int processIndex = ProcessPicker.Items.IndexOf(_bean.Process);
-        if (processIndex >= 0)
-            ProcessPicker.SelectedIndex = processIndex;
-        else if (ProcessPicker.Items.Count > 0)
-            ProcessPicker.SelectedIndex = ProcessPicker.Items.Count - 1; // "Other"
-        
+        _bean = bean;
+        BindingContext = _bean;
+
+        // Set page title based on whether this is a new bean or editing existing
+        Title = _bean.Id == Guid.Empty ? "Add Bean" : "Edit Bean";
+
+        // Set default values for new bean
+        if (_bean.Id == Guid.Empty)
+        {
+            _bean.Id = Guid.NewGuid();
+            _bean.PurchaseDate = DateTime.Now;
+            _bean.RemainingQuantity = _bean.Quantity; // Default to full quantity
+        }
+
+        // Format the purchase date
         PurchaseDatePicker.Date = _bean.PurchaseDate;
-        QuantityEntry.Text = _bean.Quantity.ToString("F2");
-        PriceEntry.Text = _bean.Price.ToString("F2");
-        LinkEntry.Text = _bean.Link;
-        NotesEditor.Text = _bean.Notes;
     }
 
-    private bool ValidateInputs()
-    {
-        // Validate coffee name
-        if (string.IsNullOrWhiteSpace(CoffeeNameEntry.Text))
-        {
-            DisplayAlert("Validation Error", "Please enter a coffee name.", "OK");
-            return false;
-        }
-
-        // Validate country
-        if (string.IsNullOrWhiteSpace(CountryEntry.Text))
-        {
-            DisplayAlert("Validation Error", "Please enter a country of origin.", "OK");
-            return false;
-        }
-
-        // Validate process
-        if (ProcessPicker.SelectedItem == null)
-        {
-            DisplayAlert("Validation Error", "Please select a processing method.", "OK");
-            return false;
-        }
-
-        // Validate quantity
-        if (string.IsNullOrWhiteSpace(QuantityEntry.Text) ||
-            !double.TryParse(QuantityEntry.Text, out double quantity) ||
-            quantity <= 0)
-        {
-            DisplayAlert("Validation Error", "Please enter a valid quantity in kg.", "OK");
-            return false;
-        }
-
-        // Validate price
-        if (string.IsNullOrWhiteSpace(PriceEntry.Text) ||
-            !decimal.TryParse(PriceEntry.Text, out decimal price) ||
-            price < 0)
-        {
-            DisplayAlert("Validation Error", "Please enter a valid price.", "OK");
-            return false;
-        }
-
-        return true;
-    }
-
-    private async void SaveBean_Clicked(object sender, EventArgs e)
+    private async void SaveButton_Clicked(object sender, EventArgs e)
     {
         if (!ValidateInputs())
+        {
             return;
+        }
 
         try
         {
-            // Update bean object with form values
-            _bean.CoffeeName = CoffeeNameEntry.Text;
-            _bean.Country = CountryEntry.Text;
-            _bean.Variety = VarietyEntry.Text;
-            _bean.Process = ProcessPicker.SelectedItem?.ToString() ?? "Unknown";
+            // Update bean with form values
             _bean.PurchaseDate = PurchaseDatePicker.Date;
-            _bean.Notes = NotesEditor.Text;
-            _bean.Link = LinkEntry.Text;
             
-            double.TryParse(QuantityEntry.Text, out double quantity);
-            _bean.Quantity = quantity;
-            
-            // Only update remaining quantity for new beans
-            if (!_isEditMode)
-                _bean.RemainingQuantity = quantity;
-                
-            decimal.TryParse(PriceEntry.Text, out decimal price);
-            _bean.Price = price;
-
             bool success;
-            if (_isEditMode)
+            
+            // Check if this is a new bean or an update
+            if (_bean.Id == Guid.Empty)
             {
-                success = await _beanService.UpdateBeanAsync(_bean);
+                _bean.Id = Guid.NewGuid();
+                success = await _beanService.AddBeanAsync(_bean);
             }
             else
             {
-                success = await _beanService.AddBeanAsync(_bean);
+                success = await _beanService.UpdateBeanAsync(_bean);
             }
-
+            
             if (success)
             {
+                await DisplayAlert("Success", "Bean saved successfully", "OK");
                 await Navigation.PopAsync();
             }
             else
             {
-                await DisplayAlert("Error", "Failed to save bean data. Please try again.", "OK");
+                await DisplayAlert("Error", "Failed to save bean", "OK");
             }
         }
         catch (Exception ex)
@@ -151,8 +78,69 @@ public partial class BeanEditPage : ContentPage
         }
     }
 
-    private async void Cancel_Clicked(object sender, EventArgs e)
+    private bool ValidateInputs()
     {
-        await Navigation.PopAsync();
+        // Validate coffee name
+        if (string.IsNullOrWhiteSpace(CoffeeNameEntry.Text))
+        {
+            DisplayAlert("Validation Error", "Please enter a coffee name", "OK");
+            return false;
+        }
+        
+        // Validate country
+        if (string.IsNullOrWhiteSpace(CountryEntry.Text))
+        {
+            DisplayAlert("Validation Error", "Please enter a country of origin", "OK");
+            return false;
+        }
+        
+        // Validate quantity
+        if (string.IsNullOrWhiteSpace(QuantityEntry.Text) || 
+            !double.TryParse(QuantityEntry.Text, out double quantity) || 
+            quantity <= 0)
+        {
+            DisplayAlert("Validation Error", "Please enter a valid quantity", "OK");
+            return false;
+        }
+        
+        // Update remaining quantity if this is a new bean
+        if (_bean.Id == Guid.Empty || _bean.RemainingQuantity == 0)
+        {
+            _bean.RemainingQuantity = quantity;
+        }
+        else if (quantity < _bean.Quantity)
+        {
+            // If reducing total quantity, reduce remaining proportionally
+            double ratio = quantity / _bean.Quantity;
+            _bean.RemainingQuantity = Math.Min(_bean.RemainingQuantity, quantity) * ratio;
+        }
+        else if (quantity > _bean.Quantity)
+        {
+            // If increasing total quantity, increase remaining by the difference
+            double increase = quantity - _bean.Quantity;
+            _bean.RemainingQuantity += increase;
+        }
+        
+        // Set the parsed quantity
+        _bean.Quantity = quantity;
+        
+        // Validate price (optional)
+        if (!string.IsNullOrWhiteSpace(PriceEntry.Text))
+        {
+            if (!decimal.TryParse(PriceEntry.Text, out decimal price) || price < 0)
+            {
+                DisplayAlert("Validation Error", "Please enter a valid price", "OK");
+                return false;
+            }
+            
+            _bean.Price = price;
+        }
+        
+        return true;
+    }
+
+    private void CancelButton_Clicked(object sender, EventArgs e)
+    {
+        Navigation.PopAsync();
     }
 }

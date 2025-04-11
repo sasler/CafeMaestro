@@ -8,6 +8,7 @@ namespace CafeMaestro;
 public partial class BeanInventoryPage : ContentPage
 {
     private readonly BeanService _beanService;
+    private readonly AppDataService _appDataService;
     private ObservableCollection<Bean> _beans;
     public ICommand RefreshCommand { get; private set; }
     public ICommand EditBeanCommand { get; private set; }
@@ -17,9 +18,11 @@ public partial class BeanInventoryPage : ContentPage
     {
         InitializeComponent();
 
-        // Get service from DI
+        // Get services from DI
+        _appDataService = Application.Current?.Handler?.MauiContext?.Services.GetService<AppDataService>() ?? 
+                         new AppDataService();
         _beanService = Application.Current?.Handler?.MauiContext?.Services.GetService<BeanService>() ?? 
-                       new BeanService();
+                      new BeanService(_appDataService);
 
         _beans = new ObservableCollection<Bean>();
         BeansCollection.ItemsSource = _beans;
@@ -35,10 +38,10 @@ public partial class BeanInventoryPage : ContentPage
         LoadBeans();
     }
 
-    protected override void OnAppearing()
+    protected override async void OnAppearing()
     {
         base.OnAppearing();
-        LoadBeans();
+        await LoadBeans();
     }
 
     private async Task LoadBeans(string searchTerm = "")
@@ -84,32 +87,29 @@ public partial class BeanInventoryPage : ContentPage
             // Clear selection
             BeansCollection.SelectedItem = null;
 
-            // Show details
-            string details = $"Coffee: {selectedBean.CoffeeName}\n" +
-                             $"Origin: {selectedBean.Country}\n" +
-                             $"Variety: {selectedBean.Variety}\n" +
-                             $"Process: {selectedBean.Process}\n" +
-                             $"Purchase Date: {selectedBean.PurchaseDate:MM/dd/yyyy}\n" +
-                             $"Quantity: {selectedBean.RemainingQuantity:F2}kg / {selectedBean.Quantity:F2}kg\n" +
-                             $"Price: ${selectedBean.Price:F2}";
+            // Show action sheet for this bean
+            string action = await DisplayActionSheet(
+                selectedBean.DisplayName,
+                "Cancel",
+                null,
+                "Edit Bean",
+                "Delete Bean");
 
-            if (!string.IsNullOrWhiteSpace(selectedBean.Link))
+            switch (action)
             {
-                details += $"\n\nProduct Link: {selectedBean.Link}";
+                case "Edit Bean":
+                    await EditBean(selectedBean);
+                    break;
+                case "Delete Bean":
+                    await DeleteBean(selectedBean);
+                    break;
             }
-
-            if (!string.IsNullOrWhiteSpace(selectedBean.Notes))
-            {
-                details += $"\n\nNotes:\n{selectedBean.Notes}";
-            }
-
-            await DisplayAlert($"{selectedBean.CoffeeName} Details", details, "Close");
         }
     }
 
     private async void AddBean_Clicked(object sender, EventArgs e)
     {
-        await Navigation.PushAsync(new BeanEditPage());
+        await Navigation.PushAsync(new BeanEditPage(new Bean()));
     }
 
     private async Task EditBean(Bean bean)
@@ -119,21 +119,25 @@ public partial class BeanInventoryPage : ContentPage
 
     private async Task DeleteBean(Bean bean)
     {
-        bool confirm = await DisplayAlert("Confirm Delete", 
-            $"Are you sure you want to delete {bean.CoffeeName} from your inventory?", "Yes", "No");
-            
-        if (!confirm)
-            return;
+        bool confirm = await DisplayAlert(
+            "Delete Bean",
+            $"Are you sure you want to delete {bean.DisplayName}?",
+            "Delete",
+            "Cancel");
 
-        bool success = await _beanService.DeleteBeanAsync(bean.Id);
+        if (confirm)
+        {
+            bool success = await _beanService.DeleteBeanAsync(bean.Id);
 
-        if (success)
-        {
-            await LoadBeans();
-        }
-        else
-        {
-            await DisplayAlert("Error", "Failed to delete bean from inventory.", "OK");
+            if (success)
+            {
+                // Refresh the list
+                await LoadBeans();
+            }
+            else
+            {
+                await DisplayAlert("Error", "Failed to delete bean", "OK");
+            }
         }
     }
 

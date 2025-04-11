@@ -8,6 +8,7 @@ namespace CafeMaestro;
 public partial class RoastLogPage : ContentPage
 {
     private readonly RoastDataService _roastDataService;
+    private readonly AppDataService _appDataService;
     private readonly PreferencesService _preferencesService;
     private ObservableCollection<RoastData> _roastLogs;
     public ICommand RefreshCommand { get; private set; }
@@ -17,8 +18,10 @@ public partial class RoastLogPage : ContentPage
         InitializeComponent();
 
         // Get the services from DI
+        _appDataService = Application.Current?.Handler?.MauiContext?.Services.GetService<AppDataService>() ?? 
+                         new AppDataService();
         _roastDataService = Application.Current?.Handler?.MauiContext?.Services.GetService<RoastDataService>() ?? 
-                            new RoastDataService();
+                           new RoastDataService(_appDataService);
         _preferencesService = Application.Current?.Handler?.MauiContext?.Services.GetService<PreferencesService>() ?? 
                              new PreferencesService();
 
@@ -27,41 +30,12 @@ public partial class RoastLogPage : ContentPage
 
         RefreshCommand = new Command(async () => await LoadRoastData());
         BindingContext = this;
-
-        // Load custom file path if available
-        InitializeDataFilePath();
     }
 
-    private async void InitializeDataFilePath()
-    {
-        try
-        {
-            // Check if user has a saved file path preference
-            string savedFilePath = await _preferencesService.GetRoastDataFilePathAsync();
-            
-            if (!string.IsNullOrEmpty(savedFilePath))
-            {
-                // If file exists, use it
-                if (File.Exists(savedFilePath))
-                {
-                    _roastDataService.SetCustomFilePath(savedFilePath);
-                    await DisplayAlert("Data File Loaded", $"Using data file: {Path.GetFileName(savedFilePath)}", "OK");
-                }
-            }
-            
-            // Load data initially
-            await LoadRoastData();
-        }
-        catch (Exception ex)
-        {
-            await DisplayAlert("Error", $"Failed to initialize data file: {ex.Message}", "OK");
-        }
-    }
-
-    protected override void OnAppearing()
+    protected override async void OnAppearing()
     {
         base.OnAppearing();
-        LoadRoastData();
+        await LoadRoastData();
     }
 
     private async Task LoadRoastData(string searchTerm = "")
@@ -130,155 +104,12 @@ public partial class RoastLogPage : ContentPage
     {
         try
         {
-            string action = await DisplayActionSheet(
-                "Roast Data File", 
-                "Cancel", 
-                null, 
-                "Select Data File", 
-                "Create New Data File",
-                "Use Default Location");
-                
-            switch (action)
-            {
-                case "Select Data File":
-                    await SelectExistingDataFile();
-                    break;
-                    
-                case "Create New Data File":
-                    await CreateNewDataFile();
-                    break;
-                    
-                case "Use Default Location":
-                    await UseDefaultDataLocation();
-                    break;
-            }
+            // Navigate to settings page where data file can be managed
+            await Shell.Current.GoToAsync(nameof(SettingsPage));
         }
         catch (Exception ex)
         {
-            await DisplayAlert("Error", $"Failed to manage data file: {ex.Message}", "OK");
-        }
-    }
-    
-    private async Task SelectExistingDataFile()
-    {
-        try
-        {
-            var customFileType = new FilePickerFileType(
-                new Dictionary<DevicePlatform, IEnumerable<string>>
-                {
-                    { DevicePlatform.WinUI, new[] { ".json" } },
-                    { DevicePlatform.Android, new[] { "application/json" } },
-                    { DevicePlatform.iOS, new[] { "public.json" } },
-                    { DevicePlatform.MacCatalyst, new[] { "public.json" } }
-                });
-
-            var options = new PickOptions
-            {
-                PickerTitle = "Select Roast Data File",
-                FileTypes = customFileType
-            };
-
-            var result = await FilePicker.PickAsync(options);
-            if (result != null)
-            {
-                // Set this as the data file
-                _roastDataService.SetCustomFilePath(result.FullPath);
-                
-                // Save preference
-                await _preferencesService.SaveRoastDataFilePathAsync(result.FullPath);
-                
-                // Reload data
-                await LoadRoastData();
-                
-                await DisplayAlert("Success", $"Now using data file: {Path.GetFileName(result.FullPath)}", "OK");
-            }
-        }
-        catch (Exception ex)
-        {
-            await DisplayAlert("Error", $"Failed to select data file: {ex.Message}", "OK");
-        }
-    }
-    
-    private async Task CreateNewDataFile()
-    {
-        try
-        {
-            var customFileType = new FilePickerFileType(
-                new Dictionary<DevicePlatform, IEnumerable<string>>
-                {
-                    { DevicePlatform.WinUI, new[] { ".json" } },
-                    { DevicePlatform.Android, new[] { "application/json" } },
-                    { DevicePlatform.iOS, new[] { "public.json" } },
-                    { DevicePlatform.MacCatalyst, new[] { "public.json" } }
-                });
-
-            var options = new PickOptions
-            {
-                PickerTitle = "Create New Data File (Choose Location)",
-                FileTypes = customFileType
-            };
-
-            var result = await FilePicker.PickAsync(options);
-            if (result != null)
-            {
-                string filePath = result.FullPath;
-                
-                // Ensure the file has the correct extension
-                if (!filePath.EndsWith(".json", StringComparison.OrdinalIgnoreCase))
-                {
-                    filePath += ".json";
-                }
-                
-                // Create empty JSON array file
-                if (File.Exists(filePath))
-                {
-                    bool replace = await DisplayAlert("File Exists", 
-                        "The selected file already exists. Do you want to replace it? This will erase any existing data!", 
-                        "Replace", "Cancel");
-                        
-                    if (!replace)
-                        return;
-                }
-                
-                // Create new empty JSON array file
-                File.WriteAllText(filePath, "[]");
-                
-                // Set this as the data file
-                _roastDataService.SetCustomFilePath(filePath);
-                
-                // Save preference
-                await _preferencesService.SaveRoastDataFilePathAsync(filePath);
-                
-                // Reload data (should be empty)
-                await LoadRoastData();
-                
-                await DisplayAlert("Success", $"Created new data file: {Path.GetFileName(filePath)}", "OK");
-            }
-        }
-        catch (Exception ex)
-        {
-            await DisplayAlert("Error", $"Failed to create data file: {ex.Message}", "OK");
-        }
-    }
-    
-    private async Task UseDefaultDataLocation()
-    {
-        try
-        {
-            // Clear saved preference
-            await _preferencesService.ClearRoastDataFilePathAsync();
-            
-            // Reset to default by creating a new service instance
-            _roastDataService.SetCustomFilePath(Path.Combine(FileSystem.AppDataDirectory, "RoastData", "roast_log.json"));
-            
-            // Reload data
-            await LoadRoastData();
-            
-            await DisplayAlert("Success", "Now using default data file location", "OK");
-        }
-        catch (Exception ex)
-        {
-            await DisplayAlert("Error", $"Failed to use default location: {ex.Message}", "OK");
+            await DisplayAlert("Error", $"Failed to navigate to settings: {ex.Message}", "OK");
         }
     }
 

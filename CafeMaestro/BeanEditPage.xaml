@@ -51,7 +51,7 @@
             <!-- Save Button -->
             <Button x:Name="SaveButton"
                    Text="Save Bean"
-                   Clicked="SaveBean_Clicked"
+                   Clicked="SaveButton_Clicked"
                    BackgroundColor="#512BD4"
                    TextColor="White"
                    HorizontalOptions="Fill"
@@ -60,7 +60,7 @@
             <!-- Cancel Button -->
             <Button x:Name="CancelButton"
                    Text="Cancel"
-                   Clicked="Cancel_Clicked"
+                   Clicked="CancelButton_Clicked"
                    BackgroundColor="#666666"
                    TextColor="White"
                    HorizontalOptions="Fill" />

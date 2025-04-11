@@ -6,6 +6,7 @@ namespace CafeMaestro;
 public partial class SettingsPage : ContentPage
 {
     private readonly RoastDataService _roastDataService;
+    private readonly AppDataService _appDataService;
     private readonly PreferencesService _preferencesService;
 
     public SettingsPage()
@@ -13,8 +14,10 @@ public partial class SettingsPage : ContentPage
         InitializeComponent();
 
         // Get services from DI
+        _appDataService = Application.Current?.Handler?.MauiContext?.Services.GetService<AppDataService>() ?? 
+                         new AppDataService();
         _roastDataService = Application.Current?.Handler?.MauiContext?.Services.GetService<RoastDataService>() ?? 
-                            new RoastDataService();
+                           new RoastDataService(_appDataService);
         _preferencesService = Application.Current?.Handler?.MauiContext?.Services.GetService<PreferencesService>() ?? 
                              new PreferencesService();
         
@@ -44,10 +47,10 @@ public partial class SettingsPage : ContentPage
         try
         {
             // Get current data file path
-            string path = _roastDataService.DataFilePath;
+            string path = _appDataService.DataFilePath;
             
             // Check if using default path
-            string savedPath = await _preferencesService.GetRoastDataFilePathAsync();
+            string savedPath = await _preferencesService.GetAppDataFilePathAsync();
             
             if (string.IsNullOrEmpty(savedPath))
             {
@@ -79,7 +82,7 @@ public partial class SettingsPage : ContentPage
 
             var options = new PickOptions
             {
-                PickerTitle = "Select Roast Data File",
+                PickerTitle = "Select Data File",
                 FileTypes = customFileType
             };
 
@@ -87,10 +90,10 @@ public partial class SettingsPage : ContentPage
             if (result != null)
             {
                 // Set this as the data file
-                _roastDataService.SetCustomFilePath(result.FullPath);
+                _appDataService.SetCustomFilePath(result.FullPath);
                 
                 // Save preference
-                await _preferencesService.SaveRoastDataFilePathAsync(result.FullPath);
+                await _preferencesService.SaveAppDataFilePathAsync(result.FullPath);
                 
                 // Update display
                 await LoadCurrentDataFilePath();
@@ -134,7 +137,7 @@ public partial class SettingsPage : ContentPage
                     filePath += ".json";
                 }
                 
-                // Create empty JSON array file
+                // Check if file exists
                 if (File.Exists(filePath))
                 {
                     bool replace = await DisplayAlert("File Exists", 
@@ -145,19 +148,23 @@ public partial class SettingsPage : ContentPage
                         return;
                 }
                 
-                // Create new empty JSON array file
-                File.WriteAllText(filePath, "[]");
+                // Create new empty data file
+                bool success = await _appDataService.CreateEmptyDataFileAsync(filePath);
                 
-                // Set this as the data file
-                _roastDataService.SetCustomFilePath(filePath);
-                
-                // Save preference
-                await _preferencesService.SaveRoastDataFilePathAsync(filePath);
-                
-                // Update display
-                await LoadCurrentDataFilePath();
-                
-                await DisplayAlert("Success", $"Created new data file: {Path.GetFileName(filePath)}", "OK");
+                if (success)
+                {
+                    // Save preference
+                    await _preferencesService.SaveAppDataFilePathAsync(filePath);
+                    
+                    // Update display
+                    await LoadCurrentDataFilePath();
+                    
+                    await DisplayAlert("Success", $"Created new data file: {Path.GetFileName(filePath)}", "OK");
+                }
+                else
+                {
+                    await DisplayAlert("Error", "Failed to create data file", "OK");
+                }
             }
         }
         catch (Exception ex)
@@ -171,10 +178,10 @@ public partial class SettingsPage : ContentPage
         try
         {
             // Clear saved preference
-            await _preferencesService.ClearRoastDataFilePathAsync();
+            await _preferencesService.ClearAppDataFilePathAsync();
             
-            // Reset to default by creating a new service instance
-            _roastDataService.SetCustomFilePath(Path.Combine(FileSystem.AppDataDirectory, "RoastData", "roast_log.json"));
+            // Reset to default location
+            _appDataService.SetCustomFilePath(Path.Combine(FileSystem.AppDataDirectory, "AppData", "cafemaestro_data.json"));
             
             // Update display
             await LoadCurrentDataFilePath();

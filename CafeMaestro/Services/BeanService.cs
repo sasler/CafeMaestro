@@ -11,34 +11,25 @@ namespace CafeMaestro.Services
 {
     public class BeanService
     {
-        private readonly string _folderPath;
-        private readonly string _fileName = "bean_inventory.json";
-        private readonly JsonSerializerOptions _jsonOptions;
+        private readonly AppDataService _appDataService;
 
-        public BeanService()
+        public BeanService(AppDataService appDataService)
         {
-            _folderPath = Path.Combine(FileSystem.AppDataDirectory, "BeanData");
-            
-            // Create the directory if it doesn't exist
-            if (!Directory.Exists(_folderPath))
-                Directory.CreateDirectory(_folderPath);
-                
-            _jsonOptions = new JsonSerializerOptions
-            {
-                WriteIndented = true,
-                DefaultIgnoreCondition = JsonIgnoreCondition.WhenWritingNull
-            };
+            _appDataService = appDataService;
         }
 
         public async Task<bool> SaveBeansAsync(List<Bean> beans)
         {
             try
             {
-                string filePath = Path.Combine(_folderPath, _fileName);
-                string jsonString = JsonSerializer.Serialize(beans, _jsonOptions);
-                await File.WriteAllTextAsync(filePath, jsonString);
+                // Load full app data
+                var appData = await _appDataService.LoadAppDataAsync();
                 
-                return true;
+                // Replace beans collection
+                appData.Beans = beans;
+                
+                // Save updated app data
+                return await _appDataService.SaveAppDataAsync(appData);
             }
             catch (Exception ex)
             {
@@ -51,14 +42,14 @@ namespace CafeMaestro.Services
         {
             try
             {
-                // Load existing beans
-                var beans = await LoadBeansAsync();
+                // Load full app data
+                var appData = await _appDataService.LoadAppDataAsync();
                 
                 // Add the new bean
-                beans.Add(bean);
+                appData.Beans.Add(bean);
                 
-                // Save all beans
-                return await SaveBeansAsync(beans);
+                // Save updated app data
+                return await _appDataService.SaveAppDataAsync(appData);
             }
             catch (Exception ex)
             {
@@ -71,18 +62,18 @@ namespace CafeMaestro.Services
         {
             try
             {
-                // Load existing beans
-                var beans = await LoadBeansAsync();
+                // Load full app data
+                var appData = await _appDataService.LoadAppDataAsync();
                 
                 // Find and update the bean
-                var existingIndex = beans.FindIndex(b => b.Id == bean.Id);
+                var existingIndex = appData.Beans.FindIndex(b => b.Id == bean.Id);
                 if (existingIndex == -1)
                     return false;
                 
-                beans[existingIndex] = bean;
+                appData.Beans[existingIndex] = bean;
                 
-                // Save all beans
-                return await SaveBeansAsync(beans);
+                // Save updated app data
+                return await _appDataService.SaveAppDataAsync(appData);
             }
             catch (Exception ex)
             {
@@ -95,16 +86,16 @@ namespace CafeMaestro.Services
         {
             try
             {
-                // Load existing beans
-                var beans = await LoadBeansAsync();
+                // Load full app data
+                var appData = await _appDataService.LoadAppDataAsync();
                 
                 // Remove the bean
-                var removedCount = beans.RemoveAll(b => b.Id == beanId);
+                var removedCount = appData.Beans.RemoveAll(b => b.Id == beanId);
                 if (removedCount == 0)
                     return false;
                 
-                // Save all beans
-                return await SaveBeansAsync(beans);
+                // Save updated app data
+                return await _appDataService.SaveAppDataAsync(appData);
             }
             catch (Exception ex)
             {
@@ -117,8 +108,8 @@ namespace CafeMaestro.Services
         {
             try
             {
-                var beans = await LoadBeansAsync();
-                return beans.FirstOrDefault(b => b.Id == beanId);
+                var appData = await _appDataService.LoadAppDataAsync();
+                return appData.Beans.FirstOrDefault(b => b.Id == beanId);
             }
             catch (Exception ex)
             {
@@ -131,20 +122,22 @@ namespace CafeMaestro.Services
         {
             try
             {
-                // Load existing beans
-                var beans = await LoadBeansAsync();
+                // Load full app data
+                var appData = await _appDataService.LoadAppDataAsync();
                 
                 // Find the bean
-                var bean = beans.FirstOrDefault(b => b.Id == beanId);
+                var bean = appData.Beans.FirstOrDefault(b => b.Id == beanId);
                 if (bean == null)
                     return false;
                 
                 // Update quantity
-                if (!bean.UseQuantity(usedAmount))
+                if (bean.RemainingQuantity < usedAmount)
                     return false;
+                    
+                bean.RemainingQuantity -= usedAmount;
                 
                 // Save all beans
-                return await SaveBeansAsync(beans);
+                return await _appDataService.SaveAppDataAsync(appData);
             }
             catch (Exception ex)
             {
@@ -157,15 +150,8 @@ namespace CafeMaestro.Services
         {
             try
             {
-                string filePath = Path.Combine(_folderPath, _fileName);
-                
-                if (!File.Exists(filePath))
-                    return new List<Bean>();
-                    
-                string jsonString = await File.ReadAllTextAsync(filePath);
-                var beans = JsonSerializer.Deserialize<List<Bean>>(jsonString, _jsonOptions);
-                
-                return beans ?? new List<Bean>();
+                var appData = await _appDataService.LoadAppDataAsync();
+                return appData.Beans ?? new List<Bean>();
             }
             catch (Exception ex)
             {
@@ -176,24 +162,22 @@ namespace CafeMaestro.Services
         
         public async Task<List<Bean>> SearchBeansAsync(string searchTerm = "")
         {
-            var allBeans = await LoadBeansAsync();
+            var beans = await LoadBeansAsync();
             
             if (string.IsNullOrWhiteSpace(searchTerm))
-                return allBeans;
+                return beans;
                 
-            return allBeans.Where(b => 
-                b.Country.Contains(searchTerm, StringComparison.OrdinalIgnoreCase) ||
+            return beans.FindAll(b => 
+                b.Country.Contains(searchTerm, StringComparison.OrdinalIgnoreCase) || 
                 b.CoffeeName.Contains(searchTerm, StringComparison.OrdinalIgnoreCase) ||
                 b.Variety.Contains(searchTerm, StringComparison.OrdinalIgnoreCase) ||
-                b.Process.Contains(searchTerm, StringComparison.OrdinalIgnoreCase) ||
-                b.Notes.Contains(searchTerm, StringComparison.OrdinalIgnoreCase)
-            ).ToList();
+                b.Process.Contains(searchTerm, StringComparison.OrdinalIgnoreCase));
         }
         
         public async Task<List<Bean>> GetAvailableBeansAsync()
         {
-            var allBeans = await LoadBeansAsync();
-            return allBeans.Where(b => b.RemainingQuantity > 0).ToList();
+            var beans = await LoadBeansAsync();
+            return beans.FindAll(b => b.RemainingQuantity > 0);
         }
     }
 }

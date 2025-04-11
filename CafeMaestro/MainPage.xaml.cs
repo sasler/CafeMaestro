@@ -14,6 +14,7 @@ public partial class MainPage : ContentPage
     private TimerService timerService;
     private RoastDataService roastDataService;
     private BeanService beanService;
+    private AppDataService appDataService;
     private PreferencesService preferencesService;
     private bool isTimerUpdating = false; // Flag to prevent recursive updates
     private string temporaryDigitsBuffer = ""; // Store digits before formatting
@@ -27,10 +28,16 @@ public partial class MainPage : ContentPage
         InitializeComponent();
 
         // Initialize services - get from dependency injection
-        timerService = Application.Current?.Handler?.MauiContext?.Services.GetService<TimerService>() ?? new TimerService();
-        roastDataService = Application.Current?.Handler?.MauiContext?.Services.GetService<RoastDataService>() ?? new RoastDataService();
-        beanService = Application.Current?.Handler?.MauiContext?.Services.GetService<BeanService>() ?? new BeanService();
-        preferencesService = Application.Current?.Handler?.MauiContext?.Services.GetService<PreferencesService>() ?? new PreferencesService();
+        appDataService = Application.Current?.Handler?.MauiContext?.Services.GetService<AppDataService>() ?? 
+                       new AppDataService();
+        timerService = Application.Current?.Handler?.MauiContext?.Services.GetService<TimerService>() ?? 
+                      new TimerService();
+        roastDataService = Application.Current?.Handler?.MauiContext?.Services.GetService<RoastDataService>() ?? 
+                          new RoastDataService(appDataService);
+        beanService = Application.Current?.Handler?.MauiContext?.Services.GetService<BeanService>() ?? 
+                     new BeanService(appDataService);
+        preferencesService = Application.Current?.Handler?.MauiContext?.Services.GetService<PreferencesService>() ?? 
+                            new PreferencesService();
         
         timerService.TimeUpdated += OnTimeUpdated;
 
@@ -53,14 +60,14 @@ public partial class MainPage : ContentPage
         try
         {
             // Check if user has a saved file path preference
-            string savedFilePath = await preferencesService.GetRoastDataFilePathAsync();
+            string savedFilePath = await preferencesService.GetAppDataFilePathAsync();
             
             if (!string.IsNullOrEmpty(savedFilePath))
             {
                 // If file exists, use it
                 if (File.Exists(savedFilePath))
                 {
-                    roastDataService.SetCustomFilePath(savedFilePath);
+                    appDataService.SetCustomFilePath(savedFilePath);
                 }
             }
         }
