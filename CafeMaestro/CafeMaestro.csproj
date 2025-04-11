@@ -24,7 +24,7 @@
 		<ApplicationTitle>CafeMaestro</ApplicationTitle>
 
 		<!-- App Identifier -->
-		<ApplicationId>com.companyname.cafemaestro</ApplicationId>
+		<ApplicationId>cafemaestro</ApplicationId>
 
 		<!-- Versions -->
 		<ApplicationDisplayVersion>1.0</ApplicationDisplayVersion>
