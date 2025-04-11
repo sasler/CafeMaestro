@@ -3,6 +3,7 @@
 using Microsoft.Maui.Controls;
 using Microsoft.Maui.ApplicationModel;
 using System;
+using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
 using CafeMaestro.Models;
@@ -12,8 +13,13 @@ public partial class MainPage : ContentPage
 {
     private TimerService timerService;
     private RoastDataService roastDataService;
+    private BeanService beanService;
     private bool isTimerUpdating = false; // Flag to prevent recursive updates
     private string temporaryDigitsBuffer = ""; // Store digits before formatting
+    
+    // Store the selected bean for roasting
+    private Bean? selectedBean = null;
+    private List<Bean> availableBeans = new List<Bean>();
 
     public MainPage()
     {
@@ -22,6 +28,7 @@ public partial class MainPage : ContentPage
         // Initialize services - get from dependency injection
         timerService = Application.Current?.Handler?.MauiContext?.Services.GetService<TimerService>() ?? new TimerService();
         roastDataService = Application.Current?.Handler?.MauiContext?.Services.GetService<RoastDataService>() ?? new RoastDataService();
+        beanService = Application.Current?.Handler?.MauiContext?.Services.GetService<BeanService>() ?? new BeanService();
         
         timerService.TimeUpdated += OnTimeUpdated;
 
@@ -29,9 +36,75 @@ public partial class MainPage : ContentPage
         BatchWeightEntry.TextChanged += OnWeightEntryTextChanged;
         FinalWeightEntry.TextChanged += OnWeightEntryTextChanged;
         
-        // Set default bean selection for better UX
-        if (BeanPicker.Items.Count > 0)
-            BeanPicker.SelectedIndex = 0;
+        // Load available beans for the picker
+        LoadBeans();
+        
+        // Handle bean selection changes
+        BeanPicker.SelectedIndexChanged += BeanPicker_SelectedIndexChanged;
+    }
+    
+    protected override void OnAppearing()
+    {
+        base.OnAppearing();
+        // Refresh beans when returning to this page
+        LoadBeans();
+    }
+    
+    private async void LoadBeans()
+    {
+        try
+        {
+            // Get available beans (only ones with remaining quantity > 0)
+            availableBeans = await beanService.GetAvailableBeansAsync();
+            
+            // Clear existing picker items
+            BeanPicker.Items.Clear();
+            
+            if (availableBeans.Count == 0)
+            {
+                // No beans available
+                BeanPicker.Items.Add("No beans - Add beans first");
+                BeanPicker.SelectedIndex = 0;
+                BeanPicker.IsEnabled = false;
+                selectedBean = null;
+                return;
+            }
+            
+            BeanPicker.IsEnabled = true;
+            
+            // Add beans to picker
+            foreach (var bean in availableBeans)
+            {
+                BeanPicker.Items.Add(bean.DisplayName);
+            }
+            
+            // Select first item by default if nothing was selected before
+            if (BeanPicker.SelectedIndex == -1 && BeanPicker.Items.Count > 0)
+            {
+                BeanPicker.SelectedIndex = 0;
+            }
+        }
+        catch (Exception ex)
+        {
+            await DisplayAlert("Error", $"Failed to load beans: {ex.Message}", "OK");
+        }
+    }
+    
+    private void BeanPicker_SelectedIndexChanged(object? sender, EventArgs e)
+    {
+        if (BeanPicker.SelectedIndex >= 0 && BeanPicker.SelectedIndex < availableBeans.Count)
+        {
+            selectedBean = availableBeans[BeanPicker.SelectedIndex];
+        }
+        else
+        {
+            selectedBean = null;
+        }
+    }
+    
+    private async void ManageBeans_Clicked(object sender, EventArgs e)
+    {
+        await Navigation.PushAsync(new BeanInventoryPage());
     }
 
     private bool ValidateInputs(out double batchWeight, out double finalWeight, out double temperature, 
@@ -43,10 +116,10 @@ public partial class MainPage : ContentPage
         roastMinutes = 0;
         roastSeconds = 0;
 
-        // Validate bean type
-        if (BeanPicker.SelectedItem == null)
+        // Validate bean selection
+        if (selectedBean == null)
         {
-            DisplayAlert("Validation Error", "Please select a bean type.", "OK");
+            DisplayAlert("Validation Error", "Please select a bean type or add beans to your inventory.", "OK");
             return false;
         }
 
@@ -56,6 +129,16 @@ public partial class MainPage : ContentPage
             batchWeight <= 0)
         {
             DisplayAlert("Validation Error", "Please enter a valid batch weight in grams.", "OK");
+            return false;
+        }
+        
+        // Check if enough beans are available (convert grams to kg)
+        double batchWeightKg = batchWeight / 1000.0;
+        if (batchWeightKg > selectedBean.RemainingQuantity)
+        {
+            DisplayAlert("Validation Error", 
+                         $"Not enough beans available. You have {selectedBean.RemainingQuantity:F2}kg remaining, but need {batchWeightKg:F2}kg.", 
+                         "OK");
             return false;
         }
 
@@ -398,32 +481,49 @@ public partial class MainPage : ContentPage
             return; // Validation failed
         }
 
-        // Create RoastData object
-        var roastData = new RoastData
+        try
         {
-            BeanType = BeanPicker.SelectedItem?.ToString() ?? "Unknown",
-            Temperature = temperature,
-            BatchWeight = batchWeight,
-            FinalWeight = finalWeight,
-            RoastMinutes = roastMinutes,
-            RoastSeconds = roastSeconds,
-            RoastDate = DateTime.Now,
-            Notes = NotesEditor.Text ?? ""
-        };
+            // Create RoastData object
+            var roastData = new RoastData
+            {
+                BeanType = selectedBean?.DisplayName ?? "Unknown",
+                Temperature = temperature,
+                BatchWeight = batchWeight,
+                FinalWeight = finalWeight,
+                RoastMinutes = roastMinutes,
+                RoastSeconds = roastSeconds,
+                RoastDate = DateTime.Now,
+                Notes = NotesEditor.Text ?? ""
+            };
 
-        // Save data using service
-        bool success = await roastDataService.SaveRoastDataAsync(roastData);
+            // Update bean inventory (reduce remaining quantity)
+            if (selectedBean != null)
+            {
+                double batchWeightKg = batchWeight / 1000.0; // Convert g to kg
+                await beanService.UpdateBeanQuantityAsync(selectedBean.Id, batchWeightKg);
+            }
 
-        if (success)
-        {
-            await DisplayAlert("Success", "Roast data saved successfully!", "OK");
+            // Save data using service
+            bool success = await roastDataService.SaveRoastDataAsync(roastData);
 
-            // Optional: Clear form for next entry
-            ClearForm();
+            if (success)
+            {
+                await DisplayAlert("Success", "Roast data saved successfully!", "OK");
+
+                // Refresh beans after saving (quantity has changed)
+                LoadBeans();
+                
+                // Clear form for next entry
+                ClearForm();
+            }
+            else
+            {
+                await DisplayAlert("Error", "Failed to save roast data. Please try again.", "OK");
+            }
         }
-        else
+        catch (Exception ex)
         {
-            await DisplayAlert("Error", "Failed to save roast data. Please try again.", "OK");
+            await DisplayAlert("Error", $"An error occurred: {ex.Message}", "OK");
         }
     }
 
@@ -439,10 +539,9 @@ public partial class MainPage : ContentPage
         ResetTimer_Clicked(this, EventArgs.Empty);
         
         // Reset form fields
-        BeanPicker.SelectedIndex = 0;
-        TemperatureEntry.Text = string.Empty;
         BatchWeightEntry.Text = string.Empty;
         FinalWeightEntry.Text = string.Empty;
+        TemperatureEntry.Text = string.Empty;
         NotesEditor.Text = string.Empty;
         
         // Reset labels

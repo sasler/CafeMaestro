@@ -11,17 +11,23 @@
             <Label Text="CafeMaestro" FontSize="32" HorizontalOptions="Center" />
             <Label Text="Coffee Roasting Tracker" FontSize="24" HorizontalOptions="Center" />
 
-            <Label Text="Green Bean Selection:" />
+            <Grid ColumnDefinitions="*,Auto">
+                <Label Text="Green Bean Selection:" Grid.Column="0" VerticalOptions="Center"/>
+                <Button Text="+" 
+                       Grid.Column="1" 
+                       WidthRequest="40"
+                       HeightRequest="40"
+                       CornerRadius="20"
+                       FontSize="20"
+                       BackgroundColor="#512BD4"
+                       TextColor="White"
+                       Clicked="ManageBeans_Clicked"
+                       ToolTipProperties.Text="Manage Bean Inventory"/>
+            </Grid>
+            
             <Picker x:Name="BeanPicker" Title="Select Bean Type">
                 <Picker.Items>
-                    <x:String>Ethiopian Yirgacheffe</x:String>
-                    <x:String>Colombian Supremo</x:String>
-                    <x:String>Sumatra Mandheling</x:String>
-                    <x:String>Costa Rican Tarrazu</x:String>
-                    <x:String>Brazilian Santos</x:String>
-                    <x:String>Kenyan AA</x:String>
-                    <x:String>Guatemalan Antigua</x:String>
-                    <x:String>Other</x:String>
+                    <x:String>Loading beans...</x:String>
                 </Picker.Items>
             </Picker>
 
