@@ -158,10 +158,32 @@
             <Label Text="Final Weight (g):" />
             <Entry x:Name="FinalWeightEntry" Keyboard="Numeric" Placeholder="Enter final weight" />
 
-            <Button x:Name="CalculateButton" Text="Calculate Loss %" Clicked="OnCalculateClicked" />
-
             <Label x:Name="LossPercentLabel" Text="Weight Loss: --" FontSize="18" />
             <Label x:Name="RoastSummaryLabel" Text="Roast Summary: --" FontSize="18" />
+
+            <!-- New Notes field -->
+            <Label Text="Notes:" />
+            <Editor x:Name="NotesEditor" 
+                   Placeholder="Add notes about this roast..."
+                   HeightRequest="100"
+                   AutoSize="TextChanges" />
+
+            <!-- Save Button -->
+            <Button x:Name="SaveRoastButton"
+                   Text="Save Roast Log"
+                   Clicked="SaveRoast_Clicked"
+                   BackgroundColor="#512BD4"
+                   TextColor="White"
+                   HorizontalOptions="Fill"
+                   Margin="0,20,0,10" />
+
+            <!-- View Saved Logs Button -->
+            <Button x:Name="ViewLogsButton"
+                   Text="View Saved Logs"
+                   Clicked="ViewLogs_Clicked"
+                   BackgroundColor="#0078D4"
+                   TextColor="White"
+                   HorizontalOptions="Fill" />
         </VerticalStackLayout>
     </ScrollView>
 

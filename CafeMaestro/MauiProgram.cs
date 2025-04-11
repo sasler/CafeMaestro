@@ -1,4 +1,5 @@
 ﻿using Microsoft.Extensions.Logging;
+using CafeMaestro.Services;
 
 namespace CafeMaestro;
 
@@ -15,6 +16,10 @@ public static class MauiProgram
 				fonts.AddFont("OpenSans-Semibold.ttf", "OpenSansSemibold");
 				fonts.AddFont("digital-7-mono.ttf", "Digital7");
 			});
+
+		// Register services
+		builder.Services.AddSingleton<RoastDataService>();
+		builder.Services.AddSingleton<TimerService>();
 
 #if DEBUG
 		builder.Logging.AddDebug();

@@ -4,10 +4,14 @@ using Microsoft.Maui.Controls;
 using Microsoft.Maui.ApplicationModel;
 using System;
 using System.Linq;
+using System.Threading.Tasks;
+using CafeMaestro.Models;
+using CafeMaestro.Services;
 
 public partial class MainPage : ContentPage
 {
     private TimerService timerService;
+    private RoastDataService roastDataService;
     private bool isTimerUpdating = false; // Flag to prevent recursive updates
     private string temporaryDigitsBuffer = ""; // Store digits before formatting
 
@@ -15,47 +19,19 @@ public partial class MainPage : ContentPage
     {
         InitializeComponent();
 
-        // Initialize TimerService
-        timerService = new TimerService();
+        // Initialize services - get from dependency injection
+        timerService = Application.Current?.Handler?.MauiContext?.Services.GetService<TimerService>() ?? new TimerService();
+        roastDataService = Application.Current?.Handler?.MauiContext?.Services.GetService<RoastDataService>() ?? new RoastDataService();
+        
         timerService.TimeUpdated += OnTimeUpdated;
 
         // Attach event handlers for weight entry text changes
         BatchWeightEntry.TextChanged += OnWeightEntryTextChanged;
         FinalWeightEntry.TextChanged += OnWeightEntryTextChanged;
-    }
-
-    private void OnCalculateClicked(object sender, EventArgs e)
-    {
-        try
-        {
-            // Validate and parse input values
-            if (!ValidateInputs(out double batchWeight, out double finalWeight, out double temperature, 
-                out int roastMinutes, out int roastSeconds))
-            {
-                return;
-            }
-
-            // Convert roast time to a formatted string (for display)
-            string formattedRoastTime = FormatRoastTime(roastMinutes, roastSeconds);
-            
-            // Calculate roast time in minutes (for calculations)
-            double roastTimeInMinutes = roastMinutes + (roastSeconds / 60.0);
-
-            // Calculate loss percentage
-            double lossWeight = batchWeight - finalWeight;
-            double lossPercentage = (lossWeight / batchWeight) * 100;
-
-            // Update the UI with calculated values
-            LossPercentLabel.Text = $"Weight Loss: {lossPercentage:F2}%";
-            
-            // Generate roast summary based on the loss percentage
-            string roastLevel = GetRoastLevel(lossPercentage);
-            RoastSummaryLabel.Text = $"Roast Summary: {roastLevel} roast at {temperature}°C for {formattedRoastTime}";
-        }
-        catch (Exception ex)
-        {
-            DisplayAlert("Calculation Error", $"An error occurred: {ex.Message}", "OK");
-        }
+        
+        // Set default bean selection for better UX
+        if (BeanPicker.Items.Count > 0)
+            BeanPicker.SelectedIndex = 0;
     }
 
     private bool ValidateInputs(out double batchWeight, out double finalWeight, out double temperature, 
@@ -66,6 +42,13 @@ public partial class MainPage : ContentPage
         temperature = 0;
         roastMinutes = 0;
         roastSeconds = 0;
+
+        // Validate bean type
+        if (BeanPicker.SelectedItem == null)
+        {
+            DisplayAlert("Validation Error", "Please select a bean type.", "OK");
+            return false;
+        }
 
         // Validate batch weight
         if (string.IsNullOrWhiteSpace(BatchWeightEntry.Text) ||
@@ -403,6 +386,101 @@ public partial class MainPage : ContentPage
         {
             LossPercentLabel.Text = "Weight Loss: --";
             RoastSummaryLabel.Text = "Roast Summary: --";
+        }
+    }
+
+    // New Save button click handler
+    private async void SaveRoast_Clicked(object sender, EventArgs e)
+    {
+        if (!ValidateInputs(out double batchWeight, out double finalWeight, out double temperature, 
+                            out int roastMinutes, out int roastSeconds))
+        {
+            return; // Validation failed
+        }
+
+        // Create RoastData object
+        var roastData = new RoastData
+        {
+            BeanType = BeanPicker.SelectedItem?.ToString() ?? "Unknown",
+            Temperature = temperature,
+            BatchWeight = batchWeight,
+            FinalWeight = finalWeight,
+            RoastMinutes = roastMinutes,
+            RoastSeconds = roastSeconds,
+            RoastDate = DateTime.Now,
+            Notes = NotesEditor.Text ?? ""
+        };
+
+        // Save data using service
+        bool success = await roastDataService.SaveRoastDataAsync(roastData);
+
+        if (success)
+        {
+            await DisplayAlert("Success", "Roast data saved successfully!", "OK");
+
+            // Optional: Clear form for next entry
+            ClearForm();
+        }
+        else
+        {
+            await DisplayAlert("Error", "Failed to save roast data. Please try again.", "OK");
+        }
+    }
+
+    private async void ViewLogs_Clicked(object sender, EventArgs e)
+    {
+        // Navigate to the RoastLogPage
+        await Navigation.PushAsync(new RoastLogPage());
+    }
+
+    private void ClearForm()
+    {
+        // Reset timer
+        ResetTimer_Clicked(this, EventArgs.Empty);
+        
+        // Reset form fields
+        BeanPicker.SelectedIndex = 0;
+        TemperatureEntry.Text = string.Empty;
+        BatchWeightEntry.Text = string.Empty;
+        FinalWeightEntry.Text = string.Empty;
+        NotesEditor.Text = string.Empty;
+        
+        // Reset labels
+        LossPercentLabel.Text = "Weight Loss: --";
+        RoastSummaryLabel.Text = "Roast Summary: --";
+    }
+
+    // Future enhancement: Method to export data to CSV
+    private async Task ExportDataAsync()
+    {
+        try
+        {
+            // Select a file location on the device
+            var customFileType = new FilePickerFileType(
+                new Dictionary<DevicePlatform, IEnumerable<string>>
+                {
+                    { DevicePlatform.WinUI, new[] { ".csv" } },
+                    { DevicePlatform.Android, new[] { "text/csv" } },
+                    { DevicePlatform.iOS, new[] { "public.comma-separated-values-text" } },
+                    { DevicePlatform.MacCatalyst, new[] { "public.comma-separated-values-text" } }
+                });
+
+            var options = new PickOptions
+            {
+                PickerTitle = "Select where to save CSV file",
+                FileTypes = customFileType
+            };
+
+            var result = await FilePicker.PickAsync(options);
+            if (result != null)
+            {
+                await roastDataService.ExportRoastLogAsync(result.FullPath);
+                await DisplayAlert("Success", "Roast log exported successfully!", "OK");
+            }
+        }
+        catch (Exception ex)
+        {
+            await DisplayAlert("Error", $"Failed to export data: {ex.Message}", "OK");
         }
     }
 }
