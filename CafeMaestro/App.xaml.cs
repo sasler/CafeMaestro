@@ -28,26 +28,28 @@ public partial class App : Application
 	protected override Window CreateWindow(IActivationState? activationState)
 	{
 		return new Window(new AppShell());
-	}
-	// Load and apply the saved theme preference
+	}	// Load and apply the saved theme preference
 	private async void LoadThemePreference()
 	{
 		try
 		{
 			var theme = await _preferencesService.GetThemePreferenceAsync();
 
-			// Apply the theme
+			// Apply the app theme for system-level controls
 			switch (theme)
 			{
 				case Services.ThemePreference.Light:
 					UserAppTheme = Microsoft.Maui.ApplicationModel.AppTheme.Light;
+					SetTheme("Light");
 					break;
 				case Services.ThemePreference.Dark:
 					UserAppTheme = Microsoft.Maui.ApplicationModel.AppTheme.Dark;
+					SetTheme("Dark");
 					break;
 				case Services.ThemePreference.System:
 				default:
 					UserAppTheme = Microsoft.Maui.ApplicationModel.AppTheme.Unspecified;
+					SetTheme("System");
 					break;
 			}
 		}
@@ -56,6 +58,7 @@ public partial class App : Application
 			System.Diagnostics.Debug.WriteLine($"Error loading theme preference: {ex.Message}");
 			// Default to system theme
 			UserAppTheme = Microsoft.Maui.ApplicationModel.AppTheme.Unspecified;
+			SetTheme("System");
 		}
 	}
 
@@ -82,28 +85,63 @@ public partial class App : Application
 		{
 			System.Diagnostics.Debug.WriteLine($"Error initializing app data: {ex.Message}");
 		}
-	}
-
-	public void SetTheme(string theme)
+	}	public void SetTheme(string theme)
 	{
-		ICollection<ResourceDictionary> mergedDictionaries = Resources.MergedDictionaries;
-		if (mergedDictionaries != null)
+		try
 		{
-			mergedDictionaries.Clear();
+			// Safely get the merged dictionaries collection
+			var mergedDictionaries = Resources?.MergedDictionaries;
+			if (mergedDictionaries == null)
+				return;
 
+			// Since we can't set Source programmatically, we'll handle styles.xaml differently
+			// First, let's identify theme dictionaries and other dictionaries
+			var themeDictionaries = new List<ResourceDictionary>();
+			var otherDictionaries = new List<ResourceDictionary>();
+
+			foreach (var dict in mergedDictionaries.ToList())
+			{
+				string? source = dict.Source?.OriginalString;
+				if (source != null && (source.Contains("LightTheme.xaml") || source.Contains("DarkTheme.xaml")))
+				{
+					themeDictionaries.Add(dict);
+				}
+				else
+				{
+					otherDictionaries.Add(dict);
+				}
+			}			// Remove only theme dictionaries, keeping other dictionaries intact
+			foreach (var dict in themeDictionaries)
+			{
+				mergedDictionaries.Remove(dict);
+			}
+			
+			// Add the new theme dictionary
+			ResourceDictionary newTheme;
 			switch (theme)
 			{
 				case "Light":
-					mergedDictionaries.Add(new LightTheme());
+					newTheme = new LightTheme();
 					break;
 				case "Dark":
-					mergedDictionaries.Add(new DarkTheme());
+					newTheme = new DarkTheme();
 					break;
 				default:
-					// Default to system theme
-					mergedDictionaries.Add(new LightTheme());
+					// Set theme based on system preference
+					if (Current?.RequestedTheme == AppTheme.Dark)
+						newTheme = new DarkTheme();
+					else
+						newTheme = new LightTheme();
 					break;
 			}
+			
+			// Add the theme dictionary first for proper precedence
+			mergedDictionaries.Add(newTheme);
+		}
+		catch (Exception ex)
+		{
+			System.Diagnostics.Debug.WriteLine($"Error in SetTheme: {ex.Message}");
+			System.Diagnostics.Debug.WriteLine($"Stack trace: {ex.StackTrace}");
 		}
 	}
 }

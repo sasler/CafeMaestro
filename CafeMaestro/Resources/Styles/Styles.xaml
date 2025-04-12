@@ -5,7 +5,7 @@
     <!-- Button Style -->
     <Style x:Key="ButtonStyle" TargetType="Button">
         <Setter Property="TextColor" Value="{DynamicResource PrimaryTextColor}" />
-        <Setter Property="BackgroundColor" Value="{StaticResource Primary}" />
+        <Setter Property="BackgroundColor" Value="{DynamicResource PageBackgroundColor}" />
         <Setter Property="FontSize" Value="14" />
         <Setter Property="Padding" Value="10,5" />
         <Setter Property="CornerRadius" Value="8" />

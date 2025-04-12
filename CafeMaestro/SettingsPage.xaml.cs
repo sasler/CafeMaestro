@@ -107,15 +107,14 @@ public partial class SettingsPage : ContentPage
 
             // Apply the theme immediately
             ApplyTheme(selectedTheme);
-        }
-        catch (Exception ex)
+        }        catch (Exception ex)
         {
             Debug.WriteLine($"Error changing theme: {ex.Message}");
-            await DisplayAlert("Error", "Failed to change the theme.", "OK");
+            Debug.WriteLine($"Stack trace: {ex.StackTrace}");
+            await DisplayAlert("Error", $"Failed to change the theme: {ex.Message}", "OK");
         }
     }
-    
-    // Apply the selected theme to the app
+      // Apply the selected theme to the app
     private void ApplyTheme(ThemePreference theme)
     {
         if (Application.Current == null) return;
@@ -125,12 +124,18 @@ public partial class SettingsPage : ContentPage
         {
             case ThemePreference.Light:
                 Application.Current.UserAppTheme = MauiAppTheme.Light;
+                // Also apply theme resources
+                (Application.Current as App)?.SetTheme("Light");
                 break;
             case ThemePreference.Dark:
                 Application.Current.UserAppTheme = MauiAppTheme.Dark;
+                // Also apply theme resources
+                (Application.Current as App)?.SetTheme("Dark");
                 break;
             case ThemePreference.System:
                 Application.Current.UserAppTheme = MauiAppTheme.Unspecified;
+                // Also apply theme resources based on system setting
+                (Application.Current as App)?.SetTheme("System");
                 break;
         }
     }

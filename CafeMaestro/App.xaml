@@ -5,8 +5,10 @@
     <Application.Resources>
         <ResourceDictionary>
             <ResourceDictionary.MergedDictionaries>
-                <ResourceDictionary Source="Resources\Styles\DarkTheme.xaml" />
-                <ResourceDictionary Source="Resources\Styles\LightTheme.xaml" />
+                <!-- Only include one default theme -->
+                <ResourceDictionary Source="Resources/Styles/LightTheme.xaml" />
+                <!-- Include Styles.xaml for common styles -->
+                <ResourceDictionary Source="Resources/Styles/Styles.xaml" />
             </ResourceDictionary.MergedDictionaries>
         </ResourceDictionary>
     </Application.Resources>
