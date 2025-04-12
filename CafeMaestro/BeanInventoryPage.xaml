@@ -4,18 +4,21 @@
              x:Class="CafeMaestro.BeanInventoryPage"
              Title="Bean Inventory">
 
-    <Grid RowDefinitions="Auto,*,Auto" Padding="20">
-        <VerticalStackLayout Grid.Row="0" Spacing="10" Margin="0,0,0,10">
-            <Label Text="Coffee Bean Inventory" FontSize="24" HorizontalOptions="Center" />
-            <SearchBar x:Name="SearchBar" Placeholder="Search beans..." TextChanged="OnSearchTextChanged" />
+    <Grid RowDefinitions="Auto,*,Auto" Padding="20">        <VerticalStackLayout Grid.Row="0" Spacing="10" Margin="0,0,0,10">
+            <Label Text="Coffee Bean Inventory" FontSize="24" HorizontalOptions="Center" TextColor="{DynamicResource PrimaryTextColor}" />
+            <SearchBar x:Name="SearchBar" Placeholder="Search beans..." TextChanged="OnSearchTextChanged" 
+                      TextColor="{DynamicResource PrimaryTextColor}"
+                      PlaceholderColor="{DynamicResource PlaceholderColor}"
+                      BackgroundColor="{DynamicResource EntryBackgroundColor}" />
         </VerticalStackLayout>
 
-        <RefreshView Grid.Row="1" x:Name="BeansRefreshView" RefreshColor="#512BD4" Command="{Binding RefreshCommand}">
-            <CollectionView x:Name="BeansCollection" SelectionMode="Single" SelectionChanged="OnBeanSelected">
+        <RefreshView Grid.Row="1" x:Name="BeansRefreshView" RefreshColor="{DynamicResource PrimaryColor}" Command="{Binding RefreshCommand}">
+            <CollectionView x:Name="BeansCollection" SelectionMode="Single" SelectionChanged="OnBeanSelected" 
+                           Background="{DynamicResource PageBackgroundColor}">
                 <CollectionView.EmptyView>
                     <StackLayout HorizontalOptions="Center" VerticalOptions="Center">
-                        <Label Text="No beans in inventory" FontSize="18" TextColor="Gray" />
-                        <Label Text="Click '+' to add new beans" FontSize="14" TextColor="Gray" />
+                        <Label Text="No beans in inventory" FontSize="18" TextColor="{DynamicResource TertiaryTextColor}" />
+                        <Label Text="Click '+' to add new beans" FontSize="14" TextColor="{DynamicResource TertiaryTextColor}" />
                     </StackLayout>
                 </CollectionView.EmptyView>
                 <CollectionView.ItemTemplate>
@@ -60,20 +63,18 @@
                     </DataTemplate>
                 </CollectionView.ItemTemplate>
             </CollectionView>
-        </RefreshView>
-
-        <HorizontalStackLayout Grid.Row="2" Spacing="10" Margin="0,10,0,0" HorizontalOptions="End">
+        </RefreshView>        <HorizontalStackLayout Grid.Row="2" Spacing="10" Margin="0,10,0,0" HorizontalOptions="End">
             <Button x:Name="BackButton" 
                    Text="Back" 
                    Clicked="BackButton_Clicked"
-                   BackgroundColor="#0078D4"
-                   TextColor="White"
+                   BackgroundColor="{DynamicResource SecondaryColor}"
+                   TextColor="{DynamicResource ButtonTextColor}"
                    WidthRequest="100" />
             <Button x:Name="AddBeanButton" 
                    Text="+" 
                    Clicked="AddBean_Clicked"
-                   BackgroundColor="#512BD4"
-                   TextColor="White"
+                   BackgroundColor="{DynamicResource PrimaryColor}"
+                   TextColor="{DynamicResource ButtonTextColor}"
                    FontSize="24"
                    WidthRequest="60"
                    HeightRequest="60"

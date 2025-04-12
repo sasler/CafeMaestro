@@ -29,13 +29,16 @@
                 </Picker.Items>
             </Picker>
 
-            <Label Text="Roasting Temperature (°C):" TextColor="{DynamicResource PrimaryTextColor}" />
-            <Entry x:Name="TemperatureEntry" 
-                   Keyboard="Numeric" 
-                   Placeholder="Enter temperature"
-                   TextColor="{DynamicResource PrimaryTextColor}"
-                   BackgroundColor="{DynamicResource EntryBackgroundColor}"
-                   PlaceholderColor="{DynamicResource PlaceholderColor}" />            <Label Text="Roasting Time:" TextColor="{DynamicResource PrimaryTextColor}" />
+            <Label Text="Roasting Temperature (°C):" TextColor="{DynamicResource PrimaryTextColor}" />            <Border Stroke="{DynamicResource EntryBorderColor}" 
+                    StrokeThickness="1" 
+                    StrokeShape="RoundRectangle 5">
+                <Entry x:Name="TemperatureEntry" 
+                       Keyboard="Numeric" 
+                       Placeholder="Enter temperature"
+                       TextColor="{DynamicResource PrimaryTextColor}"
+                       BackgroundColor="{DynamicResource EntryBackgroundColor}"
+                       PlaceholderColor="{DynamicResource PlaceholderColor}" />
+            </Border><Label Text="Roasting Time:" TextColor="{DynamicResource PrimaryTextColor}" />
             <!-- Timer UI with digital watch styling -->
             <VerticalStackLayout Spacing="10">                <!-- The digital timer display should keep its unique styling regardless of theme -->                <Border Stroke="{DynamicResource TimerBorderColor}" 
                        BackgroundColor="Black" 
@@ -162,17 +165,27 @@
                        FontSize="12" 
                        TextColor="{DynamicResource TimerInstructionColor}" 
                        HorizontalOptions="Center" />
-            </VerticalStackLayout>
+            </VerticalStackLayout>            <Label Text="Batch Weight (g):" TextColor="{DynamicResource PrimaryTextColor}" />            <Border Stroke="{DynamicResource EntryBorderColor}" 
+                    StrokeThickness="1" 
+                    StrokeShape="RoundRectangle 5">
+                <Entry x:Name="BatchWeightEntry" 
+                       Keyboard="Numeric" 
+                       Placeholder="Enter batch weight"
+                       TextColor="{DynamicResource PrimaryTextColor}"
+                       BackgroundColor="{DynamicResource EntryBackgroundColor}"
+                       PlaceholderColor="{DynamicResource PlaceholderColor}" />
+            </Border>
 
-            <Label Text="Batch Weight (g):" />
-            <Entry x:Name="BatchWeightEntry" Keyboard="Numeric" Placeholder="Enter batch weight" />
-
-            <Label Text="Final Weight (g):" TextColor="{DynamicResource PrimaryTextColor}" />
-            <Entry x:Name="FinalWeightEntry" 
-                  Keyboard="Numeric" 
-                  Placeholder="Enter final weight"
-                  TextColor="{DynamicResource PrimaryTextColor}"
-                  BackgroundColor="{DynamicResource EntryBackgroundColor}" />
+            <Label Text="Final Weight (g):" TextColor="{DynamicResource PrimaryTextColor}" />            <Border Stroke="{DynamicResource EntryBorderColor}" 
+                    StrokeThickness="1" 
+                    StrokeShape="RoundRectangle 5">
+                <Entry x:Name="FinalWeightEntry" 
+                       Keyboard="Numeric" 
+                       Placeholder="Enter final weight"
+                       TextColor="{DynamicResource PrimaryTextColor}"
+                       BackgroundColor="{DynamicResource EntryBackgroundColor}"
+                       PlaceholderColor="{DynamicResource PlaceholderColor}" />
+            </Border>
 
             <Label x:Name="LossPercentLabel" 
                   Text="Weight Loss: --" 
@@ -190,14 +203,12 @@
                    HeightRequest="100"
                    AutoSize="TextChanges"
                    TextColor="{DynamicResource PrimaryTextColor}"
-                   BackgroundColor="{DynamicResource EntryBackgroundColor}" />
-
-            <!-- Save Button -->
+                   BackgroundColor="{DynamicResource EntryBackgroundColor}" />            <!-- Save Button -->
             <Button x:Name="SaveRoastButton"
                    Text="Save Roast Log"
                    Clicked="SaveRoast_Clicked"
-                   BackgroundColor="#512BD4"
-                   TextColor="White"
+                   BackgroundColor="{DynamicResource PrimaryColor}"
+                   TextColor="{DynamicResource ButtonTextColor}"
                    HorizontalOptions="Fill"
                    Margin="0,20,0,10" />
 
@@ -205,8 +216,8 @@
             <Button x:Name="ViewLogsButton"
                    Text="View Saved Logs"
                    Clicked="ViewLogs_Clicked"
-                   BackgroundColor="#0078D4"
-                   TextColor="White"
+                   BackgroundColor="{DynamicResource SecondaryColor}"
+                   TextColor="{DynamicResource ButtonTextColor}"
                    HorizontalOptions="Fill" />
         </VerticalStackLayout>
     </ScrollView>

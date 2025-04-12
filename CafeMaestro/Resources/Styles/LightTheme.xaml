@@ -1,12 +1,35 @@
 <ResourceDictionary xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
                     xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
                     x:Class="CafeMaestro.LightTheme">
+    <!-- Base theme colors -->
     <Color x:Key="PageBackgroundColor">White</Color>
-    <Color x:Key="NavigationBarColor">WhiteSmoke</Color>
-    <Color x:Key="PrimaryColor">WhiteSmoke</Color>
-    <Color x:Key="SecondaryColor">Black</Color>
-    <Color x:Key="PrimaryTextColor">Black</Color>
-    <Color x:Key="SecondaryTextColor">White</Color>
-    <Color x:Key="TertiaryTextColor">Gray</Color>
+    <Color x:Key="NavigationBarColor">#f0f0f0</Color>
+    <Color x:Key="PrimaryColor">#512BD4</Color>
+    <Color x:Key="SecondaryColor">#0078D4</Color>
+    <Color x:Key="TertiaryColor">#008000</Color>
+    <Color x:Key="NeutralColor">#f0f0f0</Color>
+    
+    <!-- Text colors -->
+    <Color x:Key="PrimaryTextColor">#202020</Color>
+    <Color x:Key="SecondaryTextColor">#404040</Color>
+    <Color x:Key="TertiaryTextColor">#606060</Color>
+    <Color x:Key="PlaceholderColor">#909090</Color>
+    <Color x:Key="InverseTextColor">White</Color>
+    <Color x:Key="ButtonTextColor">White</Color>
+    <Color x:Key="TimerInstructionColor">#606060</Color>
+      <!-- Input control colors -->
+    <Color x:Key="EntryBackgroundColor">#f8f8f8</Color>
+    <Color x:Key="EntryBorderColor">#c0c0c0</Color>
+    <Color x:Key="PickerBackgroundColor">#f8f8f8</Color>
+    <Color x:Key="PickerBorderColor">#c0c0c0</Color>
+    
+    <!-- Border/separator colors -->
+    <Color x:Key="BorderColor">#d0d0d0</Color>
+    <Color x:Key="SeparatorColor">#e0e0e0</Color>
+    <Color x:Key="TimerBorderColor">#404040</Color>
+    
+    <!-- Misc -->
     <Color x:Key="TransparentColor">Transparent</Color>
+    <Color x:Key="ErrorColor">#B00020</Color>
+    <Color x:Key="SuccessColor">#00A36C</Color>
 </ResourceDictionary>
