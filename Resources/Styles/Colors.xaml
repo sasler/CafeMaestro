@@ -1,0 +1,20 @@
+<ResourceDictionary xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+                    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
+    <!-- Light Theme Colors -->
+    <Color x:Key="LightBackgroundColor">#FFFFFF</Color>
+    <Color x:Key="LightTextColor">#000000</Color>
+    <Color x:Key="LightSecondaryTextColor">#808080</Color>
+    <Color x:Key="LightBorderColor">#D3D3D3</Color>
+
+    <!-- Dark Theme Colors -->
+    <Color x:Key="DarkBackgroundColor">#1C1C1C</Color>
+    <Color x:Key="DarkTextColor">#FFFFFF</Color>
+    <Color x:Key="DarkSecondaryTextColor">#AAAAAA</Color>
+    <Color x:Key="DarkBorderColor">#444444</Color>
+
+    <!-- AppThemeBinding for Dynamic Colors -->
+    <AppThemeBinding x:Key="BackgroundColor" Light="{StaticResource LightBackgroundColor}" Dark="{StaticResource DarkBackgroundColor}" />
+    <AppThemeBinding x:Key="TextColor" Light="{StaticResource LightTextColor}" Dark="{StaticResource DarkTextColor}" />
+    <AppThemeBinding x:Key="SecondaryTextColor" Light="{StaticResource LightSecondaryTextColor}" Dark="{StaticResource DarkSecondaryTextColor}" />
+    <AppThemeBinding x:Key="BorderColor" Light="{StaticResource LightBorderColor}" Dark="{StaticResource DarkBorderColor}" />
+</ResourceDictionary>

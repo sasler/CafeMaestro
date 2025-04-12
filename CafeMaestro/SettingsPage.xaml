@@ -84,9 +84,9 @@
             </Border>
             
             <!-- About Section -->
-            <Frame BorderColor="{AppThemeBinding Light=LightGray, Dark=#444444}"
+            <Border Stroke="{AppThemeBinding Light=LightGray, Dark=#444444}"
                    BackgroundColor="{AppThemeBinding Light=White, Dark=#333333}"
-                   Padding="16" CornerRadius="8">
+                   Padding="16" StrokeShape="RoundRectangle 8">
                 <VerticalStackLayout Spacing="8">
                     <Label Text="About" 
                            FontSize="18" 
@@ -111,7 +111,7 @@
                            FontSize="14" 
                            TextColor="{AppThemeBinding Light=Gray, Dark=#BBBBBB}" />
                 </VerticalStackLayout>
-            </Frame>
+            </Border>
         </VerticalStackLayout>
     </ScrollView>
 </ContentPage>
