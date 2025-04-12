@@ -8,6 +8,8 @@ public partial class SettingsPage : ContentPage
 {
     private readonly AppDataService _appDataService;
     private readonly PreferencesService _preferencesService;
+    private bool _isLoadingThemeSettings = false; // Flag to suppress events during initialization
+    private bool _isThemeInitialized = false; // Additional safeguard for theme initialization
 
     public SettingsPage()
     {
@@ -49,8 +51,10 @@ public partial class SettingsPage : ContentPage
     {
         try
         {
+            _isLoadingThemeSettings = true; // Suppress events
+
             var theme = await _preferencesService.GetThemePreferenceAsync();
-            
+
             // Set the corresponding radio button
             switch (theme)
             {
@@ -65,25 +69,31 @@ public partial class SettingsPage : ContentPage
                     SystemThemeRadio.IsChecked = true;
                     break;
             }
+
+            _isThemeInitialized = true; // Mark theme as initialized
         }
         catch (Exception ex)
         {
             Debug.WriteLine($"Error loading theme settings: {ex.Message}");
             SystemThemeRadio.IsChecked = true; // Default to system theme
         }
+        finally
+        {
+            _isLoadingThemeSettings = false; // Re-enable events
+        }
     }
 
     // Handle theme radio button selection
     private async void ThemeRadioButton_CheckedChanged(object sender, CheckedChangedEventArgs e)
     {
-        if (!e.Value) // Only respond to the checked button, not the unchecked ones
+        if (_isLoadingThemeSettings || !_isThemeInitialized || !e.Value) // Ignore events during initialization or unchecked state
             return;
-            
+
         try
         {
             var radioButton = sender as RadioButton;
             ThemePreference selectedTheme = ThemePreference.System; // Default
-            
+
             // Determine which theme was selected
             if (radioButton == LightThemeRadio)
                 selectedTheme = ThemePreference.Light;
@@ -91,10 +101,10 @@ public partial class SettingsPage : ContentPage
                 selectedTheme = ThemePreference.Dark;
             else if (radioButton == SystemThemeRadio)
                 selectedTheme = ThemePreference.System;
-                
+
             // Save the preference
             await _preferencesService.SaveThemePreferenceAsync(selectedTheme);
-            
+
             // Apply the theme immediately
             ApplyTheme(selectedTheme);
         }
