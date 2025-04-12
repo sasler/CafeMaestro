@@ -18,21 +18,25 @@
                     </StackLayout>
                 </CollectionView.EmptyView>
                 <CollectionView.ItemTemplate>
-                    <DataTemplate>
-                        <Frame Margin="0,5" Padding="15" BorderColor="LightGray" CornerRadius="5">
+                    <DataTemplate>                        <Frame Margin="0,5" Padding="15" BorderColor="{AppThemeBinding Light=LightGray, Dark=#444444}" 
+                               BackgroundColor="{AppThemeBinding Light=White, Dark=#333333}" 
+                               CornerRadius="5">
                             <Grid RowDefinitions="Auto,Auto,Auto" ColumnDefinitions="*,Auto">
-                                <Label Grid.Row="0" Grid.Column="0" Text="{Binding BeanType}" FontSize="18" FontAttributes="Bold" />
-                                <Label Grid.Row="0" Grid.Column="1" Text="{Binding RoastDate, StringFormat='{0:MM/dd/yyyy}'}" FontSize="14" TextColor="Gray" />
+                                <Label Grid.Row="0" Grid.Column="0" Text="{Binding BeanType}" FontSize="18" FontAttributes="Bold" 
+                                       TextColor="{AppThemeBinding Light=#000000, Dark=#FFFFFF}" />
+                                <Label Grid.Row="0" Grid.Column="1" Text="{Binding RoastDate, StringFormat='{0:MM/dd/yyyy}'}" FontSize="14" 
+                                       TextColor="{AppThemeBinding Light=Gray, Dark=#BBBBBB}" />
                                 
                                 <Label Grid.Row="1" Grid.Column="0" Grid.ColumnSpan="2" 
                                        Text="{Binding Summary}" 
+                                       TextColor="{AppThemeBinding Light=#000000, Dark=#FFFFFF}"
                                        FontSize="16" />
                                 
                                 <HorizontalStackLayout Grid.Row="2" Grid.Column="0" Grid.ColumnSpan="2" Spacing="15" Margin="0,5,0,0">
                                     <Label Text="{Binding WeightLossPercentage, StringFormat='Loss: {0:F1}%'}" 
-                                           FontSize="14" TextColor="#808080" />
+                                           FontSize="14" TextColor="{AppThemeBinding Light=#808080, Dark=#AAAAAA}" />
                                     <Label Text="{Binding FormattedTime, StringFormat='Time: {0}'}" 
-                                           FontSize="14" TextColor="#808080" />
+                                           FontSize="14" TextColor="{AppThemeBinding Light=#808080, Dark=#AAAAAA}" />
                                 </HorizontalStackLayout>
                             </Grid>
                         </Frame>

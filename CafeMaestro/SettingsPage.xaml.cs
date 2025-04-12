@@ -1,69 +1,127 @@
+using System.Diagnostics;
 using CafeMaestro.Services;
-using System.Reflection;
+using MauiAppTheme = Microsoft.Maui.ApplicationModel.AppTheme;
 
 namespace CafeMaestro;
 
 public partial class SettingsPage : ContentPage
 {
-    private readonly RoastDataService _roastDataService;
     private readonly AppDataService _appDataService;
     private readonly PreferencesService _preferencesService;
 
     public SettingsPage()
     {
         InitializeComponent();
-
+        
         // Get services from DI
         _appDataService = Application.Current?.Handler?.MauiContext?.Services.GetService<AppDataService>() ?? 
-                         new AppDataService();
-        _roastDataService = Application.Current?.Handler?.MauiContext?.Services.GetService<RoastDataService>() ?? 
-                           new RoastDataService(_appDataService);
+                          new AppDataService();
         _preferencesService = Application.Current?.Handler?.MauiContext?.Services.GetService<PreferencesService>() ?? 
-                             new PreferencesService();
-        
-        // Set version number from assembly
-        VersionLabel.Text = GetVersionNumber();
+                           new PreferencesService();
+                               
+        // Initialize UI
+        LoadDataFilePath();
+        LoadVersionInfo();
+        LoadThemeSettings();
     }
 
-    protected override async void OnAppearing()
+    protected override void OnAppearing()
     {
         base.OnAppearing();
-        await LoadCurrentDataFilePath();
+        LoadDataFilePath();
     }
 
-    private string GetVersionNumber()
+    private void LoadDataFilePath()
     {
-        // Get version from assembly
-        var assembly = Assembly.GetExecutingAssembly();
-        var version = assembly.GetName().Version;
-        
-        return version != null 
-            ? $"{version.Major}.{version.Minor}.{version.Build}" 
-            : "1.0.0";
+        DataFilePath.Text = _appDataService.DataFilePath;
     }
 
-    private async Task LoadCurrentDataFilePath()
+    private void LoadVersionInfo()
+    {
+        // Get version from assembly info
+        var version = AppInfo.Current.VersionString;
+        var build = AppInfo.Current.BuildString;
+        
+        VersionLabel.Text = $"{version} (Build {build})";
+    }
+      // Load the saved theme settings
+    private async void LoadThemeSettings()
     {
         try
         {
-            // Get current data file path
-            string path = _appDataService.DataFilePath;
+            var theme = await _preferencesService.GetThemePreferenceAsync();
             
-            // Check if using default path
-            string savedPath = await _preferencesService.GetAppDataFilePathAsync();
-            
-            if (string.IsNullOrEmpty(savedPath))
+            // Set the corresponding radio button
+            switch (theme)
             {
-                DataFilePath.Text = $"{path} (Default)";
-            }
-            else
-            {
-                DataFilePath.Text = path;
+                case ThemePreference.Light:
+                    LightThemeRadio.IsChecked = true;
+                    break;
+                case ThemePreference.Dark:
+                    DarkThemeRadio.IsChecked = true;
+                    break;
+                case ThemePreference.System:
+                default:
+                    SystemThemeRadio.IsChecked = true;
+                    break;
             }
         }
         catch (Exception ex)
         {
-            DataFilePath.Text = $"Error loading path: {ex.Message}";
+            Debug.WriteLine($"Error loading theme settings: {ex.Message}");
+            SystemThemeRadio.IsChecked = true; // Default to system theme
+        }
+    }
+
+    // Handle theme radio button selection
+    private async void ThemeRadioButton_CheckedChanged(object sender, CheckedChangedEventArgs e)
+    {
+        if (!e.Value) // Only respond to the checked button, not the unchecked ones
+            return;
+            
+        try
+        {
+            var radioButton = sender as RadioButton;
+            ThemePreference selectedTheme = ThemePreference.System; // Default
+            
+            // Determine which theme was selected
+            if (radioButton == LightThemeRadio)
+                selectedTheme = ThemePreference.Light;
+            else if (radioButton == DarkThemeRadio)
+                selectedTheme = ThemePreference.Dark;
+            else if (radioButton == SystemThemeRadio)
+                selectedTheme = ThemePreference.System;
+                
+            // Save the preference
+            await _preferencesService.SaveThemePreferenceAsync(selectedTheme);
+            
+            // Apply the theme immediately
+            ApplyTheme(selectedTheme);
+        }
+        catch (Exception ex)
+        {
+            Debug.WriteLine($"Error changing theme: {ex.Message}");
+            await DisplayAlert("Error", "Failed to change the theme.", "OK");
+        }
+    }
+    
+    // Apply the selected theme to the app
+    private void ApplyTheme(ThemePreference theme)
+    {
+        if (Application.Current == null) return;
+        
+        // Set the app's theme
+        switch (theme)
+        {
+            case ThemePreference.Light:
+                Application.Current.UserAppTheme = MauiAppTheme.Light;
+                break;
+            case ThemePreference.Dark:
+                Application.Current.UserAppTheme = MauiAppTheme.Dark;
+                break;
+            case ThemePreference.System:
+                Application.Current.UserAppTheme = MauiAppTheme.Unspecified;
+                break;
         }
     }
 
@@ -82,23 +140,17 @@ public partial class SettingsPage : ContentPage
 
             var options = new PickOptions
             {
-                PickerTitle = "Select Data File",
+                PickerTitle = "Select data file location",
                 FileTypes = customFileType
             };
 
             var result = await FilePicker.PickAsync(options);
+            
             if (result != null)
             {
-                // Set this as the data file
                 _appDataService.SetCustomFilePath(result.FullPath);
-                
-                // Save preference
                 await _preferencesService.SaveAppDataFilePathAsync(result.FullPath);
-                
-                // Update display
-                await LoadCurrentDataFilePath();
-                
-                await DisplayAlert("Success", $"Now using data file: {Path.GetFileName(result.FullPath)}", "OK");
+                LoadDataFilePath();
             }
         }
         catch (Exception ex)
@@ -106,115 +158,53 @@ public partial class SettingsPage : ContentPage
             await DisplayAlert("Error", $"Failed to select data file: {ex.Message}", "OK");
         }
     }
-    
+
     private async void CreateDataFileButton_Clicked(object sender, EventArgs e)
     {
         try
         {
-            // Use folder picker instead of file picker to let user select a destination folder
-            string initialFolder = Path.GetDirectoryName(_appDataService.DataFilePath);
-            
             #if WINDOWS
-            // On Windows, use the folder picker
-            var folderPicker = new Windows.Storage.Pickers.FolderPicker();
-            folderPicker.SuggestedStartLocation = Windows.Storage.Pickers.PickerLocationId.DocumentsLibrary;
-            folderPicker.FileTypeFilter.Add("*");
-            
-            // Get the current window handle
-            var window = System.Diagnostics.Process.GetCurrentProcess().MainWindowHandle;
-            // Associate the folder picker with the window
-            WinRT.Interop.InitializeWithWindow.Initialize(folderPicker, window);
-            
-            var folder = await folderPicker.PickSingleFolderAsync();
-            if (folder != null)
+            // On Windows, use the folder picker then prompt for filename
+            try
             {
-                // Prompt user for filename
-                string fileName = await DisplayPromptAsync(
-                    "Create Data File", 
-                    "Enter a filename for your data file:", 
-                    initialValue: "cafemaestro_data.json",
-                    maxLength: 100);
-                    
-                if (string.IsNullOrWhiteSpace(fileName))
-                    return;
+                var folderPicker = new Windows.Storage.Pickers.FolderPicker();
+                folderPicker.SuggestedStartLocation = Windows.Storage.Pickers.PickerLocationId.DocumentsLibrary;
+                folderPicker.FileTypeFilter.Add("*");
                 
-                // Ensure filename has .json extension
-                if (!fileName.EndsWith(".json", StringComparison.OrdinalIgnoreCase))
-                    fileName += ".json";
+                // Get the current window handle
+                var hwnd = WinRT.Interop.WindowNative.GetWindowHandle(Application.Current.Windows[0]);
+                // Associate the folder picker with the window
+                WinRT.Interop.InitializeWithWindow.Initialize(folderPicker, hwnd);
                 
-                string filePath = Path.Combine(folder.Path, fileName);
-            #else
-            // For other platforms, use the standard file picker
-            var customFileType = new FilePickerFileType(
-                new Dictionary<DevicePlatform, IEnumerable<string>>
+                var folder = await folderPicker.PickSingleFolderAsync();
+                if (folder != null)
                 {
-                    { DevicePlatform.WinUI, new[] { ".json" } },
-                    { DevicePlatform.Android, new[] { "application/json" } },
-                    { DevicePlatform.iOS, new[] { "public.json" } },
-                    { DevicePlatform.MacCatalyst, new[] { "public.json" } }
-                });
-
-            var options = new PickOptions
-            {
-                PickerTitle = "Choose location for new data file (.json)",
-                FileTypes = customFileType
-            };
-
-            var result = await FilePicker.PickAsync(options);
-            if (result != null)
-            {
-                string filePath = result.FullPath;
-                
-                // Ensure the file has the correct extension
-                if (!filePath.EndsWith(".json", StringComparison.OrdinalIgnoreCase))
-                {
-                    filePath += ".json";
-                }
-            #endif
-                
-                // Check if file exists
-                if (File.Exists(filePath))
-                {
-                    bool replace = await DisplayAlert("File Exists", 
-                        "The selected file already exists. Do you want to replace it? This will erase any existing data!", 
-                        "Replace", "Cancel");
+                    // Prompt user for filename
+                    string fileName = await DisplayPromptAsync(
+                        "Create Data File", 
+                        "Enter a filename for your data file:", 
+                        initialValue: "cafemaestro_data.json",
+                        maxLength: 100);
                         
-                    if (!replace)
+                    if (string.IsNullOrWhiteSpace(fileName))
                         return;
-                }
-                
-                try
-                {
-                    // Ensure the directory exists before creating the file
-                    string directory = Path.GetDirectoryName(filePath);
-                    if (!string.IsNullOrEmpty(directory) && !Directory.Exists(directory))
-                    {
-                        Directory.CreateDirectory(directory);
-                    }
                     
-                    // Create new empty data file
-                    bool success = await _appDataService.CreateEmptyDataFileAsync(filePath);
+                    // Ensure filename has .json extension
+                    if (!fileName.EndsWith(".json", StringComparison.OrdinalIgnoreCase))
+                        fileName += ".json";
                     
-                    if (success)
-                    {
-                        // Save preference
-                        await _preferencesService.SaveAppDataFilePathAsync(filePath);
-                        
-                        // Update display
-                        await LoadCurrentDataFilePath();
-                        
-                        await DisplayAlert("Success", $"Created new data file: {Path.GetFileName(filePath)}", "OK");
-                    }
-                    else
-                    {
-                        await DisplayAlert("Error", "Failed to create data file", "OK");
-                    }
-                }
-                catch (Exception ex)
-                {
-                    await DisplayAlert("Error", $"Error creating file: {ex.Message}", "OK");
+                    string filePath = Path.Combine(folder.Path, fileName);
+                    await CreateNewDataFile(filePath);
                 }
             }
+            catch (Exception ex)
+            {
+                await DisplayAlert("Error", $"Windows folder picker failed: {ex.Message}", "OK");
+                await UseStandardFilePicker();
+            }
+            #else
+            await UseStandardFilePicker();
+            #endif
         }
         catch (Exception ex)
         {
@@ -222,24 +212,78 @@ public partial class SettingsPage : ContentPage
         }
     }
     
+    private async Task UseStandardFilePicker()
+    {
+        var customFileType = new FilePickerFileType(
+            new Dictionary<DevicePlatform, IEnumerable<string>>
+            {
+                { DevicePlatform.WinUI, new[] { ".json" } },
+                { DevicePlatform.Android, new[] { "application/json" } },
+                { DevicePlatform.iOS, new[] { "public.json" } },
+                { DevicePlatform.MacCatalyst, new[] { "public.json" } }
+            });
+
+        var options = new PickOptions
+        {
+            PickerTitle = "Choose location for new data file",
+            FileTypes = customFileType
+        };
+
+        var result = await FilePicker.PickAsync(options);
+        if (result != null)
+        {
+            string filePath = result.FullPath;
+            
+            // Ensure the file has the correct extension
+            if (!filePath.EndsWith(".json", StringComparison.OrdinalIgnoreCase))
+                filePath += ".json";
+                
+            await CreateNewDataFile(filePath);
+        }
+    }
+    
+    private async Task CreateNewDataFile(string filePath)
+    {
+        try
+        {
+            // Create new empty data file
+            bool success = await _appDataService.CreateEmptyDataFileAsync(filePath);
+            
+            if (success)
+            {
+                await _preferencesService.SaveAppDataFilePathAsync(filePath);
+                LoadDataFilePath();
+                await DisplayAlert("Success", "Created new data file.", "OK");
+            }
+            else
+            {
+                await DisplayAlert("Error", "Failed to create data file.", "OK");
+            }
+        }
+        catch (Exception ex)
+        {
+            await DisplayAlert("Error", $"Failed to create file: {ex.Message}", "OK");
+        }
+    }
+
     private async void UseDefaultButton_Clicked(object sender, EventArgs e)
     {
         try
         {
-            // Clear saved preference
-            await _preferencesService.ClearAppDataFilePathAsync();
-            
-            // Reset to default location
-            _appDataService.SetCustomFilePath(Path.Combine(FileSystem.AppDataDirectory, "AppData", "cafemaestro_data.json"));
-            
-            // Update display
-            await LoadCurrentDataFilePath();
-            
-            await DisplayAlert("Success", "Now using default data file location", "OK");
+            bool confirmed = await DisplayAlert("Confirm", 
+                "Are you sure you want to use the default data location? This will move your data to the app's private storage.", 
+                "Yes", "No");
+                
+            if (confirmed)
+            {
+                await _preferencesService.ClearAppDataFilePathAsync();
+                _appDataService.ResetToDefaultPath();
+                LoadDataFilePath();
+            }
         }
         catch (Exception ex)
         {
-            await DisplayAlert("Error", $"Failed to use default location: {ex.Message}", "OK");
+            await DisplayAlert("Error", $"Failed to set default data file: {ex.Message}", "OK");
         }
     }
 }

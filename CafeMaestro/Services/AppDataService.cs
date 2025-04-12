@@ -62,6 +62,22 @@ namespace CafeMaestro.Services
             if (!string.IsNullOrEmpty(directory) && !Directory.Exists(directory))
                 Directory.CreateDirectory(directory);
         }
+
+        // Reset to the default file path in app data directory
+        public void ResetToDefaultPath()
+        {
+            // Reset to default location
+            _folderPath = Path.Combine(FileSystem.AppDataDirectory, "AppData");
+            
+            // Create the directory if it doesn't exist
+            if (!Directory.Exists(_folderPath))
+                Directory.CreateDirectory(_folderPath);
+                
+            _filePath = Path.Combine(_folderPath, _defaultFileName);
+            
+            // Clear cache when path changes
+            _cachedData = null;
+        }
         
         // Loads all app data
         public async Task<AppData> LoadAppDataAsync()

@@ -36,8 +36,12 @@
 
             <Label Text="Roasting Time:" />
             <!-- Timer UI with digital watch styling -->
-            <VerticalStackLayout Spacing="10">
-                <Frame BorderColor="LightGray" BackgroundColor="Black" Padding="10" CornerRadius="5" HorizontalOptions="Center">
+            <VerticalStackLayout Spacing="10">                <!-- The digital timer display should keep its unique styling regardless of theme -->
+                <Frame BorderColor="{AppThemeBinding Light=LightGray, Dark=#444444}" 
+                       BackgroundColor="Black" 
+                       Padding="10" 
+                       CornerRadius="5" 
+                       HorizontalOptions="Center">
                     <Grid>
                         <!-- Digital display label for the timer -->
                         <Label x:Name="TimeDisplayLabel"
@@ -153,9 +157,11 @@
                             </VisualStateGroup>
                         </VisualStateManager.VisualStateGroups>
                     </ImageButton>
-                </HorizontalStackLayout>
-                <Label x:Name="TimerInstructionLabel" Text="Tap timer to enter time: 1=1s, 12=12s, 123=1m:23s, 1234=12m:34s" 
-                       FontSize="12" TextColor="Gray" HorizontalOptions="Center" />
+                </HorizontalStackLayout>                <Label x:Name="TimerInstructionLabel" 
+                       Text="Tap timer to enter time: 1=1s, 12=12s, 123=1m:23s, 1234=12m:34s" 
+                       FontSize="12" 
+                       TextColor="{AppThemeBinding Light=Gray, Dark=#BBBBBB}" 
+                       HorizontalOptions="Center" />
             </VerticalStackLayout>
 
             <Label Text="Batch Weight (g):" />
