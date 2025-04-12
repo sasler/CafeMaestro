@@ -2,39 +2,40 @@
 <ContentPage xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
              xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
              x:Class="CafeMaestro.MainPage"
-             Title="CafeMaestro">
-
-    <ScrollView>
-        <VerticalStackLayout Padding="30,20" Spacing="15">
+             Title="CafeMaestro">    <ScrollView BackgroundColor="{AppThemeBinding Light=White, Dark=#1c1c1c}">
+        <VerticalStackLayout Padding="30,20" Spacing="15" BackgroundColor="{AppThemeBinding Light=White, Dark=#1c1c1c}">
             <Image Source="dotnet_bot.png" HeightRequest="100" Aspect="AspectFit" />
 
-            <Label Text="CafeMaestro" FontSize="32" HorizontalOptions="Center" />
-            <Label Text="Coffee Roasting Tracker" FontSize="24" HorizontalOptions="Center" />
-
-            <Grid ColumnDefinitions="*,Auto">
-                <Label Text="Green Bean Selection:" Grid.Column="0" VerticalOptions="Center"/>
+            <Label Text="CafeMaestro" FontSize="32" HorizontalOptions="Center" TextColor="{AppThemeBinding Light=#000000, Dark=#FFFFFF}" />
+            <Label Text="Coffee Roasting Tracker" FontSize="24" HorizontalOptions="Center" TextColor="{AppThemeBinding Light=#000000, Dark=#FFFFFF}" />            <Grid ColumnDefinitions="*,Auto">
+                <Label Text="Green Bean Selection:" Grid.Column="0" VerticalOptions="Center" TextColor="{AppThemeBinding Light=#000000, Dark=#FFFFFF}"/>
                 <Button Text="+" 
                        Grid.Column="1" 
                        WidthRequest="40"
                        HeightRequest="40"
                        CornerRadius="20"
                        FontSize="20"
-                       BackgroundColor="#512BD4"
-                       TextColor="White"
+                       BackgroundColor="{AppThemeBinding Light=#512BD4, Dark=#7555DB}"
+                       TextColor="{AppThemeBinding Light=White, Dark=White}"
                        Clicked="ManageBeans_Clicked"
                        ToolTipProperties.Text="Manage Bean Inventory"/>
             </Grid>
-            
-            <Picker x:Name="BeanPicker" Title="Select Bean Type">
+              <Picker x:Name="BeanPicker" 
+                    Title="Select Bean Type"
+                    TextColor="{AppThemeBinding Light=#000000, Dark=#FFFFFF}"
+                    BackgroundColor="{AppThemeBinding Light=White, Dark=#2d2d2d}">
                 <Picker.Items>
                     <x:String>Loading beans...</x:String>
                 </Picker.Items>
             </Picker>
 
-            <Label Text="Roasting Temperature (°C):" />
-            <Entry x:Name="TemperatureEntry" Keyboard="Numeric" Placeholder="Enter temperature" />
-
-            <Label Text="Roasting Time:" />
+            <Label Text="Roasting Temperature (°C):" TextColor="{AppThemeBinding Light=#000000, Dark=#FFFFFF}" />
+            <Entry x:Name="TemperatureEntry" 
+                   Keyboard="Numeric" 
+                   Placeholder="Enter temperature"
+                   TextColor="{AppThemeBinding Light=#000000, Dark=#FFFFFF}"
+                   BackgroundColor="{AppThemeBinding Light=White, Dark=#2d2d2d}"
+                   PlaceholderColor="{AppThemeBinding Light=#7F7F7F, Dark=#9F9F9F}" />            <Label Text="Roasting Time:" TextColor="{AppThemeBinding Light=#000000, Dark=#FFFFFF}" />
             <!-- Timer UI with digital watch styling -->
             <VerticalStackLayout Spacing="10">                <!-- The digital timer display should keep its unique styling regardless of theme -->
                 <Frame BorderColor="{AppThemeBinding Light=LightGray, Dark=#444444}" 
@@ -167,18 +168,30 @@
             <Label Text="Batch Weight (g):" />
             <Entry x:Name="BatchWeightEntry" Keyboard="Numeric" Placeholder="Enter batch weight" />
 
-            <Label Text="Final Weight (g):" />
-            <Entry x:Name="FinalWeightEntry" Keyboard="Numeric" Placeholder="Enter final weight" />
+            <Label Text="Final Weight (g):" TextColor="{AppThemeBinding Light=#000000, Dark=#FFFFFF}" />
+            <Entry x:Name="FinalWeightEntry" 
+                  Keyboard="Numeric" 
+                  Placeholder="Enter final weight"
+                  TextColor="{AppThemeBinding Light=#000000, Dark=#FFFFFF}"
+                  BackgroundColor="{AppThemeBinding Light=#FFFFFF, Dark=#333333}" />
 
-            <Label x:Name="LossPercentLabel" Text="Weight Loss: --" FontSize="18" />
-            <Label x:Name="RoastSummaryLabel" Text="Roast Summary: --" FontSize="18" />
+            <Label x:Name="LossPercentLabel" 
+                  Text="Weight Loss: --" 
+                  FontSize="18" 
+                  TextColor="{AppThemeBinding Light=#000000, Dark=#FFFFFF}" />
+            <Label x:Name="RoastSummaryLabel" 
+                  Text="Roast Summary: --" 
+                  FontSize="18" 
+                  TextColor="{AppThemeBinding Light=#000000, Dark=#FFFFFF}" />
 
             <!-- New Notes field -->
-            <Label Text="Notes:" />
+            <Label Text="Notes:" TextColor="{AppThemeBinding Light=#000000, Dark=#FFFFFF}" />
             <Editor x:Name="NotesEditor" 
                    Placeholder="Add notes about this roast..."
                    HeightRequest="100"
-                   AutoSize="TextChanges" />
+                   AutoSize="TextChanges"
+                   TextColor="{AppThemeBinding Light=#000000, Dark=#FFFFFF}"
+                   BackgroundColor="{AppThemeBinding Light=#FFFFFF, Dark=#333333}" />
 
             <!-- Save Button -->
             <Button x:Name="SaveRoastButton"
