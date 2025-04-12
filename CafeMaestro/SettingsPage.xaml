@@ -6,11 +6,10 @@
     <ScrollView>
         <VerticalStackLayout Padding="20" Spacing="20">
             <Label Text="Settings" FontSize="24" HorizontalOptions="Center" Margin="0,0,0,20" />
-            
-            <!-- Theme Section -->
-            <Frame BorderColor="{AppThemeBinding Light=LightGray, Dark=#444444}"
+              <!-- Theme Section -->
+            <Border Stroke="{AppThemeBinding Light=LightGray, Dark=#444444}"
                    BackgroundColor="{AppThemeBinding Light=White, Dark=#333333}"
-                   Padding="16" CornerRadius="8">
+                   Padding="16" StrokeShape="RoundRectangle 8">
                 <VerticalStackLayout Spacing="16">
                     <Label Text="App Theme" 
                            FontSize="18" 
@@ -41,12 +40,12 @@
                            FontSize="12"
                            TextColor="{AppThemeBinding Light=Gray, Dark=#BBBBBB}" />
                 </VerticalStackLayout>
-            </Frame>
+            </Border>
             
             <!-- Data File Section -->
-            <Frame BorderColor="{AppThemeBinding Light=LightGray, Dark=#444444}"
+            <Border Stroke="{AppThemeBinding Light=LightGray, Dark=#444444}"
                    BackgroundColor="{AppThemeBinding Light=White, Dark=#333333}"
-                   Padding="16" CornerRadius="8">
+                   Padding="16" StrokeShape="RoundRectangle 8">
                 <VerticalStackLayout Spacing="16">
                     <Label Text="Data File Location" 
                            FontSize="18" 
@@ -82,7 +81,7 @@
                                 WidthRequest="110" />
                     </HorizontalStackLayout>
                 </VerticalStackLayout>
-            </Frame>
+            </Border>
             
             <!-- About Section -->
             <Frame BorderColor="{AppThemeBinding Light=LightGray, Dark=#444444}"

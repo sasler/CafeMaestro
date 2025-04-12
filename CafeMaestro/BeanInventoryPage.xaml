@@ -35,10 +35,9 @@
                                               BackgroundColor="#ff3b30" 
                                               Command="{Binding Source={RelativeSource AncestorType={x:Type ContentPage}}, Path=DeleteBeanCommand}" 
                                               CommandParameter="{Binding .}" />
-                                </SwipeItems>
-                            </SwipeView.RightItems>                            <Frame Margin="0,5" Padding="15" BorderColor="{AppThemeBinding Light=LightGray, Dark=#444444}" 
+                                </SwipeItems>                            </SwipeView.RightItems>                            <Border Margin="0,5" Padding="15" Stroke="{AppThemeBinding Light=LightGray, Dark=#444444}" 
                                    BackgroundColor="{AppThemeBinding Light=White, Dark=#333333}" 
-                                   CornerRadius="5">
+                                   StrokeShape="RoundRectangle 5">
                                 <Grid RowDefinitions="Auto,Auto,Auto" ColumnDefinitions="*,Auto">
                                     <Label Grid.Row="0" Grid.Column="0" Text="{Binding DisplayName}" FontSize="18" FontAttributes="Bold" 
                                            TextColor="{AppThemeBinding Light=#000000, Dark=#FFFFFF}" />
@@ -57,7 +56,7 @@
                                                FontSize="14" TextColor="{AppThemeBinding Light=#808080, Dark=#AAAAAA}" />
                                     </HorizontalStackLayout>
                                 </Grid>
-                            </Frame>
+                            </Border>
                         </SwipeView>
                     </DataTemplate>
                 </CollectionView.ItemTemplate>
