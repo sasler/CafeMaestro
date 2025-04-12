@@ -64,7 +64,7 @@ public partial class App : Application
 		try
 		{
 			// Check if user has a saved file path preference
-			string savedFilePath = await _preferencesService.GetAppDataFilePathAsync();
+			string? savedFilePath = await _preferencesService.GetAppDataFilePathAsync();
 			
 			if (!string.IsNullOrEmpty(savedFilePath))
 			{

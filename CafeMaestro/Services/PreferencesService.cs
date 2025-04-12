@@ -28,7 +28,7 @@ namespace CafeMaestro.Services
         }
         
         // Get the stored app data file path (returns null if not set)
-        public async Task<string> GetAppDataFilePathAsync()
+        public async Task<string?> GetAppDataFilePathAsync()
         {
             try
             {
@@ -60,7 +60,7 @@ namespace CafeMaestro.Services
         {
             try
             {
-                string value = await SecureStorage.GetAsync(FirstRunKey);
+                string? value = await SecureStorage.GetAsync(FirstRunKey);
                 // If the key doesn't exist or is explicitly set to "true", then it's a first run
                 return string.IsNullOrEmpty(value) || value.Equals("true", StringComparison.OrdinalIgnoreCase);
             }
@@ -115,7 +115,7 @@ namespace CafeMaestro.Services
         {
             try
             {
-                string value = await SecureStorage.GetAsync(ThemePreferenceKey);
+                string? value = await SecureStorage.GetAsync(ThemePreferenceKey);
                 if (string.IsNullOrEmpty(value))
                 {
                     // Default to System theme
@@ -145,7 +145,7 @@ namespace CafeMaestro.Services
         
         public async Task<string> GetRoastDataFilePathAsync()
         {
-            return await GetAppDataFilePathAsync();
+            return await GetAppDataFilePathAsync() ?? string.Empty;
         }
         
         public async Task ClearRoastDataFilePathAsync()

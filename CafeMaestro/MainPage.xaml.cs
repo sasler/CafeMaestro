@@ -60,7 +60,7 @@ public partial class MainPage : ContentPage
         try
         {
             // Check if user has a saved file path preference
-            string savedFilePath = await preferencesService.GetAppDataFilePathAsync();
+            string savedFilePath = await preferencesService.GetAppDataFilePathAsync() ?? string.Empty;
             
             if (!string.IsNullOrEmpty(savedFilePath))
             {

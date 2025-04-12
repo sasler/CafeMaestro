@@ -15,7 +15,7 @@ namespace CafeMaestro.Services
         private string _filePath;
         private readonly string _defaultFileName = "cafemaestro_data.json";
         private readonly JsonSerializerOptions _jsonOptions;
-        private AppData _cachedData;
+        private AppData? _cachedData;
         private bool _isDirty = false;
         
         // Property to get/set the current data file path
@@ -25,7 +25,8 @@ namespace CafeMaestro.Services
             set
             {
                 _filePath = value;
-                _folderPath = Path.GetDirectoryName(_filePath);
+                string? directory = Path.GetDirectoryName(_filePath);
+                _folderPath = directory ?? string.Empty;
                 // Clear cache when path changes
                 _cachedData = null;
             }
@@ -186,7 +187,7 @@ namespace CafeMaestro.Services
                 SetCustomFilePath(filePath);
                 
                 // Make sure directory exists
-                string directory = Path.GetDirectoryName(filePath);
+                string? directory = Path.GetDirectoryName(filePath);
                 if (!string.IsNullOrEmpty(directory) && !Directory.Exists(directory))
                 {
                     Directory.CreateDirectory(directory);
