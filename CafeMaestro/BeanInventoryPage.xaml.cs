@@ -35,7 +35,12 @@ public partial class BeanInventoryPage : ContentPage
         BindingContext = this;
 
         // Load data initially
-        LoadBeans();
+        InitializePageAsync();
+    }
+
+    private async void InitializePageAsync()
+    {
+        await LoadBeans();
     }
 
     protected override async void OnAppearing()
