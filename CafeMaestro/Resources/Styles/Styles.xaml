@@ -4,7 +4,7 @@
 
     <!-- Button Style -->
     <Style x:Key="ButtonStyle" TargetType="Button">
-        <Setter Property="TextColor" Value="{StaticResource PrimaryTextColor}" />
+        <Setter Property="TextColor" Value="{DynamicResource PrimaryTextColor}" />
         <Setter Property="BackgroundColor" Value="{StaticResource Primary}" />
         <Setter Property="FontSize" Value="14" />
         <Setter Property="Padding" Value="10,5" />
@@ -13,13 +13,13 @@
 
     <!-- Label Style -->
     <Style x:Key="LabelStyle" TargetType="Label">
-        <Setter Property="TextColor" Value="{StaticResource PrimaryTextColor}" />
+        <Setter Property="TextColor" Value="{DynamicResource PrimaryTextColor}" />
         <Setter Property="FontSize" Value="14" />
     </Style>
 
     <!-- Headline Style -->
     <Style x:Key="HeadlineStyle" TargetType="Label">
-        <Setter Property="TextColor" Value="{StaticResource Primary}" />
+        <Setter Property="TextColor" Value="{DynamicResource PrimaryTextColor}" />
         <Setter Property="FontSize" Value="32" />
         <Setter Property="HorizontalOptions" Value="Center" />
         <Setter Property="HorizontalTextAlignment" Value="Center" />
@@ -27,7 +27,7 @@
 
     <!-- SubHeadline Style -->
     <Style x:Key="SubHeadlineStyle" TargetType="Label">
-        <Setter Property="TextColor" Value="{StaticResource Secondary}" />
+        <Setter Property="TextColor" Value="{DynamicResource SecondaryTextColor}" />
         <Setter Property="FontSize" Value="24" />
         <Setter Property="HorizontalOptions" Value="Center" />
         <Setter Property="HorizontalTextAlignment" Value="Center" />
@@ -35,15 +35,15 @@
 
     <!-- Entry Style -->
     <Style x:Key="EntryStyle" TargetType="Entry">
-        <Setter Property="TextColor" Value="{StaticResource PrimaryTextColor}" />
-        <Setter Property="PlaceholderColor" Value="{StaticResource Gray}" />
+        <Setter Property="TextColor" Value="{DynamicResource PrimaryTextColor}" />
+        <Setter Property="PlaceholderColor" Value="{DynamicResource TertiaryTextColor}" />
         <Setter Property="FontSize" Value="14" />
     </Style>
 
     <!-- Page Style -->
     <Style x:Key="PageStyle" TargetType="Page">
         <Setter Property="Padding" Value="0" />
-        <Setter Property="BackgroundColor" Value="{StaticResource AppBackgroundColor}" />
+        <Setter Property="BackgroundColor" Value="{DynamicResource PageBackgroundColor}" />
     </Style>
 
 </ResourceDictionary>

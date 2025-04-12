@@ -8,10 +8,10 @@
     Title="CafeMaestro">
 
     <Shell.FlyoutHeader>
-        <Grid HeightRequest="120" BackgroundColor="#512BD4">
+        <Grid HeightRequest="120" BackgroundColor="{DynamicResource NavigationBarColor}">
             <Label Text="CafeMaestro" 
                    FontSize="28" 
-                   TextColor="White" 
+                   TextColor="{DynamicResource PrimaryTextColor}" 
                    HorizontalOptions="Center" 
                    VerticalOptions="Center" 
                    FontAttributes="Bold" />

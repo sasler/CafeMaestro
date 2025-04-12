@@ -17,25 +17,25 @@
                         <Label Text="Save a roast to see it here" FontSize="14" TextColor="Gray" />
                     </StackLayout>
                 </CollectionView.EmptyView>
-                <CollectionView.ItemTemplate>                    <DataTemplate>                        <Border Margin="0,5" Padding="15" Stroke="{AppThemeBinding Light=LightGray, Dark=#444444}" 
-                              BackgroundColor="{AppThemeBinding Light=White, Dark=#333333}" 
+                <CollectionView.ItemTemplate>                    <DataTemplate>                        <Border Margin="0,5" Padding="15" Stroke="{DynamicResource BorderColor}" 
+                              BackgroundColor="{DynamicResource PageBackgroundColor}" 
                               StrokeShape="RoundRectangle 5">
                             <Grid RowDefinitions="Auto,Auto,Auto" ColumnDefinitions="*,Auto">
                                 <Label Grid.Row="0" Grid.Column="0" Text="{Binding BeanType}" FontSize="18" FontAttributes="Bold" 
-                                       TextColor="{AppThemeBinding Light=#000000, Dark=#FFFFFF}" />
+                                       TextColor="{DynamicResource PrimaryTextColor}" />
                                 <Label Grid.Row="0" Grid.Column="1" Text="{Binding RoastDate, StringFormat='{0:MM/dd/yyyy}'}" FontSize="14" 
-                                       TextColor="{AppThemeBinding Light=Gray, Dark=#BBBBBB}" />
+                                       TextColor="{DynamicResource SecondaryTextColor}" />
                                 
                                 <Label Grid.Row="1" Grid.Column="0" Grid.ColumnSpan="2" 
                                        Text="{Binding Summary}" 
-                                       TextColor="{AppThemeBinding Light=#000000, Dark=#FFFFFF}"
+                                       TextColor="{DynamicResource PrimaryTextColor}"
                                        FontSize="16" />
                                 
                                 <HorizontalStackLayout Grid.Row="2" Grid.Column="0" Grid.ColumnSpan="2" Spacing="15" Margin="0,5,0,0">
                                     <Label Text="{Binding WeightLossPercentage, StringFormat='Loss: {0:F1}%'}" 
-                                           FontSize="14" TextColor="{AppThemeBinding Light=#808080, Dark=#AAAAAA}" />
+                                           FontSize="14" TextColor="{DynamicResource TertiaryTextColor}" />
                                     <Label Text="{Binding FormattedTime, StringFormat='Time: {0}'}" 
-                                           FontSize="14" TextColor="{AppThemeBinding Light=#808080, Dark=#AAAAAA}" />
+                                           FontSize="14" TextColor="{DynamicResource TertiaryTextColor}" />
                                 </HorizontalStackLayout>
                             </Grid>
                         </Border>

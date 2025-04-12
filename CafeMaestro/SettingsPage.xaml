@@ -7,18 +7,17 @@
         <VerticalStackLayout Padding="20" Spacing="20">
             <Label Text="Settings" FontSize="24" HorizontalOptions="Center" Margin="0,0,0,20" />
               <!-- Theme Section -->
-            <Border Stroke="{AppThemeBinding Light=LightGray, Dark=#444444}"
-                   BackgroundColor="{AppThemeBinding Light=White, Dark=#333333}"
-                   Padding="16" StrokeShape="RoundRectangle 8">
+            <Border Stroke="{DynamicResource BorderColor}" 
+                   BackgroundColor="{DynamicResource PageBackgroundColor}" >
                 <VerticalStackLayout Spacing="16">
                     <Label Text="App Theme" 
                            FontSize="18" 
                            FontAttributes="Bold"
-                           TextColor="{AppThemeBinding Light=#000000, Dark=#FFFFFF}" />
+                           TextColor="{DynamicResource PrimaryTextColor}" />
                     
                     <Label Text="Choose your preferred appearance for the app:"
                            FontSize="14"
-                           TextColor="{AppThemeBinding Light=#000000, Dark=#FFFFFF}" />
+                           TextColor="{DynamicResource PrimaryTextColor}" />
                     
                     <RadioButton x:Name="SystemThemeRadio" 
                                 Content="System Theme" 
@@ -43,20 +42,19 @@
             </Border>
             
             <!-- Data File Section -->
-            <Border Stroke="{AppThemeBinding Light=LightGray, Dark=#444444}"
-                   BackgroundColor="{AppThemeBinding Light=White, Dark=#333333}"
-                   Padding="16" StrokeShape="RoundRectangle 8">
+            <Border Stroke="{DynamicResource BorderColor}" 
+                   BackgroundColor="{DynamicResource PageBackgroundColor}" >
                 <VerticalStackLayout Spacing="16">
                     <Label Text="Data File Location" 
                            FontSize="18" 
                            FontAttributes="Bold"
-                           TextColor="{AppThemeBinding Light=#000000, Dark=#FFFFFF}" />
+                           TextColor="{DynamicResource PrimaryTextColor}" />
                     
                     <Label x:Name="DataFilePath" 
                            Text="Loading..." 
                            FontSize="14"
                            LineBreakMode="CharacterWrap"
-                           TextColor="{AppThemeBinding Light=#000000, Dark=#FFFFFF}" />
+                           TextColor="{DynamicResource PrimaryTextColor}" />
                     
                     <HorizontalStackLayout Spacing="10" HorizontalOptions="Center">
                         <Button x:Name="SelectDataFileButton" 
@@ -84,27 +82,26 @@
             </Border>
             
             <!-- About Section -->
-            <Border Stroke="{AppThemeBinding Light=LightGray, Dark=#444444}"
-                   BackgroundColor="{AppThemeBinding Light=White, Dark=#333333}"
-                   Padding="16" StrokeShape="RoundRectangle 8">
+            <Border Stroke="{DynamicResource BorderColor}" 
+                   BackgroundColor="{DynamicResource PageBackgroundColor}" >
                 <VerticalStackLayout Spacing="8">
                     <Label Text="About" 
                            FontSize="18" 
                            FontAttributes="Bold"
-                           TextColor="{AppThemeBinding Light=#000000, Dark=#FFFFFF}" />
+                           TextColor="{DynamicResource PrimaryTextColor}" />
                     
                     <Label Text="CafeMaestro - Coffee Roasting App" 
                            FontSize="16"
-                           TextColor="{AppThemeBinding Light=#000000, Dark=#FFFFFF}" />
+                           TextColor="{DynamicResource PrimaryTextColor}" />
                     
                     <HorizontalStackLayout Spacing="5">
                         <Label Text="Version:" 
                                FontSize="14" 
-                               TextColor="{AppThemeBinding Light=#000000, Dark=#FFFFFF}" />
+                               TextColor="{DynamicResource PrimaryTextColor}" />
                         <Label x:Name="VersionLabel" 
                                Text="1.0.0" 
                                FontSize="14"
-                               TextColor="{AppThemeBinding Light=#000000, Dark=#FFFFFF}" />
+                               TextColor="{DynamicResource PrimaryTextColor}" />
                     </HorizontalStackLayout>
                     
                     <Label Text="© 2025 CafeMaestro Team" 

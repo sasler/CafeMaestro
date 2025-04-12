@@ -7,20 +7,20 @@ public partial class App : Application
 {
 	private AppDataService _appDataService;
 	private PreferencesService _preferencesService;
-	
+
 	public App()
 	{
 		InitializeComponent();
-		
+
 		// Get the app data service
-		_appDataService = Handler?.MauiContext?.Services.GetService<AppDataService>() ?? 
-		                 new AppDataService();
-		_preferencesService = Handler?.MauiContext?.Services.GetService<PreferencesService>() ?? 
-		                     new PreferencesService();
-		                     
+		_appDataService = Handler?.MauiContext?.Services.GetService<AppDataService>() ??
+						 new AppDataService();
+		_preferencesService = Handler?.MauiContext?.Services.GetService<PreferencesService>() ??
+							 new PreferencesService();
+
 		// Initialize app data asynchronously
 		InitializeAppDataAsync();
-		
+
 		// Load theme preference
 		LoadThemePreference();
 	}
@@ -29,13 +29,13 @@ public partial class App : Application
 	{
 		return new Window(new AppShell());
 	}
-		// Load and apply the saved theme preference
+	// Load and apply the saved theme preference
 	private async void LoadThemePreference()
 	{
 		try
 		{
 			var theme = await _preferencesService.GetThemePreferenceAsync();
-			
+
 			// Apply the theme
 			switch (theme)
 			{
@@ -58,14 +58,14 @@ public partial class App : Application
 			UserAppTheme = Microsoft.Maui.ApplicationModel.AppTheme.Unspecified;
 		}
 	}
-	
+
 	private async void InitializeAppDataAsync()
 	{
 		try
 		{
 			// Check if user has a saved file path preference
 			string? savedFilePath = await _preferencesService.GetAppDataFilePathAsync();
-			
+
 			if (!string.IsNullOrEmpty(savedFilePath))
 			{
 				// If custom file exists, use it
@@ -74,13 +74,36 @@ public partial class App : Application
 					_appDataService.SetCustomFilePath(savedFilePath);
 				}
 			}
-			
+
 			// Migrate data from old separate files if needed
 			await _appDataService.MigrateDataIfNeededAsync();
 		}
 		catch (Exception ex)
 		{
 			System.Diagnostics.Debug.WriteLine($"Error initializing app data: {ex.Message}");
+		}
+	}
+
+	public void SetTheme(string theme)
+	{
+		ICollection<ResourceDictionary> mergedDictionaries = Resources.MergedDictionaries;
+		if (mergedDictionaries != null)
+		{
+			mergedDictionaries.Clear();
+
+			switch (theme)
+			{
+				case "Light":
+					mergedDictionaries.Add(new LightTheme());
+					break;
+				case "Dark":
+					mergedDictionaries.Add(new DarkTheme());
+					break;
+				default:
+					// Default to system theme
+					mergedDictionaries.Add(new LightTheme());
+					break;
+			}
 		}
 	}
 }
