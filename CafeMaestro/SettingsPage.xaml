@@ -18,21 +18,23 @@
                     <Label Text="Choose your preferred appearance for the app:"
                            FontSize="14"
                            TextColor="{DynamicResource PrimaryTextColor}" />
-                    
-                    <RadioButton x:Name="SystemThemeRadio" 
+                      <RadioButton x:Name="SystemThemeRadio" 
                                 Content="System Theme" 
                                 GroupName="ThemeGroup"
-                                CheckedChanged="ThemeRadioButton_CheckedChanged" 
+                                CheckedChanged="ThemeRadioButton_CheckedChanged"
+                                TextColor="{DynamicResource PrimaryTextColor}"
                                 IsChecked="True" />
                                 
                     <RadioButton x:Name="LightThemeRadio" 
                                 Content="Light Theme" 
                                 GroupName="ThemeGroup"
+                                TextColor="{DynamicResource PrimaryTextColor}"
                                 CheckedChanged="ThemeRadioButton_CheckedChanged" />
                                 
                     <RadioButton x:Name="DarkThemeRadio" 
                                 Content="Dark Theme" 
                                 GroupName="ThemeGroup"
+                                TextColor="{DynamicResource PrimaryTextColor}"
                                 CheckedChanged="ThemeRadioButton_CheckedChanged" />
                     
                     <Label Text="Theme changes will apply immediately"

@@ -2,18 +2,40 @@
 <Shell
     x:Class="CafeMaestro.AppShell"
     xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
-    xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"    xmlns:local="clr-namespace:CafeMaestro"
+    xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
+    xmlns:local="clr-namespace:CafeMaestro"
     Shell.FlyoutBehavior="Flyout"
-    BackgroundColor="{DynamicResource NavigationBarColor}"
-    ForegroundColor="{DynamicResource SecondaryColor}"
-    TitleColor="{DynamicResource SecondaryColor}"
-    Title="CafeMaestro">
-
-    <Shell.FlyoutHeader>
-        <Grid HeightRequest="120" BackgroundColor="{DynamicResource NavigationBarColor}">
+    Title="CafeMaestro">    <!-- Define a custom ItemTemplate for flyout items -->
+    <Shell.ItemTemplate>
+        <DataTemplate>
+            <Grid ColumnDefinitions="Auto,*">
+                <Image Source="{Binding FlyoutIcon}"
+                       HeightRequest="24"
+                       WidthRequest="24"
+                       Margin="5" />
+                <Label Grid.Column="1"
+                       Text="{Binding Title}"
+                       TextColor="{AppThemeBinding Light=#202020, Dark=White}"
+                       FontSize="16"
+                       VerticalTextAlignment="Center" />
+            </Grid>
+        </DataTemplate>
+    </Shell.ItemTemplate>
+    
+    <!-- Set explicit colors for the Shell -->
+    <Shell.BackgroundColor>
+        <AppThemeBinding Light="#f0f0f0" Dark="#202020" />
+    </Shell.BackgroundColor>
+    <Shell.ForegroundColor>
+        <AppThemeBinding Light="#202020" Dark="White" />
+    </Shell.ForegroundColor>
+    <Shell.TitleColor>
+        <AppThemeBinding Light="#202020" Dark="White" />
+    </Shell.TitleColor><Shell.FlyoutHeader>
+        <Grid HeightRequest="120" BackgroundColor="{AppThemeBinding Light=#f0f0f0, Dark=#202020}">
             <Label Text="CafeMaestro" 
                    FontSize="28" 
-                   TextColor="{DynamicResource PrimaryTextColor}" 
+                   TextColor="{AppThemeBinding Light=#202020, Dark=White}" 
                    HorizontalOptions="Center" 
                    VerticalOptions="Center" 
                    FontAttributes="Bold" />
@@ -21,7 +43,7 @@
     </Shell.FlyoutHeader>
 
     <FlyoutItem Title="Home" Icon="home_icon.png">
-        <ShellContent 
+        <ShellContent
             Title="Coffee Roasting"
             ContentTemplate="{DataTemplate local:MainPage}"
             Route="MainPage" />
@@ -46,11 +68,11 @@
             Title="Settings"
             ContentTemplate="{DataTemplate local:SettingsPage}"
             Route="SettingsPage" />
-    </FlyoutItem>
-
-    <Shell.FlyoutFooter>
+    </FlyoutItem>    <Shell.FlyoutFooter>
         <StackLayout Padding="20">
-            <Label Text="Coffee Roasting App" HorizontalOptions="Center" />
+            <Label Text="Coffee Roasting App" 
+                   HorizontalOptions="Center" 
+                   TextColor="{AppThemeBinding Light=#202020, Dark=White}" />
         </StackLayout>
     </Shell.FlyoutFooter>
 
