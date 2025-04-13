@@ -4,9 +4,15 @@
              x:Class="CafeMaestro.MainPage"
              Title="CafeMaestro">
     <ScrollView BackgroundColor="{DynamicResource PageBackgroundColor}">
-        <VerticalStackLayout Padding="30,20" Spacing="25" BackgroundColor="{DynamicResource PageBackgroundColor}" VerticalOptions="Center">
+        <VerticalStackLayout Padding="30,20"
+                             Spacing="25"
+                             BackgroundColor="{DynamicResource PageBackgroundColor}"
+                             VerticalOptions="Center">
+
             <!-- Logo and Title -->
-            <Image Source="cafemaestro_logo.png" HeightRequest="300" Aspect="AspectFit" />
+            <Image Source="cafemaestro_logo.png"
+                   HeightRequest="300"
+                   Aspect="AspectFit"/>
             <Label Text="CafeMaestro"
                    FontFamily="Comic Sans MS"
                    FontSize="36"
@@ -14,14 +20,28 @@
                    HorizontalOptions="Center"
                    TextColor="{DynamicResource PrimaryColor}"
                    Margin="0,-40,0,10"/>
-            <Label Text="Your Coffee Roasting Companion" FontSize="20" HorizontalOptions="Center" TextColor="{DynamicResource PrimaryTextColor}" Margin="0,0,0,20"/>
+            <Label Text="Your Coffee Roasting Companion"
+                   FontSize="20"
+                   HorizontalOptions="Center"
+                   TextColor="{DynamicResource PrimaryTextColor}"
+                   Margin="0,0,0,20"/>
 
             <!-- Navigation Grid -->
-            <Grid RowDefinitions="Auto,Auto,Auto,Auto" ColumnDefinitions="Auto,*" RowSpacing="15" ColumnSpacing="15">
+            <Grid RowDefinitions="Auto,Auto,Auto,Auto"
+                  ColumnDefinitions="Auto,*"
+                  RowSpacing="15"
+                  ColumnSpacing="15">
 
                 <!-- Roast Button -->
-                <Image Grid.Row="0" Grid.Column="0" Source="roaster.png" HeightRequest="40" WidthRequest="40" VerticalOptions="Center"/>
-                <Button Grid.Row="0" Grid.Column="1" Text="Roast"
+                <Image Grid.Row="0"
+                       Grid.Column="0"
+                       Source="roaster.png"
+                       HeightRequest="40"
+                       WidthRequest="40"
+                       VerticalOptions="Center"/>
+                <Button Grid.Row="0"
+                        Grid.Column="1"
+                        Text="Roast"
                         Clicked="GoToRoastPage_Clicked"
                         BackgroundColor="{DynamicResource PrimaryColor}"
                         TextColor="{DynamicResource ButtonTextColor}"
@@ -30,8 +50,15 @@
                         FontSize="18"/>
 
                 <!-- Beans Button -->
-                <Image Grid.Row="1" Grid.Column="0" Source="beans_icon.png" HeightRequest="40" WidthRequest="40" VerticalOptions="Center"/>
-                <Button Grid.Row="1" Grid.Column="1" Text="Beans"
+                <Image Grid.Row="1"
+                       Grid.Column="0"
+                       Source="beans_icon.png"
+                       HeightRequest="40"
+                       WidthRequest="40"
+                       VerticalOptions="Center"/>
+                <Button Grid.Row="1"
+                        Grid.Column="1"
+                        Text="Beans"
                         Clicked="GoToBeanInventory_Clicked"
                         BackgroundColor="{DynamicResource SecondaryColor}"
                         TextColor="{DynamicResource ButtonTextColor}"
@@ -40,8 +67,15 @@
                         FontSize="18"/>
 
                 <!-- Roast Log Button -->
-                <Image Grid.Row="2" Grid.Column="0" Source="log_icon.png" HeightRequest="40" WidthRequest="40" VerticalOptions="Center"/>
-                <Button Grid.Row="2" Grid.Column="1" Text="Roast Log"
+                <Image Grid.Row="2"
+                       Grid.Column="0"
+                       Source="log_icon.png"
+                       HeightRequest="40"
+                       WidthRequest="40"
+                       VerticalOptions="Center"/>
+                <Button Grid.Row="2"
+                        Grid.Column="1"
+                        Text="Roast Log"
                         Clicked="GoToRoastLog_Clicked"
                         BackgroundColor="{DynamicResource SecondaryColor}"
                         TextColor="{DynamicResource ButtonTextColor}"
@@ -50,8 +84,15 @@
                         FontSize="18"/>
 
                 <!-- Settings Button -->
-                <Image Grid.Row="3" Grid.Column="0" Source="settings_icon.png" HeightRequest="40" WidthRequest="40" VerticalOptions="Center"/>
-                <Button Grid.Row="3" Grid.Column="1" Text="Settings"
+                <Image Grid.Row="3"
+                       Grid.Column="0"
+                       Source="settings_icon.png"
+                       HeightRequest="40"
+                       WidthRequest="40"
+                       VerticalOptions="Center"/>
+                <Button Grid.Row="3"
+                        Grid.Column="1"
+                        Text="Settings"
                         Clicked="GoToSettings_Clicked"
                         BackgroundColor="{DynamicResource TertiaryColor}"
                         TextColor="{DynamicResource ButtonTextColor}"

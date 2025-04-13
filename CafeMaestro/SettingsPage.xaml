@@ -3,9 +3,12 @@
              xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
              x:Class="CafeMaestro.SettingsPage"
              Title="Settings">
-    <ScrollView>
-        <VerticalStackLayout Padding="20" Spacing="20">
-            <Label Text="Settings" FontSize="24" HorizontalOptions="Center" Margin="0,0,0,20" />
+    <ScrollView BackgroundColor="{DynamicResource PageBackgroundColor}">
+        <VerticalStackLayout Padding="30,20" Spacing="15" BackgroundColor="{DynamicResource PageBackgroundColor}">
+            <!-- Add Page Icon -->
+            <Image Source="settings_icon.png" HeightRequest="60" Aspect="AspectFit" HorizontalOptions="Center" Margin="0,0,0,10"/>
+
+            <Label Text="Application Settings" FontSize="24" HorizontalOptions="Center" TextColor="{DynamicResource PrimaryTextColor}" />
               <!-- Theme Section -->
             <Border Stroke="{DynamicResource BorderColor}" 
                    BackgroundColor="{DynamicResource PageBackgroundColor}" >

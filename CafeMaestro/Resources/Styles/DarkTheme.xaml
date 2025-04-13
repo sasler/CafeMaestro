@@ -6,7 +6,7 @@
     <Color x:Key="NavigationBarColor">#4A2F1F</Color> <!-- Darker brown -->
     <Color x:Key="PrimaryColor">#8B4513</Color> <!-- Saddle Brown -->
     <Color x:Key="SecondaryColor">#A0522D</Color> <!-- Sienna -->
-    <Color x:Key="TertiaryColor">#00B050</Color>
+    <Color x:Key="TertiaryColor">#7C5340</Color>
     <Color x:Key="NeutralColor">#2d2d2d</Color>
     
     <!-- Text colors -->

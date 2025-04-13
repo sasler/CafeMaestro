@@ -13,7 +13,6 @@
             Route="MainPage" />
     </FlyoutItem>
 
-    <!-- Add Roast Page -->
     <FlyoutItem Title="Roast" Icon="roaster.png">
         <ShellContent
             Title="Roast Coffee"
@@ -28,7 +27,6 @@
             Route="RoastLogPage" />
     </FlyoutItem>
 
-    <!-- Rename Bean Inventory to Beans -->
     <FlyoutItem Title="Beans" Icon="beans_icon.png">
         <ShellContent
             Title="Bean Inventory"

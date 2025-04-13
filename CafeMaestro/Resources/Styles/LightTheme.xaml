@@ -6,7 +6,7 @@
     <Color x:Key="NavigationBarColor">#EADBC8</Color> <!-- Lighter brown -->
     <Color x:Key="PrimaryColor">#5E361C</Color> <!-- Coffee bean brown -->
     <Color x:Key="SecondaryColor">#A0522D</Color> <!-- Sienna -->
-    <Color x:Key="TertiaryColor">#008000</Color>
+    <Color x:Key="TertiaryColor">#7C5340</Color>
     <Color x:Key="NeutralColor">#f0f0f0</Color>
     
     <!-- Text colors -->
