@@ -4,9 +4,9 @@
              x:Class="CafeMaestro.MainPage"
              Title="CafeMaestro">    <ScrollView BackgroundColor="{DynamicResource PageBackgroundColor}">
         <VerticalStackLayout Padding="30,20" Spacing="15" BackgroundColor="{DynamicResource PageBackgroundColor}">
-            <Image Source="dotnet_bot.png" HeightRequest="100" Aspect="AspectFit" />
+            <!-- Restore AspectFit and remove WidthRequest -->
+            <Image Source="cafemaestro_logo.png" HeightRequest="300" Aspect="AspectFit" />
 
-            <Label Text="CafeMaestro" FontSize="32" HorizontalOptions="Center" TextColor="{DynamicResource PrimaryTextColor}" />
             <Label Text="Coffee Roasting Tracker" FontSize="24" HorizontalOptions="Center" TextColor="{DynamicResource PrimaryTextColor}" />            <Grid ColumnDefinitions="*,Auto">
                 <Label Text="Green Bean Selection:" Grid.Column="0" VerticalOptions="Center" TextColor="{DynamicResource PrimaryTextColor}"/>
                 <Button Text="+" 
