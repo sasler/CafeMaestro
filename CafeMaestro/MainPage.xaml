@@ -7,7 +7,17 @@
             <!-- Restore AspectFit and remove WidthRequest -->
             <Image Source="cafemaestro_logo.png" HeightRequest="300" Aspect="AspectFit" />
 
-            <Label Text="Coffee Roasting Tracker" FontSize="24" HorizontalOptions="Center" TextColor="{DynamicResource PrimaryTextColor}" />            <Grid ColumnDefinitions="*,Auto">
+            <!-- Add Label for the logo text -->
+            <Label Text="CafeMaestro" 
+                   FontFamily="Comic Sans MS" 
+                   FontSize="36" 
+                   FontAttributes="Bold"
+                   HorizontalOptions="Center" 
+                   TextColor="{DynamicResource PrimaryColor}" 
+                   Margin="0,-40,0,10"/> 
+
+            <Label Text="Coffee Roasting Tracker" FontSize="24" HorizontalOptions="Center" TextColor="{DynamicResource PrimaryTextColor}" />
+            <Grid ColumnDefinitions="*,Auto">
                 <Label Text="Green Bean Selection:" Grid.Column="0" VerticalOptions="Center" TextColor="{DynamicResource PrimaryTextColor}"/>
                 <Button Text="+" 
                        Grid.Column="1" 
