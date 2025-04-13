@@ -3,9 +3,9 @@
                     x:Class="CafeMaestro.DarkTheme">
     <!-- Base theme colors -->
     <Color x:Key="PageBackgroundColor">#202020</Color>
-    <Color x:Key="NavigationBarColor">#2d2d2d</Color>
-    <Color x:Key="PrimaryColor">#6B4DF7</Color>
-    <Color x:Key="SecondaryColor">#0095FF</Color>
+    <Color x:Key="NavigationBarColor">#4A2F1F</Color> <!-- Darker brown -->
+    <Color x:Key="PrimaryColor">#8B4513</Color> <!-- Saddle Brown -->
+    <Color x:Key="SecondaryColor">#A0522D</Color> <!-- Sienna -->
     <Color x:Key="TertiaryColor">#00B050</Color>
     <Color x:Key="NeutralColor">#2d2d2d</Color>
     
@@ -27,7 +27,7 @@
     <!-- Border/separator colors -->
     <Color x:Key="BorderColor">#505050</Color>
     <Color x:Key="SeparatorColor">#404040</Color>
-    <Color x:Key="TimerBorderColor">#6B4DF7</Color>
+    <Color x:Key="TimerBorderColor">#8B4513</Color> <!-- Match Primary -->
     
     <!-- Misc -->
     <Color x:Key="TransparentColor">Transparent</Color>

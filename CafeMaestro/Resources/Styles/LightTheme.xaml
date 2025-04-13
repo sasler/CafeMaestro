@@ -3,9 +3,9 @@
                     x:Class="CafeMaestro.LightTheme">
     <!-- Base theme colors -->
     <Color x:Key="PageBackgroundColor">White</Color>
-    <Color x:Key="NavigationBarColor">#f0f0f0</Color>
-    <Color x:Key="PrimaryColor">#512BD4</Color>
-    <Color x:Key="SecondaryColor">#0078D4</Color>
+    <Color x:Key="NavigationBarColor">#EADBC8</Color> <!-- Lighter brown -->
+    <Color x:Key="PrimaryColor">#5E361C</Color> <!-- Coffee bean brown -->
+    <Color x:Key="SecondaryColor">#A0522D</Color> <!-- Sienna -->
     <Color x:Key="TertiaryColor">#008000</Color>
     <Color x:Key="NeutralColor">#f0f0f0</Color>
     
