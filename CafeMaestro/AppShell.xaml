@@ -4,43 +4,7 @@
     xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
     xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
     xmlns:local="clr-namespace:CafeMaestro"
-    Shell.FlyoutBehavior="Flyout"
-    Title="CafeMaestro">    <!-- Define a custom ItemTemplate for flyout items -->
-    <Shell.ItemTemplate>
-        <DataTemplate>
-            <Grid ColumnDefinitions="Auto,*">
-                <Image Source="{Binding FlyoutIcon}"
-                       HeightRequest="24"
-                       WidthRequest="24"
-                       Margin="5" />
-                <Label Grid.Column="1"
-                       Text="{Binding Title}"
-                       TextColor="{AppThemeBinding Light=#202020, Dark=White}"
-                       FontSize="16"
-                       VerticalTextAlignment="Center" />
-            </Grid>
-        </DataTemplate>
-    </Shell.ItemTemplate>
-    
-    <!-- Set explicit colors for the Shell -->
-    <Shell.BackgroundColor>
-        <AppThemeBinding Light="#f0f0f0" Dark="#202020" />
-    </Shell.BackgroundColor>
-    <Shell.ForegroundColor>
-        <AppThemeBinding Light="#202020" Dark="White" />
-    </Shell.ForegroundColor>
-    <Shell.TitleColor>
-        <AppThemeBinding Light="#202020" Dark="White" />
-    </Shell.TitleColor><Shell.FlyoutHeader>
-        <Grid HeightRequest="120" BackgroundColor="{AppThemeBinding Light=#f0f0f0, Dark=#202020}">
-            <Label Text="CafeMaestro" 
-                   FontSize="28" 
-                   TextColor="{AppThemeBinding Light=#202020, Dark=White}" 
-                   HorizontalOptions="Center" 
-                   VerticalOptions="Center" 
-                   FontAttributes="Bold" />
-        </Grid>
-    </Shell.FlyoutHeader>
+    Shell.FlyoutBehavior="Flyout">
 
     <FlyoutItem Title="Home" Icon="home_icon.png">
         <ShellContent
@@ -49,31 +13,34 @@
             Route="MainPage" />
     </FlyoutItem>
 
+    <!-- Add Roast Page -->
+    <FlyoutItem Title="Roast" Icon="roaster.png">
+        <ShellContent
+            Title="Roast Coffee"
+            ContentTemplate="{DataTemplate local:RoastPage}"
+            Route="RoastPage" />
+    </FlyoutItem>
+
     <FlyoutItem Title="Roast Log" Icon="log_icon.png">
-        <ShellContent 
+        <ShellContent
             Title="Roast History"
             ContentTemplate="{DataTemplate local:RoastLogPage}"
             Route="RoastLogPage" />
     </FlyoutItem>
 
-    <FlyoutItem Title="Bean Inventory" Icon="beans_icon.png">
-        <ShellContent 
+    <!-- Rename Bean Inventory to Beans -->
+    <FlyoutItem Title="Beans" Icon="beans_icon.png">
+        <ShellContent
             Title="Bean Inventory"
             ContentTemplate="{DataTemplate local:BeanInventoryPage}"
             Route="BeanInventoryPage" />
     </FlyoutItem>
-    
+
     <FlyoutItem Title="Settings" Icon="settings_icon.png">
-        <ShellContent 
+        <ShellContent
             Title="Settings"
             ContentTemplate="{DataTemplate local:SettingsPage}"
             Route="SettingsPage" />
-    </FlyoutItem>    <Shell.FlyoutFooter>
-        <StackLayout Padding="20">
-            <Label Text="Coffee Roasting App" 
-                   HorizontalOptions="Center" 
-                   TextColor="{AppThemeBinding Light=#202020, Dark=White}" />
-        </StackLayout>
-    </Shell.FlyoutFooter>
+    </FlyoutItem>
 
 </Shell>
