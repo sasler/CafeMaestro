@@ -35,7 +35,7 @@
                 <!-- Roast Button -->
                 <Image Grid.Row="0"
                        Grid.Column="0"
-                       Source="roaster.png"
+                       Source="roast_icon.png"
                        HeightRequest="40"
                        WidthRequest="40"
                        VerticalOptions="Center"/>

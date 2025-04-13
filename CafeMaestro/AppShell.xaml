@@ -13,7 +13,7 @@
             Route="MainPage" />
     </FlyoutItem>
 
-    <FlyoutItem Title="Roast" Icon="roaster.png">
+    <FlyoutItem Title="Roast" Icon="roast_icon.png">
         <ShellContent
             Title="Roast Coffee"
             ContentTemplate="{DataTemplate local:RoastPage}"

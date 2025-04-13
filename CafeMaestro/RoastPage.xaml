@@ -9,7 +9,7 @@
                 BackgroundColor="{DynamicResource PageBackgroundColor}">
 
             <!-- Add Page Icon -->
-            <Image Source="roaster.png"
+            <Image Source="roast_icon.png"
                     HeightRequest="150"
                     Aspect="AspectFit"
                     HorizontalOptions="Center"
