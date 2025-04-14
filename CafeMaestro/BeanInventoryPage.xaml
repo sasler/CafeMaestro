@@ -2,26 +2,37 @@
 <ContentPage xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
              xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
              x:Class="CafeMaestro.BeanInventoryPage"
-             Title="Bean Inventory">
-
-    <ScrollView BackgroundColor="{DynamicResource PageBackgroundColor}">
-        <VerticalStackLayout Padding="30,20"
-                             Spacing="15"
-                             BackgroundColor="{DynamicResource PageBackgroundColor}">
-
-            <!-- Add Page Icon -->
-            <Image Source="beans_icon.png"
-                   HeightRequest="150"
-                   Aspect="AspectFit"
-                   HorizontalOptions="Center"
-                   Margin="0,0,0,20"/>
-            <Label Text="Coffee Beans"
-                   FontFamily="Comic Sans MS"
-                   FontSize="24"
-                   FontAttributes="Bold"
-                   HorizontalOptions="Center"
-                   TextColor="{DynamicResource PrimaryColor}"
-                   Margin="0,-40,0,10"/>
+             Title="Bean Inventory">    <ScrollView Padding="0" Margin="0">
+        <Grid RowDefinitions="Auto, *" Padding="0" Margin="0">
+            <!-- Header Area - Clean Design -->
+            <Grid Grid.Row="0"
+                  ColumnDefinitions="Auto,*"
+                  Padding="20,20"
+                  HeightRequest="100"
+                  HorizontalOptions="Fill"
+                  Margin="0">
+                <!-- Logo and Title within Header -->
+                <Image Grid.Column="0"
+                       Source="beans_icon.png"
+                       HeightRequest="60"
+                       WidthRequest="60"
+                       Aspect="AspectFit"
+                       VerticalOptions="Center"/>
+                <Label Grid.Column="1"
+                       Text="Coffee Beans"
+                       FontSize="28"
+                       FontAttributes="Bold"
+                       HorizontalOptions="Start"
+                       VerticalOptions="Center"
+                       TextColor="{DynamicResource PrimaryColor}"
+                       Margin="16,0,0,0"/>
+            </Grid>
+            
+            <!-- Main Content Area -->
+            <VerticalStackLayout Grid.Row="1"
+                                 Padding="24,0,24,24"
+                                 Spacing="15"
+                                 BackgroundColor="{DynamicResource PageBackgroundColor}">
 
             <SearchBar x:Name="SearchBar"
                        Placeholder="Search beans..."
@@ -66,11 +77,18 @@
                                                    Command="{Binding Source={RelativeSource AncestorType={x:Type ContentPage}}, Path=DeleteBeanCommand}"
                                                    CommandParameter="{Binding .}"/>
                                     </SwipeItems>
-                                </SwipeView.RightItems>
-                                <Border Margin="0,5"
+                                </SwipeView.RightItems>                                <Border Margin="0,5"
                                         Padding="15"
+                                        StrokeShape="RoundRectangle 12"
                                         Stroke="{DynamicResource BorderColor}"
-                                        BackgroundColor="{DynamicResource PageBackgroundColor}">
+                                        StrokeThickness="0.5"
+                                        BackgroundColor="{DynamicResource NeutralColor}">
+                                    <Border.Shadow>
+                                        <Shadow Brush="#20000000"
+                                                Offset="0,2"
+                                                Radius="4"
+                                                Opacity="0.2" />
+                                    </Border.Shadow>
                                     <Grid RowDefinitions="Auto,Auto,Auto"
                                           ColumnDefinitions="*,Auto">
                                         <Label Grid.Row="0"
@@ -128,8 +146,8 @@
                         FontSize="24"
                         WidthRequest="60"
                         HeightRequest="60"
-                        CornerRadius="30"/>
-            </HorizontalStackLayout>
+                        CornerRadius="30"/>            </HorizontalStackLayout>
         </VerticalStackLayout>
+        </Grid>
     </ScrollView>
 </ContentPage>

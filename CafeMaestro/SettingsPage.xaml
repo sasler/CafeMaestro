@@ -2,27 +2,48 @@
 <ContentPage xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
              xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
              x:Class="CafeMaestro.SettingsPage"
-             Title="Settings">
-       <ScrollView BackgroundColor="{DynamicResource PageBackgroundColor}">
-              <VerticalStackLayout Padding="30,20"
-                                   Spacing="15"
-                                   BackgroundColor="{DynamicResource PageBackgroundColor}">
-
-                     <!-- Add Page Icon -->
-                     <Image Source="settings_icon.png"
-                            HeightRequest="150"
-                            Aspect="AspectFit"
-                            HorizontalOptions="Center"
-                            Margin="0,0,0,20"/>
-
-                     <Label Text="Application Settings"
-                            FontSize="24"
-                            HorizontalOptions="Center"
-                            TextColor="{DynamicResource PrimaryTextColor}"/>
-
-                     <!-- Theme Section -->
+             Title="Settings">       <ScrollView Padding="0" Margin="0">
+              <Grid RowDefinitions="Auto, *" Padding="0" Margin="0">
+                     <!-- Header Area - Clean Design -->
+                     <Grid Grid.Row="0"
+                           ColumnDefinitions="Auto,*"
+                           Padding="20,20"
+                           HeightRequest="100"
+                           HorizontalOptions="Fill"
+                           Margin="0">
+                            <!-- Logo and Title within Header -->
+                            <Image Grid.Column="0"
+                                   Source="settings_icon.png"
+                                   HeightRequest="60"
+                                   WidthRequest="60"
+                                   Aspect="AspectFit"
+                                   VerticalOptions="Center"/>
+                            <Label Grid.Column="1"
+                                   Text="Application Settings"
+                                   FontSize="28"
+                                   FontAttributes="Bold"
+                                   HorizontalOptions="Start"
+                                   VerticalOptions="Center"
+                                   TextColor="{DynamicResource PrimaryColor}"
+                                   Margin="16,0,0,0"/>
+                     </Grid>
+                     
+                     <!-- Main Content Area -->
+                     <VerticalStackLayout Grid.Row="1"
+                                          Padding="24,0,24,24"
+                                          Spacing="15"
+                                          BackgroundColor="{DynamicResource PageBackgroundColor}"
+                                          Margin="0,10,0,0">                     <!-- Theme Section -->
                      <Border Stroke="{DynamicResource BorderColor}"
-                             BackgroundColor="{DynamicResource PageBackgroundColor}">
+                             StrokeThickness="0.5"
+                             StrokeShape="RoundRectangle 12"
+                             BackgroundColor="{DynamicResource NeutralColor}">
+                            <Border.Shadow>
+                                <Shadow Brush="#20000000"
+                                        Offset="0,2"
+                                        Radius="4"
+                                        Opacity="0.2" />
+                            </Border.Shadow>
                             <VerticalStackLayout Spacing="16" Padding="16,10">
                                    <Label Text="App Theme"
                                           FontSize="18"
@@ -119,13 +140,12 @@
                                                  Text="1.0.0"
                                                  FontSize="14"
                                                  TextColor="{DynamicResource PrimaryTextColor}"/>
-                                   </HorizontalStackLayout>
-
-                                   <Label Text="© 2025 CafeMaestro Team"
+                                   </HorizontalStackLayout>                                   <Label Text="© 2025 CafeMaestro Team"
                                           FontSize="14"
                                           TextColor="{AppThemeBinding Light=Gray, Dark=#BBBBBB}"/>
                             </VerticalStackLayout>
                      </Border>
               </VerticalStackLayout>
+            </Grid>
        </ScrollView>
 </ContentPage>

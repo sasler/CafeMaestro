@@ -2,37 +2,46 @@
 <ContentPage xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
              xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
              x:Class="CafeMaestro.RoastLogPage"
+             BackgroundColor="{DynamicResource PageBackgroundColor}"
+             Padding="0"
              Title="Roast Log">
     <Grid RowDefinitions="Auto,*,Auto"
-          Padding="20"
+          Padding="0"
           BackgroundColor="{DynamicResource PageBackgroundColor}">
-        <VerticalStackLayout Grid.Row="0"
-                             Spacing="10"
-                             Margin="0,0,0,10">
-
-            <!-- Add Page Icon -->
-            <Image Source="log_icon.png"
-                   HeightRequest="150"
+          
+        <!-- Header Area - Clean Design -->
+        <Grid Grid.Row="0"
+              ColumnDefinitions="Auto,*"
+              Padding="20,20"
+              HeightRequest="100"
+              HorizontalOptions="Fill"
+              Margin="0">
+            <!-- Logo and Title within Header -->
+            <Image Grid.Column="0"
+                   Source="log_icon.png"
+                   HeightRequest="60"
+                   WidthRequest="60"
                    Aspect="AspectFit"
-                   HorizontalOptions="Center"
-                   Margin="0,0,0,20"/>
-            <Label Text="Roast Log"
-                   FontFamily="Comic Sans MS"
-                   FontSize="24"
+                   VerticalOptions="Center"/>
+            <Label Grid.Column="1"
+                   Text="Roast Log"
+                   FontSize="28"
                    FontAttributes="Bold"
-                   HorizontalOptions="Center"
+                   HorizontalOptions="Start"
+                   VerticalOptions="Center"
                    TextColor="{DynamicResource PrimaryColor}"
-                   Margin="0,-40,0,10"/>
-
+                   Margin="16,0,0,0"/>
+        </Grid>          <StackLayout Grid.Row="1" Padding="24,0,24,0">
             <SearchBar x:Name="SearchBar"
                        Placeholder="Search by bean type..."
                        TextChanged="OnSearchTextChanged"
                        TextColor="{DynamicResource PrimaryTextColor}"
                        PlaceholderColor="{DynamicResource PlaceholderColor}"
-                       BackgroundColor="{DynamicResource EntryBackgroundColor}"/>
-        </VerticalStackLayout>
-
-        <RefreshView Grid.Row="1"
+                       BackgroundColor="{DynamicResource EntryBackgroundColor}"
+                       Margin="0,0,0,10"/>
+          </StackLayout>
+            
+          <RefreshView Grid.Row="1"
                      x:Name="RoastLogRefreshView"
                      RefreshColor="{DynamicResource PrimaryColor}"
                      Command="{Binding RefreshCommand}">
@@ -52,12 +61,18 @@
                     </StackLayout>
                 </CollectionView.EmptyView>
                 <CollectionView.ItemTemplate>
-                    <DataTemplate>
-                        <Border Margin="0,5"
+                    <DataTemplate>                        <Border Margin="0,5"
                                 Padding="15"
                                 Stroke="{DynamicResource BorderColor}"
-                                BackgroundColor="{DynamicResource PageBackgroundColor}"
-                                StrokeShape="RoundRectangle 5">
+                                StrokeThickness="0.5"
+                                BackgroundColor="{DynamicResource NeutralColor}"
+                                StrokeShape="RoundRectangle 12">
+                            <Border.Shadow>
+                                <Shadow Brush="#20000000"
+                                        Offset="0,2"
+                                        Radius="4"
+                                        Opacity="0.2" />
+                            </Border.Shadow>
                             <Grid RowDefinitions="Auto,Auto,Auto"
                                   ColumnDefinitions="*,Auto">
                                 <Label Grid.Row="0"
