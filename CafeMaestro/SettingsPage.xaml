@@ -5,8 +5,8 @@
              Title="Settings">
        <ScrollView BackgroundColor="{DynamicResource PageBackgroundColor}">
               <VerticalStackLayout Padding="30,20"
-                            Spacing="15"
-                            BackgroundColor="{DynamicResource PageBackgroundColor}">
+                                   Spacing="15"
+                                   BackgroundColor="{DynamicResource PageBackgroundColor}">
 
                      <!-- Add Page Icon -->
                      <Image Source="settings_icon.png"
@@ -16,13 +16,14 @@
                             Margin="0,0,0,20"/>
 
                      <Label Text="Application Settings"
-                                   FontSize="24"
-                                   HorizontalOptions="Center"
-                                   TextColor="{DynamicResource PrimaryTextColor}"/>
+                            FontSize="24"
+                            HorizontalOptions="Center"
+                            TextColor="{DynamicResource PrimaryTextColor}"/>
+
                      <!-- Theme Section -->
                      <Border Stroke="{DynamicResource BorderColor}"
                              BackgroundColor="{DynamicResource PageBackgroundColor}">
-                            <VerticalStackLayout Spacing="16">
+                            <VerticalStackLayout Spacing="16" Padding="16,10">
                                    <Label Text="App Theme"
                                           FontSize="18"
                                           FontAttributes="Bold"
@@ -59,7 +60,7 @@
                      <!-- Data File Section -->
                      <Border Stroke="{DynamicResource BorderColor}"
                              BackgroundColor="{DynamicResource PageBackgroundColor}">
-                            <VerticalStackLayout Spacing="16">
+                            <VerticalStackLayout Spacing="16" Padding="16,10">
                                    <Label Text="Data File Location"
                                           FontSize="18"
                                           FontAttributes="Bold"
@@ -72,7 +73,7 @@
                                           TextColor="{DynamicResource PrimaryTextColor}"/>
 
                                    <HorizontalStackLayout Spacing="10"
-                                                 HorizontalOptions="Center">
+                                                          HorizontalOptions="Center">
                                           <Button x:Name="SelectDataFileButton"
                                                   Text="Select File"
                                                   Clicked="SelectDataFileButton_Clicked"
@@ -100,7 +101,7 @@
                      <!-- About Section -->
                      <Border Stroke="{DynamicResource BorderColor}"
                              BackgroundColor="{DynamicResource PageBackgroundColor}">
-                            <VerticalStackLayout Spacing="8">
+                            <VerticalStackLayout Spacing="8" Padding="16,10">
                                    <Label Text="About"
                                           FontSize="18"
                                           FontAttributes="Bold"
