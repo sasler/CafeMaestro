@@ -1,13 +1,13 @@
 <ResourceDictionary xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
                     xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
                     x:Class="CafeMaestro.DarkTheme">
-    <!-- Base theme colors - Modern Coffee Palette -->
-    <Color x:Key="PageBackgroundColor">#1A1A1A</Color>
-    <Color x:Key="NavigationBarColor">#2A1D13</Color> <!-- Deep coffee brown -->
-    <Color x:Key="PrimaryColor">#D35400</Color> <!-- Rich espresso orange -->
-    <Color x:Key="SecondaryColor">#E67E22</Color> <!-- Vibrant amber -->
-    <Color x:Key="TertiaryColor">#A04000</Color> <!-- Deep roast red-brown -->
-    <Color x:Key="NeutralColor">#262626</Color>
+    <!-- Base theme colors - Modern Vibrant Palette -->
+    <Color x:Key="PageBackgroundColor">#121212</Color>
+    <Color x:Key="NavigationBarColor">#1E1E1E</Color> <!-- Dark grey -->
+    <Color x:Key="PrimaryColor">#42A5F5</Color> <!-- Bright blue -->
+    <Color x:Key="SecondaryColor">#4DB6AC</Color> <!-- Light teal -->
+    <Color x:Key="TertiaryColor">#9FA8DA</Color> <!-- Light indigo -->
+    <Color x:Key="NeutralColor">#2D2D2D</Color>
     
     <!-- Text colors -->
     <Color x:Key="PrimaryTextColor">White</Color>
