@@ -39,13 +39,6 @@
                                  Spacing="15"
                                  BackgroundColor="{DynamicResource PageBackgroundColor}">
 
-                <SearchBar x:Name="SearchBar"
-                           Placeholder="Search beans..."
-                           TextChanged="OnSearchTextChanged"
-                           TextColor="{DynamicResource PrimaryTextColor}"
-                           PlaceholderColor="{DynamicResource PlaceholderColor}"
-                           BackgroundColor="{DynamicResource EntryBackgroundColor}"/>
-
                 <RefreshView x:Name="BeansRefreshView"
                              RefreshColor="{DynamicResource PrimaryColor}"
                              Command="{Binding RefreshCommand}">                    <CollectionView x:Name="BeansCollection"

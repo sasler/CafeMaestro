@@ -49,18 +49,13 @@ public partial class BeanInventoryPage : ContentPage
         await LoadBeans();
     }
 
-    private async Task LoadBeans(string searchTerm = "")
+    private async Task LoadBeans()
     {
         try
         {
             BeansRefreshView.IsRefreshing = true;
 
-            List<Bean> beans;
-
-            if (string.IsNullOrWhiteSpace(searchTerm))
-                beans = await _beanService.LoadBeansAsync();
-            else
-                beans = await _beanService.SearchBeansAsync(searchTerm);
+            List<Bean> beans = await _beanService.LoadBeansAsync();
 
             _beans.Clear();
 
@@ -78,11 +73,6 @@ public partial class BeanInventoryPage : ContentPage
         {
             BeansRefreshView.IsRefreshing = false;
         }
-    }
-
-    private async void OnSearchTextChanged(object sender, TextChangedEventArgs e)
-    {
-        await LoadBeans(e.NewTextValue);
     }
 
     private async void OnBeanSelected(object sender, SelectionChangedEventArgs e)

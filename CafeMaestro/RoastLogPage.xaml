@@ -39,13 +39,6 @@
                                  Spacing="15"
                                  BackgroundColor="{DynamicResource PageBackgroundColor}">
 
-                <SearchBar x:Name="SearchBar"
-                           Placeholder="Search by bean type..."
-                           TextChanged="OnSearchTextChanged"
-                           TextColor="{DynamicResource PrimaryTextColor}"
-                           PlaceholderColor="{DynamicResource PlaceholderColor}"
-                           BackgroundColor="{DynamicResource EntryBackgroundColor}"/>
-
                 <RefreshView x:Name="RoastLogRefreshView"
                              RefreshColor="{DynamicResource PrimaryColor}"
                              Command="{Binding RefreshCommand}">

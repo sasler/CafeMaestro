@@ -38,18 +38,13 @@ public partial class RoastLogPage : ContentPage
         await LoadRoastData();
     }
 
-    private async Task LoadRoastData(string searchTerm = "")
+    private async Task LoadRoastData()
     {
         try
         {
             RoastLogRefreshView.IsRefreshing = true;
 
-            List<RoastData> logs;
-
-            if (string.IsNullOrWhiteSpace(searchTerm))
-                logs = await _roastDataService.LoadRoastDataAsync();
-            else
-                logs = await _roastDataService.SearchRoastDataAsync(searchTerm);
+            List<RoastData> logs = await _roastDataService.LoadRoastDataAsync();
 
             _roastLogs.Clear();
 
@@ -67,11 +62,6 @@ public partial class RoastLogPage : ContentPage
         {
             RoastLogRefreshView.IsRefreshing = false;
         }
-    }
-
-    private async void OnSearchTextChanged(object sender, TextChangedEventArgs e)
-    {
-        await LoadRoastData(e.NewTextValue);
     }
 
     private async void OnRoastSelected(object sender, SelectionChangedEventArgs e)
