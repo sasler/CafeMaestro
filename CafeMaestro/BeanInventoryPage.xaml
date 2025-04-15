@@ -47,11 +47,13 @@
 
                 <RefreshView x:Name="BeansRefreshView"
                              RefreshColor="{DynamicResource PrimaryColor}"
-                             Command="{Binding RefreshCommand}">
-                    <CollectionView x:Name="BeansCollection"
+                             Command="{Binding RefreshCommand}">                    <CollectionView x:Name="BeansCollection"
                                     SelectionMode="Single"
                                     SelectionChanged="OnBeanSelected"
                                     Background="{DynamicResource PageBackgroundColor}">
+                        <CollectionView.ItemsLayout>
+                            <LinearItemsLayout Orientation="Vertical" ItemSpacing="16" />
+                        </CollectionView.ItemsLayout>
                         <CollectionView.EmptyView>
                             <StackLayout HorizontalOptions="Center"
                                          VerticalOptions="Center">
