@@ -76,6 +76,7 @@ public partial class AppShell : Shell
 		Routing.RegisterRoute(nameof(BeanEditPage), typeof(BeanEditPage));
 		Routing.RegisterRoute(nameof(BeanImportPage), typeof(BeanImportPage));
 		Routing.RegisterRoute(nameof(SettingsPage), typeof(SettingsPage));
+		Routing.RegisterRoute(nameof(RoastImportPage), typeof(RoastImportPage));
 	}
 	
 	private void OnNavigating(object? sender, ShellNavigatingEventArgs e)

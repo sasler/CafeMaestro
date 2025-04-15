@@ -3,6 +3,8 @@ using System.Windows.Input;
 using CafeMaestro.Models;
 using CafeMaestro.Services;
 using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Maui.ApplicationModel;
+using Microsoft.Maui.Storage;
 
 namespace CafeMaestro;
 
@@ -103,6 +105,53 @@ public partial class RoastLogPage : ContentPage
         
         // Subscribe to data changes
         _appDataService.DataChanged += OnAppDataChanged;
+        
+        // Subscribe to navigation events to refresh data when returning to this page
+        this.Loaded += RoastLogPage_Loaded;
+        this.NavigatedTo += RoastLogPage_NavigatedTo;
+    }
+    
+    private void RoastLogPage_Loaded(object? sender, EventArgs e)
+    {
+        System.Diagnostics.Debug.WriteLine("RoastLogPage_Loaded event triggered");
+        // Refresh data when page is loaded
+        MainThread.BeginInvokeOnMainThread(async () => 
+        {
+            await ForceRefreshData();
+        });
+    }
+    
+    private void RoastLogPage_NavigatedTo(object? sender, NavigatedToEventArgs e)
+    {
+        System.Diagnostics.Debug.WriteLine("RoastLogPage_NavigatedTo event triggered");
+        // Refresh data when navigated to this page
+        MainThread.BeginInvokeOnMainThread(async () => 
+        {
+            await ForceRefreshData();
+        });
+    }
+    
+    // Force a full refresh from the data store
+    private async Task ForceRefreshData()
+    {
+        try
+        {
+            System.Diagnostics.Debug.WriteLine("Force refreshing roast log data");
+            
+            // Force a reload from the data file
+            await _appDataService.ReloadDataAsync();
+            
+            // Update the UI with fresh data
+            MainThread.BeginInvokeOnMainThread(() => 
+            {
+                UpdateRoastLogsFromAppData(_appDataService.CurrentData);
+                System.Diagnostics.Debug.WriteLine($"Force refreshed roast logs with {_roastLogs.Count} logs");
+            });
+        }
+        catch (Exception ex)
+        {
+            System.Diagnostics.Debug.WriteLine($"Error force refreshing roast logs: {ex.Message}");
+        }
     }
     
     private void OnAppDataChanged(object? sender, AppData appData)
@@ -130,15 +179,15 @@ public partial class RoastLogPage : ContentPage
     {
         base.OnAppearing();
         
+        System.Diagnostics.Debug.WriteLine("RoastLogPage.OnAppearing - Refreshing roast logs");
+        
+        // Always refresh data from the service to ensure we're showing the latest
+        await LoadRoastData();
+        
         // Get the data from our binding context if available
         if (BindingContext is NavigationParameters navParams)
         {
             UpdateRoastLogsFromAppData(navParams.AppData);
-        }
-        else
-        {
-            // Fallback to loading from the AppDataService if binding context not set
-            await LoadRoastData();
         }
     }
     
@@ -235,6 +284,21 @@ public partial class RoastLogPage : ContentPage
         catch (Exception ex)
         {
             await DisplayAlert("Error", $"Failed to export data: {ex.Message}", "OK");
+        }
+    }
+
+    private async void ImportButton_Clicked(object sender, EventArgs e)
+    {
+        try
+        {
+            // Navigate to the roast import page
+            System.Diagnostics.Debug.WriteLine("Navigating to RoastImportPage");
+            await Navigation.PushAsync(new RoastImportPage());
+        }
+        catch (Exception ex)
+        {
+            System.Diagnostics.Debug.WriteLine($"Error navigating to RoastImportPage: {ex.Message}");
+            await DisplayAlert("Error", $"Could not navigate to import page: {ex.Message}", "OK");
         }
     }
 

@@ -5,6 +5,7 @@ namespace CafeMaestro.Models
 {
     public class RoastData
     {
+        public Guid Id { get; set; } = Guid.NewGuid(); // Add Id property
         public string BeanType { get; set; } = "";
         public double Temperature { get; set; }
         public double BatchWeight { get; set; }
@@ -19,6 +20,9 @@ namespace CafeMaestro.Models
 
         [JsonIgnore]
         public string FormattedTime => $"{RoastMinutes:D2}:{RoastSeconds:D2}";
+
+        [JsonIgnore]
+        public int TotalSeconds => (RoastMinutes * 60) + RoastSeconds; // Add TotalSeconds property
 
         [JsonIgnore]
         public string RoastLevel

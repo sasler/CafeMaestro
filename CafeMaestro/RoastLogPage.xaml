@@ -122,6 +122,12 @@
                             BackgroundColor="{DynamicResource TertiaryColor}"
                             TextColor="{DynamicResource ButtonTextColor}"
                             WidthRequest="120"/>
+                    <Button x:Name="ImportButton"
+                            Text="Import CSV"
+                            Clicked="ImportButton_Clicked"
+                            BackgroundColor="{DynamicResource AccentColor}"
+                            TextColor="{DynamicResource ButtonTextColor}"
+                            WidthRequest="120"/>
                     <Button x:Name="ExportButton"
                             Text="Export to CSV"
                             Clicked="ExportButton_Clicked"
