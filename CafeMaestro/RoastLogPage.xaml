@@ -3,140 +3,146 @@
              xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
              x:Class="CafeMaestro.RoastLogPage"
              BackgroundColor="{DynamicResource PageBackgroundColor}"
-             Padding="0"
              Title="Roast Log">
-       <Grid RowDefinitions="Auto,*,Auto"
-             Padding="0"
-             BackgroundColor="{DynamicResource PageBackgroundColor}">
+    <ScrollView Padding="0"
+            Margin="0">
+        <Grid RowDefinitions="Auto, *"
+                Padding="0"
+                Margin="0">
+            <!-- Header Area - Clean Design -->
+            <Grid Grid.Row="0"
+                  ColumnDefinitions="Auto,*"
+                  Padding="20,20"
+                  HeightRequest="100"
+                  HorizontalOptions="Fill"
+                  Margin="0">
+                <!-- Logo and Title within Header -->
+                <Image Grid.Column="0"
+                       Source="log_icon.png"
+                       HeightRequest="60"
+                       WidthRequest="60"
+                       Aspect="AspectFit"
+                       VerticalOptions="Center"/>
+                <Label Grid.Column="1"
+                       Text="Roast Log"
+                       FontSize="28"
+                       FontAttributes="Bold"
+                       HorizontalOptions="Start"
+                       VerticalOptions="Center"
+                       TextColor="{DynamicResource PrimaryColor}"
+                       Margin="16,0,0,0"/>
+            </Grid>
 
-              <!-- Header Area - Clean Design -->
-              <Grid Grid.Row="0"
-                    ColumnDefinitions="Auto,*"
-                    Padding="20,20"
-                    HeightRequest="100"
-                    HorizontalOptions="Fill"
-                    Margin="0">
-                     <!-- Logo and Title within Header -->
-                     <Image Grid.Column="0"
-                            Source="log_icon.png"
-                            HeightRequest="60"
-                            WidthRequest="60"
-                            Aspect="AspectFit"
-                            VerticalOptions="Center"/>
-                     <Label Grid.Column="1"
-                            Text="Roast Log"
-                            FontSize="28"
-                            FontAttributes="Bold"
-                            HorizontalOptions="Start"
-                            VerticalOptions="Center"
-                            TextColor="{DynamicResource PrimaryColor}"
-                            Margin="16,0,0,0"/>
-              </Grid>
-              <StackLayout Grid.Row="1"
-                           Padding="24,0,24,0">
-                     <SearchBar x:Name="SearchBar"
-                                Placeholder="Search by bean type..."
-                                TextChanged="OnSearchTextChanged"
-                                TextColor="{DynamicResource PrimaryTextColor}"
-                                PlaceholderColor="{DynamicResource PlaceholderColor}"
-                                BackgroundColor="{DynamicResource EntryBackgroundColor}"
-                                Margin="0,0,0,10"/>
-              </StackLayout>
+            <!-- Main Content Area -->
+            <VerticalStackLayout Grid.Row="1"
+                                 Padding="24,0,24,24"
+                                 Spacing="15"
+                                 BackgroundColor="{DynamicResource PageBackgroundColor}">
 
-              <RefreshView Grid.Row="1"
-                           x:Name="RoastLogRefreshView"
-                           RefreshColor="{DynamicResource PrimaryColor}"
-                           Command="{Binding RefreshCommand}">
-                     <CollectionView x:Name="RoastLogCollection"
-                                     SelectionMode="Single"
-                                     SelectionChanged="OnRoastSelected"
-                                     Background="{DynamicResource PageBackgroundColor}">
-                            <CollectionView.EmptyView>
-                                   <StackLayout HorizontalOptions="Center"
-                                                VerticalOptions="Center">
-                                          <Label Text="No roast logs found"
-                                                 FontSize="18"
-                                                 TextColor="{DynamicResource TertiaryTextColor}"/>
-                                          <Label Text="Save a roast to see it here"
-                                                 FontSize="14"
-                                                 TextColor="{DynamicResource TertiaryTextColor}"/>
-                                   </StackLayout>
-                            </CollectionView.EmptyView>
-                            <CollectionView.ItemTemplate>
-                                   <DataTemplate>
-                                          <Border Margin="0,5"
-                                                  Padding="15"
-                                                  Stroke="{DynamicResource BorderColor}"
-                                                  StrokeThickness="0.5"
-                                                  BackgroundColor="{DynamicResource NeutralColor}"
-                                                  StrokeShape="RoundRectangle 12">
-                                                 <Border.Shadow>
-                                                        <Shadow Brush="#20000000"
-                                                                Offset="0,2"
-                                                                Radius="4"
-                                                                Opacity="0.2"/>
-                                                 </Border.Shadow>
-                                                 <Grid RowDefinitions="Auto,Auto,Auto"
-                                                       ColumnDefinitions="*,Auto">
-                                                        <Label Grid.Row="0"
-                                                               Grid.Column="0"
-                                                               Text="{Binding BeanType}"
-                                                               FontSize="18"
-                                                               FontAttributes="Bold"
-                                                               TextColor="{DynamicResource PrimaryTextColor}"/>
-                                                        <Label Grid.Row="0"
-                                                               Grid.Column="1"
-                                                               Text="{Binding RoastDate, StringFormat='{0:MM/dd/yyyy}'}"
-                                                               FontSize="14"
-                                                               TextColor="{DynamicResource SecondaryTextColor}"/>
+                <SearchBar x:Name="SearchBar"
+                           Placeholder="Search by bean type..."
+                           TextChanged="OnSearchTextChanged"
+                           TextColor="{DynamicResource PrimaryTextColor}"
+                           PlaceholderColor="{DynamicResource PlaceholderColor}"
+                           BackgroundColor="{DynamicResource EntryBackgroundColor}"/>
 
-                                                        <Label Grid.Row="1"
+                <RefreshView x:Name="RoastLogRefreshView"
+                             RefreshColor="{DynamicResource PrimaryColor}"
+                             Command="{Binding RefreshCommand}">
+                    <CollectionView x:Name="RoastLogCollection"
+                                    SelectionMode="Single"
+                                    SelectionChanged="OnRoastSelected"
+                                    Background="{DynamicResource PageBackgroundColor}">
+                        <CollectionView.ItemsLayout>
+                            <LinearItemsLayout Orientation="Vertical" ItemSpacing="16" />
+                        </CollectionView.ItemsLayout>
+                        <CollectionView.EmptyView>
+                            <StackLayout HorizontalOptions="Center"
+                                         VerticalOptions="Center">
+                                <Label Text="No roast logs found"
+                                       FontSize="18"
+                                       TextColor="{DynamicResource TertiaryTextColor}"/>
+                                <Label Text="Save a roast to see it here"
+                                       FontSize="14"
+                                       TextColor="{DynamicResource TertiaryTextColor}"/>
+                            </StackLayout>
+                        </CollectionView.EmptyView>
+                        <CollectionView.ItemTemplate>
+                            <DataTemplate>
+                                <Border Margin="0,12"
+                                        Padding="16"
+                                        StrokeShape="RoundRectangle 12"
+                                        Stroke="{DynamicResource BorderColor}"
+                                        StrokeThickness="0.5"
+                                        BackgroundColor="{DynamicResource NeutralColor}">
+                                    <Border.Shadow>
+                                        <Shadow Brush="#20000000"
+                                                Offset="0,3"
+                                                Radius="6"
+                                                Opacity="0.2"/>
+                                    </Border.Shadow>
+                                    <Grid RowDefinitions="Auto,Auto,Auto"
+                                          ColumnDefinitions="*,Auto">
+                                        <Label Grid.Row="0"
+                                               Grid.Column="0"
+                                               Text="{Binding BeanType}"
+                                               FontSize="18"
+                                               FontAttributes="Bold"
+                                               TextColor="{DynamicResource PrimaryTextColor}"/>
+                                        <Label Grid.Row="0"
+                                               Grid.Column="1"
+                                               Text="{Binding RoastDate, StringFormat='{0:MM/dd/yyyy}'}"
+                                               FontSize="14"
+                                               TextColor="{AppThemeBinding Light=Gray, Dark=#BBBBBB}"/>
+
+                                        <Label Grid.Row="1"
+                                               Grid.Column="0"
+                                               Grid.ColumnSpan="2"
+                                               Text="{Binding Summary}"
+                                               TextColor="{DynamicResource PrimaryTextColor}"
+                                               FontSize="16"/>
+
+                                        <HorizontalStackLayout Grid.Row="2"
                                                                Grid.Column="0"
                                                                Grid.ColumnSpan="2"
-                                                               Text="{Binding Summary}"
-                                                               TextColor="{DynamicResource PrimaryTextColor}"
-                                                               FontSize="16"/>
-
-                                                        <HorizontalStackLayout Grid.Row="2"
-                                                                               Grid.Column="0"
-                                                                               Grid.ColumnSpan="2"
-                                                                               Spacing="15"
-                                                                               Margin="0,5,0,0">
-                                                               <Label Text="{Binding WeightLossPercentage, StringFormat='Loss: {0:F1}%'}"
-                                                                      FontSize="14"
-                                                                      TextColor="{DynamicResource TertiaryTextColor}"/>
-                                                               <Label Text="{Binding FormattedTime, StringFormat='Time: {0}'}"
-                                                                      FontSize="14"
-                                                                      TextColor="{DynamicResource TertiaryTextColor}"/>
-                                                        </HorizontalStackLayout>
-                                                 </Grid>
-                                          </Border>
-                                   </DataTemplate>
-                            </CollectionView.ItemTemplate>
-                     </CollectionView>
-              </RefreshView>
-              <HorizontalStackLayout Grid.Row="2"
-                                     Spacing="10"
-                                     Margin="0,10,0,0"
-                                     HorizontalOptions="Center">
-                     <Button x:Name="DataFileButton"
-                             Text="Data File"
-                             Clicked="DataFileButton_Clicked"
-                             BackgroundColor="{DynamicResource TertiaryColor}"
-                             TextColor="{DynamicResource ButtonTextColor}"
-                             WidthRequest="120"/>
-                     <Button x:Name="ExportButton"
-                             Text="Export to CSV"
-                             Clicked="ExportButton_Clicked"
-                             BackgroundColor="{DynamicResource SecondaryColor}"
-                             TextColor="{DynamicResource ButtonTextColor}"
-                             WidthRequest="120"/>
-                     <Button x:Name="BackButton"
-                             Text="Back"
-                             Clicked="BackButton_Clicked"
-                             BackgroundColor="{DynamicResource PrimaryColor}"
-                             TextColor="{DynamicResource ButtonTextColor}"
-                             WidthRequest="100"/>
-              </HorizontalStackLayout>
-       </Grid>
+                                                               Spacing="15"
+                                                               Margin="0,5,0,0">
+                                            <Label Text="{Binding WeightLossPercentage, StringFormat='Loss: {0:F1}%'}"
+                                                   FontSize="14"
+                                                   TextColor="{AppThemeBinding Light=#808080, Dark=#AAAAAA}"/>
+                                            <Label Text="{Binding FormattedTime, StringFormat='Time: {0}'}"
+                                                   FontSize="14"
+                                                   TextColor="{AppThemeBinding Light=#808080, Dark=#AAAAAA}"/>
+                                        </HorizontalStackLayout>
+                                    </Grid>
+                                </Border>
+                            </DataTemplate>
+                        </CollectionView.ItemTemplate>
+                    </CollectionView>
+                </RefreshView>
+                <HorizontalStackLayout Spacing="10"
+                                       Margin="0,10,0,0"
+                                       HorizontalOptions="Center">
+                    <Button x:Name="DataFileButton"
+                            Text="Data File"
+                            Clicked="DataFileButton_Clicked"
+                            BackgroundColor="{DynamicResource TertiaryColor}"
+                            TextColor="{DynamicResource ButtonTextColor}"
+                            WidthRequest="120"/>
+                    <Button x:Name="ExportButton"
+                            Text="Export to CSV"
+                            Clicked="ExportButton_Clicked"
+                            BackgroundColor="{DynamicResource SecondaryColor}"
+                            TextColor="{DynamicResource ButtonTextColor}"
+                            WidthRequest="120"/>
+                    <Button x:Name="BackButton"
+                            Text="Back"
+                            Clicked="BackButton_Clicked"
+                            BackgroundColor="{DynamicResource PrimaryColor}"
+                            TextColor="{DynamicResource ButtonTextColor}"
+                            WidthRequest="100"/>
+                </HorizontalStackLayout>
+            </VerticalStackLayout>
+        </Grid>
+    </ScrollView>
 </ContentPage>
