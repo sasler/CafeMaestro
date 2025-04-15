@@ -138,6 +138,12 @@
                             BackgroundColor="{DynamicResource SecondaryColor}"
                             TextColor="{DynamicResource ButtonTextColor}"
                             WidthRequest="100"/>
+                    <Button x:Name="ImportButton"
+                            Text="Import"
+                            Clicked="ImportButton_Clicked"
+                            BackgroundColor="{DynamicResource SecondaryColor}"
+                            TextColor="{DynamicResource ButtonTextColor}"
+                            WidthRequest="100"/>
                     <Button x:Name="AddBeanButton"
                             Text="+"
                             Clicked="AddBean_Clicked"

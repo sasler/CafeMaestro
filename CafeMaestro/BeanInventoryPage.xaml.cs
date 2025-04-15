@@ -325,4 +325,19 @@ public partial class BeanInventoryPage : ContentPage
             }
         }
     }
+
+    private async void ImportButton_Clicked(object sender, EventArgs e)
+    {
+        try
+        {
+            // Create BeanImportPage and pass in our services
+            var beanImportPage = new BeanImportPage(_beanService, _appDataService);
+            await Navigation.PushAsync(beanImportPage);
+        }
+        catch (Exception ex)
+        {
+            System.Diagnostics.Debug.WriteLine($"Error navigating to import page: {ex.Message}");
+            await DisplayAlert("Error", "Unable to open import page", "OK");
+        }
+    }
 }

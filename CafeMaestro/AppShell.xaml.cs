@@ -1,6 +1,7 @@
 ﻿using Microsoft.Maui.Controls;
 using Microsoft.Extensions.DependencyInjection;
 using System;
+using CafeMaestro.Models;
 
 namespace CafeMaestro;
 
@@ -73,6 +74,7 @@ public partial class AppShell : Shell
 		Routing.RegisterRoute(nameof(RoastLogPage), typeof(RoastLogPage));
 		Routing.RegisterRoute(nameof(BeanInventoryPage), typeof(BeanInventoryPage));
 		Routing.RegisterRoute(nameof(BeanEditPage), typeof(BeanEditPage));
+		Routing.RegisterRoute(nameof(BeanImportPage), typeof(BeanImportPage));
 		Routing.RegisterRoute(nameof(SettingsPage), typeof(SettingsPage));
 	}
 	
