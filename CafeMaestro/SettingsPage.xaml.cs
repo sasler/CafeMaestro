@@ -257,14 +257,11 @@ public partial class SettingsPage : ContentPage
                 // First save path to preferences
                 await _preferencesService.SaveAppDataFilePathAsync(result.FullPath);
                 
-                // Then update AppDataService (which will notify other services via the event)
-                _appDataService.SetCustomFilePath(result.FullPath);
+                // Then update AppDataService - this now returns the loaded data
+                var appData = await _appDataService.SetCustomFilePathAsync(result.FullPath);
                 
                 // Reload the UI
                 LoadDataFilePath();
-                
-                // Ensure the file is loadable
-                await _appDataService.LoadAppDataAsync();
                 
                 // If this was during first run, mark setup as completed
                 await _preferencesService.SetFirstRunCompletedAsync();
@@ -379,26 +376,16 @@ public partial class SettingsPage : ContentPage
             // First save the path to preferences
             await _preferencesService.SaveAppDataFilePathAsync(filePath);
             
-            // Create new empty data file through AppDataService
-            bool success = await _appDataService.CreateEmptyDataFileAsync(filePath);
+            // Create new empty data file through AppDataService - now returns loaded data
+            var appData = await _appDataService.CreateEmptyDataFileAsync(filePath);
             
-            if (success)
-            {
-                // Update UI
-                LoadDataFilePath();
-                
-                // Ensure data is loaded in memory
-                await _appDataService.ReloadDataAsync();
-                
-                // If this was during first run, mark setup as completed
-                await _preferencesService.SetFirstRunCompletedAsync();
-                
-                await DisplayAlert("Success", "Created new data file.", "OK");
-            }
-            else
-            {
-                await DisplayAlert("Error", "Failed to create data file.", "OK");
-            }
+            // Update UI
+            LoadDataFilePath();
+            
+            // If this was during first run, mark setup as completed
+            await _preferencesService.SetFirstRunCompletedAsync();
+            
+            await DisplayAlert("Success", "Created new data file.", "OK");
         }
         catch (Exception ex)
         {
@@ -419,18 +406,13 @@ public partial class SettingsPage : ContentPage
                 // First clear the preferences
                 await _preferencesService.ClearAppDataFilePathAsync();
                 
-                // Then reset the AppDataService path (triggers notifications)
-                _appDataService.ResetToDefaultPath();
+                // Then reset the AppDataService path - now returns loaded data
+                var appData = await _appDataService.ResetToDefaultPathAsync();
                 
                 // Create the file if it doesn't exist
                 if (!_appDataService.DataFileExists())
                 {
-                    await _appDataService.CreateEmptyDataFileAsync(_appDataService.DataFilePath);
-                }
-                else
-                {
-                    // Ensure data is loaded in memory
-                    await _appDataService.ReloadDataAsync();
+                    appData = await _appDataService.CreateEmptyDataFileAsync(_appDataService.DataFilePath);
                 }
                 
                 // Update UI

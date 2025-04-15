@@ -6,8 +6,24 @@ using Microsoft.Extensions.DependencyInjection;
 
 namespace CafeMaestro;
 
+[QueryProperty(nameof(NavParams), "NavParams")]
 public partial class BeanInventoryPage : ContentPage
 {
+    private NavigationParameters? _navParams; // Make nullable to fix constructor warning
+    public NavigationParameters NavParams
+    {
+        get => _navParams ?? new NavigationParameters();
+        set
+        {
+            _navParams = value;
+            // When navigation parameters are set, update the beans list
+            if (_navParams?.AppData != null)
+            {
+                UpdateBeansFromAppData(_navParams.AppData);
+            }
+        }
+    }
+
     private readonly BeanService _beanService;
     private readonly AppDataService _appDataService;
     private ObservableCollection<Bean> _beans;
@@ -20,7 +36,9 @@ public partial class BeanInventoryPage : ContentPage
         InitializeComponent();
 
         // First try to get the services from the application resources (our stored service provider)
-        if (Application.Current?.Resources?.TryGetValue("ServiceProvider", out var serviceProviderObj) == true && 
+        object? serviceProviderObj = null;
+        if (Application.Current?.Resources != null && 
+            Application.Current.Resources.TryGetValue("ServiceProvider", out serviceProviderObj) && 
             serviceProviderObj is IServiceProvider serviceProvider)
         {
             _appDataService = appDataService ?? 
@@ -45,6 +63,34 @@ public partial class BeanInventoryPage : ContentPage
                           throw new InvalidOperationException("BeanService not available");
         }
 
+        // IMPORTANT: Ensure we're using the latest path from preferences
+        if (Application.Current is App app)
+        {
+            // Get the data from the app directly instead of creating new services
+            var appData = app.GetAppData();
+            System.Diagnostics.Debug.WriteLine($"BeanInventoryPage constructor - Getting data directly from App: {_appDataService.DataFilePath}");
+            
+            // Force the AppDataService to use the same path as the main app
+            Task.Run(async () => {
+                try {
+                    // Get the path from preferences to ensure it's the user-defined one
+                    var preferencesService = serviceProviderObj is IServiceProvider sp ? 
+                        sp.GetService<PreferencesService>() : 
+                        Application.Current?.Handler?.MauiContext?.Services.GetService<PreferencesService>();
+                        
+                    if (preferencesService != null) {
+                        string? savedPath = await preferencesService.GetAppDataFilePathAsync();
+                        if (!string.IsNullOrEmpty(savedPath)) {
+                            System.Diagnostics.Debug.WriteLine($"BeanInventoryPage - Setting path from preferences: {savedPath}");
+                            await _appDataService.SetCustomFilePathAsync(savedPath);
+                        }
+                    }
+                } catch (Exception ex) {
+                    System.Diagnostics.Debug.WriteLine($"Error setting file path in BeanInventoryPage: {ex.Message}");
+                }
+            });
+        }
+
         System.Diagnostics.Debug.WriteLine($"BeanInventoryPage constructor - Using AppDataService at path: {_appDataService.DataFilePath}");
 
         _beans = new ObservableCollection<Bean>();
@@ -55,50 +101,46 @@ public partial class BeanInventoryPage : ContentPage
         EditBeanCommand = new Command<Bean>(async (bean) => await EditBean(bean));
         DeleteBeanCommand = new Command<Bean>(async (bean) => await DeleteBean(bean));
 
-        BindingContext = this;
-
-        // Load data initially
-        InitializePageAsync();
+        // Don't set BindingContext to this since we'll use NavigationParameters
+        
+        // Subscribe to data changes
+        _appDataService.DataChanged += OnAppDataChanged;
     }
-
-    private async void InitializePageAsync()
+    
+    private void OnAppDataChanged(object? sender, AppData appData)
     {
-        try
+        // Reload the UI with the new data
+        MainThread.BeginInvokeOnMainThread(() => {
+            UpdateBeansFromAppData(appData);
+        });
+    }
+    
+    private void UpdateBeansFromAppData(AppData appData)
+    {
+        _beans.Clear();
+        
+        // Sort by purchase date (newest first)
+        foreach (var bean in appData.Beans.OrderByDescending(b => b.PurchaseDate))
         {
-            // Force reload from the AppDataService to ensure we have the correct path
-            await _appDataService.ReloadDataAsync();
-            
-            // Then load beans
-            await LoadBeans();
-            
-            System.Diagnostics.Debug.WriteLine($"BeanInventoryPage initialized with path: {_appDataService.DataFilePath}");
+            _beans.Add(bean);
         }
-        catch (Exception ex)
-        {
-            System.Diagnostics.Debug.WriteLine($"Error initializing BeanInventoryPage: {ex.Message}");
-            await DisplayAlert("Error", "Failed to initialize bean inventory data.", "OK");
-        }
+        
+        System.Diagnostics.Debug.WriteLine($"Updated BeanInventoryPage with {_beans.Count} beans from AppData");
     }
 
     protected override async void OnAppearing()
     {
         base.OnAppearing();
         
-        // First ensure the service is fully initialized
-        try 
+        // Get the data from our binding context if available
+        if (BindingContext is NavigationParameters navParams)
         {
-            // Force reload data from the AppDataService to ensure we have the latest
-            await _appDataService.ReloadDataAsync();
-            
-            // Then load the beans
-            await LoadBeans();
-            
-            System.Diagnostics.Debug.WriteLine($"BeanInventoryPage loaded beans successfully on appearance from: {_appDataService.DataFilePath}");
+            UpdateBeansFromAppData(navParams.AppData);
         }
-        catch (Exception ex)
+        else
         {
-            System.Diagnostics.Debug.WriteLine($"Error in BeanInventoryPage.OnAppearing: {ex.Message}");
-            await DisplayAlert("Error", "Failed to load bean data. Please try again.", "OK");
+            // Fallback to loading from the AppDataService if binding context not set
+            await LoadBeans();
         }
     }
 
@@ -108,15 +150,9 @@ public partial class BeanInventoryPage : ContentPage
         {
             BeansRefreshView.IsRefreshing = true;
 
-            List<Bean> beans = await _beanService.GetAllBeansAsync();
-
-            _beans.Clear();
-
-            // Sort by purchase date (newest first)
-            foreach (var bean in beans.OrderByDescending(b => b.PurchaseDate))
-            {
-                _beans.Add(bean);
-            }
+            // Use the current data from AppDataService directly
+            var appData = _appDataService.CurrentData;
+            UpdateBeansFromAppData(appData);
         }
         catch (Exception ex)
         {

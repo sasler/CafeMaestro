@@ -21,14 +21,15 @@ namespace CafeMaestro.Services
         private readonly SemaphoreSlim _initializationLock = new SemaphoreSlim(1, 1);
         private readonly SemaphoreSlim _dataAccessLock = new SemaphoreSlim(1, 1);
         
-        // Event that fires when the data file path changes
+        // Event that fires when the data file path changes or data is reloaded
+        public event EventHandler<AppData>? DataChanged;
         public event EventHandler<string>? DataFilePathChanged;
         
-        // Property to get/set the current data file path
+        // Property to get the current data file path
         public string DataFilePath 
         { 
             get => _filePath;
-            set
+            private set
             {
                 if (_filePath != value)
                 {
@@ -49,6 +50,9 @@ namespace CafeMaestro.Services
             }
         }
 
+        // Get the current cached data
+        public AppData CurrentData => _cachedData ?? CreateEmptyAppData();
+
         public AppDataService()
         {
             // Default initialization using app data directory
@@ -67,8 +71,8 @@ namespace CafeMaestro.Services
             };
         }
         
-        // Initialize the service with the saved path
-        public async Task InitializeAsync(PreferencesService preferencesService)
+        // Initialize the service with the saved path - call this only once during startup
+        public async Task<AppData> InitializeAsync(PreferencesService preferencesService)
         {
             // Use a lock to prevent multiple simultaneous initializations
             await _initializationLock.WaitAsync();
@@ -77,8 +81,8 @@ namespace CafeMaestro.Services
             {
                 if (_isInitialized)
                 {
-                    System.Diagnostics.Debug.WriteLine("AppDataService already initialized, skipping");
-                    return;
+                    System.Diagnostics.Debug.WriteLine("AppDataService already initialized, returning cached data");
+                    return _cachedData ?? await LoadAppDataAsync();
                 }
                     
                 // Get saved file path from preferences
@@ -107,14 +111,19 @@ namespace CafeMaestro.Services
                     }
                 }
                 
-                // Immediately load the data to cache it
-                await LoadAppDataAsync();
+                // Load the data to cache it
+                var data = await LoadAppDataAsync();
                 
                 _isInitialized = true;
                 
                 // Now fire the event to notify other services about the path
                 DataFilePathChanged?.Invoke(this, _filePath);
+                // Also notify about the loaded data
+                DataChanged?.Invoke(this, data);
+                
                 System.Diagnostics.Debug.WriteLine($"AppDataService initialization complete, notified about path: {_filePath}");
+                
+                return data;
             }
             catch (Exception ex)
             {
@@ -122,8 +131,15 @@ namespace CafeMaestro.Services
                 // Use default path on error
                 ResetToDefaultPath(false); // Don't fire events during initialization
                 
-                // Fire the event once with the default path
+                // Create empty data
+                var emptyData = CreateEmptyAppData();
+                _cachedData = emptyData;
+                
+                // Fire the events
                 DataFilePathChanged?.Invoke(this, _filePath);
+                DataChanged?.Invoke(this, emptyData);
+                
+                return emptyData;
             }
             finally
             {
@@ -131,11 +147,11 @@ namespace CafeMaestro.Services
             }
         }
         
-        // Set a custom file path for data storage
-        public void SetCustomFilePath(string filePath)
+        // Set a custom file path for data storage - Call this when a user selects a new file
+        public async Task<AppData> SetCustomFilePathAsync(string filePath)
         {
             if (string.IsNullOrWhiteSpace(filePath))
-                return;
+                throw new ArgumentException("File path cannot be empty", nameof(filePath));
                 
             DataFilePath = filePath;
             
@@ -143,16 +159,18 @@ namespace CafeMaestro.Services
             var directory = Path.GetDirectoryName(filePath);
             if (!string.IsNullOrEmpty(directory) && !Directory.Exists(directory))
                 Directory.CreateDirectory(directory);
+                
+            // Load data from the new path
+            var data = await LoadAppDataAsync();
+            
+            // Notify about the loaded data
+            DataChanged?.Invoke(this, data);
+            
+            return data;
         }
 
         // Reset to the default file path in app data directory
-        public void ResetToDefaultPath()
-        {
-            ResetToDefaultPath(true);
-        }
-        
-        // Reset to default path with control over event firing
-        public void ResetToDefaultPath(bool fireEvents)
+        public async Task<AppData> ResetToDefaultPathAsync()
         {
             // Reset to default location
             _folderPath = Path.Combine(FileSystem.AppDataDirectory, "AppData");
@@ -160,22 +178,20 @@ namespace CafeMaestro.Services
             // Create the directory if it doesn't exist
             if (!Directory.Exists(_folderPath))
                 Directory.CreateDirectory(_folderPath);
-             
-            if (fireEvents)
-            {
-                // Use property setter to fire events   
-                DataFilePath = Path.Combine(_folderPath, _defaultFileName);
-            }
-            else
-            {
-                // Set without firing events
-                _filePath = Path.Combine(_folderPath, _defaultFileName);
-                _cachedData = null;
-                _isDirty = true;
-            }
+                
+            // Use property setter to fire path change event
+            DataFilePath = Path.Combine(_folderPath, _defaultFileName);
+            
+            // Load data from default path
+            var data = await LoadAppDataAsync();
+            
+            // Notify about the loaded data
+            DataChanged?.Invoke(this, data);
+            
+            return data;
         }
         
-        // Loads all app data
+        // Loads all app data - should only be called by the service or during page navigation
         public async Task<AppData> LoadAppDataAsync()
         {
             // Use a lock to prevent concurrent reads/writes
@@ -251,6 +267,9 @@ namespace CafeMaestro.Services
                 System.Diagnostics.Debug.WriteLine($"Saved app data to: {_filePath}");
                 System.Diagnostics.Debug.WriteLine($"  Beans: {appData.Beans?.Count ?? 0}, Roasts: {appData.RoastLogs?.Count ?? 0}");
                 
+                // Notify about the updated data
+                DataChanged?.Invoke(this, appData);
+                
                 return true;
             }
             catch (Exception ex)
@@ -295,7 +314,7 @@ namespace CafeMaestro.Services
         }
         
         // Create new empty data file
-        public async Task<bool> CreateEmptyDataFileAsync(string filePath)
+        public async Task<AppData> CreateEmptyDataFileAsync(string filePath)
         {
             // Use a lock to prevent concurrent operations
             await _dataAccessLock.WaitAsync();
@@ -306,7 +325,7 @@ namespace CafeMaestro.Services
                 var emptyData = CreateEmptyAppData();
                 
                 // Set file path
-                SetCustomFilePath(filePath);
+                DataFilePath = filePath;
                 
                 // Make sure directory exists
                 string? directory = Path.GetDirectoryName(filePath);
@@ -322,7 +341,7 @@ namespace CafeMaestro.Services
                 // Verify file was created
                 if (!File.Exists(filePath))
                 {
-                    return false;
+                    throw new IOException($"Failed to create file at {filePath}");
                 }
                 
                 // Update cache
@@ -331,12 +350,15 @@ namespace CafeMaestro.Services
                 
                 System.Diagnostics.Debug.WriteLine($"Created new empty data file at: {filePath}");
                 
-                return true;
+                // Notify about the new data
+                DataChanged?.Invoke(this, emptyData);
+                
+                return emptyData;
             }
             catch (Exception ex)
             {
                 System.Diagnostics.Debug.WriteLine($"Error creating empty data file: {ex.Message}");
-                return false;
+                throw;
             }
             finally
             {
@@ -344,11 +366,40 @@ namespace CafeMaestro.Services
             }
         }
         
-        // Force reload of data from file
+        // Force reload of data from file - only use when absolutely necessary
         public async Task<AppData> ReloadDataAsync()
         {
             _isDirty = true;
-            return await LoadAppDataAsync();
+            var data = await LoadAppDataAsync();
+            
+            // Notify about the reloaded data
+            DataChanged?.Invoke(this, data);
+            
+            return data;
+        }
+        
+        // This internal method is only used during initialization
+        private void ResetToDefaultPath(bool fireEvents)
+        {
+            // Reset to default location
+            _folderPath = Path.Combine(FileSystem.AppDataDirectory, "AppData");
+            
+            // Create the directory if it doesn't exist
+            if (!Directory.Exists(_folderPath))
+                Directory.CreateDirectory(_folderPath);
+             
+            if (fireEvents)
+            {
+                // Use property setter to fire events   
+                DataFilePath = Path.Combine(_folderPath, _defaultFileName);
+            }
+            else
+            {
+                // Set without firing events
+                _filePath = Path.Combine(_folderPath, _defaultFileName);
+                _cachedData = null;
+                _isDirty = true;
+            }
         }
     }
 }

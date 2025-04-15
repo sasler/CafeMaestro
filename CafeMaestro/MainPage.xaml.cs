@@ -2,6 +2,7 @@
 
 using Microsoft.Maui.Controls;
 using System;
+using System.Diagnostics;
 
 public partial class MainPage : ContentPage
 {
@@ -10,24 +11,56 @@ public partial class MainPage : ContentPage
         InitializeComponent();
     }
 
-    private async void GoToRoastPage_Clicked(object sender, EventArgs e)
+    private void GoToRoastPage_Clicked(object sender, EventArgs e)
     {
-        await Shell.Current.GoToAsync(nameof(RoastPage));
+        NavigateToTabUsingShell("Roast");
     }
 
-    private async void GoToBeanInventory_Clicked(object sender, EventArgs e)
+    private void GoToBeanInventory_Clicked(object sender, EventArgs e)
     {
-        await Shell.Current.GoToAsync(nameof(BeanInventoryPage));
+        NavigateToTabUsingShell("Beans");
     }
 
-    private async void GoToRoastLog_Clicked(object sender, EventArgs e)
+    private void GoToRoastLog_Clicked(object sender, EventArgs e)
     {
-        await Shell.Current.GoToAsync(nameof(RoastLogPage));
+        NavigateToTabUsingShell("Roast Log");
     }
 
-    private async void GoToSettings_Clicked(object sender, EventArgs e)
+    private void GoToSettings_Clicked(object sender, EventArgs e)
     {
-        await Shell.Current.GoToAsync(nameof(SettingsPage));
+        NavigateToTabUsingShell("Settings");
+    }
+    
+    private void NavigateToTabUsingShell(string tabTitle)
+    {
+        try
+        {
+            Debug.WriteLine($"Attempting to navigate to tab: {tabTitle}");
+            
+            // Make sure Shell.Current is available
+            if (Shell.Current == null)
+            {
+                Debug.WriteLine("Shell.Current is null - cannot navigate");
+                return;
+            }
+            
+            // Find the tab with the matching title and select it
+            foreach (var item in Shell.Current.Items)
+            {
+                if (item is FlyoutItem flyoutItem && flyoutItem.Title == tabTitle)
+                {
+                    Debug.WriteLine($"Found matching tab with title: {tabTitle}");
+                    Shell.Current.CurrentItem = flyoutItem;
+                    return;
+                }
+            }
+            
+            Debug.WriteLine($"No matching tab found with title: {tabTitle}");
+        }
+        catch (Exception ex)
+        {
+            Debug.WriteLine($"Error navigating to tab {tabTitle}: {ex.Message}");
+        }
     }
 }
 

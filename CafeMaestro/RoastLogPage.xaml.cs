@@ -6,8 +6,24 @@ using Microsoft.Extensions.DependencyInjection;
 
 namespace CafeMaestro;
 
+[QueryProperty(nameof(NavParams), "NavParams")]
 public partial class RoastLogPage : ContentPage
 {
+    private NavigationParameters? _navParams; // Make nullable to fix constructor warning
+    public NavigationParameters NavParams
+    {
+        get => _navParams ?? new NavigationParameters();
+        set
+        {
+            _navParams = value;
+            // When navigation parameters are set, update the roast logs list
+            if (_navParams?.AppData != null)
+            {
+                UpdateRoastLogsFromAppData(_navParams.AppData);
+            }
+        }
+    }
+    
     private readonly RoastDataService _roastDataService;
     private readonly AppDataService _appDataService;
     private readonly PreferencesService _preferencesService;
@@ -32,6 +48,11 @@ public partial class RoastLogPage : ContentPage
                                serviceProvider.GetService<RoastDataService>() ??
                                Application.Current?.Handler?.MauiContext?.Services.GetService<RoastDataService>() ??
                                throw new InvalidOperationException("RoastDataService not available");
+                               
+            _preferencesService = preferencesService ?? 
+                                 serviceProvider.GetService<PreferencesService>() ??
+                                 Application.Current?.Handler?.MauiContext?.Services.GetService<PreferencesService>() ??
+                                 throw new InvalidOperationException("PreferencesService not available");
         }
         else
         {
@@ -43,11 +64,35 @@ public partial class RoastLogPage : ContentPage
             _roastDataService = roastDataService ?? 
                               Application.Current?.Handler?.MauiContext?.Services.GetService<RoastDataService>() ??
                               throw new InvalidOperationException("RoastDataService not available");
+                              
+            _preferencesService = preferencesService ?? 
+                                 Application.Current?.Handler?.MauiContext?.Services.GetService<PreferencesService>() ??
+                                 throw new InvalidOperationException("PreferencesService not available");
         }
 
-        _preferencesService = preferencesService ?? 
-                             Application.Current?.Handler?.MauiContext?.Services.GetService<PreferencesService>() ??
-                             throw new InvalidOperationException("PreferencesService not available");
+        // IMPORTANT: Ensure we're using the latest path from preferences
+        if (Application.Current is App app)
+        {
+            // Get the data from the app directly instead of creating new services
+            var appData = app.GetAppData();
+            System.Diagnostics.Debug.WriteLine($"RoastLogPage constructor - Getting data directly from App: {_appDataService.DataFilePath}");
+            
+            // Force the AppDataService to use the same path as the main app
+            Task.Run(async () => {
+                try {
+                    // Get the path from preferences to ensure it's the user-defined one
+                    if (_preferencesService != null) {
+                        string? savedPath = await _preferencesService.GetAppDataFilePathAsync();
+                        if (!string.IsNullOrEmpty(savedPath)) {
+                            System.Diagnostics.Debug.WriteLine($"RoastLogPage - Setting path from preferences: {savedPath}");
+                            await _appDataService.SetCustomFilePathAsync(savedPath);
+                        }
+                    }
+                } catch (Exception ex) {
+                    System.Diagnostics.Debug.WriteLine($"Error setting file path in RoastLogPage: {ex.Message}");
+                }
+            });
+        }
 
         System.Diagnostics.Debug.WriteLine($"RoastLogPage constructor - Using AppDataService at path: {_appDataService.DataFilePath}");
 
@@ -55,29 +100,51 @@ public partial class RoastLogPage : ContentPage
         RoastLogCollection.ItemsSource = _roastLogs;
 
         RefreshCommand = new Command(async () => await LoadRoastData());
-        BindingContext = this;
+        
+        // Subscribe to data changes
+        _appDataService.DataChanged += OnAppDataChanged;
+    }
+    
+    private void OnAppDataChanged(object? sender, AppData appData)
+    {
+        // Reload the UI with the new data
+        MainThread.BeginInvokeOnMainThread(() => {
+            UpdateRoastLogsFromAppData(appData);
+        });
+    }
+    
+    private void UpdateRoastLogsFromAppData(AppData appData)
+    {
+        _roastLogs.Clear();
+        
+        // Sort by newest first
+        foreach (var log in appData.RoastLogs.OrderByDescending(l => l.RoastDate))
+        {
+            _roastLogs.Add(log);
+        }
+        
+        System.Diagnostics.Debug.WriteLine($"Updated RoastLogPage with {_roastLogs.Count} logs from AppData");
     }
 
     protected override async void OnAppearing()
     {
         base.OnAppearing();
         
-        // First ensure the service is fully initialized
-        try 
+        // Get the data from our binding context if available
+        if (BindingContext is NavigationParameters navParams)
         {
-            // Force reload data from the AppDataService to ensure we have the latest
-            await _appDataService.ReloadDataAsync();
-            
-            // Then load the roast logs
+            UpdateRoastLogsFromAppData(navParams.AppData);
+        }
+        else
+        {
+            // Fallback to loading from the AppDataService if binding context not set
             await LoadRoastData();
-            
-            System.Diagnostics.Debug.WriteLine($"RoastLogPage loaded roast logs successfully on appearance from: {_appDataService.DataFilePath}");
         }
-        catch (Exception ex)
-        {
-            System.Diagnostics.Debug.WriteLine($"Error in RoastLogPage.OnAppearing: {ex.Message}");
-            await DisplayAlert("Error", "Failed to load roast log data. Please try again.", "OK");
-        }
+    }
+    
+    protected override void OnDisappearing()
+    {
+        base.OnDisappearing();
     }
 
     private async Task LoadRoastData()
@@ -86,15 +153,9 @@ public partial class RoastLogPage : ContentPage
         {
             RoastLogRefreshView.IsRefreshing = true;
 
-            List<RoastData> logs = await _roastDataService.LoadRoastDataAsync();
-
-            _roastLogs.Clear();
-
-            // Sort by newest first
-            foreach (var log in logs.OrderByDescending(l => l.RoastDate))
-            {
-                _roastLogs.Add(log);
-            }
+            // Use the current data from AppDataService directly
+            var appData = _appDataService.CurrentData;
+            UpdateRoastLogsFromAppData(appData);
         }
         catch (Exception ex)
         {

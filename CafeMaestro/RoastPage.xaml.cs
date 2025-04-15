@@ -111,7 +111,8 @@ public partial class RoastPage : ContentPage
                 // If file exists, use it
                 if (File.Exists(savedFilePath))
                 {
-                    appDataService.SetCustomFilePath(savedFilePath);
+                    // Use the async version of SetCustomFilePath
+                    await appDataService.SetCustomFilePathAsync(savedFilePath);
                     
                     // Also initialize related services with the same path
                     await roastDataService.InitializeFromPreferencesAsync(preferencesService);
@@ -124,8 +125,8 @@ public partial class RoastPage : ContentPage
                         $"The previously used data file could not be found: {savedFilePath}\n\nUsing default location instead.", 
                         "OK");
                         
-                    // Reset to default path
-                    appDataService.ResetToDefaultPath();
+                    // Reset to default path - use the async version
+                    await appDataService.ResetToDefaultPathAsync();
                     await preferencesService.ClearAppDataFilePathAsync();
                 }
             }
