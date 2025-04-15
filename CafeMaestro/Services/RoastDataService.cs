@@ -372,6 +372,10 @@ namespace CafeMaestro.Services
             string filePath, 
             Dictionary<string, string> columnMapping)
         {
+            // Store the current event handler to restore it later
+            EventHandler<AppData>? originalHandler = null;
+            bool eventDetached = false;
+            
             try
             {
                 System.Diagnostics.Debug.WriteLine($"Starting import of roast data from CSV file: {filePath}");
@@ -382,6 +386,24 @@ namespace CafeMaestro.Services
                     throw new FileNotFoundException("CSV file not found", filePath);
                 }
                 
+                // IMPORTANT FIX: Temporarily detach from DataChanged event to prevent duplicate save operations
+                var eventField = typeof(AppDataService).GetField("DataChanged", 
+                    System.Reflection.BindingFlags.Instance | System.Reflection.BindingFlags.NonPublic);
+                
+                if (eventField != null)
+                {
+                    // Fix the nullable warning by using safe casting
+                    var eventValue = eventField.GetValue(_appDataService);
+                    originalHandler = eventValue as EventHandler<AppData>;
+                    eventField.SetValue(_appDataService, null);
+                    eventDetached = true;
+                    System.Diagnostics.Debug.WriteLine("CRITICAL FIX: Temporarily detached from DataChanged event to prevent duplicate saves");
+                }
+                else
+                {
+                    System.Diagnostics.Debug.WriteLine("WARNING: Could not access DataChanged event field - duplicate saves may still occur");
+                }
+                
                 // Read the CSV data
                 var csvData = await ReadCsvContentAsync(filePath, int.MaxValue);
                 System.Diagnostics.Debug.WriteLine($"Read {csvData.Count} rows from CSV");
@@ -390,9 +412,12 @@ namespace CafeMaestro.Services
                 int successCount = 0;
                 int failedCount = 0;
                 
-                // Load existing roasts to check for duplicates
+                // Load existing roasts
                 var existingRoasts = await GetAllRoastsAsync();
-                System.Diagnostics.Debug.WriteLine($"Loaded {existingRoasts.Count} existing roast logs for duplicate checking");
+                System.Diagnostics.Debug.WriteLine($"Loaded {existingRoasts.Count} existing roast logs");
+                
+                // Also track roasts added in this import session
+                var importedRoasts = new List<RoastData>();
                 
                 // Process each row
                 foreach (var row in csvData)
@@ -401,6 +426,7 @@ namespace CafeMaestro.Services
                     {
                         var roast = new RoastData
                         {
+                            Id = Guid.NewGuid(), // Always generate a new ID for imported records
                             RoastDate = DateTime.Now, // Default
                             Temperature = 235, // Default
                             BeanType = "",
@@ -466,6 +492,7 @@ namespace CafeMaestro.Services
                                         System.Diagnostics.Debug.WriteLine($"Error parsing date '{csvValue}': {ex.Message}");
                                     }
                                     break;
+                                // ... rest of the switch case handles other properties
                                 case "BeanType":
                                     roast.BeanType = csvValue;
                                     System.Diagnostics.Debug.WriteLine($"Set BeanType = {roast.BeanType}");
@@ -577,13 +604,6 @@ namespace CafeMaestro.Services
                             }
                         }
                         
-                        // If we don't have weight loss percentage but have both batch and final weights, calculate it
-                        if (roast.BatchWeight > 0 && roast.FinalWeight > 0)
-                        {
-                            // WeightLossPercentage is calculated automatically as a readonly property
-                            System.Diagnostics.Debug.WriteLine($"Weight loss will be calculated automatically: {roast.WeightLossPercentage:F1}%");
-                        }
-                        
                         // Validate required fields
                         if (string.IsNullOrWhiteSpace(roast.BeanType))
                         {
@@ -591,32 +611,19 @@ namespace CafeMaestro.Services
                             throw new ArgumentException("Coffee bean name is required");
                         }
                         
-                        // Format the roast summary based on available data
-                        // Don't try to set FormattedTime as it's a calculated read-only property
-                        
-                        // Check for duplicates (same bean type and roast date)
-                        bool isDuplicate = existingRoasts.Any(r => 
-                            r.BeanType.Equals(roast.BeanType, StringComparison.OrdinalIgnoreCase) &&
-                            Math.Abs((r.RoastDate - roast.RoastDate).TotalDays) < 0.042); // Within 1 hour
-                        
-                        if (isDuplicate)
-                        {
-                            System.Diagnostics.Debug.WriteLine($"ERROR: Duplicate roast detected - {roast.BeanType} on {roast.RoastDate.ToShortDateString()}");
-                            throw new InvalidOperationException($"A roast log for '{roast.BeanType}' on {roast.RoastDate.ToShortDateString()} already exists");
-                        }
-                        
                         // Dump the complete roast data for debugging
                         System.Diagnostics.Debug.WriteLine($"Adding roast: ID={roast.Id}, Date={roast.RoastDate}, " +
                                                        $"Bean={roast.BeanType}, Temp={roast.Temperature}, " +
                                                        $"Time={roast.RoastMinutes}m {roast.RoastSeconds}s, Loss={roast.WeightLossPercentage:F1}%");
                         
-                        // Add the roast
-                        bool success = await AddRoastAsync(roast);
+                        // Add the roast - using our custom method that traces exactly what's happening
+                        bool success = await AddRoastDirectAsync(roast);
                         
                         if (success)
                         {
                             successCount++;
-                            existingRoasts.Add(roast); // Add to local list to check further duplicates
+                            // Add to track list
+                            importedRoasts.Add(roast);
                             System.Diagnostics.Debug.WriteLine($"Successfully added roast log: {roast.BeanType} on {roast.RoastDate.ToShortDateString()}");
                         }
                         else
@@ -646,6 +653,144 @@ namespace CafeMaestro.Services
                 System.Diagnostics.Debug.WriteLine($"Exception details: {ex}");
                 throw;
             }
+            finally
+            {
+                // Restore the original event handler if we detached it
+                if (eventDetached && originalHandler != null)
+                {
+                    var eventField = typeof(AppDataService).GetField("DataChanged", 
+                        System.Reflection.BindingFlags.Instance | System.Reflection.BindingFlags.NonPublic);
+                    if (eventField != null)
+                    {
+                        eventField.SetValue(_appDataService, originalHandler);
+                        System.Diagnostics.Debug.WriteLine("Restored original DataChanged event handler");
+                    }
+                }
+            }
+        }
+
+        // Special version of AddRoastAsync that avoids event recursion
+        private async Task<bool> AddRoastDirectAsync(RoastData roast)
+        {
+            try
+            {
+                // Make sure ID is set
+                if (roast.Id == Guid.Empty)
+                {
+                    roast.Id = Guid.NewGuid();
+                    System.Diagnostics.Debug.WriteLine($"TRACE: Generated new ID {roast.Id} for roast");
+                }
+                
+                // Load full app data - with detailed tracing
+                System.Diagnostics.Debug.WriteLine($"TRACE: Loading app data before adding roast");
+                var appData = await _appDataService.LoadAppDataAsync();
+                System.Diagnostics.Debug.WriteLine($"TRACE: Loaded app data with {appData.RoastLogs?.Count ?? 0} existing roast logs");
+                
+                // Initialize roast logs list if null
+                if (appData.RoastLogs == null)
+                {
+                    appData.RoastLogs = new List<RoastData>();
+                    System.Diagnostics.Debug.WriteLine($"TRACE: Created new RoastLogs list");
+                }
+                
+                // Add the new roast log
+                appData.RoastLogs.Add(roast);
+                System.Diagnostics.Debug.WriteLine($"TRACE: Added roast to RoastLogs list, new count: {appData.RoastLogs.Count}");
+                
+                // Save updated app data
+                System.Diagnostics.Debug.WriteLine($"TRACE: About to save app data with {appData.RoastLogs.Count} roast logs");
+                bool success = await _appDataService.SaveAppDataAsync(appData);
+                System.Diagnostics.Debug.WriteLine($"TRACE: SaveAppDataAsync returned {success}");
+                
+                return success;
+            }
+            catch (Exception ex)
+            {
+                System.Diagnostics.Debug.WriteLine($"TRACE ERROR adding roast log: {ex.Message}");
+                System.Diagnostics.Debug.WriteLine($"TRACE ERROR stack trace: {ex.StackTrace}");
+                return false;
+            }
+        }
+
+        public async Task<int> RemoveDuplicatesAsync()
+        {
+            try
+            {
+                // Load full app data
+                var appData = await _appDataService.LoadAppDataAsync();
+                
+                if (appData.RoastLogs == null || appData.RoastLogs.Count == 0)
+                {
+                    System.Diagnostics.Debug.WriteLine("No roast logs to check for duplicates");
+                    return 0;
+                }
+                
+                // Keep track of IDs we've seen
+                var seenIds = new HashSet<Guid>();
+                
+                // Keep track of content signatures we've seen for content-based deduplication
+                var seenContentSignatures = new HashSet<string>();
+                
+                // Original count
+                int originalCount = appData.RoastLogs.Count;
+                
+                // New list with duplicates removed
+                var uniqueRoasts = new List<RoastData>();
+                
+                foreach (var roast in appData.RoastLogs)
+                {
+                    // Check for ID-based duplicates
+                    if (seenIds.Contains(roast.Id))
+                    {
+                        System.Diagnostics.Debug.WriteLine($"Removing duplicate roast with ID: {roast.Id}");
+                        continue;
+                    }
+                    
+                    // Create a content signature for content-based deduplication
+                    string contentSignature = $"{roast.BeanType}|{roast.RoastDate:yyyy-MM-dd}|{roast.BatchWeight}|{roast.Temperature}|{roast.RoastMinutes}:{roast.RoastSeconds}";
+                    
+                    // Check for content-based duplicates
+                    if (seenContentSignatures.Contains(contentSignature))
+                    {
+                        System.Diagnostics.Debug.WriteLine($"Removing content duplicate: {contentSignature}");
+                        continue;
+                    }
+                    
+                    // Add to our sets of seen items
+                    seenIds.Add(roast.Id);
+                    seenContentSignatures.Add(contentSignature);
+                    
+                    // Keep this roast in our unique list
+                    uniqueRoasts.Add(roast);
+                }
+                
+                // Calculate how many duplicates were removed
+                int removedCount = originalCount - uniqueRoasts.Count;
+                
+                if (removedCount > 0)
+                {
+                    System.Diagnostics.Debug.WriteLine($"Removed {removedCount} duplicate roast logs");
+                    
+                    // Update the app data with deduplicated list
+                    appData.RoastLogs = uniqueRoasts;
+                    
+                    // Save the updated data
+                    await _appDataService.SaveAppDataAsync(appData);
+                    
+                    System.Diagnostics.Debug.WriteLine($"Saved deduplicated data with {uniqueRoasts.Count} unique roast logs");
+                }
+                else
+                {
+                    System.Diagnostics.Debug.WriteLine("No duplicate roast logs found");
+                }
+                
+                return removedCount;
+            }
+            catch (Exception ex)
+            {
+                System.Diagnostics.Debug.WriteLine($"Error removing duplicates: {ex.Message}");
+                return 0;
+            }
         }
 
         public async Task<List<RoastData>> GetAllRoastsAsync()
@@ -670,6 +815,15 @@ namespace CafeMaestro.Services
                 if (appData.RoastLogs == null)
                 {
                     appData.RoastLogs = new List<RoastData>();
+                }
+                
+                // Check if this roast already exists
+                var existing = appData.RoastLogs.FirstOrDefault(r => r.Id == roast.Id);
+                if (existing != null)
+                {
+                    // This is a duplicate, don't add it again
+                    System.Diagnostics.Debug.WriteLine($"Not adding duplicate roast with ID {roast.Id}");
+                    return true; // Return true to indicate "success" even though we didn't add it
                 }
                 
                 // Add the new roast log

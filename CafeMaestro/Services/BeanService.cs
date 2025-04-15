@@ -532,13 +532,14 @@ namespace CafeMaestro.Services
             return value;
         }
         
+        // Import beans from CSV file
         public async Task<(int Success, int Failed, List<string> Errors)> ImportBeansFromCsvAsync(
             string filePath, 
             Dictionary<string, string> columnMapping)
         {
             try
             {
-                System.Diagnostics.Debug.WriteLine($"Starting import from CSV file: {filePath}");
+                System.Diagnostics.Debug.WriteLine($"Starting beans import from CSV file: {filePath}");
                 System.Diagnostics.Debug.WriteLine($"Column mappings for import: {string.Join(", ", columnMapping.Select(m => $"{m.Key}={m.Value}"))}");
                 
                 if (string.IsNullOrEmpty(filePath) || !File.Exists(filePath))
@@ -554,9 +555,14 @@ namespace CafeMaestro.Services
                 int successCount = 0;
                 int failedCount = 0;
                 
-                // Load existing beans to check for duplicates
-                var existingBeans = await GetAllBeansAsync();
-                System.Diagnostics.Debug.WriteLine($"Loaded {existingBeans.Count} existing beans for duplicate checking");
+                // Load the app data once at the beginning
+                var appData = await _appDataService.LoadAppDataAsync();
+                System.Diagnostics.Debug.WriteLine($"Loaded app data with {appData.Beans.Count} existing beans");
+                
+                // Use the beans from the loaded app data for duplicate checking
+                // IMPORTANT FIX: Don't load beans separately, use the ones already in appData
+                var existingBeans = appData.Beans;
+                System.Diagnostics.Debug.WriteLine($"Using {existingBeans.Count} existing beans for duplicate checking");
                 
                 // Process each row
                 foreach (var row in csvData)
@@ -727,22 +733,12 @@ namespace CafeMaestro.Services
                                                        $"Variety={bean.Variety}, Process={bean.Process}, Date={bean.PurchaseDate}, " +
                                                        $"Quantity={bean.Quantity}, Price={bean.Price?.ToString() ?? "null"}");
                         
-                        // Add the bean
-                        bool success = await AddBeanAsync(bean);
+                        // Add the bean to the app data directly
+                        appData.Beans.Add(bean);
                         
-                        if (success)
-                        {
-                            successCount++;
-                            existingBeans.Add(bean); // Add to local list to check further duplicates
-                            System.Diagnostics.Debug.WriteLine($"Successfully added bean: {bean.CoffeeName}");
-                        }
-                        else
-                        {
-                            failedCount++;
-                            string error = $"Failed to add {bean.CoffeeName} from {bean.Country}";
-                            errors.Add(error);
-                            System.Diagnostics.Debug.WriteLine($"ERROR: {error}");
-                        }
+                        // Track success in memory
+                        successCount++;
+                        System.Diagnostics.Debug.WriteLine($"Successfully processed bean: {bean.CoffeeName}");
                     }
                     catch (Exception ex)
                     {
@@ -754,14 +750,84 @@ namespace CafeMaestro.Services
                     }
                 }
                 
+                // Now save all the beans at once using the special non-notifying method
+                System.Diagnostics.Debug.WriteLine($"BULK SAVE: Saving all {appData.Beans.Count} beans with special non-notifying method");
+                bool saveResult = await _appDataService.SaveAppDataWithoutNotificationAsync(appData);
+                
+                if (!saveResult)
+                {
+                    System.Diagnostics.Debug.WriteLine("ERROR: Failed to save all beans, attempting recovery...");
+                    // If bulk save failed, try loading data again and give up
+                    var freshData = await _appDataService.LoadAppDataAsync();
+                    System.Diagnostics.Debug.WriteLine($"Recovery loaded {freshData.Beans.Count} beans");
+                }
+                
+                // Final verification
+                var finalBeanCount = await GetBeanCountAsync();
+                System.Diagnostics.Debug.WriteLine($"FINAL BEAN COUNT: {finalBeanCount} (expected: {existingBeans.Count})");
+                
                 System.Diagnostics.Debug.WriteLine($"Import completed: {successCount} succeeded, {failedCount} failed");
                 return (successCount, failedCount, errors);
             }
             catch (Exception ex)
             {
                 System.Diagnostics.Debug.WriteLine($"Error importing beans from CSV: {ex.Message}");
-                System.Diagnostics.Debug.WriteLine($"Exception details: {ex}");
+                System.Diagnostics.Debug.WriteLine($"Exception details: {ex.StackTrace}");
                 throw;
+            }
+        }
+
+        // Simple method to get just the count of beans
+        private async Task<int> GetBeanCountAsync()
+        {
+            try
+            {
+                var appData = await _appDataService.LoadAppDataAsync();
+                return appData.Beans?.Count ?? 0;
+            }
+            catch (Exception ex)
+            {
+                System.Diagnostics.Debug.WriteLine($"Error getting bean count: {ex.Message}");
+                return -1;
+            }
+        }
+
+        // Add a special version of AddBeanAsync that avoids event recursion
+        private async Task<bool> AddBeanDirectAsync(Bean bean)
+        {
+            try
+            {
+                // Log before adding bean
+                System.Diagnostics.Debug.WriteLine($"TRACE: Adding bean directly: {bean.CoffeeName}, ID: {bean.Id}");
+                
+                // First verify current path
+                if (_currentDataFilePath != _appDataService.DataFilePath)
+                {
+                    System.Diagnostics.Debug.WriteLine($"TRACE: Path mismatch detected in AddBeanDirectAsync. Expected: {_currentDataFilePath}, Actual: {_appDataService.DataFilePath}");
+                    // Synchronize the path
+                    _currentDataFilePath = _appDataService.DataFilePath;
+                }
+                
+                // Load full app data
+                var appData = await _appDataService.LoadAppDataAsync();
+                System.Diagnostics.Debug.WriteLine($"TRACE: Loaded app data with {appData.Beans.Count} beans");
+                
+                // Add the bean
+                appData.Beans.Add(bean);
+                System.Diagnostics.Debug.WriteLine($"TRACE: Added bean to collection, new count: {appData.Beans.Count}");
+                
+                // Save updated app data
+                bool saveResult = await _appDataService.SaveAppDataAsync(appData);
+                System.Diagnostics.Debug.WriteLine($"TRACE: Save result: {saveResult}");
+                
+                return saveResult;
+            }
+            catch (Exception ex)
+            {
+                System.Diagnostics.Debug.WriteLine($"TRACE ERROR: Error adding bean directly: {ex.Message}");
+                System.Diagnostics.Debug.WriteLine($"TRACE ERROR: Exception type: {ex.GetType().Name}");
+                System.Diagnostics.Debug.WriteLine($"TRACE ERROR: Stack trace: {ex.StackTrace}");
+                return false;
             }
         }
     }

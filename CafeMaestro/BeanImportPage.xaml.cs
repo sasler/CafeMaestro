@@ -418,6 +418,62 @@ public partial class BeanImportPage : ContentPage
                 await DisplayAlert("Error", $"File not found: {_selectedFilePath}", "OK");
                 return;
             }
+            
+            // ADDITIONAL FIX: Get existing beans FIRST to avoid potential duplication
+            var existingBeans = await _beanService.GetAllBeansAsync();
+            int originalBeanCount = existingBeans.Count;
+            System.Diagnostics.Debug.WriteLine($"INITIAL BEAN COUNT BEFORE IMPORT: {originalBeanCount}");
+            
+            // Verify if the existing beans already contain duplicates
+            var distinctBeanIds = new HashSet<Guid>();
+            bool existingDuplicates = false;
+            
+            foreach (var bean in existingBeans)
+            {
+                if (!distinctBeanIds.Add(bean.Id))
+                {
+                    existingDuplicates = true;
+                    System.Diagnostics.Debug.WriteLine($"DUPLICATE BEAN DETECTED IN EXISTING DATA - ID: {bean.Id}, Name: {bean.CoffeeName}");
+                }
+            }
+            
+            if (existingDuplicates)
+            {
+                bool shouldContinue = await DisplayAlert(
+                    "Existing Duplicates", 
+                    "Your database already contains duplicate beans. Would you like to remove them before importing?", 
+                    "Yes, clean up duplicates", "No, continue anyway");
+                    
+                if (shouldContinue)
+                {
+                    // Remove duplicates before proceeding
+                    System.Diagnostics.Debug.WriteLine("Removing existing duplicates before import...");
+                    
+                    // Create a deduplicated list based on unique IDs
+                    var deduplicatedBeans = new List<Bean>();
+                    var processedIds = new HashSet<Guid>();
+                    
+                    foreach (var bean in existingBeans)
+                    {
+                        if (processedIds.Add(bean.Id))
+                        {
+                            deduplicatedBeans.Add(bean);
+                        }
+                    }
+                    
+                    // Save the deduplicated beans
+                    bool saveResult = await _beanService.SaveBeansAsync(deduplicatedBeans);
+                    
+                    if (!saveResult)
+                    {
+                        await DisplayAlert("Error", "Failed to remove duplicates from the database.", "OK");
+                        return;
+                    }
+                    
+                    System.Diagnostics.Debug.WriteLine($"Removed {existingBeans.Count - deduplicatedBeans.Count} duplicate beans. New count: {deduplicatedBeans.Count}");
+                    existingBeans = deduplicatedBeans;
+                }
+            }
 
             // Perform import
             System.Diagnostics.Debug.WriteLine("Calling BeanService.ImportBeansFromCsvAsync...");
@@ -429,10 +485,71 @@ public partial class BeanImportPage : ContentPage
                 System.Diagnostics.Debug.WriteLine($"Import error: {error}");
             }
             
+            // ADDITIONAL FIX: Verify the beans weren't duplicated during import
+            var afterImportBeans = await _beanService.GetAllBeansAsync();
+            int afterImportCount = afterImportBeans.Count;
+            
+            System.Diagnostics.Debug.WriteLine($"BEAN COUNT AFTER IMPORT: {afterImportCount}");
+            System.Diagnostics.Debug.WriteLine($"EXPECTED COUNT: {originalBeanCount + result.Success}");
+            
+            // Check for new duplicates
+            var afterImportIds = new HashSet<Guid>();
+            bool newDuplicatesFound = false;
+            
+            foreach (var bean in afterImportBeans)
+            {
+                if (!afterImportIds.Add(bean.Id))
+                {
+                    newDuplicatesFound = true;
+                    System.Diagnostics.Debug.WriteLine($"NEW DUPLICATE FOUND AFTER IMPORT - ID: {bean.Id}, Name: {bean.CoffeeName}");
+                }
+            }
+            
+            if (newDuplicatesFound)
+            {
+                System.Diagnostics.Debug.WriteLine("CRITICAL: Duplicates were created during this import operation!");
+                bool shouldFix = await DisplayAlert(
+                    "Duplication Detected", 
+                    "Beans were duplicated during import. Would you like to automatically fix this?", 
+                    "Yes, remove duplicates", "No, keep as is");
+                    
+                if (shouldFix)
+                {
+                    // Fix the duplicates
+                    System.Diagnostics.Debug.WriteLine("Removing duplicates created during import...");
+                    
+                    // Create a deduplicated list
+                    var finalDedupedBeans = new List<Bean>();
+                    var finalProcessedIds = new HashSet<Guid>();
+                    
+                    foreach (var bean in afterImportBeans)
+                    {
+                        if (finalProcessedIds.Add(bean.Id))
+                        {
+                            finalDedupedBeans.Add(bean);
+                        }
+                    }
+                    
+                    // Save the deduplicated list
+                    bool fixResult = await _beanService.SaveBeansAsync(finalDedupedBeans);
+                    
+                    if (fixResult)
+                    {
+                        System.Diagnostics.Debug.WriteLine($"Successfully removed {afterImportBeans.Count - finalDedupedBeans.Count} duplicates");
+                        afterImportCount = finalDedupedBeans.Count;
+                    }
+                    else
+                    {
+                        System.Diagnostics.Debug.WriteLine("Failed to remove duplicates!");
+                    }
+                }
+            }
+            
             // Show result
             string message = $"Import complete!\n\n" +
                            $"Beans successfully imported: {result.Success}\n" +
-                           $"Failed imports: {result.Failed}";
+                           $"Failed imports: {result.Failed}\n" +
+                           $"Final bean count: {afterImportCount}";
             
             if (result.Errors.Count > 0)
             {

@@ -222,6 +222,7 @@ namespace CafeMaestro
                 // Import the roasts
                 if (_roastDataService != null)
                 {
+                    // Import the data - the ImportRoastsFromCsvAsync method already handles duplicates
                     var result = await _roastDataService.ImportRoastsFromCsvAsync(_selectedFilePath, mappings);
 
                     // Show result

@@ -252,6 +252,33 @@ namespace CafeMaestro.Services
             
             try
             {
+                // Add caller tracking to trace where this method is being called from
+                System.Diagnostics.StackTrace stackTrace = new System.Diagnostics.StackTrace();
+                string caller = stackTrace.GetFrame(1)?.GetMethod()?.Name ?? "Unknown";
+                string caller2 = stackTrace.GetFrame(2)?.GetMethod()?.Name ?? "Unknown";
+                
+                System.Diagnostics.Debug.WriteLine($"TRACE: SaveAppDataAsync called from {caller} -> {caller2} with {appData.RoastLogs?.Count ?? 0} roasts");
+                
+                // Check for duplicates in the data being saved
+                bool hasDuplicates = false;
+                if (appData.RoastLogs != null && appData.RoastLogs.Count > 0)
+                {
+                    var idSet = new HashSet<Guid>();
+                    foreach (var roast in appData.RoastLogs)
+                    {
+                        if (!idSet.Add(roast.Id))
+                        {
+                            System.Diagnostics.Debug.WriteLine($"TRACE: DUPLICATE DETECTED - Roast ID {roast.Id} appears multiple times in data being saved!");
+                            hasDuplicates = true;
+                        }
+                    }
+                    
+                    if (hasDuplicates)
+                    {
+                        System.Diagnostics.Debug.WriteLine($"TRACE: Duplicate IDs detected in data being saved. This may indicate a problem with the data!");
+                    }
+                }
+                
                 // Update metadata
                 appData.LastModified = DateTime.Now;
                 appData.AppVersion = GetAppVersion();
@@ -304,14 +331,96 @@ namespace CafeMaestro.Services
                 System.Diagnostics.Debug.WriteLine($"Saved app data to: {_filePath}");
                 System.Diagnostics.Debug.WriteLine($"  Beans: {appData.Beans?.Count ?? 0}, Roasts: {appData.RoastLogs?.Count ?? 0}");
                 
+                // Before notifying, check if we're going to cause recursion
+                System.Diagnostics.Debug.WriteLine($"TRACE: About to trigger DataChanged event. Subscribers should not call SaveAppDataAsync!");
+                
                 // Notify about the updated data
                 DataChanged?.Invoke(this, appData);
+                
+                System.Diagnostics.Debug.WriteLine($"TRACE: DataChanged event completed");
                 
                 return true;
             }
             catch (Exception ex)
             {
                 System.Diagnostics.Debug.WriteLine($"Error saving app data: {ex.Message}");
+                System.Diagnostics.Debug.WriteLine($"Error type: {ex.GetType().Name}");
+                System.Diagnostics.Debug.WriteLine($"Stack trace: {ex.StackTrace}");
+                
+                if (ex.InnerException != null)
+                {
+                    System.Diagnostics.Debug.WriteLine($"Inner exception: {ex.InnerException.Message}");
+                    System.Diagnostics.Debug.WriteLine($"Inner exception type: {ex.InnerException.GetType().Name}");
+                }
+                
+                return false;
+            }
+            finally
+            {
+                _dataAccessLock.Release();
+            }
+        }
+        
+        // Special method for bulk imports that completely bypasses event notification
+        // This is used specifically for importing data without triggering duplicate saves
+        public async Task<bool> SaveAppDataWithoutNotificationAsync(AppData appData)
+        {
+            // Use a lock to prevent concurrent reads/writes
+            await _dataAccessLock.WaitAsync();
+            
+            try
+            {
+                System.Diagnostics.Debug.WriteLine($"SPECIAL IMPORT MODE: Saving data WITHOUT triggering DataChanged event");
+                
+                // Update metadata
+                appData.LastModified = DateTime.Now;
+                appData.AppVersion = GetAppVersion();
+                
+                // Serialize and save
+                try
+                {
+                    string jsonString = JsonSerializer.Serialize(appData, _jsonOptions);
+                    System.Diagnostics.Debug.WriteLine($"Serialized data successfully, length: {jsonString.Length}");
+                    
+                    // Verify file path and directory
+                    string? directory = Path.GetDirectoryName(_filePath);
+                    if (string.IsNullOrEmpty(directory))
+                    {
+                        System.Diagnostics.Debug.WriteLine($"Invalid directory path: '{directory}' for file: '{_filePath}'");
+                        return false;
+                    }
+                    
+                    // Ensure directory exists
+                    if (!Directory.Exists(directory))
+                    {
+                        System.Diagnostics.Debug.WriteLine($"Creating directory: {directory}");
+                        Directory.CreateDirectory(directory);
+                    }
+                    
+                    // Write directly to the file
+                    await File.WriteAllTextAsync(_filePath, jsonString);
+                    System.Diagnostics.Debug.WriteLine($"Successfully wrote to file without notification: {_filePath}");
+                }
+                catch (JsonException jsonEx)
+                {
+                    System.Diagnostics.Debug.WriteLine($"JSON serialization error: {jsonEx.Message}");
+                    throw;
+                }
+                
+                // Update cache
+                _cachedData = appData;
+                _isDirty = false;
+                
+                System.Diagnostics.Debug.WriteLine($"Saved app data WITHOUT notification to: {_filePath}");
+                System.Diagnostics.Debug.WriteLine($"  Beans: {appData.Beans?.Count ?? 0}, Roasts: {appData.RoastLogs?.Count ?? 0}");
+                
+                // NO EVENT NOTIFICATION HERE - that's the key difference!
+                
+                return true;
+            }
+            catch (Exception ex)
+            {
+                System.Diagnostics.Debug.WriteLine($"Error saving app data without notification: {ex.Message}");
                 System.Diagnostics.Debug.WriteLine($"Error type: {ex.GetType().Name}");
                 System.Diagnostics.Debug.WriteLine($"Stack trace: {ex.StackTrace}");
                 
