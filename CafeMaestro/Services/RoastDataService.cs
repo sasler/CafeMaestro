@@ -12,12 +12,13 @@ namespace CafeMaestro.Services
     {
         private readonly AppDataService _appDataService;
         private readonly JsonSerializerOptions _jsonOptions;
+        private readonly SemaphoreSlim _initLock = new SemaphoreSlim(1, 1);
+        private bool _isInitialized = false;
         
-        // Property to get/set the current data file path
+        // Property to get the current data file path
         public string DataFilePath 
         { 
             get => _appDataService.DataFilePath;
-            set => _appDataService.DataFilePath = value;
         }
 
         public RoastDataService(AppDataService appDataService)
@@ -29,15 +30,59 @@ namespace CafeMaestro.Services
                 WriteIndented = true,
                 DefaultIgnoreCondition = JsonIgnoreCondition.WhenWritingNull
             };
+            
+            // Subscribe to data file path changes
+            _appDataService.DataFilePathChanged += OnDataFilePathChanged;
         }
         
-        // Set a custom file path for data storage
-        public void SetCustomFilePath(string filePath)
+        // Handle data file path changes
+        private void OnDataFilePathChanged(object? sender, string newPath)
         {
-            if (string.IsNullOrWhiteSpace(filePath))
-                return;
+            System.Diagnostics.Debug.WriteLine($"RoastDataService noticed data file path change to: {newPath}");
+            
+            // When the path changes, we should reload data immediately
+            // But don't do it in the event handler to avoid deadlocks
+            // Instead, queue it on a background thread
+            Task.Run(async () => {
+                try
+                {
+                    await _appDataService.ReloadDataAsync();
+                }
+                catch (Exception ex)
+                {
+                    System.Diagnostics.Debug.WriteLine($"Error reloading data after path change in RoastDataService: {ex.Message}");
+                }
+            });
+        }
+
+        // Initialize from preferences - ensure this is called at startup
+        public async Task InitializeFromPreferencesAsync(PreferencesService preferencesService)
+        {
+            await _initLock.WaitAsync();
+            
+            try
+            {
+                if (_isInitialized)
+                {
+                    System.Diagnostics.Debug.WriteLine("RoastDataService already initialized, skipping");
+                    return;
+                }
                 
-            _appDataService.SetCustomFilePath(filePath);
+                // Force a reload of data
+                await _appDataService.ReloadDataAsync();
+                
+                System.Diagnostics.Debug.WriteLine($"RoastDataService initialized with path: {DataFilePath}");
+                
+                _isInitialized = true;
+            }
+            catch (Exception ex)
+            {
+                System.Diagnostics.Debug.WriteLine($"Error initializing RoastDataService from preferences: {ex.Message}");
+            }
+            finally
+            {
+                _initLock.Release();
+            }
         }
 
         public async Task<bool> SaveRoastDataAsync(RoastData roastData)

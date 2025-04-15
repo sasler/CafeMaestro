@@ -2,6 +2,7 @@ using System.Collections.ObjectModel;
 using System.Windows.Input;
 using CafeMaestro.Models;
 using CafeMaestro.Services;
+using Microsoft.Extensions.DependencyInjection;
 
 namespace CafeMaestro;
 
@@ -13,17 +14,42 @@ public partial class RoastLogPage : ContentPage
     private ObservableCollection<RoastData> _roastLogs;
     public ICommand RefreshCommand { get; private set; }
 
-    public RoastLogPage()
+    public RoastLogPage(RoastDataService? roastDataService = null, AppDataService? appDataService = null, PreferencesService? preferencesService = null)
     {
         InitializeComponent();
 
-        // Get the services from DI
-        _appDataService = Application.Current?.Handler?.MauiContext?.Services.GetService<AppDataService>() ?? 
-                         new AppDataService();
-        _roastDataService = Application.Current?.Handler?.MauiContext?.Services.GetService<RoastDataService>() ?? 
-                           new RoastDataService(_appDataService);
-        _preferencesService = Application.Current?.Handler?.MauiContext?.Services.GetService<PreferencesService>() ?? 
-                             new PreferencesService();
+        // First try to get the services from the application resources (our stored service provider)
+        if (Application.Current?.Resources != null && 
+            Application.Current.Resources.TryGetValue("ServiceProvider", out var serviceProviderObj) == true && 
+            serviceProviderObj is IServiceProvider serviceProvider)
+        {
+            _appDataService = appDataService ?? 
+                             serviceProvider.GetService<AppDataService>() ??
+                             Application.Current?.Handler?.MauiContext?.Services.GetService<AppDataService>() ??
+                             throw new InvalidOperationException("AppDataService not available");
+            
+            _roastDataService = roastDataService ?? 
+                               serviceProvider.GetService<RoastDataService>() ??
+                               Application.Current?.Handler?.MauiContext?.Services.GetService<RoastDataService>() ??
+                               throw new InvalidOperationException("RoastDataService not available");
+        }
+        else
+        {
+            // Fall back to the old way if app resources doesn't have our provider
+            _appDataService = appDataService ?? 
+                            Application.Current?.Handler?.MauiContext?.Services.GetService<AppDataService>() ??
+                            throw new InvalidOperationException("AppDataService not available");
+            
+            _roastDataService = roastDataService ?? 
+                              Application.Current?.Handler?.MauiContext?.Services.GetService<RoastDataService>() ??
+                              throw new InvalidOperationException("RoastDataService not available");
+        }
+
+        _preferencesService = preferencesService ?? 
+                             Application.Current?.Handler?.MauiContext?.Services.GetService<PreferencesService>() ??
+                             throw new InvalidOperationException("PreferencesService not available");
+
+        System.Diagnostics.Debug.WriteLine($"RoastLogPage constructor - Using AppDataService at path: {_appDataService.DataFilePath}");
 
         _roastLogs = new ObservableCollection<RoastData>();
         RoastLogCollection.ItemsSource = _roastLogs;
@@ -35,7 +61,23 @@ public partial class RoastLogPage : ContentPage
     protected override async void OnAppearing()
     {
         base.OnAppearing();
-        await LoadRoastData();
+        
+        // First ensure the service is fully initialized
+        try 
+        {
+            // Force reload data from the AppDataService to ensure we have the latest
+            await _appDataService.ReloadDataAsync();
+            
+            // Then load the roast logs
+            await LoadRoastData();
+            
+            System.Diagnostics.Debug.WriteLine($"RoastLogPage loaded roast logs successfully on appearance from: {_appDataService.DataFilePath}");
+        }
+        catch (Exception ex)
+        {
+            System.Diagnostics.Debug.WriteLine($"Error in RoastLogPage.OnAppearing: {ex.Message}");
+            await DisplayAlert("Error", "Failed to load roast log data. Please try again.", "OK");
+        }
     }
 
     private async Task LoadRoastData()

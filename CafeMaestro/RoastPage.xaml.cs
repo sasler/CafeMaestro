@@ -7,6 +7,7 @@ using System.Threading.Tasks;
 using CafeMaestro.Models;
 using CafeMaestro.Services;
 using System.IO; // Added for File.Exists
+using Microsoft.Extensions.DependencyInjection;
 
 namespace CafeMaestro;
 
@@ -24,23 +25,68 @@ public partial class RoastPage : ContentPage
     private Bean? selectedBean = null;
     private List<Bean> availableBeans = new List<Bean>();
 
-    public RoastPage()
+    public RoastPage(TimerService? timerService = null, RoastDataService? roastDataService = null, 
+                    BeanService? beanService = null, AppDataService? appDataService = null, 
+                    PreferencesService? preferencesService = null)
     {
         InitializeComponent();
 
-        // Initialize services - get from dependency injection
-        appDataService = Application.Current?.Handler?.MauiContext?.Services.GetService<AppDataService>() ??
-                       new AppDataService();
-        timerService = Application.Current?.Handler?.MauiContext?.Services.GetService<TimerService>() ??
-                      new TimerService();
-        roastDataService = Application.Current?.Handler?.MauiContext?.Services.GetService<RoastDataService>() ??
-                          new RoastDataService(appDataService);
-        beanService = Application.Current?.Handler?.MauiContext?.Services.GetService<BeanService>() ??
-                     new BeanService(appDataService);
-        preferencesService = Application.Current?.Handler?.MauiContext?.Services.GetService<PreferencesService>() ??
-                            new PreferencesService();
+        // First try to get the services from the application resources (our stored service provider)
+        if (Application.Current?.Resources.TryGetValue("ServiceProvider", out var serviceProviderObj) == true && 
+            serviceProviderObj is IServiceProvider serviceProvider)
+        {
+            this.appDataService = appDataService ?? 
+                                 serviceProvider.GetService<AppDataService>() ??
+                                 Application.Current?.Handler?.MauiContext?.Services.GetService<AppDataService>() ??
+                                 throw new InvalidOperationException("AppDataService not available");
+                             
+            this.timerService = timerService ?? 
+                               serviceProvider.GetService<TimerService>() ??
+                               Application.Current?.Handler?.MauiContext?.Services.GetService<TimerService>() ??
+                               throw new InvalidOperationException("TimerService not available");
+                           
+            this.roastDataService = roastDataService ?? 
+                                   serviceProvider.GetService<RoastDataService>() ??
+                                   Application.Current?.Handler?.MauiContext?.Services.GetService<RoastDataService>() ??
+                                   throw new InvalidOperationException("RoastDataService not available");
+                               
+            this.beanService = beanService ?? 
+                              serviceProvider.GetService<BeanService>() ??
+                              Application.Current?.Handler?.MauiContext?.Services.GetService<BeanService>() ??
+                              throw new InvalidOperationException("BeanService not available");
+                          
+            this.preferencesService = preferencesService ?? 
+                                     serviceProvider.GetService<PreferencesService>() ??
+                                     Application.Current?.Handler?.MauiContext?.Services.GetService<PreferencesService>() ??
+                                     throw new InvalidOperationException("PreferencesService not available");
+        }
+        else
+        {
+            // Fall back to the old way if app resources doesn't have our provider
+            this.appDataService = appDataService ?? 
+                                 Application.Current?.Handler?.MauiContext?.Services.GetService<AppDataService>() ??
+                                 throw new InvalidOperationException("AppDataService not available");
+                             
+            this.timerService = timerService ?? 
+                               Application.Current?.Handler?.MauiContext?.Services.GetService<TimerService>() ??
+                               throw new InvalidOperationException("TimerService not available");
+                           
+            this.roastDataService = roastDataService ?? 
+                                   Application.Current?.Handler?.MauiContext?.Services.GetService<RoastDataService>() ??
+                                   throw new InvalidOperationException("RoastDataService not available");
+                               
+            this.beanService = beanService ?? 
+                              Application.Current?.Handler?.MauiContext?.Services.GetService<BeanService>() ??
+                              throw new InvalidOperationException("BeanService not available");
+                          
+            this.preferencesService = preferencesService ?? 
+                                     Application.Current?.Handler?.MauiContext?.Services.GetService<PreferencesService>() ??
+                                     throw new InvalidOperationException("PreferencesService not available");
+        }
 
-        timerService.TimeUpdated += OnTimeUpdated;
+        System.Diagnostics.Debug.WriteLine($"RoastPage constructor - Using AppDataService at path: {this.appDataService.DataFilePath}");
+
+        this.timerService.TimeUpdated += OnTimeUpdated;
 
         // Attach event handlers for weight entry text changes
         BatchWeightEntry.TextChanged += OnWeightEntryTextChanged;
@@ -48,17 +94,17 @@ public partial class RoastPage : ContentPage
 
         // Handle bean selection changes
         BeanPicker.SelectedIndexChanged += BeanPicker_SelectedIndexChanged;
-
-        // Initialize the data file path (needed for services)
-        InitializeDataFilePath();
     }
 
     private async void InitializeDataFilePath()
     {
         try
         {
+            // Check if this is the first run
+            bool isFirstRun = await preferencesService.IsFirstRunAsync();
+            
             // Check if user has a saved file path preference
-            string savedFilePath = await preferencesService.GetAppDataFilePathAsync() ?? string.Empty;
+            string? savedFilePath = await preferencesService.GetAppDataFilePathAsync();
 
             if (!string.IsNullOrEmpty(savedFilePath))
             {
@@ -66,7 +112,33 @@ public partial class RoastPage : ContentPage
                 if (File.Exists(savedFilePath))
                 {
                     appDataService.SetCustomFilePath(savedFilePath);
+                    
+                    // Also initialize related services with the same path
+                    await roastDataService.InitializeFromPreferencesAsync(preferencesService);
+                    await beanService.InitializeFromPreferencesAsync(preferencesService);
                 }
+                else
+                {
+                    // File doesn't exist anymore
+                    await DisplayAlert("Data File Not Found", 
+                        $"The previously used data file could not be found: {savedFilePath}\n\nUsing default location instead.", 
+                        "OK");
+                        
+                    // Reset to default path
+                    appDataService.ResetToDefaultPath();
+                    await preferencesService.ClearAppDataFilePathAsync();
+                }
+            }
+            else if (isFirstRun)
+            {
+                // First run with no saved path - prompt user to set up data file
+                // This shouldn't normally happen as App.xaml.cs should handle first run,
+                // but handle it as a fallback
+                await Shell.Current.GoToAsync(nameof(SettingsPage));
+                
+                await DisplayAlert("Welcome to CafeMaestro", 
+                    "Please select or create a data file location to store your coffee roasting data.", 
+                    "OK");
             }
         }
         catch (Exception ex)

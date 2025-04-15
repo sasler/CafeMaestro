@@ -2,6 +2,7 @@ using System.Collections.ObjectModel;
 using System.Windows.Input;
 using CafeMaestro.Models;
 using CafeMaestro.Services;
+using Microsoft.Extensions.DependencyInjection;
 
 namespace CafeMaestro;
 
@@ -14,15 +15,37 @@ public partial class BeanInventoryPage : ContentPage
     public ICommand EditBeanCommand { get; private set; }
     public ICommand DeleteBeanCommand { get; private set; }
 
-    public BeanInventoryPage()
+    public BeanInventoryPage(BeanService? beanService = null, AppDataService? appDataService = null)
     {
         InitializeComponent();
 
-        // Get services from DI
-        _appDataService = Application.Current?.Handler?.MauiContext?.Services.GetService<AppDataService>() ?? 
-                         new AppDataService();
-        _beanService = Application.Current?.Handler?.MauiContext?.Services.GetService<BeanService>() ?? 
-                      new BeanService(_appDataService);
+        // First try to get the services from the application resources (our stored service provider)
+        if (Application.Current?.Resources?.TryGetValue("ServiceProvider", out var serviceProviderObj) == true && 
+            serviceProviderObj is IServiceProvider serviceProvider)
+        {
+            _appDataService = appDataService ?? 
+                             serviceProvider.GetService<AppDataService>() ??
+                             Application.Current?.Handler?.MauiContext?.Services.GetService<AppDataService>() ??
+                             throw new InvalidOperationException("AppDataService not available");
+            
+            _beanService = beanService ?? 
+                          serviceProvider.GetService<BeanService>() ??
+                          Application.Current?.Handler?.MauiContext?.Services.GetService<BeanService>() ??
+                          throw new InvalidOperationException("BeanService not available");
+        }
+        else
+        {
+            // Fall back to the old way if app resources doesn't have our provider
+            _appDataService = appDataService ?? 
+                            Application.Current?.Handler?.MauiContext?.Services.GetService<AppDataService>() ??
+                            throw new InvalidOperationException("AppDataService not available");
+            
+            _beanService = beanService ?? 
+                          Application.Current?.Handler?.MauiContext?.Services.GetService<BeanService>() ??
+                          throw new InvalidOperationException("BeanService not available");
+        }
+
+        System.Diagnostics.Debug.WriteLine($"BeanInventoryPage constructor - Using AppDataService at path: {_appDataService.DataFilePath}");
 
         _beans = new ObservableCollection<Bean>();
         BeansCollection.ItemsSource = _beans;
@@ -40,13 +63,43 @@ public partial class BeanInventoryPage : ContentPage
 
     private async void InitializePageAsync()
     {
-        await LoadBeans();
+        try
+        {
+            // Force reload from the AppDataService to ensure we have the correct path
+            await _appDataService.ReloadDataAsync();
+            
+            // Then load beans
+            await LoadBeans();
+            
+            System.Diagnostics.Debug.WriteLine($"BeanInventoryPage initialized with path: {_appDataService.DataFilePath}");
+        }
+        catch (Exception ex)
+        {
+            System.Diagnostics.Debug.WriteLine($"Error initializing BeanInventoryPage: {ex.Message}");
+            await DisplayAlert("Error", "Failed to initialize bean inventory data.", "OK");
+        }
     }
 
     protected override async void OnAppearing()
     {
         base.OnAppearing();
-        await LoadBeans();
+        
+        // First ensure the service is fully initialized
+        try 
+        {
+            // Force reload data from the AppDataService to ensure we have the latest
+            await _appDataService.ReloadDataAsync();
+            
+            // Then load the beans
+            await LoadBeans();
+            
+            System.Diagnostics.Debug.WriteLine($"BeanInventoryPage loaded beans successfully on appearance from: {_appDataService.DataFilePath}");
+        }
+        catch (Exception ex)
+        {
+            System.Diagnostics.Debug.WriteLine($"Error in BeanInventoryPage.OnAppearing: {ex.Message}");
+            await DisplayAlert("Error", "Failed to load bean data. Please try again.", "OK");
+        }
     }
 
     private async Task LoadBeans()
@@ -55,7 +108,7 @@ public partial class BeanInventoryPage : ContentPage
         {
             BeansRefreshView.IsRefreshing = true;
 
-            List<Bean> beans = await _beanService.LoadBeansAsync();
+            List<Bean> beans = await _beanService.GetAllBeansAsync();
 
             _beans.Clear();
 
@@ -104,12 +157,16 @@ public partial class BeanInventoryPage : ContentPage
 
     private async void AddBean_Clicked(object sender, EventArgs e)
     {
-        await Navigation.PushAsync(new BeanEditPage(new Bean()));
+        // Create BeanEditPage directly but pass in our services
+        var beanEditPage = new BeanEditPage(new Bean(), _beanService, _appDataService);
+        await Navigation.PushAsync(beanEditPage);
     }
 
     private async Task EditBean(Bean bean)
     {
-        await Navigation.PushAsync(new BeanEditPage(bean));
+        // Create BeanEditPage directly but pass in our services
+        var beanEditPage = new BeanEditPage(bean, _beanService, _appDataService);
+        await Navigation.PushAsync(beanEditPage);
     }
 
     private async Task DeleteBean(Bean bean)

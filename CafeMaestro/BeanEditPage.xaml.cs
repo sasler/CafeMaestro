@@ -1,5 +1,6 @@
 using CafeMaestro.Models;
 using CafeMaestro.Services;
+using Microsoft.Extensions.DependencyInjection;
 
 namespace CafeMaestro;
 
@@ -9,15 +10,38 @@ public partial class BeanEditPage : ContentPage
     private readonly AppDataService _appDataService;
     private readonly Bean _bean;
 
-    public BeanEditPage(Bean bean)
+    public BeanEditPage(Bean bean, BeanService? beanService = null, AppDataService? appDataService = null)
     {
         InitializeComponent();
 
-        // Get services from DI
-        _appDataService = Application.Current?.Handler?.MauiContext?.Services.GetService<AppDataService>() ?? 
-                         new AppDataService();
-        _beanService = Application.Current?.Handler?.MauiContext?.Services.GetService<BeanService>() ?? 
-                      new BeanService(_appDataService);
+        // First try to get the services from the application resources (our stored service provider)
+        if (Application.Current?.Resources != null && 
+            Application.Current?.Resources.TryGetValue("ServiceProvider", out var serviceProviderObj) == true && 
+            serviceProviderObj is IServiceProvider serviceProvider)
+        {
+            _appDataService = appDataService ?? 
+                             serviceProvider.GetService<AppDataService>() ??
+                             Application.Current?.Handler?.MauiContext?.Services.GetService<AppDataService>() ??
+                             throw new InvalidOperationException("AppDataService not available");
+            
+            _beanService = beanService ?? 
+                          serviceProvider.GetService<BeanService>() ??
+                          Application.Current?.Handler?.MauiContext?.Services.GetService<BeanService>() ??
+                          throw new InvalidOperationException("BeanService not available");
+        }
+        else
+        {
+            // Fall back to the old way if app resources doesn't have our provider
+            _appDataService = appDataService ?? 
+                            Application.Current?.Handler?.MauiContext?.Services.GetService<AppDataService>() ??
+                            throw new InvalidOperationException("AppDataService not available");
+            
+            _beanService = beanService ?? 
+                          Application.Current?.Handler?.MauiContext?.Services.GetService<BeanService>() ??
+                          throw new InvalidOperationException("BeanService not available");
+        }
+
+        System.Diagnostics.Debug.WriteLine($"BeanEditPage constructor - Using AppDataService at path: {_appDataService.DataFilePath}");
 
         _bean = bean;
         BindingContext = _bean;

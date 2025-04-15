@@ -17,6 +17,12 @@ namespace CafeMaestro.Services
         private readonly JsonSerializerOptions _jsonOptions;
         private AppData? _cachedData;
         private bool _isDirty = false;
+        private bool _isInitialized = false;
+        private readonly SemaphoreSlim _initializationLock = new SemaphoreSlim(1, 1);
+        private readonly SemaphoreSlim _dataAccessLock = new SemaphoreSlim(1, 1);
+        
+        // Event that fires when the data file path changes
+        public event EventHandler<string>? DataFilePathChanged;
         
         // Property to get/set the current data file path
         public string DataFilePath 
@@ -24,11 +30,22 @@ namespace CafeMaestro.Services
             get => _filePath;
             set
             {
-                _filePath = value;
-                string? directory = Path.GetDirectoryName(_filePath);
-                _folderPath = directory ?? string.Empty;
-                // Clear cache when path changes
-                _cachedData = null;
+                if (_filePath != value)
+                {
+                    string oldPath = _filePath;
+                    _filePath = value;
+                    string? directory = Path.GetDirectoryName(_filePath);
+                    _folderPath = directory ?? string.Empty;
+                    
+                    // Clear cache when path changes
+                    _cachedData = null;
+                    _isDirty = true;
+                    
+                    System.Diagnostics.Debug.WriteLine($"Data file path changed from '{oldPath}' to '{_filePath}'");
+                    
+                    // Raise event to notify other services of the path change
+                    DataFilePathChanged?.Invoke(this, _filePath);
+                }
             }
         }
 
@@ -50,6 +67,70 @@ namespace CafeMaestro.Services
             };
         }
         
+        // Initialize the service with the saved path
+        public async Task InitializeAsync(PreferencesService preferencesService)
+        {
+            // Use a lock to prevent multiple simultaneous initializations
+            await _initializationLock.WaitAsync();
+            
+            try
+            {
+                if (_isInitialized)
+                {
+                    System.Diagnostics.Debug.WriteLine("AppDataService already initialized, skipping");
+                    return;
+                }
+                    
+                // Get saved file path from preferences
+                string? savedFilePath = await preferencesService.GetAppDataFilePathAsync();
+                
+                if (!string.IsNullOrEmpty(savedFilePath))
+                {
+                    // If the saved file exists, use it
+                    if (File.Exists(savedFilePath))
+                    {
+                        // Set the path directly to avoid duplicate event firing
+                        _filePath = savedFilePath;
+                        string? directory = Path.GetDirectoryName(_filePath);
+                        _folderPath = directory ?? string.Empty;
+                        _cachedData = null;
+                        _isDirty = true;
+                        
+                        System.Diagnostics.Debug.WriteLine($"Initialized with saved data file: {savedFilePath}");
+                    }
+                    else
+                    {
+                        // File doesn't exist, fall back to default
+                        System.Diagnostics.Debug.WriteLine($"Saved file not found: {savedFilePath}, using default");
+                        ResetToDefaultPath(false); // Don't fire events during initialization
+                        await preferencesService.ClearAppDataFilePathAsync();
+                    }
+                }
+                
+                // Immediately load the data to cache it
+                await LoadAppDataAsync();
+                
+                _isInitialized = true;
+                
+                // Now fire the event to notify other services about the path
+                DataFilePathChanged?.Invoke(this, _filePath);
+                System.Diagnostics.Debug.WriteLine($"AppDataService initialization complete, notified about path: {_filePath}");
+            }
+            catch (Exception ex)
+            {
+                System.Diagnostics.Debug.WriteLine($"Error initializing AppDataService: {ex.Message}");
+                // Use default path on error
+                ResetToDefaultPath(false); // Don't fire events during initialization
+                
+                // Fire the event once with the default path
+                DataFilePathChanged?.Invoke(this, _filePath);
+            }
+            finally
+            {
+                _initializationLock.Release();
+            }
+        }
+        
         // Set a custom file path for data storage
         public void SetCustomFilePath(string filePath)
         {
@@ -67,41 +148,65 @@ namespace CafeMaestro.Services
         // Reset to the default file path in app data directory
         public void ResetToDefaultPath()
         {
+            ResetToDefaultPath(true);
+        }
+        
+        // Reset to default path with control over event firing
+        public void ResetToDefaultPath(bool fireEvents)
+        {
             // Reset to default location
             _folderPath = Path.Combine(FileSystem.AppDataDirectory, "AppData");
             
             // Create the directory if it doesn't exist
             if (!Directory.Exists(_folderPath))
                 Directory.CreateDirectory(_folderPath);
-                
-            _filePath = Path.Combine(_folderPath, _defaultFileName);
-            
-            // Clear cache when path changes
-            _cachedData = null;
+             
+            if (fireEvents)
+            {
+                // Use property setter to fire events   
+                DataFilePath = Path.Combine(_folderPath, _defaultFileName);
+            }
+            else
+            {
+                // Set without firing events
+                _filePath = Path.Combine(_folderPath, _defaultFileName);
+                _cachedData = null;
+                _isDirty = true;
+            }
         }
         
         // Loads all app data
         public async Task<AppData> LoadAppDataAsync()
         {
-            // Return cached data if available
-            if (_cachedData != null && !_isDirty)
-                return _cachedData;
-                
+            // Use a lock to prevent concurrent reads/writes
+            await _dataAccessLock.WaitAsync();
+            
             try
             {
+                // Return cached data if available
+                if (_cachedData != null && !_isDirty)
+                    return _cachedData;
+                    
                 if (!File.Exists(_filePath))
                 {
+                    System.Diagnostics.Debug.WriteLine($"Data file not found: {_filePath}, creating empty data");
                     // Create and return empty data structure
                     _cachedData = CreateEmptyAppData();
                     return _cachedData;
                 }
-                    
+                
                 string jsonString = await File.ReadAllTextAsync(_filePath);
                 var appData = JsonSerializer.Deserialize<AppData>(jsonString, _jsonOptions);
                 
                 if (appData == null)
                 {
+                    System.Diagnostics.Debug.WriteLine($"Failed to deserialize data file: {_filePath}");
                     appData = CreateEmptyAppData();
+                }
+                else
+                {
+                    System.Diagnostics.Debug.WriteLine($"Successfully loaded data from: {_filePath}");
+                    System.Diagnostics.Debug.WriteLine($"  Beans: {appData.Beans?.Count ?? 0}, Roasts: {appData.RoastLogs?.Count ?? 0}");
                 }
                 
                 _cachedData = appData;
@@ -117,11 +222,18 @@ namespace CafeMaestro.Services
                 _cachedData = CreateEmptyAppData();
                 return _cachedData;
             }
+            finally
+            {
+                _dataAccessLock.Release();
+            }
         }
         
         // Save all app data
         public async Task<bool> SaveAppDataAsync(AppData appData)
         {
+            // Use a lock to prevent concurrent reads/writes
+            await _dataAccessLock.WaitAsync();
+            
             try
             {
                 // Update metadata
@@ -136,12 +248,19 @@ namespace CafeMaestro.Services
                 _cachedData = appData;
                 _isDirty = false;
                 
+                System.Diagnostics.Debug.WriteLine($"Saved app data to: {_filePath}");
+                System.Diagnostics.Debug.WriteLine($"  Beans: {appData.Beans?.Count ?? 0}, Roasts: {appData.RoastLogs?.Count ?? 0}");
+                
                 return true;
             }
             catch (Exception ex)
             {
                 System.Diagnostics.Debug.WriteLine($"Error saving app data: {ex.Message}");
                 return false;
+            }
+            finally
+            {
+                _dataAccessLock.Release();
             }
         }
         
@@ -178,6 +297,9 @@ namespace CafeMaestro.Services
         // Create new empty data file
         public async Task<bool> CreateEmptyDataFileAsync(string filePath)
         {
+            // Use a lock to prevent concurrent operations
+            await _dataAccessLock.WaitAsync();
+            
             try
             {
                 // Create empty app data structure
@@ -207,6 +329,8 @@ namespace CafeMaestro.Services
                 _cachedData = emptyData;
                 _isDirty = false;
                 
+                System.Diagnostics.Debug.WriteLine($"Created new empty data file at: {filePath}");
+                
                 return true;
             }
             catch (Exception ex)
@@ -214,65 +338,17 @@ namespace CafeMaestro.Services
                 System.Diagnostics.Debug.WriteLine($"Error creating empty data file: {ex.Message}");
                 return false;
             }
+            finally
+            {
+                _dataAccessLock.Release();
+            }
         }
         
-        // Migrates data from separate files to the combined format (if needed)
-        public async Task<bool> MigrateDataIfNeededAsync()
+        // Force reload of data from file
+        public async Task<AppData> ReloadDataAsync()
         {
-            try
-            {
-                // Skip if combined data file already exists
-                if (DataFileExists())
-                    return true;
-                
-                var appData = new AppData();
-                
-                // Try to load beans from old location
-                string beanFilePath = Path.Combine(FileSystem.AppDataDirectory, "BeanData", "bean_inventory.json");
-                if (File.Exists(beanFilePath))
-                {
-                    try
-                    {
-                        string beanJson = await File.ReadAllTextAsync(beanFilePath);
-                        var beans = JsonSerializer.Deserialize<List<Bean>>(beanJson, _jsonOptions);
-                        if (beans != null)
-                        {
-                            appData.Beans = beans;
-                        }
-                    }
-                    catch (Exception ex)
-                    {
-                        System.Diagnostics.Debug.WriteLine($"Error migrating beans: {ex.Message}");
-                    }
-                }
-                
-                // Try to load roast data from old location
-                string roastFilePath = Path.Combine(FileSystem.AppDataDirectory, "RoastData", "roast_log.json");
-                if (File.Exists(roastFilePath))
-                {
-                    try
-                    {
-                        string roastJson = await File.ReadAllTextAsync(roastFilePath);
-                        var roastLogs = JsonSerializer.Deserialize<List<RoastData>>(roastJson, _jsonOptions);
-                        if (roastLogs != null)
-                        {
-                            appData.RoastLogs = roastLogs;
-                        }
-                    }
-                    catch (Exception ex)
-                    {
-                        System.Diagnostics.Debug.WriteLine($"Error migrating roast logs: {ex.Message}");
-                    }
-                }
-                
-                // Save to new combined file
-                return await SaveAppDataAsync(appData);
-            }
-            catch (Exception ex)
-            {
-                System.Diagnostics.Debug.WriteLine($"Error during data migration: {ex.Message}");
-                return false;
-            }
+            _isDirty = true;
+            return await LoadAppDataAsync();
         }
     }
 }

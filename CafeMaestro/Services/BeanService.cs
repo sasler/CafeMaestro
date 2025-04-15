@@ -12,16 +12,91 @@ namespace CafeMaestro.Services
     public class BeanService
     {
         private readonly AppDataService _appDataService;
+        private readonly SemaphoreSlim _initLock = new SemaphoreSlim(1, 1);
+        private bool _isInitialized = false;
+        private string _currentDataFilePath;
+
+        // Property to get the current data file path
+        public string DataFilePath 
+        { 
+            get => _appDataService.DataFilePath;
+        }
 
         public BeanService(AppDataService appDataService)
         {
             _appDataService = appDataService;
+            _currentDataFilePath = _appDataService.DataFilePath;
+            
+            // Subscribe to path changes from AppDataService
+            _appDataService.DataFilePathChanged += OnDataFilePathChanged;
+        }
+        
+        // Handle data file path changes
+        private void OnDataFilePathChanged(object? sender, string newPath)
+        {
+            System.Diagnostics.Debug.WriteLine($"BeanService noticed data file path change to: {newPath}");
+            
+            // Track current path to help detect changes
+            _currentDataFilePath = newPath;
+            
+            // When the path changes, we should reload data immediately
+            // But don't do it in the event handler to avoid deadlocks
+            // Instead, queue it on a background thread
+            Task.Run(async () => {
+                try
+                {
+                    await _appDataService.ReloadDataAsync();
+                }
+                catch (Exception ex)
+                {
+                    System.Diagnostics.Debug.WriteLine($"Error reloading data after path change in BeanService: {ex.Message}");
+                }
+            });
+        }
+
+        // Initialize from preferences - ensure this is called at startup
+        public async Task InitializeFromPreferencesAsync(PreferencesService preferencesService)
+        {
+            await _initLock.WaitAsync();
+            
+            try
+            {
+                if (_isInitialized)
+                {
+                    System.Diagnostics.Debug.WriteLine("BeanService already initialized, skipping");
+                    return;
+                }
+                
+                // Force a reload of data
+                await _appDataService.ReloadDataAsync();
+                _currentDataFilePath = _appDataService.DataFilePath;
+                
+                System.Diagnostics.Debug.WriteLine($"BeanService initialized with path: {DataFilePath}");
+                
+                _isInitialized = true;
+            }
+            catch (Exception ex)
+            {
+                System.Diagnostics.Debug.WriteLine($"Error initializing BeanService from preferences: {ex.Message}");
+            }
+            finally
+            {
+                _initLock.Release();
+            }
         }
 
         public async Task<bool> SaveBeansAsync(List<Bean> beans)
         {
             try
             {
+                // First verify current path matches expected path
+                if (_currentDataFilePath != _appDataService.DataFilePath)
+                {
+                    System.Diagnostics.Debug.WriteLine($"Path mismatch detected in BeanService.SaveBeansAsync. Expected: {_currentDataFilePath}, Actual: {_appDataService.DataFilePath}");
+                    // Synchronize the path
+                    _currentDataFilePath = _appDataService.DataFilePath;
+                }
+                
                 // Load full app data
                 var appData = await _appDataService.LoadAppDataAsync();
                 
@@ -42,10 +117,20 @@ namespace CafeMaestro.Services
         {
             try
             {
+                // The Bean constructor already initializes a new Guid, so no need to set it here
+                
+                // First verify current path
+                if (_currentDataFilePath != _appDataService.DataFilePath)
+                {
+                    System.Diagnostics.Debug.WriteLine($"Path mismatch detected in BeanService.AddBeanAsync. Expected: {_currentDataFilePath}, Actual: {_appDataService.DataFilePath}");
+                    // Synchronize the path
+                    _currentDataFilePath = _appDataService.DataFilePath;
+                }
+                
                 // Load full app data
                 var appData = await _appDataService.LoadAppDataAsync();
                 
-                // Add the new bean
+                // Add the bean
                 appData.Beans.Add(bean);
                 
                 // Save updated app data
@@ -62,18 +147,30 @@ namespace CafeMaestro.Services
         {
             try
             {
+                // First verify current path
+                if (_currentDataFilePath != _appDataService.DataFilePath)
+                {
+                    System.Diagnostics.Debug.WriteLine($"Path mismatch detected in BeanService.UpdateBeanAsync. Expected: {_currentDataFilePath}, Actual: {_appDataService.DataFilePath}");
+                    // Synchronize the path
+                    _currentDataFilePath = _appDataService.DataFilePath;
+                }
+                
                 // Load full app data
                 var appData = await _appDataService.LoadAppDataAsync();
                 
-                // Find and update the bean
-                var existingIndex = appData.Beans.FindIndex(b => b.Id == bean.Id);
-                if (existingIndex == -1)
-                    return false;
+                // Find the bean to update
+                int index = appData.Beans.FindIndex(b => b.Id == bean.Id);
                 
-                appData.Beans[existingIndex] = bean;
+                if (index >= 0)
+                {
+                    // Replace the old bean with the updated one
+                    appData.Beans[index] = bean;
+                    
+                    // Save updated app data
+                    return await _appDataService.SaveAppDataAsync(appData);
+                }
                 
-                // Save updated app data
-                return await _appDataService.SaveAppDataAsync(appData);
+                return false;
             }
             catch (Exception ex)
             {
@@ -86,16 +183,30 @@ namespace CafeMaestro.Services
         {
             try
             {
+                // First verify current path
+                if (_currentDataFilePath != _appDataService.DataFilePath)
+                {
+                    System.Diagnostics.Debug.WriteLine($"Path mismatch detected in BeanService.DeleteBeanAsync. Expected: {_currentDataFilePath}, Actual: {_appDataService.DataFilePath}");
+                    // Synchronize the path
+                    _currentDataFilePath = _appDataService.DataFilePath;
+                }
+                
                 // Load full app data
                 var appData = await _appDataService.LoadAppDataAsync();
                 
-                // Remove the bean
-                var removedCount = appData.Beans.RemoveAll(b => b.Id == beanId);
-                if (removedCount == 0)
-                    return false;
+                // Find and remove the bean
+                int index = appData.Beans.FindIndex(b => b.Id == beanId);
                 
-                // Save updated app data
-                return await _appDataService.SaveAppDataAsync(appData);
+                if (index >= 0)
+                {
+                    // Remove the bean
+                    appData.Beans.RemoveAt(index);
+                    
+                    // Save updated app data
+                    return await _appDataService.SaveAppDataAsync(appData);
+                }
+                
+                return false;
             }
             catch (Exception ex)
             {
@@ -104,40 +215,30 @@ namespace CafeMaestro.Services
             }
         }
         
-        public async Task<Bean?> GetBeanByIdAsync(Guid beanId)
+        public async Task<Bean?> GetBeanByIdAsync(Guid id)
         {
-            try
-            {
-                var appData = await _appDataService.LoadAppDataAsync();
-                return appData.Beans.FirstOrDefault(b => b.Id == beanId);
-            }
-            catch (Exception ex)
-            {
-                System.Diagnostics.Debug.WriteLine($"Error getting bean: {ex.Message}");
-                return null;
-            }
+            var allBeans = await GetAllBeansAsync();
+            return allBeans.FirstOrDefault(b => b.Id == id);
         }
 
-        public async Task<bool> UpdateBeanQuantityAsync(Guid beanId, double usedAmount)
+        public async Task<bool> UpdateBeanQuantityAsync(Guid beanId, double usedQuantity)
         {
             try
             {
-                // Load full app data
-                var appData = await _appDataService.LoadAppDataAsync();
+                // Get the bean
+                var bean = await GetBeanByIdAsync(beanId);
                 
-                // Find the bean
-                var bean = appData.Beans.FirstOrDefault(b => b.Id == beanId);
                 if (bean == null)
                     return false;
                 
-                // Update quantity
-                if (bean.RemainingQuantity < usedAmount)
-                    return false;
-                    
-                bean.RemainingQuantity -= usedAmount;
+                // Calculate new remaining quantity
+                double newQuantity = bean.RemainingQuantity - usedQuantity;
                 
-                // Save all beans
-                return await _appDataService.SaveAppDataAsync(appData);
+                // Ensure we don't go below zero
+                bean.RemainingQuantity = Math.Max(0, newQuantity);
+                
+                // Update the bean
+                return await UpdateBeanAsync(bean);
             }
             catch (Exception ex)
             {
@@ -146,11 +247,24 @@ namespace CafeMaestro.Services
             }
         }
         
-        public async Task<List<Bean>> LoadBeansAsync()
+        public async Task<List<Bean>> GetAllBeansAsync()
         {
             try
             {
+                // First verify current path
+                if (_currentDataFilePath != _appDataService.DataFilePath)
+                {
+                    System.Diagnostics.Debug.WriteLine($"Path mismatch detected in BeanService.GetAllBeansAsync. Expected: {_currentDataFilePath}, Actual: {_appDataService.DataFilePath}");
+                    // Synchronize the path
+                    _currentDataFilePath = _appDataService.DataFilePath;
+                }
+                
+                // Load full app data from current (correct) path
                 var appData = await _appDataService.LoadAppDataAsync();
+                
+                // Log loaded data
+                System.Diagnostics.Debug.WriteLine($"BeanService loaded {appData.Beans?.Count ?? 0} beans from {_currentDataFilePath}");
+                
                 return appData.Beans ?? new List<Bean>();
             }
             catch (Exception ex)
@@ -162,7 +276,7 @@ namespace CafeMaestro.Services
         
         public async Task<List<Bean>> SearchBeansAsync(string searchTerm = "")
         {
-            var beans = await LoadBeansAsync();
+            var beans = await GetAllBeansAsync();
             
             if (string.IsNullOrWhiteSpace(searchTerm))
                 return beans;
@@ -176,8 +290,8 @@ namespace CafeMaestro.Services
         
         public async Task<List<Bean>> GetAvailableBeansAsync()
         {
-            var beans = await LoadBeansAsync();
-            return beans.FindAll(b => b.RemainingQuantity > 0);
+            var allBeans = await GetAllBeansAsync();
+            return allBeans.Where(b => b.RemainingQuantity > 0).ToList();
         }
     }
 }

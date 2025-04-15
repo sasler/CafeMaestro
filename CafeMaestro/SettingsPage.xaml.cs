@@ -1,36 +1,128 @@
 using System.Diagnostics;
 using CafeMaestro.Services;
+using Microsoft.Extensions.DependencyInjection;
 using MauiAppTheme = Microsoft.Maui.ApplicationModel.AppTheme;
 
 namespace CafeMaestro;
 
 public partial class SettingsPage : ContentPage
 {
-    private readonly AppDataService _appDataService;
     private readonly PreferencesService _preferencesService;
+    private readonly AppDataService _appDataService;
+    private readonly BeanService _beanService;
+    private readonly RoastDataService _roastDataService;
+
+    private string _currentFilePath = string.Empty;
     private bool _isLoadingThemeSettings = false; // Flag to suppress events during initialization
     private bool _isThemeInitialized = false; // Additional safeguard for theme initialization
+    private bool _isFirstTimeNavigation = true; // Track if this is the first time appearing
 
-    public SettingsPage()
+    public SettingsPage(PreferencesService? preferencesService = null, AppDataService? appDataService = null,
+                        BeanService? beanService = null, RoastDataService? roastDataService = null)
     {
         InitializeComponent();
-        
-        // Get services from DI
-        _appDataService = Application.Current?.Handler?.MauiContext?.Services.GetService<AppDataService>() ?? 
-                          new AppDataService();
-        _preferencesService = Application.Current?.Handler?.MauiContext?.Services.GetService<PreferencesService>() ?? 
-                           new PreferencesService();
-                               
+
+        // First try to get the services from the application resources (our stored service provider)
+        if (Application.Current?.Resources.TryGetValue("ServiceProvider", out var serviceProviderObj) == true && 
+            serviceProviderObj is IServiceProvider serviceProvider)
+        {
+            _preferencesService = preferencesService ?? 
+                                 serviceProvider.GetService<PreferencesService>() ??
+                                 Application.Current?.Handler?.MauiContext?.Services.GetService<PreferencesService>() ??
+                                 throw new InvalidOperationException("PreferencesService not available");
+                             
+            _appDataService = appDataService ?? 
+                             serviceProvider.GetService<AppDataService>() ??
+                             Application.Current?.Handler?.MauiContext?.Services.GetService<AppDataService>() ??
+                             throw new InvalidOperationException("AppDataService not available");
+                         
+            _beanService = beanService ?? 
+                          serviceProvider.GetService<BeanService>() ??
+                          Application.Current?.Handler?.MauiContext?.Services.GetService<BeanService>() ??
+                          throw new InvalidOperationException("BeanService not available");
+                      
+            _roastDataService = roastDataService ?? 
+                               serviceProvider.GetService<RoastDataService>() ??
+                               Application.Current?.Handler?.MauiContext?.Services.GetService<RoastDataService>() ??
+                               throw new InvalidOperationException("RoastDataService not available");
+        }
+        else
+        {
+            // Fall back to the old way if app resources doesn't have our provider
+            _preferencesService = preferencesService ?? 
+                                 Application.Current?.Handler?.MauiContext?.Services.GetService<PreferencesService>() ??
+                                 throw new InvalidOperationException("PreferencesService not available");
+                             
+            _appDataService = appDataService ?? 
+                             Application.Current?.Handler?.MauiContext?.Services.GetService<AppDataService>() ??
+                             throw new InvalidOperationException("AppDataService not available");
+                         
+            _beanService = beanService ?? 
+                          Application.Current?.Handler?.MauiContext?.Services.GetService<BeanService>() ??
+                          throw new InvalidOperationException("BeanService not available");
+                      
+            _roastDataService = roastDataService ?? 
+                               Application.Current?.Handler?.MauiContext?.Services.GetService<RoastDataService>() ??
+                               throw new InvalidOperationException("RoastDataService not available");
+        }
+
+        System.Diagnostics.Debug.WriteLine($"SettingsPage constructor - Using AppDataService at path: {_appDataService.DataFilePath}");
+
         // Initialize UI
         LoadDataFilePath();
         LoadVersionInfo();
         LoadThemeSettings();
     }
 
-    protected override void OnAppearing()
+    protected override async void OnAppearing()
     {
         base.OnAppearing();
         LoadDataFilePath();
+        
+        // Check if this is first run and first navigation to this page
+        // This will highlight the data file section when coming from first-run setup
+        if (_isFirstTimeNavigation)
+        {
+            _isFirstTimeNavigation = false;
+            
+            bool isFirstRun = await _preferencesService.IsFirstRunAsync();
+            if (isFirstRun)
+            {
+                // Highlight the data file section visually
+                HighlightDataFileSection();
+            }
+        }
+    }
+    
+    // Highlight the data file section to draw attention to it
+    private void HighlightDataFileSection()
+    {
+        // Apply a visual highlight to draw attention (pulse animation)
+        var dataFileSection = DataFileSection;
+        if (dataFileSection != null)
+        {
+            // Store original color to restore later
+            var originalColor = dataFileSection.BackgroundColor;
+            
+            // Highlight with animation
+            dataFileSection.BackgroundColor = Colors.LightYellow;
+            
+            // Pulse animation to draw attention
+            dataFileSection.Scale = 0.97;
+            dataFileSection.FadeTo(0.8, 250).ContinueWith(_ => 
+            {
+                MainThread.BeginInvokeOnMainThread(async () => 
+                {
+                    await dataFileSection.FadeTo(1, 250);
+                    await dataFileSection.ScaleTo(1.02, 150);
+                    await dataFileSection.ScaleTo(1.0, 150);
+                    
+                    // Restore original background after animation
+                    await Task.Delay(500);
+                    dataFileSection.BackgroundColor = originalColor;
+                });
+            });
+        }
     }
 
     private void LoadDataFilePath()
@@ -46,7 +138,7 @@ public partial class SettingsPage : ContentPage
         
         VersionLabel.Text = $"{version} (Build {build})";
     }
-      // Load the saved theme settings
+
     private async void LoadThemeSettings()
     {
         try
@@ -83,7 +175,6 @@ public partial class SettingsPage : ContentPage
         }
     }
 
-    // Handle theme radio button selection
     private async void ThemeRadioButton_CheckedChanged(object sender, CheckedChangedEventArgs e)
     {
         if (_isLoadingThemeSettings || !_isThemeInitialized || !e.Value) // Ignore events during initialization or unchecked state
@@ -114,7 +205,7 @@ public partial class SettingsPage : ContentPage
             await DisplayAlert("Error", $"Failed to change the theme: {ex.Message}", "OK");
         }
     }
-      // Apply the selected theme to the app
+
     private void ApplyTheme(ThemePreference theme)
     {
         if (Application.Current == null) return;
@@ -163,9 +254,22 @@ public partial class SettingsPage : ContentPage
             
             if (result != null)
             {
-                _appDataService.SetCustomFilePath(result.FullPath);
+                // First save path to preferences
                 await _preferencesService.SaveAppDataFilePathAsync(result.FullPath);
+                
+                // Then update AppDataService (which will notify other services via the event)
+                _appDataService.SetCustomFilePath(result.FullPath);
+                
+                // Reload the UI
                 LoadDataFilePath();
+                
+                // Ensure the file is loadable
+                await _appDataService.LoadAppDataAsync();
+                
+                // If this was during first run, mark setup as completed
+                await _preferencesService.SetFirstRunCompletedAsync();
+                
+                await DisplayAlert("Success", "Data file location has been set.", "OK");
             }
         }
         catch (Exception ex)
@@ -187,7 +291,18 @@ public partial class SettingsPage : ContentPage
                 folderPicker.FileTypeFilter.Add("*");
                 
                 // Get the current window handle
-                var hwnd = WinRT.Interop.WindowNative.GetWindowHandle(Application.Current.Windows[0]);
+                IntPtr hwnd = IntPtr.Zero;
+                if (Application.Current?.Windows != null && Application.Current.Windows.Count > 0)
+                {
+                    hwnd = WinRT.Interop.WindowNative.GetWindowHandle(Application.Current.Windows[0]);
+                }
+                else
+                {
+                    // Can't get window handle, show error and use standard picker
+                    await DisplayAlert("Error", "Cannot access window handle", "OK");
+                    await UseStandardFilePicker();
+                    return;
+                }
                 // Associate the folder picker with the window
                 WinRT.Interop.InitializeWithWindow.Initialize(folderPicker, hwnd);
                 
@@ -261,13 +376,23 @@ public partial class SettingsPage : ContentPage
     {
         try
         {
-            // Create new empty data file
+            // First save the path to preferences
+            await _preferencesService.SaveAppDataFilePathAsync(filePath);
+            
+            // Create new empty data file through AppDataService
             bool success = await _appDataService.CreateEmptyDataFileAsync(filePath);
             
             if (success)
             {
-                await _preferencesService.SaveAppDataFilePathAsync(filePath);
+                // Update UI
                 LoadDataFilePath();
+                
+                // Ensure data is loaded in memory
+                await _appDataService.ReloadDataAsync();
+                
+                // If this was during first run, mark setup as completed
+                await _preferencesService.SetFirstRunCompletedAsync();
+                
                 await DisplayAlert("Success", "Created new data file.", "OK");
             }
             else
@@ -291,9 +416,30 @@ public partial class SettingsPage : ContentPage
                 
             if (confirmed)
             {
+                // First clear the preferences
                 await _preferencesService.ClearAppDataFilePathAsync();
+                
+                // Then reset the AppDataService path (triggers notifications)
                 _appDataService.ResetToDefaultPath();
+                
+                // Create the file if it doesn't exist
+                if (!_appDataService.DataFileExists())
+                {
+                    await _appDataService.CreateEmptyDataFileAsync(_appDataService.DataFilePath);
+                }
+                else
+                {
+                    // Ensure data is loaded in memory
+                    await _appDataService.ReloadDataAsync();
+                }
+                
+                // Update UI
                 LoadDataFilePath();
+                
+                // If this was during first run, mark setup as completed
+                await _preferencesService.SetFirstRunCompletedAsync();
+                
+                await DisplayAlert("Success", "Using default data location.", "OK");
             }
         }
         catch (Exception ex)

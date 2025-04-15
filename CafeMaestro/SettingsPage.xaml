@@ -86,8 +86,17 @@
                             </Border>
 
                             <!-- Data File Section -->
-                            <Border Stroke="{DynamicResource BorderColor}"
-                                    BackgroundColor="{DynamicResource PageBackgroundColor}">
+                            <Border x:Name="DataFileSection"
+                                   Stroke="{DynamicResource BorderColor}"
+                                   BackgroundColor="{DynamicResource PageBackgroundColor}"
+                                   StrokeThickness="0.5"
+                                   StrokeShape="RoundRectangle 12">
+                                   <Border.Shadow>
+                                          <Shadow Brush="#20000000"
+                                                  Offset="0,2"
+                                                  Radius="4"
+                                                  Opacity="0.2"/>
+                                   </Border.Shadow>
                                    <VerticalStackLayout Spacing="16"
                                                         Padding="16,10">
                                           <Label Text="Data File Location"

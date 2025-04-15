@@ -1,10 +1,23 @@
-﻿namespace CafeMaestro;
+﻿using Microsoft.Maui.Controls;
+using Microsoft.Extensions.DependencyInjection;
+
+namespace CafeMaestro;
 
 public partial class AppShell : Shell
 {
-	public AppShell()
+	private readonly IServiceProvider _serviceProvider;
+
+	public AppShell(IServiceProvider serviceProvider)
 	{
 		InitializeComponent();
+		_serviceProvider = serviceProvider;
+
+		// Store the service provider for the entire application to use
+		// Add null check to prevent possible null reference exception
+		if (Application.Current != null)
+		{
+			Application.Current.Resources["ServiceProvider"] = serviceProvider;
+		}
 
 		// Register routes for navigation
 		Routing.RegisterRoute(nameof(MainPage), typeof(MainPage));
