@@ -2,8 +2,13 @@
 <ContentPage xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
              xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
              x:Class="CafeMaestro.SettingsPage"
-             Title="Settings">       <ScrollView Padding="0" Margin="0">
-              <Grid RowDefinitions="Auto, *" Padding="0" Margin="0">
+             BackgroundColor="{DynamicResource PageBackgroundColor}"
+             Title="Settings">
+       <ScrollView Padding="0"
+                   Margin="0">
+              <Grid RowDefinitions="Auto, *"
+                    Padding="0"
+                    Margin="0">
                      <!-- Header Area - Clean Design -->
                      <Grid Grid.Row="0"
                            ColumnDefinitions="Auto,*"
@@ -27,125 +32,130 @@
                                    TextColor="{DynamicResource PrimaryColor}"
                                    Margin="16,0,0,0"/>
                      </Grid>
-                     
+
                      <!-- Main Content Area -->
                      <VerticalStackLayout Grid.Row="1"
                                           Padding="24,0,24,24"
                                           Spacing="15"
                                           BackgroundColor="{DynamicResource PageBackgroundColor}"
-                                          Margin="0,10,0,0">                     <!-- Theme Section -->
-                     <Border Stroke="{DynamicResource BorderColor}"
-                             StrokeThickness="0.5"
-                             StrokeShape="RoundRectangle 12"
-                             BackgroundColor="{DynamicResource NeutralColor}">
-                            <Border.Shadow>
-                                <Shadow Brush="#20000000"
-                                        Offset="0,2"
-                                        Radius="4"
-                                        Opacity="0.2" />
-                            </Border.Shadow>
-                            <VerticalStackLayout Spacing="16" Padding="16,10">
-                                   <Label Text="App Theme"
-                                          FontSize="18"
-                                          FontAttributes="Bold"
-                                          TextColor="{DynamicResource PrimaryTextColor}"/>
+                                          Margin="0,10,0,0">
+                            <!-- Theme Section -->
+                            <Border Stroke="{DynamicResource BorderColor}"
+                                    StrokeThickness="0.5"
+                                    StrokeShape="RoundRectangle 12"
+                                    BackgroundColor="{DynamicResource NeutralColor}">
+                                   <Border.Shadow>
+                                          <Shadow Brush="#20000000"
+                                                  Offset="0,2"
+                                                  Radius="4"
+                                                  Opacity="0.2"/>
+                                   </Border.Shadow>
+                                   <VerticalStackLayout Spacing="16"
+                                                        Padding="16,10">
+                                          <Label Text="App Theme"
+                                                 FontSize="18"
+                                                 FontAttributes="Bold"
+                                                 TextColor="{DynamicResource PrimaryTextColor}"/>
 
-                                   <Label Text="Choose your preferred appearance for the app:"
-                                          FontSize="14"
-                                          TextColor="{DynamicResource PrimaryTextColor}"/>
-                                   <RadioButton x:Name="SystemThemeRadio"
-                                                Content="System Theme"
-                                                GroupName="ThemeGroup"
-                                                CheckedChanged="ThemeRadioButton_CheckedChanged"
-                                                TextColor="{DynamicResource PrimaryTextColor}"
-                                                IsChecked="True"/>
-
-                                   <RadioButton x:Name="LightThemeRadio"
-                                                Content="Light Theme"
-                                                GroupName="ThemeGroup"
-                                                TextColor="{DynamicResource PrimaryTextColor}"
-                                                CheckedChanged="ThemeRadioButton_CheckedChanged"/>
-
-                                   <RadioButton x:Name="DarkThemeRadio"
-                                                Content="Dark Theme"
-                                                GroupName="ThemeGroup"
-                                                TextColor="{DynamicResource PrimaryTextColor}"
-                                                CheckedChanged="ThemeRadioButton_CheckedChanged"/>
-
-                                   <Label Text="Theme changes will apply immediately"
-                                          FontSize="12"
-                                          TextColor="{AppThemeBinding Light=Gray, Dark=#BBBBBB}"/>
-                            </VerticalStackLayout>
-                     </Border>
-
-                     <!-- Data File Section -->
-                     <Border Stroke="{DynamicResource BorderColor}"
-                             BackgroundColor="{DynamicResource PageBackgroundColor}">
-                            <VerticalStackLayout Spacing="16" Padding="16,10">
-                                   <Label Text="Data File Location"
-                                          FontSize="18"
-                                          FontAttributes="Bold"
-                                          TextColor="{DynamicResource PrimaryTextColor}"/>
-
-                                   <Label x:Name="DataFilePath"
-                                          Text="Loading..."
-                                          FontSize="14"
-                                          LineBreakMode="CharacterWrap"
-                                          TextColor="{DynamicResource PrimaryTextColor}"/>
-
-                                   <HorizontalStackLayout Spacing="10"
-                                                          HorizontalOptions="Center">
-                                          <Button x:Name="SelectDataFileButton"
-                                                  Text="Select File"
-                                                  Clicked="SelectDataFileButton_Clicked"
-                                                  BackgroundColor="#008000"
-                                                  TextColor="White"
-                                                  WidthRequest="110"/>
-
-                                          <Button x:Name="CreateDataFileButton"
-                                                  Text="Create New"
-                                                  Clicked="CreateDataFileButton_Clicked"
-                                                  BackgroundColor="#0078D4"
-                                                  TextColor="White"
-                                                  WidthRequest="110"/>
-
-                                          <Button x:Name="UseDefaultButton"
-                                                  Text="Use Default"
-                                                  Clicked="UseDefaultButton_Clicked"
-                                                  BackgroundColor="#512BD4"
-                                                  TextColor="White"
-                                                  WidthRequest="110"/>
-                                   </HorizontalStackLayout>
-                            </VerticalStackLayout>
-                     </Border>
-
-                     <!-- About Section -->
-                     <Border Stroke="{DynamicResource BorderColor}"
-                             BackgroundColor="{DynamicResource PageBackgroundColor}">
-                            <VerticalStackLayout Spacing="8" Padding="16,10">
-                                   <Label Text="About"
-                                          FontSize="18"
-                                          FontAttributes="Bold"
-                                          TextColor="{DynamicResource PrimaryTextColor}"/>
-
-                                   <Label Text="CafeMaestro - Coffee Roasting App"
-                                          FontSize="16"
-                                          TextColor="{DynamicResource PrimaryTextColor}"/>
-
-                                   <HorizontalStackLayout Spacing="5">
-                                          <Label Text="Version:"
+                                          <Label Text="Choose your preferred appearance for the app:"
                                                  FontSize="14"
                                                  TextColor="{DynamicResource PrimaryTextColor}"/>
-                                          <Label x:Name="VersionLabel"
-                                                 Text="1.0.0"
-                                                 FontSize="14"
+                                          <RadioButton x:Name="SystemThemeRadio"
+                                                       Content="System Theme"
+                                                       GroupName="ThemeGroup"
+                                                       CheckedChanged="ThemeRadioButton_CheckedChanged"
+                                                       TextColor="{DynamicResource PrimaryTextColor}"
+                                                       IsChecked="True"/>
+
+                                          <RadioButton x:Name="LightThemeRadio"
+                                                       Content="Light Theme"
+                                                       GroupName="ThemeGroup"
+                                                       TextColor="{DynamicResource PrimaryTextColor}"
+                                                       CheckedChanged="ThemeRadioButton_CheckedChanged"/>
+
+                                          <RadioButton x:Name="DarkThemeRadio"
+                                                       Content="Dark Theme"
+                                                       GroupName="ThemeGroup"
+                                                       TextColor="{DynamicResource PrimaryTextColor}"
+                                                       CheckedChanged="ThemeRadioButton_CheckedChanged"/>
+
+                                          <Label Text="Theme changes will apply immediately"
+                                                 FontSize="12"
+                                                 TextColor="{AppThemeBinding Light=Gray, Dark=#BBBBBB}"/>
+                                   </VerticalStackLayout>
+                            </Border>
+
+                            <!-- Data File Section -->
+                            <Border Stroke="{DynamicResource BorderColor}"
+                                    BackgroundColor="{DynamicResource PageBackgroundColor}">
+                                   <VerticalStackLayout Spacing="16"
+                                                        Padding="16,10">
+                                          <Label Text="Data File Location"
+                                                 FontSize="18"
+                                                 FontAttributes="Bold"
                                                  TextColor="{DynamicResource PrimaryTextColor}"/>
-                                   </HorizontalStackLayout>                                   <Label Text="© 2025 CafeMaestro Team"
-                                          FontSize="14"
-                                          TextColor="{AppThemeBinding Light=Gray, Dark=#BBBBBB}"/>
-                            </VerticalStackLayout>
-                     </Border>
-              </VerticalStackLayout>
-            </Grid>
+
+                                          <Label x:Name="DataFilePath"
+                                                 Text="Loading..."
+                                                 FontSize="14"
+                                                 LineBreakMode="CharacterWrap"
+                                                 TextColor="{DynamicResource PrimaryTextColor}"/>
+
+                                          <HorizontalStackLayout Spacing="10"
+                                                                 HorizontalOptions="Center">
+                                                 <Button x:Name="SelectDataFileButton"
+                                                         Text="Select File"
+                                                         Clicked="SelectDataFileButton_Clicked"
+                                                         BackgroundColor="#008000"
+                                                         TextColor="White"
+                                                         WidthRequest="110"/>
+
+                                                 <Button x:Name="CreateDataFileButton"
+                                                         Text="Create New"
+                                                         Clicked="CreateDataFileButton_Clicked"
+                                                         BackgroundColor="#0078D4"
+                                                         TextColor="White"
+                                                         WidthRequest="110"/>
+
+                                                 <Button x:Name="UseDefaultButton"
+                                                         Text="Use Default"
+                                                         Clicked="UseDefaultButton_Clicked"
+                                                         BackgroundColor="#512BD4"
+                                                         TextColor="White"
+                                                         WidthRequest="110"/>
+                                          </HorizontalStackLayout>
+                                   </VerticalStackLayout>
+                            </Border>
+
+                            <!-- About Section -->
+                            <Border Stroke="{DynamicResource BorderColor}"
+                                    BackgroundColor="{DynamicResource PageBackgroundColor}">
+                                   <VerticalStackLayout Spacing="8"
+                                                        Padding="16,10">
+                                          <Label Text="About"
+                                                 FontSize="18"
+                                                 FontAttributes="Bold"
+                                                 TextColor="{DynamicResource PrimaryTextColor}"/>
+
+                                          <Label Text="CafeMaestro - Coffee Roasting App"
+                                                 FontSize="16"
+                                                 TextColor="{DynamicResource PrimaryTextColor}"/>
+
+                                          <HorizontalStackLayout Spacing="5">
+                                                 <Label Text="Version:"
+                                                        FontSize="14"
+                                                        TextColor="{DynamicResource PrimaryTextColor}"/>
+                                                 <Label x:Name="VersionLabel"
+                                                        Text="1.0.0"
+                                                        FontSize="14"
+                                                        TextColor="{DynamicResource PrimaryTextColor}"/>
+                                          </HorizontalStackLayout>
+                                          <Label Text="© 2025 CafeMaestro Team"
+                                                 FontSize="14"
+                                                 TextColor="{AppThemeBinding Light=Gray, Dark=#BBBBBB}"/>
+                                   </VerticalStackLayout>
+                            </Border>
+                     </VerticalStackLayout>
+              </Grid>
        </ScrollView>
 </ContentPage>
