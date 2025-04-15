@@ -257,8 +257,45 @@ namespace CafeMaestro.Services
                 appData.AppVersion = GetAppVersion();
                 
                 // Serialize and save
-                string jsonString = JsonSerializer.Serialize(appData, _jsonOptions);
-                await File.WriteAllTextAsync(_filePath, jsonString);
+                try
+                {
+                    string jsonString = JsonSerializer.Serialize(appData, _jsonOptions);
+                    System.Diagnostics.Debug.WriteLine($"Serialized data successfully, length: {jsonString.Length}");
+                    
+                    // Verify file path and directory
+                    string? directory = Path.GetDirectoryName(_filePath);
+                    if (string.IsNullOrEmpty(directory))
+                    {
+                        System.Diagnostics.Debug.WriteLine($"Invalid directory path: '{directory}' for file: '{_filePath}'");
+                        return false;
+                    }
+                    
+                    // Ensure directory exists
+                    if (!Directory.Exists(directory))
+                    {
+                        System.Diagnostics.Debug.WriteLine($"Creating directory: {directory}");
+                        Directory.CreateDirectory(directory);
+                    }
+                    
+                    // Check file write access
+                    try
+                    {
+                        System.Diagnostics.Debug.WriteLine($"Attempting to write to file: {_filePath}");
+                        await File.WriteAllTextAsync(_filePath, jsonString);
+                        System.Diagnostics.Debug.WriteLine($"Successfully wrote to file: {_filePath}");
+                    }
+                    catch (Exception fileEx)
+                    {
+                        System.Diagnostics.Debug.WriteLine($"File write error: {fileEx.Message}, {fileEx.GetType().Name}");
+                        throw;
+                    }
+                    
+                }
+                catch (JsonException jsonEx)
+                {
+                    System.Diagnostics.Debug.WriteLine($"JSON serialization error: {jsonEx.Message}");
+                    throw;
+                }
                 
                 // Update cache
                 _cachedData = appData;
@@ -275,6 +312,15 @@ namespace CafeMaestro.Services
             catch (Exception ex)
             {
                 System.Diagnostics.Debug.WriteLine($"Error saving app data: {ex.Message}");
+                System.Diagnostics.Debug.WriteLine($"Error type: {ex.GetType().Name}");
+                System.Diagnostics.Debug.WriteLine($"Stack trace: {ex.StackTrace}");
+                
+                if (ex.InnerException != null)
+                {
+                    System.Diagnostics.Debug.WriteLine($"Inner exception: {ex.InnerException.Message}");
+                    System.Diagnostics.Debug.WriteLine($"Inner exception type: {ex.InnerException.GetType().Name}");
+                }
+                
                 return false;
             }
             finally

@@ -13,7 +13,7 @@ namespace CafeMaestro.Models
         public string Process { get; set; } = "";
         public string Notes { get; set; } = "";
         public double Quantity { get; set; } // in kg
-        public decimal Price { get; set; }
+        public decimal? Price { get; set; } // Optional price
         public string Link { get; set; } = "";
         public double RemainingQuantity { get; set; } // track how much is left
 
@@ -27,7 +27,7 @@ namespace CafeMaestro.Models
         public string QuantityDisplay => $"{RemainingQuantity:F2}kg / {Quantity:F2}kg";
 
         [JsonIgnore]
-        public string PriceDisplay => $"${Price:F2}";
+        public string PriceDisplay => Price.HasValue ? $"${Price:F2}" : "Price not set";
         
         [JsonIgnore]
         public bool IsOutOfStock => RemainingQuantity <= 0;

@@ -105,6 +105,63 @@ public partial class BeanInventoryPage : ContentPage
         
         // Subscribe to data changes
         _appDataService.DataChanged += OnAppDataChanged;
+        
+        // Subscribe to navigation events to refresh data when returning to this page
+        this.Loaded += BeanInventoryPage_Loaded;
+        this.NavigatedTo += BeanInventoryPage_NavigatedTo;
+    }
+    
+    private void BeanInventoryPage_Loaded(object? sender, EventArgs e)
+    {
+        System.Diagnostics.Debug.WriteLine("BeanInventoryPage_Loaded event triggered");
+        // Refresh data when page is loaded
+        MainThread.BeginInvokeOnMainThread(async () => 
+        {
+            await ForceRefreshData();
+        });
+    }
+    
+    private void BeanInventoryPage_NavigatedTo(object? sender, NavigatedToEventArgs e)
+    {
+        System.Diagnostics.Debug.WriteLine("BeanInventoryPage_NavigatedTo event triggered");
+        // Refresh data when navigated to this page
+        MainThread.BeginInvokeOnMainThread(async () => 
+        {
+            await ForceRefreshData();
+        });
+    }
+    
+    // Force a full refresh from the data store
+    private async Task ForceRefreshData()
+    {
+        try
+        {
+            System.Diagnostics.Debug.WriteLine("Force refreshing bean inventory data");
+            
+            // Force a reload from the data file
+            await _appDataService.ReloadDataAsync();
+            
+            // Get the fresh beans
+            var beans = await _beanService.GetAllBeansAsync();
+            
+            // Update the UI
+            MainThread.BeginInvokeOnMainThread(() => 
+            {
+                _beans.Clear();
+                
+                // Sort by purchase date (newest first)
+                foreach (var bean in beans.OrderByDescending(b => b.PurchaseDate))
+                {
+                    _beans.Add(bean);
+                }
+                
+                System.Diagnostics.Debug.WriteLine($"Force refreshed bean inventory with {_beans.Count} beans");
+            });
+        }
+        catch (Exception ex)
+        {
+            System.Diagnostics.Debug.WriteLine($"Error force refreshing bean inventory: {ex.Message}");
+        }
     }
     
     private void OnAppDataChanged(object? sender, AppData appData)
@@ -132,15 +189,15 @@ public partial class BeanInventoryPage : ContentPage
     {
         base.OnAppearing();
         
-        // Get the data from our binding context if available
-        if (BindingContext is NavigationParameters navParams)
+        System.Diagnostics.Debug.WriteLine("BeanInventoryPage.OnAppearing - Refreshing beans list");
+        
+        // Always refresh data from the service to ensure we're showing the latest
+        await LoadBeans();
+        
+        // Get the data from our binding context if available - can be used as a fallback
+        if (BindingContext is NavigationParameters navParams && navParams.AppData != null)
         {
             UpdateBeansFromAppData(navParams.AppData);
-        }
-        else
-        {
-            // Fallback to loading from the AppDataService if binding context not set
-            await LoadBeans();
         }
     }
 
@@ -200,9 +257,29 @@ public partial class BeanInventoryPage : ContentPage
 
     private async Task EditBean(Bean bean)
     {
-        // Create BeanEditPage directly but pass in our services
-        var beanEditPage = new BeanEditPage(bean, _beanService, _appDataService);
-        await Navigation.PushAsync(beanEditPage);
+        try {
+            // First fetch the fresh bean from the service to ensure we have the latest data
+            // and that we're working with the exact instance that's in the collection
+            var freshBean = await _beanService.GetBeanByIdAsync(bean.Id);
+            
+            if (freshBean == null)
+            {
+                System.Diagnostics.Debug.WriteLine($"Bean with ID {bean.Id} not found when trying to edit");
+                await DisplayAlert("Error", "Bean not found. Please refresh and try again.", "OK");
+                return;
+            }
+            
+            System.Diagnostics.Debug.WriteLine($"Editing bean with ID: {freshBean.Id}, Name: {freshBean.CoffeeName}");
+            
+            // Create BeanEditPage with the fresh bean and pass in our services
+            var beanEditPage = new BeanEditPage(freshBean, _beanService, _appDataService);
+            await Navigation.PushAsync(beanEditPage);
+        }
+        catch (Exception ex)
+        {
+            System.Diagnostics.Debug.WriteLine($"Error preparing to edit bean: {ex.Message}");
+            await DisplayAlert("Error", "Error preparing to edit bean", "OK");
+        }
     }
 
     private async Task DeleteBean(Bean bean)

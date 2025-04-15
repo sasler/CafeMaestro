@@ -117,7 +117,8 @@ namespace CafeMaestro.Services
         {
             try
             {
-                // The Bean constructor already initializes a new Guid, so no need to set it here
+                // Log before adding bean
+                System.Diagnostics.Debug.WriteLine($"Adding bean: {bean.CoffeeName}, ID: {bean.Id}, Price: {bean.Price?.ToString() ?? "null"}");
                 
                 // First verify current path
                 if (_currentDataFilePath != _appDataService.DataFilePath)
@@ -129,16 +130,23 @@ namespace CafeMaestro.Services
                 
                 // Load full app data
                 var appData = await _appDataService.LoadAppDataAsync();
+                System.Diagnostics.Debug.WriteLine($"Loaded app data with {appData.Beans.Count} beans");
                 
                 // Add the bean
                 appData.Beans.Add(bean);
+                System.Diagnostics.Debug.WriteLine($"Added bean to collection, new count: {appData.Beans.Count}");
                 
                 // Save updated app data
-                return await _appDataService.SaveAppDataAsync(appData);
+                bool saveResult = await _appDataService.SaveAppDataAsync(appData);
+                System.Diagnostics.Debug.WriteLine($"Save result: {saveResult}");
+                
+                return saveResult;
             }
             catch (Exception ex)
             {
                 System.Diagnostics.Debug.WriteLine($"Error adding bean: {ex.Message}");
+                System.Diagnostics.Debug.WriteLine($"Exception type: {ex.GetType().Name}");
+                System.Diagnostics.Debug.WriteLine($"Stack trace: {ex.StackTrace}");
                 return false;
             }
         }
@@ -147,6 +155,9 @@ namespace CafeMaestro.Services
         {
             try
             {
+                // Log before updating bean
+                System.Diagnostics.Debug.WriteLine($"Updating bean: {bean.CoffeeName}, ID: {bean.Id}, Price: {bean.Price?.ToString() ?? "null"}");
+                
                 // First verify current path
                 if (_currentDataFilePath != _appDataService.DataFilePath)
                 {
@@ -157,24 +168,40 @@ namespace CafeMaestro.Services
                 
                 // Load full app data
                 var appData = await _appDataService.LoadAppDataAsync();
+                System.Diagnostics.Debug.WriteLine($"Loaded app data with {appData.Beans.Count} beans for update");
                 
                 // Find the bean to update
                 int index = appData.Beans.FindIndex(b => b.Id == bean.Id);
+                System.Diagnostics.Debug.WriteLine($"Bean found at index: {index}");
                 
                 if (index >= 0)
                 {
                     // Replace the old bean with the updated one
                     appData.Beans[index] = bean;
+                    System.Diagnostics.Debug.WriteLine($"Replaced bean at index {index}");
                     
                     // Save updated app data
-                    return await _appDataService.SaveAppDataAsync(appData);
+                    bool saveResult = await _appDataService.SaveAppDataAsync(appData);
+                    System.Diagnostics.Debug.WriteLine($"Save result: {saveResult}");
+                    
+                    return saveResult;
                 }
                 
-                return false;
+                // If the bean was not found, add it as a new bean instead of failing
+                System.Diagnostics.Debug.WriteLine($"Bean with ID {bean.Id} not found in collection, adding it as new bean");
+                appData.Beans.Add(bean);
+                
+                // Save updated app data with the new bean
+                bool addResult = await _appDataService.SaveAppDataAsync(appData);
+                System.Diagnostics.Debug.WriteLine($"Added bean since it wasn't found, save result: {addResult}");
+                
+                return addResult;
             }
             catch (Exception ex)
             {
                 System.Diagnostics.Debug.WriteLine($"Error updating bean: {ex.Message}");
+                System.Diagnostics.Debug.WriteLine($"Exception type: {ex.GetType().Name}");
+                System.Diagnostics.Debug.WriteLine($"Stack trace: {ex.StackTrace}");
                 return false;
             }
         }
@@ -264,6 +291,16 @@ namespace CafeMaestro.Services
                 
                 // Log loaded data
                 System.Diagnostics.Debug.WriteLine($"BeanService loaded {appData.Beans?.Count ?? 0} beans from {_currentDataFilePath}");
+                
+                // Log details of each bean for debugging
+                if (appData.Beans != null && appData.Beans.Count > 0)
+                {
+                    System.Diagnostics.Debug.WriteLine("Beans in collection:");
+                    foreach (var bean in appData.Beans)
+                    {
+                        System.Diagnostics.Debug.WriteLine($"  Bean ID: {bean.Id}, Name: {bean.CoffeeName}, Country: {bean.Country}");
+                    }
+                }
                 
                 return appData.Beans ?? new List<Bean>();
             }
