@@ -240,6 +240,21 @@ public partial class RoastLogPage : ContentPage
 
     private async void BackButton_Clicked(object sender, EventArgs e)
     {
-        await Navigation.PopAsync();
+        try
+        {
+            // Use Shell.Current.GoToAsync to navigate back to the MainPage
+            await Shell.Current.GoToAsync("//MainPage");
+            System.Diagnostics.Debug.WriteLine("Navigating back to MainPage using absolute route");
+        }
+        catch (Exception ex)
+        {
+            System.Diagnostics.Debug.WriteLine($"Error navigating back: {ex.Message}");
+            // Fallback to direct Shell navigation if GoToAsync fails
+            if (Shell.Current?.Items.Count > 0)
+            {
+                Shell.Current.CurrentItem = Shell.Current.Items[0]; // MainPage is the first item
+                System.Diagnostics.Debug.WriteLine("Navigated back using direct Shell.Current.CurrentItem assignment");
+            }
+        }
     }
 }
