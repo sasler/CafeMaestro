@@ -25,6 +25,8 @@ public partial class RoastPage : ContentPage
     private Bean? selectedBean = null;
     private List<Bean> availableBeans = new List<Bean>();
 
+    private CancellationTokenSource? _animationCancellationTokenSource;
+
     public RoastPage(TimerService? timerService = null, RoastDataService? roastDataService = null, 
                     BeanService? beanService = null, AppDataService? appDataService = null, 
                     PreferencesService? preferencesService = null)
@@ -531,6 +533,10 @@ public partial class RoastPage : ContentPage
 
         // Disable manual editing while timer is running
         TimeEntry.IsEnabled = false;
+        
+        // Show and animate the timer running indicator
+        TimerRunningIndicator.IsVisible = true;
+        StartTimerPulseAnimation();
     }
 
     private void PauseTimer_Clicked(object sender, EventArgs e)
@@ -541,6 +547,9 @@ public partial class RoastPage : ContentPage
 
         // Re-enable manual editing when timer is paused
         TimeEntry.IsEnabled = true;
+        
+        // Stop the pulse animation when timer is paused
+        StopTimerPulseAnimation();
     }
 
     private void StopTimer_Clicked(object sender, EventArgs e)
@@ -554,6 +563,9 @@ public partial class RoastPage : ContentPage
 
         // Re-enable manual editing when timer is stopped
         TimeEntry.IsEnabled = true;
+        
+        // Stop the pulse animation when timer is stopped
+        StopTimerPulseAnimation();
     }
 
     private void ResetTimer_Clicked(object sender, EventArgs e)
@@ -571,6 +583,54 @@ public partial class RoastPage : ContentPage
 
         // Re-enable manual editing when timer is reset
         TimeEntry.IsEnabled = true;
+        
+        // Stop the pulse animation when timer is reset
+        StopTimerPulseAnimation();
+    }
+    
+    private void StartTimerPulseAnimation()
+    {
+        // Make sure the indicator is visible
+        TimerRunningIndicator.IsVisible = true;
+        
+        // Cancel any existing animation
+        _animationCancellationTokenSource?.Cancel();
+        _animationCancellationTokenSource = new CancellationTokenSource();
+        
+        // Start a new animation task
+        MainThread.BeginInvokeOnMainThread(async () => {
+            try {
+                var token = _animationCancellationTokenSource.Token;
+                
+                // Continue animation until canceled
+                while (!token.IsCancellationRequested) {
+                    // Toggle between visible and invisible to create blinking effect
+                    TimerRunningIndicator.IsVisible = true;
+                    await Task.Delay(500, token); // Visible for 500ms
+                    
+                    if (token.IsCancellationRequested) break;
+                    
+                    TimerRunningIndicator.IsVisible = false;
+                    await Task.Delay(500, token); // Invisible for 500ms
+                }
+            }
+            catch (TaskCanceledException) {
+                // This is expected when canceling the animation
+            }
+            catch (Exception ex) {
+                System.Diagnostics.Debug.WriteLine($"Animation error: {ex.Message}");
+            }
+        });
+    }
+    
+    private void StopTimerPulseAnimation()
+    {
+        // Cancel the animation
+        _animationCancellationTokenSource?.Cancel();
+        _animationCancellationTokenSource = null;
+        
+        // Ensure indicator is hidden
+        TimerRunningIndicator.IsVisible = false;
     }
 
     protected override void OnDisappearing()

@@ -1,5 +1,4 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <svg width="60" height="60" xmlns="http://www.w3.org/2000/svg">
-  <rect width="60" height="60" fill="black"/>
   <polygon points="20,15 20,45 45,30" fill="white"/>
 </svg>

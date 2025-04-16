@@ -11,7 +11,7 @@
                 Margin="0">
             <!-- Header Area - Clean Design -->
             <Grid Grid.Row="0"
-                  ColumnDefinitions="Auto,*"
+                  ColumnDefinitions="Auto,*,Auto"
                   Padding="20,20"
                   HeightRequest="100"
                   HorizontalOptions="Fill"
@@ -31,6 +31,30 @@
                        VerticalOptions="Center"
                        TextColor="{DynamicResource PrimaryColor}"
                        Margin="16,0,0,0"/>
+                       
+                <!-- Action button in the top right -->
+                <ImageButton Grid.Column="2"
+                       x:Name="SaveRoastButton"
+                       Source="save_icon.png"
+                       Clicked="SaveRoast_Clicked"
+                       BackgroundColor="{DynamicResource PrimaryColor}"
+                       WidthRequest="50"
+                       HeightRequest="50"
+                       Padding="10"
+                       CornerRadius="25"
+                       VerticalOptions="Center">
+                    <VisualStateManager.VisualStateGroups>
+                        <VisualStateGroup Name="CommonStates">
+                            <VisualState Name="Normal" />
+                            <VisualState Name="Pressed">
+                                <VisualState.Setters>
+                                    <Setter Property="Scale" Value="0.9" />
+                                    <Setter Property="Opacity" Value="0.8" />
+                                </VisualState.Setters>
+                            </VisualState>
+                        </VisualStateGroup>
+                    </VisualStateManager.VisualStateGroups>
+                </ImageButton>
             </Grid>
 
             <!-- Main Content Area -->
@@ -40,22 +64,8 @@
                                  BackgroundColor="{DynamicResource PageBackgroundColor}"
                                  Margin="0,10,0,0">
 
-                <Grid ColumnDefinitions="*,Auto">
-                    <Label Text="Green Bean Selection:"
-                           Grid.Column="0"
-                           VerticalOptions="Center"
-                           TextColor="{DynamicResource PrimaryTextColor}"/>
-                    <Button Text="+"
-                            Grid.Column="1"
-                            WidthRequest="40"
-                            HeightRequest="40"
-                            CornerRadius="20"
-                            FontSize="20"
-                            BackgroundColor="{DynamicResource PrimaryColor}"
-                            TextColor="{DynamicResource ButtonTextColor}"
-                            Clicked="ManageBeans_Clicked"
-                            ToolTipProperties.Text="Manage Bean Inventory"/>
-                </Grid>
+                <Label Text="Green Bean Selection:"
+                       TextColor="{DynamicResource PrimaryTextColor}"/>
                 <Picker x:Name="BeanPicker"
                         Title="Select Bean Type"
                         TextColor="{DynamicResource PrimaryTextColor}"
@@ -79,25 +89,45 @@
                 </Border>
                 <Label Text="Roasting Time:"
                        TextColor="{DynamicResource PrimaryTextColor}"/>
-                <!-- Timer UI with digital watch styling -->
-                <VerticalStackLayout Spacing="10">
-                    <!-- The digital timer display should keep its unique styling regardless of theme -->
-                    <Border Stroke="{DynamicResource TimerBorderColor}"
-                            BackgroundColor="Black"
-                            Padding="10"
-                            StrokeShape="RoundRectangle 5"
-                            HorizontalOptions="Center">
+                <!-- Timer UI with improved styling -->
+                <VerticalStackLayout Spacing="15">
+                    <!-- The digital timer display with improved styling -->
+                    <Border Stroke="{DynamicResource BorderColor}"
+                            BackgroundColor="{DynamicResource NeutralColor}"
+                            Padding="20"
+                            StrokeShape="RoundRectangle 12"
+                            HorizontalOptions="Fill"
+                            HeightRequest="120">
+                        <Border.Shadow>
+                            <Shadow Brush="#20000000"
+                                    Offset="0,3"
+                                    Radius="6"
+                                    Opacity="0.2"/>
+                        </Border.Shadow>
                         <Grid>
                             <!-- Digital display label for the timer -->
                             <Label x:Name="TimeDisplayLabel"
                                    Text="00:00"
-                                   FontSize="48"
+                                   FontSize="80"
                                    HorizontalOptions="Center"
+                                   VerticalOptions="Center"
                                    HorizontalTextAlignment="Center"
                                    VerticalTextAlignment="Center"
-                                   TextColor="#32FF6A"
-                                   FontFamily="Digital7"
-                                   BackgroundColor="Black"/>
+                                   TextColor="{DynamicResource PrimaryColor}"
+                                   FontFamily="Digital7"/>
+
+                            <!-- Pulsating indicator for when timer is running -->
+                            <Border x:Name="TimerRunningIndicator"
+                                   WidthRequest="20"
+                                   HeightRequest="20"
+                                   BackgroundColor="Red"
+                                   Stroke="Transparent"
+                                   StrokeShape="RoundRectangle 10"
+                                   HorizontalOptions="End"
+                                   VerticalOptions="Start"
+                                   Margin="0,10,10,0"
+                                   Padding="0"
+                                   IsVisible="False"/>
 
                             <!-- Invisible entry for user input - same size as the label but transparent -->
                             <Entry x:Name="TimeEntry"
@@ -116,26 +146,23 @@
                         <ImageButton x:Name="StartTimerButton"
                                      Source="timer_play_icon.png"
                                      Clicked="StartTimer_Clicked"
-                                     BackgroundColor="Transparent"
-                                     WidthRequest="60"
-                                     HeightRequest="60">
+                                     BackgroundColor="{DynamicResource PrimaryColor}"
+                                     WidthRequest="50"
+                                     HeightRequest="50"
+                                     Padding="10"
+                                     CornerRadius="25">
                             <VisualStateManager.VisualStateGroups>
-                                <VisualStateGroup x:Name="CommonStates">
-                                    <VisualState x:Name="Normal"/>
-                                    <VisualState x:Name="PointerOver">
+                                <VisualStateGroup Name="CommonStates">
+                                    <VisualState Name="Normal" />
+                                    <VisualState Name="Pressed">
                                         <VisualState.Setters>
-                                            <Setter Property="Scale"
-                                                    Value="1.1"/>
-                                            <Setter Property="Opacity"
-                                                    Value="0.8"/>
+                                            <Setter Property="Scale" Value="0.9" />
+                                            <Setter Property="Opacity" Value="0.8" />
                                         </VisualState.Setters>
                                     </VisualState>
-                                    <VisualState x:Name="Pressed">
+                                    <VisualState Name="Disabled">
                                         <VisualState.Setters>
-                                            <Setter Property="Scale"
-                                                    Value="0.9"/>
-                                            <Setter Property="BackgroundColor"
-                                                    Value="#333333"/>
+                                            <Setter Property="Opacity" Value="0.5" />
                                         </VisualState.Setters>
                                     </VisualState>
                                 </VisualStateGroup>
@@ -144,33 +171,24 @@
                         <ImageButton x:Name="PauseTimerButton"
                                      Source="timer_pause_icon.png"
                                      Clicked="PauseTimer_Clicked"
-                                     BackgroundColor="Transparent"
-                                     WidthRequest="60"
-                                     HeightRequest="60"
+                                     BackgroundColor="{DynamicResource TertiaryColor}"
+                                     WidthRequest="50"
+                                     HeightRequest="50"
+                                     Padding="10"
+                                     CornerRadius="25"
                                      IsEnabled="False">
                             <VisualStateManager.VisualStateGroups>
-                                <VisualStateGroup x:Name="CommonStates">
-                                    <VisualState x:Name="Normal"/>
-                                    <VisualState x:Name="PointerOver">
+                                <VisualStateGroup Name="CommonStates">
+                                    <VisualState Name="Normal" />
+                                    <VisualState Name="Pressed">
                                         <VisualState.Setters>
-                                            <Setter Property="Scale"
-                                                    Value="1.1"/>
-                                            <Setter Property="Opacity"
-                                                    Value="0.8"/>
+                                            <Setter Property="Scale" Value="0.9" />
+                                            <Setter Property="Opacity" Value="0.8" />
                                         </VisualState.Setters>
                                     </VisualState>
-                                    <VisualState x:Name="Pressed">
+                                    <VisualState Name="Disabled">
                                         <VisualState.Setters>
-                                            <Setter Property="Scale"
-                                                    Value="0.9"/>
-                                            <Setter Property="BackgroundColor"
-                                                    Value="#333333"/>
-                                        </VisualState.Setters>
-                                    </VisualState>
-                                    <VisualState x:Name="Disabled">
-                                        <VisualState.Setters>
-                                            <Setter Property="Opacity"
-                                                    Value="0.5"/>
+                                            <Setter Property="Opacity" Value="0.5" />
                                         </VisualState.Setters>
                                     </VisualState>
                                 </VisualStateGroup>
@@ -179,33 +197,24 @@
                         <ImageButton x:Name="StopTimerButton"
                                      Source="timer_stop_icon.png"
                                      Clicked="StopTimer_Clicked"
-                                     BackgroundColor="Transparent"
-                                     WidthRequest="60"
-                                     HeightRequest="60"
+                                     BackgroundColor="{DynamicResource TertiaryColor}"
+                                     WidthRequest="50"
+                                     HeightRequest="50"
+                                     Padding="10"
+                                     CornerRadius="25"
                                      IsEnabled="False">
                             <VisualStateManager.VisualStateGroups>
-                                <VisualStateGroup x:Name="CommonStates">
-                                    <VisualState x:Name="Normal"/>
-                                    <VisualState x:Name="PointerOver">
+                                <VisualStateGroup Name="CommonStates">
+                                    <VisualState Name="Normal" />
+                                    <VisualState Name="Pressed">
                                         <VisualState.Setters>
-                                            <Setter Property="Scale"
-                                                    Value="1.1"/>
-                                            <Setter Property="Opacity"
-                                                    Value="0.8"/>
+                                            <Setter Property="Scale" Value="0.9" />
+                                            <Setter Property="Opacity" Value="0.8" />
                                         </VisualState.Setters>
                                     </VisualState>
-                                    <VisualState x:Name="Pressed">
+                                    <VisualState Name="Disabled">
                                         <VisualState.Setters>
-                                            <Setter Property="Scale"
-                                                    Value="0.9"/>
-                                            <Setter Property="BackgroundColor"
-                                                    Value="#333333"/>
-                                        </VisualState.Setters>
-                                    </VisualState>
-                                    <VisualState x:Name="Disabled">
-                                        <VisualState.Setters>
-                                            <Setter Property="Opacity"
-                                                    Value="0.5"/>
+                                            <Setter Property="Opacity" Value="0.5" />
                                         </VisualState.Setters>
                                     </VisualState>
                                 </VisualStateGroup>
@@ -214,26 +223,23 @@
                         <ImageButton x:Name="ResetTimerButton"
                                      Source="timer_reset_icon.png"
                                      Clicked="ResetTimer_Clicked"
-                                     BackgroundColor="Transparent"
-                                     WidthRequest="60"
-                                     HeightRequest="60">
+                                     BackgroundColor="{DynamicResource TertiaryColor}"
+                                     WidthRequest="50"
+                                     HeightRequest="50"
+                                     Padding="10"
+                                     CornerRadius="25">
                             <VisualStateManager.VisualStateGroups>
-                                <VisualStateGroup x:Name="CommonStates">
-                                    <VisualState x:Name="Normal"/>
-                                    <VisualState x:Name="PointerOver">
+                                <VisualStateGroup Name="CommonStates">
+                                    <VisualState Name="Normal" />
+                                    <VisualState Name="Pressed">
                                         <VisualState.Setters>
-                                            <Setter Property="Scale"
-                                                    Value="1.1"/>
-                                            <Setter Property="Opacity"
-                                                    Value="0.8"/>
+                                            <Setter Property="Scale" Value="0.9" />
+                                            <Setter Property="Opacity" Value="0.8" />
                                         </VisualState.Setters>
                                     </VisualState>
-                                    <VisualState x:Name="Pressed">
+                                    <VisualState Name="Disabled">
                                         <VisualState.Setters>
-                                            <Setter Property="Scale"
-                                                    Value="0.9"/>
-                                            <Setter Property="BackgroundColor"
-                                                    Value="#333333"/>
+                                            <Setter Property="Opacity" Value="0.5" />
                                         </VisualState.Setters>
                                     </VisualState>
                                 </VisualStateGroup>
@@ -290,22 +296,6 @@
                         AutoSize="TextChanges"
                         TextColor="{DynamicResource PrimaryTextColor}"
                         BackgroundColor="{DynamicResource EntryBackgroundColor}"/>
-                <!-- Save Button -->
-                <Button x:Name="SaveRoastButton"
-                        Text="Save Roast Log"
-                        Clicked="SaveRoast_Clicked"
-                        BackgroundColor="{DynamicResource PrimaryColor}"
-                        TextColor="{DynamicResource ButtonTextColor}"
-                        HorizontalOptions="Fill"
-                        Margin="0,20,0,10"/>
-
-                <!-- View Saved Logs Button -->
-                <Button x:Name="ViewLogsButton"
-                        Text="View Saved Logs"
-                        Clicked="ViewLogs_Clicked"
-                        BackgroundColor="{DynamicResource SecondaryColor}"
-                        TextColor="{DynamicResource ButtonTextColor}"
-                        HorizontalOptions="Fill"/>
             </VerticalStackLayout>
         </Grid>
     </ScrollView>
