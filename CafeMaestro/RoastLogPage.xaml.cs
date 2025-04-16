@@ -154,11 +154,21 @@ public partial class RoastLogPage : ContentPage
         }
     }
     
+    private void UpdateRecordCount(int count)
+    {
+        MainThread.BeginInvokeOnMainThread(() =>
+        {
+            RecordCountLabel.Text = $"Records: {count}";
+        });
+    }
+
     private void OnAppDataChanged(object? sender, AppData appData)
     {
         // Reload the UI with the new data
         MainThread.BeginInvokeOnMainThread(() => {
             UpdateRoastLogsFromAppData(appData);
+            // Update the record count display
+            UpdateRecordCount(appData.RoastLogs?.Count ?? 0);
         });
     }
     
@@ -173,24 +183,106 @@ public partial class RoastLogPage : ContentPage
         }
         
         System.Diagnostics.Debug.WriteLine($"Updated RoastLogPage with {_roastLogs.Count} logs from AppData");
+        
+        // Update the record count display
+        UpdateRecordCount(_roastLogs.Count);
     }
 
-    protected override async void OnAppearing()
+    protected override void OnAppearing()
     {
         base.OnAppearing();
+        System.Diagnostics.Debug.WriteLine("RoastLogPage.OnAppearing");
         
-        System.Diagnostics.Debug.WriteLine("RoastLogPage.OnAppearing - Refreshing roast logs");
+        // Set RefreshView's command execution
+        RoastLogRefreshView.Command = new Command(async () => {
+            try
+            {
+                System.Diagnostics.Debug.WriteLine("RoastLogRefreshView.Command executing");
+                await RefreshRoastLogs();
+            }
+            finally
+            {
+                // Always ensure IsRefreshing is set to false when complete
+                RoastLogRefreshView.IsRefreshing = false;
+                System.Diagnostics.Debug.WriteLine("RoastLogRefreshView.Command completed");
+            }
+        });
         
-        // Always refresh data from the service to ensure we're showing the latest
-        await LoadRoastData();
-        
-        // Get the data from our binding context if available
-        if (BindingContext is NavigationParameters navParams)
-        {
-            UpdateRoastLogsFromAppData(navParams.AppData);
-        }
+        // Initial load of roast logs - awaited with _ to suppress warning while still allowing execution to continue
+        _ = RefreshRoastLogs();
     }
     
+    private async Task RefreshRoastLogs()
+    {
+        try
+        {
+            System.Diagnostics.Debug.WriteLine("Refreshing roast logs from service...");
+            
+            // Get all roast logs from service
+            var logs = await _roastDataService.GetAllRoastLogsAsync();
+            
+            // Update UI on main thread
+            await MainThread.InvokeOnMainThreadAsync(() => {
+                // Clear existing roast logs
+                _roastLogs.Clear();
+                
+                // Add logs in order (newest first)
+                foreach (var log in logs.OrderByDescending(l => l.RoastDate))
+                {
+                    _roastLogs.Add(log);
+                }
+                
+                // Update the record count
+                UpdateRecordCount(logs.Count);
+                
+                System.Diagnostics.Debug.WriteLine($"Refreshed roast logs: {_roastLogs.Count} loaded");
+            });
+        }
+        catch (Exception ex)
+        {
+            System.Diagnostics.Debug.WriteLine($"Error refreshing roast logs: {ex.Message}");
+            System.Diagnostics.Debug.WriteLine($"Stack trace: {ex.StackTrace}");
+        }
+    }
+
+    private async Task LoadRoastLogs()
+    {
+        try
+        {
+            RoastLogRefreshView.IsRefreshing = true;
+            
+            // Get all roast logs and update the UI
+            var logs = await _roastDataService.GetAllRoastLogsAsync();
+            
+            // Update UI on main thread
+            await MainThread.InvokeOnMainThreadAsync(() => {
+                System.Diagnostics.Debug.WriteLine($"Loaded {logs.Count} roast logs");
+                
+                // Clear and repopulate the collection
+                _roastLogs.Clear();
+                
+                // Add each log in descending date order (newest first)
+                foreach (var log in logs.OrderByDescending(l => l.RoastDate))
+                {
+                    _roastLogs.Add(log);
+                }
+                
+                // Force refresh the CollectionView by resetting its ItemsSource
+                RoastLogCollection.ItemsSource = null;
+                RoastLogCollection.ItemsSource = _roastLogs;
+            });
+        }
+        catch (Exception ex)
+        {
+            System.Diagnostics.Debug.WriteLine($"Error loading roast logs: {ex.Message}");
+            await DisplayAlert("Error", $"Failed to load roast logs: {ex.Message}", "OK");
+        }
+        finally
+        {
+            RoastLogRefreshView.IsRefreshing = false;
+        }
+    }
+
     protected override void OnDisappearing()
     {
         base.OnDisappearing();

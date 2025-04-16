@@ -15,6 +15,7 @@ namespace CafeMaestro.Services
         private readonly JsonSerializerOptions _jsonOptions;
         private readonly SemaphoreSlim _initLock = new SemaphoreSlim(1, 1);
         private bool _isInitialized = false;
+        private string _currentDataFilePath = string.Empty;
         
         // Property to get the current data file path
         public string DataFilePath 
@@ -836,6 +837,33 @@ namespace CafeMaestro.Services
             {
                 System.Diagnostics.Debug.WriteLine($"Error adding roast log: {ex.Message}");
                 return false;
+            }
+        }
+
+        public async Task<List<RoastData>> GetAllRoastLogsAsync()
+        {
+            try
+            {
+                // First verify current path
+                if (_currentDataFilePath != _appDataService.DataFilePath)
+                {
+                    System.Diagnostics.Debug.WriteLine($"Path mismatch detected in RoastDataService.GetAllRoastLogsAsync. Expected: {_currentDataFilePath}, Actual: {_appDataService.DataFilePath}");
+                    // Synchronize the path
+                    _currentDataFilePath = _appDataService.DataFilePath;
+                }
+                
+                // Load full app data from current (correct) path
+                var appData = await _appDataService.LoadAppDataAsync();
+                
+                // Log loaded data
+                System.Diagnostics.Debug.WriteLine($"RoastDataService loaded {appData.RoastLogs?.Count ?? 0} roast logs from {_currentDataFilePath}");
+                
+                return appData.RoastLogs ?? new List<RoastData>();
+            }
+            catch (Exception ex)
+            {
+                System.Diagnostics.Debug.WriteLine($"Error loading roast logs: {ex.Message}");
+                return new List<RoastData>();
             }
         }
     }

@@ -157,12 +157,17 @@ namespace CafeMaestro.Services
             
             System.Diagnostics.Debug.WriteLine($"Setting custom file path to: {filePath}");
             _pathInitializedFromPreferences = true;
+            
+            // Set path through property to trigger events
             DataFilePath = filePath;
             
             // Ensure the directory exists
             var directory = Path.GetDirectoryName(filePath);
             if (!string.IsNullOrEmpty(directory) && !Directory.Exists(directory))
+            {
                 Directory.CreateDirectory(directory);
+                System.Diagnostics.Debug.WriteLine($"Created directory: {directory}");
+            }
                 
             // Load data from the new path
             var data = await LoadAppDataInternalAsync(filePath);
@@ -184,7 +189,10 @@ namespace CafeMaestro.Services
             
             // Create the directory if it doesn't exist
             if (!Directory.Exists(defaultFolder))
+            {
                 Directory.CreateDirectory(defaultFolder);
+                System.Diagnostics.Debug.WriteLine($"Created directory: {defaultFolder}");
+            }
             
             System.Diagnostics.Debug.WriteLine($"Resetting to default path in Documents: {defaultFilePath}");
             _pathInitializedFromPreferences = true;
@@ -260,8 +268,43 @@ namespace CafeMaestro.Services
                     return _cachedData;
                 }
                 
-                string jsonString = await File.ReadAllTextAsync(filePath);
-                var appData = JsonSerializer.Deserialize<AppData>(jsonString, _jsonOptions);
+                // CRITICAL FIX FOR ANDROID: Use File.OpenRead instead of File.ReadAllTextAsync
+                string jsonString;
+                try 
+                {
+                    // Use streams instead of direct file reads for better Android compatibility
+                    using (var fileStream = File.OpenRead(filePath))
+                    using (var reader = new StreamReader(fileStream))
+                    {
+                        jsonString = await reader.ReadToEndAsync();
+                    }
+                    System.Diagnostics.Debug.WriteLine($"Successfully read {jsonString.Length} characters from file with stream");
+                }
+                catch (Exception ex)
+                {
+                    System.Diagnostics.Debug.WriteLine($"Error reading file with stream, falling back to direct read: {ex.Message}");
+                    // Fall back to direct read if stream fails
+                    jsonString = await File.ReadAllTextAsync(filePath);
+                }
+                
+                if (string.IsNullOrWhiteSpace(jsonString))
+                {
+                    System.Diagnostics.Debug.WriteLine("File was empty, creating new data");
+                    _cachedData = CreateEmptyAppData();
+                    return _cachedData;
+                }
+                
+                AppData? appData;
+                try
+                {
+                    appData = JsonSerializer.Deserialize<AppData>(jsonString, _jsonOptions);
+                }
+                catch (JsonException ex)
+                {
+                    System.Diagnostics.Debug.WriteLine($"JSON deserialization failed: {ex.Message}, creating empty data");
+                    _cachedData = CreateEmptyAppData();
+                    return _cachedData;
+                }
                 
                 if (appData == null)
                 {
@@ -272,6 +315,17 @@ namespace CafeMaestro.Services
                 {
                     System.Diagnostics.Debug.WriteLine($"Successfully loaded data from: {filePath}");
                     System.Diagnostics.Debug.WriteLine($"  Beans: {appData.Beans?.Count ?? 0}, Roasts: {appData.RoastLogs?.Count ?? 0}");
+                    
+                    // Initialize collections if they're null
+                    if (appData.Beans == null)
+                    {
+                        appData.Beans = new List<Bean>();
+                    }
+                    
+                    if (appData.RoastLogs == null)
+                    {
+                        appData.RoastLogs = new List<RoastData>();
+                    }
                 }
                 
                 _cachedData = appData;
@@ -282,6 +336,8 @@ namespace CafeMaestro.Services
             catch (Exception ex)
             {
                 System.Diagnostics.Debug.WriteLine($"Error loading app data: {ex.Message}");
+                System.Diagnostics.Debug.WriteLine($"Error type: {ex.GetType().Name}");
+                System.Diagnostics.Debug.WriteLine($"Stack trace: {ex.StackTrace}");
                 
                 // Return empty data on error
                 _cachedData = CreateEmptyAppData();
@@ -375,19 +431,24 @@ namespace CafeMaestro.Services
                         Directory.CreateDirectory(directory);
                     }
                     
-                    // Check file write access
-                    try
+                    // CRITICAL FIX FOR ANDROID: Use streams for file writing
+                    try 
                     {
-                        System.Diagnostics.Debug.WriteLine($"Attempting to write to file: {filePath}");
+                        // Use file stream with FileMode.Create for better compatibility
+                        using (var fileStream = new FileStream(filePath, FileMode.Create, FileAccess.Write, FileShare.None))
+                        using (var writer = new StreamWriter(fileStream))
+                        {
+                            await writer.WriteAsync(jsonString);
+                            await writer.FlushAsync();
+                        }
+                        System.Diagnostics.Debug.WriteLine($"Successfully wrote to file with stream: {filePath}");
+                    }
+                    catch (Exception streamEx)
+                    {
+                        System.Diagnostics.Debug.WriteLine($"Error writing with stream: {streamEx.Message}, falling back to direct write");
+                        // Fall back to direct write if stream fails
                         await File.WriteAllTextAsync(filePath, jsonString);
-                        System.Diagnostics.Debug.WriteLine($"Successfully wrote to file: {filePath}");
                     }
-                    catch (Exception fileEx)
-                    {
-                        System.Diagnostics.Debug.WriteLine($"File write error: {fileEx.Message}, {fileEx.GetType().Name}");
-                        throw;
-                    }
-                    
                 }
                 catch (JsonException jsonEx)
                 {
@@ -511,7 +572,23 @@ namespace CafeMaestro.Services
                 
                 // Create and save empty data to the file directly to ensure it works
                 string jsonString = JsonSerializer.Serialize(emptyData, _jsonOptions);
-                await File.WriteAllTextAsync(filePath, jsonString);
+                
+                // CRITICAL FIX FOR ANDROID: Use streams for file writing
+                try 
+                {
+                    using (var fileStream = new FileStream(filePath, FileMode.Create, FileAccess.Write, FileShare.None))
+                    using (var writer = new StreamWriter(fileStream))
+                    {
+                        await writer.WriteAsync(jsonString);
+                        await writer.FlushAsync();
+                    }
+                    System.Diagnostics.Debug.WriteLine($"Successfully created new file with stream: {filePath}");
+                }
+                catch (Exception streamEx)
+                {
+                    System.Diagnostics.Debug.WriteLine($"Error writing with stream: {streamEx.Message}, falling back to direct write");
+                    await File.WriteAllTextAsync(filePath, jsonString);
+                }
                 
                 // Verify file was created
                 if (!File.Exists(filePath))

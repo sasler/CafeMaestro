@@ -148,52 +148,71 @@ public partial class RoastPage : ContentPage
         }
     }
 
-    protected override void OnAppearing()
+    protected override async void OnAppearing()
     {
         base.OnAppearing();
         // Refresh beans when returning to this page
-        LoadBeans();
-        // Re-initialize data file path in case it was changed in another page
-        InitializeDataFilePath();
+        await LoadAvailableBeans();
     }
 
-    private async void LoadBeans()
+    private async Task LoadAvailableBeans()
     {
         try
         {
-            // Get available beans (only ones with remaining quantity > 0)
-            availableBeans = await beanService.GetAvailableBeansAsync();
-
-            // Clear existing picker items
+            // Clear existing items first
             BeanPicker.Items.Clear();
-
-            if (availableBeans.Count == 0)
+            BeanPicker.Title = "Loading beans...";
+            
+            // Use MainThread to ensure UI updates happen on the UI thread
+            await MainThread.InvokeOnMainThreadAsync(async () =>
             {
-                // No beans available
-                BeanPicker.Items.Add("No beans - Add beans first");
-                BeanPicker.SelectedIndex = 0;
-                BeanPicker.IsEnabled = false;
-                selectedBean = null;
-                return;
-            }
-
-            BeanPicker.IsEnabled = true;
-
-            // Add beans to picker
-            foreach (var bean in availableBeans)
-            {
-                BeanPicker.Items.Add(bean.DisplayName);
-            }
-
-            // Select first item by default if nothing was selected before
-            if (BeanPicker.SelectedIndex == -1 && BeanPicker.Items.Count > 0)
-            {
-                BeanPicker.SelectedIndex = 0;
-            }
+                // Get available beans from service
+                availableBeans = await beanService.GetAvailableBeansAsync();
+                
+                // Log the count for debugging
+                System.Diagnostics.Debug.WriteLine($"Loaded {availableBeans.Count} available beans");
+                
+                if (availableBeans.Count > 0)
+                {
+                    // Clear the picker again in case any items were added while loading
+                    BeanPicker.Items.Clear();
+                    
+                    // Add each bean to the picker
+                    foreach (var bean in availableBeans)
+                    {
+                        BeanPicker.Items.Add(bean.DisplayName);
+                    }
+                    
+                    // Update picker title
+                    BeanPicker.Title = "Select Bean Type";
+                    
+                    // Select first bean as default
+                    BeanPicker.SelectedIndex = 0;
+                    selectedBean = availableBeans[0];
+                } 
+                else 
+                {
+                    // No beans available
+                    BeanPicker.Title = "No beans available";
+                    selectedBean = null;
+                }
+            });
         }
         catch (Exception ex)
         {
-            await DisplayAlert("Error", $"Failed to load beans: {ex.Message}", "OK");
+            System.Diagnostics.Debug.WriteLine($"Error loading beans: {ex.Message}");
+            
+            // Update UI on main thread to show error
+            await MainThread.InvokeOnMainThreadAsync(() =>
+            {
+                BeanPicker.Items.Clear();
+                BeanPicker.Items.Add("Error loading beans");
+                BeanPicker.Title = "Error loading beans";
+                selectedBean = null;
+            });
+            
+            // Display alert to user
+            await DisplayAlert("Error", "Failed to load beans. Please try again.", "OK");
         }
     }
 
@@ -619,7 +638,7 @@ public partial class RoastPage : ContentPage
                 await DisplayAlert("Success", "Roast data saved successfully!", "OK");
 
                 // Refresh beans after saving (quantity has changed)
-                LoadBeans();
+                await LoadAvailableBeans();
 
                 // Clear form for next entry
                 ClearForm();

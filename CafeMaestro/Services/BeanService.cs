@@ -328,8 +328,47 @@ namespace CafeMaestro.Services
         
         public async Task<List<Bean>> GetAvailableBeansAsync()
         {
-            var allBeans = await GetAllBeansAsync();
-            return allBeans.Where(b => b.RemainingQuantity > 0).ToList();
+            try
+            {
+                System.Diagnostics.Debug.WriteLine("Getting available beans (RemainingQuantity > 0)...");
+                
+                // First verify current path matches what we expect
+                if (_currentDataFilePath != _appDataService.DataFilePath)
+                {
+                    System.Diagnostics.Debug.WriteLine($"Path mismatch detected in BeanService.GetAvailableBeansAsync. Expected: {_currentDataFilePath}, Actual: {_appDataService.DataFilePath}");
+                    // Synchronize the path
+                    _currentDataFilePath = _appDataService.DataFilePath;
+                }
+                
+                // Load app data directly from file to ensure freshness
+                var appData = await _appDataService.LoadAppDataAsync();
+                
+                // Check if beans collection is null or empty
+                if (appData.Beans == null || appData.Beans.Count == 0)
+                {
+                    System.Diagnostics.Debug.WriteLine("No beans found in app data");
+                    return new List<Bean>();
+                }
+                
+                // Get beans with remaining quantity
+                var availableBeans = appData.Beans.Where(b => b.RemainingQuantity > 0).ToList();
+                
+                System.Diagnostics.Debug.WriteLine($"Found {availableBeans.Count} available beans out of {appData.Beans.Count} total beans");
+                
+                // Log details of available beans for debugging
+                foreach (var bean in availableBeans)
+                {
+                    System.Diagnostics.Debug.WriteLine($"  Available bean: ID={bean.Id}, Name={bean.DisplayName}, Remaining={bean.RemainingQuantity}kg");
+                }
+                
+                return availableBeans;
+            }
+            catch (Exception ex)
+            {
+                System.Diagnostics.Debug.WriteLine($"Error getting available beans: {ex.Message}");
+                System.Diagnostics.Debug.WriteLine($"Stack trace: {ex.StackTrace}");
+                return new List<Bean>();
+            }
         }
 
         // Make this method static since it doesn't access instance data

@@ -164,60 +164,119 @@ public partial class BeanInventoryPage : ContentPage
         }
     }
     
+    private void UpdateRecordCount(int count)
+    {
+        MainThread.BeginInvokeOnMainThread(() =>
+        {
+            RecordCountLabel.Text = $"Records: {count}";
+        });
+    }
+
     private void OnAppDataChanged(object? sender, AppData appData)
     {
         // Reload the UI with the new data
         MainThread.BeginInvokeOnMainThread(() => {
             UpdateBeansFromAppData(appData);
+            // Update the record count display
+            UpdateRecordCount(appData.Beans?.Count ?? 0);
         });
     }
     
     private void UpdateBeansFromAppData(AppData appData)
     {
-        _beans.Clear();
-        
-        // Sort by purchase date (newest first)
-        foreach (var bean in appData.Beans.OrderByDescending(b => b.PurchaseDate))
-        {
-            _beans.Add(bean);
-        }
-        
-        System.Diagnostics.Debug.WriteLine($"Updated BeanInventoryPage with {_beans.Count} beans from AppData");
+        MainThread.BeginInvokeOnMainThread(() => {
+            try {
+                // Clear the collection on the UI thread
+                _beans.Clear();
+                
+                // Track how many beans we're adding for debugging
+                int count = 0;
+                
+                // Sort by purchase date (newest first) and add each bean
+                foreach (var bean in appData.Beans.OrderByDescending(b => b.PurchaseDate))
+                {
+                    // Make sure we're adding a valid bean with required properties
+                    if (bean != null && bean.Id != Guid.Empty)
+                    {
+                        _beans.Add(bean);
+                        count++;
+                    }
+                    else
+                    {
+                        System.Diagnostics.Debug.WriteLine($"Skipping invalid bean in UpdateBeansFromAppData");
+                    }
+                }
+                
+                System.Diagnostics.Debug.WriteLine($"Updated BeanInventoryPage with {count} beans from AppData");
+                
+                // Update the record count display
+                UpdateRecordCount(count);
+                
+                // Force refresh the CollectionView
+                BeansCollection.ItemsSource = null;
+                BeansCollection.ItemsSource = _beans;
+            }
+            catch (Exception ex) {
+                System.Diagnostics.Debug.WriteLine($"Error in UpdateBeansFromAppData: {ex.Message}");
+                System.Diagnostics.Debug.WriteLine($"Stack trace: {ex.StackTrace}");
+            }
+        });
     }
 
-    protected override async void OnAppearing()
+    protected override void OnAppearing()
     {
         base.OnAppearing();
+        System.Diagnostics.Debug.WriteLine("BeanInventoryPage.OnAppearing");
         
-        System.Diagnostics.Debug.WriteLine("BeanInventoryPage.OnAppearing - Refreshing beans list");
+        // Set RefreshView's command execution
+        BeansRefreshView.Command = new Command(async () => {
+            try
+            {
+                System.Diagnostics.Debug.WriteLine("RefreshView.Command executing");
+                await RefreshBeans();
+            }
+            finally
+            {
+                // Always ensure IsRefreshing is set to false when complete
+                BeansRefreshView.IsRefreshing = false;
+                System.Diagnostics.Debug.WriteLine("RefreshView.Command completed");
+            }
+        });
         
-        // Always refresh data from the service to ensure we're showing the latest
-        await LoadBeans();
-        
-        // Get the data from our binding context if available - can be used as a fallback
-        if (BindingContext is NavigationParameters navParams && navParams.AppData != null)
-        {
-            UpdateBeansFromAppData(navParams.AppData);
-        }
+        // Initial load of beans - awaited with _ to suppress warning while still allowing execution to continue
+        _ = RefreshBeans();
     }
-
-    private async Task LoadBeans()
+    
+    private async Task RefreshBeans()
     {
         try
         {
-            BeansRefreshView.IsRefreshing = true;
-
-            // Use the current data from AppDataService directly
-            var appData = _appDataService.CurrentData;
-            UpdateBeansFromAppData(appData);
+            System.Diagnostics.Debug.WriteLine("Refreshing beans from service...");
+            
+            // Get all beans from service
+            var beans = await _beanService.GetAllBeansAsync();
+            
+            // Update UI on main thread
+            await MainThread.InvokeOnMainThreadAsync(() => {
+                // Clear existing beans
+                _beans.Clear();
+                
+                // Add beans in order (newest first)
+                foreach (var bean in beans.OrderByDescending(b => b.PurchaseDate))
+                {
+                    _beans.Add(bean);
+                }
+                
+                // Update the record count
+                UpdateRecordCount(beans.Count);
+                
+                System.Diagnostics.Debug.WriteLine($"Refreshed beans: {_beans.Count} loaded");
+            });
         }
         catch (Exception ex)
         {
-            await DisplayAlert("Error", $"Failed to load beans: {ex.Message}", "OK");
-        }
-        finally
-        {
-            BeansRefreshView.IsRefreshing = false;
+            System.Diagnostics.Debug.WriteLine($"Error refreshing beans: {ex.Message}");
+            System.Diagnostics.Debug.WriteLine($"Stack trace: {ex.StackTrace}");
         }
     }
 
@@ -338,6 +397,46 @@ public partial class BeanInventoryPage : ContentPage
         {
             System.Diagnostics.Debug.WriteLine($"Error navigating to import page: {ex.Message}");
             await DisplayAlert("Error", "Unable to open import page", "OK");
+        }
+    }
+
+    private async void DeleteBean_Clicked(object sender, EventArgs e)
+    {
+        if (sender is BindableObject bindable && bindable.BindingContext is Bean bean)
+        {
+            await DeleteBean(bean);
+        }
+    }
+
+    private async Task LoadBeans()
+    {
+        try
+        {
+            BeansRefreshView.IsRefreshing = true;
+            
+            // Get all beans from the service
+            var beans = await _beanService.GetAllBeansAsync();
+            
+            // Update the UI on the main thread
+            await MainThread.InvokeOnMainThreadAsync(() => {
+                _beans.Clear();
+                
+                foreach (var bean in beans.OrderByDescending(b => b.PurchaseDate))
+                {
+                    _beans.Add(bean);
+                }
+                
+                System.Diagnostics.Debug.WriteLine($"Loaded {_beans.Count} beans");
+            });
+        }
+        catch (Exception ex)
+        {
+            System.Diagnostics.Debug.WriteLine($"Error loading beans: {ex.Message}");
+            await DisplayAlert("Error", "Failed to load beans", "OK");
+        }
+        finally
+        {
+            BeansRefreshView.IsRefreshing = false;
         }
     }
 }
