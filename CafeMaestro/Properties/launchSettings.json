@@ -3,6 +3,12 @@
     "Windows Machine": {
       "commandName": "Project",
       "nativeDebugging": false
+    },
+    "Android Device": {
+      "commandName": "Project",
+      "targetProject": "CafeMaestro.csproj",
+      "targetFramework": "net9.0-android",
+      "nativeDebugging": true
     }
   }
 }
