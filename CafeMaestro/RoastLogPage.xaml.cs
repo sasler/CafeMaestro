@@ -158,7 +158,7 @@ public partial class RoastLogPage : ContentPage
     {
         MainThread.BeginInvokeOnMainThread(() =>
         {
-            RecordCountLabel.Text = $"Records: {count}";
+            RecordCountLabel.Text = $"{count}";
         });
     }
 
@@ -357,6 +357,12 @@ public partial class RoastLogPage : ContentPage
             System.Diagnostics.Debug.WriteLine($"Error navigating to RoastImportPage: {ex.Message}");
             await DisplayAlert("Error", $"Could not navigate to import page: {ex.Message}", "OK");
         }
+    }
+
+    private async void AddRoast_Clicked(object sender, EventArgs e)
+    {
+        // Navigate to the RoastPage for adding a new roast
+        await Shell.Current.GoToAsync("//RoastPage");
     }
 
     // We'll keep OnBackButtonPressed for hardware back button support

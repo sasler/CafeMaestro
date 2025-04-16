@@ -5,7 +5,7 @@
              BackgroundColor="{DynamicResource PageBackgroundColor}"
              Title="Roast Log">
     
-    <Grid RowDefinitions="Auto,*,Auto" Padding="0" Margin="0">
+    <Grid RowDefinitions="Auto,*" Padding="0" Margin="0">
         <!-- Header Area -->
         <Grid Grid.Row="0"
               ColumnDefinitions="Auto,*,Auto"
@@ -28,19 +28,43 @@
                    VerticalOptions="Center"
                    TextColor="{DynamicResource PrimaryColor}"
                    Margin="16,0,0,0"/>
-            <!-- Record count indicator -->
-            <Border Grid.Column="2"
-                    Padding="8,4"
-                    BackgroundColor="{DynamicResource PrimaryColor}"
-                    StrokeShape="RoundRectangle 8">
-                <VerticalStackLayout>
+            <!-- Action buttons and record count in the top right -->
+            <HorizontalStackLayout Grid.Column="2" 
+                                  Spacing="10" 
+                                  VerticalOptions="Center">
+                <ImageButton x:Name="AddRoastButton"
+                       Source="add_icon.png"
+                       Clicked="AddRoast_Clicked"
+                       BackgroundColor="{DynamicResource PrimaryColor}"
+                       WidthRequest="50"
+                       HeightRequest="50"
+                       Padding="10"
+                       CornerRadius="25"/>
+                       
+                <ImageButton x:Name="ImportButton"
+                       Source="import_icon.png"
+                       Clicked="ImportButton_Clicked"
+                       BackgroundColor="{DynamicResource TertiaryColor}"
+                       WidthRequest="50"
+                       HeightRequest="50"
+                       Padding="10"
+                       CornerRadius="25"/>
+                       
+                <Border BackgroundColor="{DynamicResource PrimaryColor}"
+                        WidthRequest="50"
+                        HeightRequest="50"
+                        Stroke="{DynamicResource BorderColor}"
+                        StrokeThickness="0"
+                        StrokeShape="RoundRectangle 25">
                     <Label x:Name="RecordCountLabel"
-                           Text="Records: 0"
-                           FontSize="12"
+                           Text="0"
+                           FontSize="20"
+                           FontAttributes="Bold"
                            TextColor="White"
-                           HorizontalOptions="Center"/>
-                </VerticalStackLayout>
-            </Border>
+                           HorizontalOptions="Center"
+                           VerticalOptions="Center"/>
+                </Border>
+            </HorizontalStackLayout>
         </Grid>
         
         <!-- Content Area with CollectionView -->
@@ -119,18 +143,5 @@
                 </CollectionView.ItemTemplate>
             </CollectionView>
         </RefreshView>
-        
-        <!-- Button bar at bottom -->
-        <HorizontalStackLayout Grid.Row="2"
-                               Spacing="10"
-                               Padding="20"
-                               HorizontalOptions="Center">
-            <Button x:Name="ImportButton"
-                    Text="Import CSV"
-                    Clicked="ImportButton_Clicked"
-                    BackgroundColor="{DynamicResource AccentColor}"
-                    TextColor="{DynamicResource ButtonTextColor}"
-                    WidthRequest="120"/>
-        </HorizontalStackLayout>
     </Grid>
 </ContentPage>

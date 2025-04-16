@@ -168,7 +168,7 @@ public partial class BeanInventoryPage : ContentPage
     {
         MainThread.BeginInvokeOnMainThread(() =>
         {
-            RecordCountLabel.Text = $"Records: {count}";
+            RecordCountLabel.Text = $"{count}";
         });
     }
 
