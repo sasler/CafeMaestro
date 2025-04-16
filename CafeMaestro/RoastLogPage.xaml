@@ -131,12 +131,6 @@
                     BackgroundColor="{DynamicResource AccentColor}"
                     TextColor="{DynamicResource ButtonTextColor}"
                     WidthRequest="120"/>
-            <Button x:Name="BackButton"
-                    Text="Back"
-                    Clicked="BackButton_Clicked"
-                    BackgroundColor="{DynamicResource PrimaryColor}"
-                    TextColor="{DynamicResource ButtonTextColor}"
-                    WidthRequest="100"/>
         </HorizontalStackLayout>
     </Grid>
 </ContentPage>

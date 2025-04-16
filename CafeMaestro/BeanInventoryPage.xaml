@@ -143,12 +143,6 @@
                               Spacing="10"
                               Padding="20"
                               HorizontalOptions="End">
-            <Button x:Name="BackButton"
-                    Text="Back"
-                    Clicked="BackButton_Clicked"
-                    BackgroundColor="{DynamicResource SecondaryColor}"
-                    TextColor="{DynamicResource ButtonTextColor}"
-                    WidthRequest="100"/>
             <Button x:Name="ImportButton"
                     Text="Import"
                     Clicked="ImportButton_Clicked"

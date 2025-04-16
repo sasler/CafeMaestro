@@ -359,30 +359,10 @@ public partial class RoastLogPage : ContentPage
         }
     }
 
-    private async void BackButton_Clicked(object sender, EventArgs e)
-    {
-        try
-        {
-            // Use Shell.Current.GoToAsync to navigate back to the MainPage
-            await Shell.Current.GoToAsync("//MainPage");
-            System.Diagnostics.Debug.WriteLine("Navigating back to MainPage using absolute route");
-        }
-        catch (Exception ex)
-        {
-            System.Diagnostics.Debug.WriteLine($"Error navigating back: {ex.Message}");
-            // Fallback to direct Shell navigation if GoToAsync fails
-            if (Shell.Current?.Items.Count > 0)
-            {
-                Shell.Current.CurrentItem = Shell.Current.Items[0]; // MainPage is the first item
-                System.Diagnostics.Debug.WriteLine("Navigated back using direct Shell.Current.CurrentItem assignment");
-            }
-        }
-    }
-
-    // Override OnBackButtonPressed to handle Android back button
+    // We'll keep OnBackButtonPressed for hardware back button support
     protected override bool OnBackButtonPressed()
     {
-        // Use the same logic as BackButton_Clicked but in a synchronous way
+        // Use the same logic as before but in a synchronous way
         try
         {
             // Navigate back to MainPage using direct Shell.CurrentItem assignment
