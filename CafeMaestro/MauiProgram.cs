@@ -24,9 +24,10 @@ public static class MauiProgram
 		builder.Services.AddSingleton<TimerService>();
 		builder.Services.AddSingleton<PreferencesService>();
 
-        // Register Pages for DI (optional but good practice)
-        builder.Services.AddSingleton<MainPage>();
-        builder.Services.AddTransient<RoastPage>(); // Use Transient if state shouldn't persist across navigations
+        // Register Pages for DI - changing to transient to avoid state retention
+        builder.Services.AddTransient<LoadingPage>();
+        builder.Services.AddTransient<MainPage>();
+        builder.Services.AddTransient<RoastPage>();
         builder.Services.AddTransient<BeanInventoryPage>();
         builder.Services.AddTransient<BeanEditPage>();
         builder.Services.AddTransient<RoastLogPage>();

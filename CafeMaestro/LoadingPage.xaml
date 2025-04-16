@@ -1,0 +1,44 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<ContentPage xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
+             xmlns:local="clr-namespace:CafeMaestro"
+             x:Class="CafeMaestro.LoadingPage"
+             BackgroundColor="{DynamicResource PageBackgroundColor}"
+             Shell.NavBarIsVisible="False">
+
+    <Grid RowDefinitions="*,Auto,*">
+        <StackLayout Grid.Row="1" 
+                     HorizontalOptions="Center" 
+                     VerticalOptions="Center"
+                     Spacing="20">
+
+            <Image Source="cafemaestro_logo.svg"
+                   HeightRequest="120"
+                   WidthRequest="120"
+                   HorizontalOptions="Center">
+                <Image.Behaviors>
+                    <local:RotateBehavior x:Name="ImageRotation" />
+                </Image.Behaviors>
+            </Image>
+
+            <Label Text="CafeMaestro"
+                   FontSize="24"
+                   FontAttributes="Bold"
+                   HorizontalOptions="Center"
+                   TextColor="{DynamicResource PrimaryTextColor}"/>
+
+            <ActivityIndicator IsRunning="True"
+                              Color="{DynamicResource Primary}"
+                              HorizontalOptions="Center"
+                              HeightRequest="50"
+                              WidthRequest="50"/>
+
+            <Label x:Name="StatusLabel"
+                   Text="Loading data..."
+                   FontSize="16"
+                   HorizontalOptions="Center"
+                   TextColor="{DynamicResource SecondaryTextColor}"/>
+        </StackLayout>
+    </Grid>
+
+</ContentPage>
