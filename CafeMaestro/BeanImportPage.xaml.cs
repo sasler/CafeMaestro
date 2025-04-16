@@ -593,4 +593,15 @@ public partial class BeanImportPage : ContentPage
     {
         await Navigation.PopAsync();
     }
+    
+    // Override OnBackButtonPressed to handle Android back button
+    protected override bool OnBackButtonPressed()
+    {
+        // Use the same logic as CancelButton_Clicked but in a synchronous way
+        MainThread.BeginInvokeOnMainThread(() => {
+            Navigation.PopAsync();
+            System.Diagnostics.Debug.WriteLine("Navigated back using hardware back button in BeanImportPage");
+        });
+        return true; // Indicate we've handled the back button
+    }
 }

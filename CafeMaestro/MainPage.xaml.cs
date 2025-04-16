@@ -213,5 +213,24 @@ public partial class MainPage : ContentPage
             Debug.WriteLine($"Error navigating to tab {tabTitle}: {ex.Message}");
         }
     }
+    
+    // Override OnBackButtonPressed to handle Android back button on main page
+    protected override bool OnBackButtonPressed()
+    {
+        try
+        {
+            // On the main page, we want the back button to minimize the app (default behavior)
+            // rather than navigating anywhere, so we don't intercept the event
+            Debug.WriteLine("Back button pressed on MainPage - allowing default behavior (minimize app)");
+            // Return false to let the system handle the back button
+            return false;
+        }
+        catch (Exception ex)
+        {
+            Debug.WriteLine($"Error handling back button in MainPage: {ex.Message}");
+        }
+        
+        return base.OnBackButtonPressed();
+    }
 }
 

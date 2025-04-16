@@ -439,4 +439,29 @@ public partial class BeanInventoryPage : ContentPage
             BeansRefreshView.IsRefreshing = false;
         }
     }
+
+    // Override OnBackButtonPressed to handle Android back button
+    protected override bool OnBackButtonPressed()
+    {
+        // Use the same logic as BackButton_Clicked but in a synchronous way
+        try
+        {
+            // Navigate back to MainPage using direct Shell.CurrentItem assignment
+            // This works better on Android than GoToAsync
+            if (Shell.Current?.Items.Count > 0)
+            {
+                MainThread.BeginInvokeOnMainThread(() => {
+                    Shell.Current.CurrentItem = Shell.Current.Items[0]; // MainPage is the first item
+                    System.Diagnostics.Debug.WriteLine("Navigated back to MainPage using hardware back button");
+                });
+                return true; // Indicate we've handled the back button
+            }
+        }
+        catch (Exception ex)
+        {
+            System.Diagnostics.Debug.WriteLine($"Error handling back button: {ex.Message}");
+        }
+        
+        return base.OnBackButtonPressed(); // Let the system handle it if our code fails
+    }
 }

@@ -709,4 +709,29 @@ public partial class RoastPage : ContentPage
             await DisplayAlert("Error", $"Failed to export data: {ex.Message}", "OK");
         }
     }
+    
+    // Override OnBackButtonPressed to handle Android back button
+    protected override bool OnBackButtonPressed()
+    {
+        // When back button is pressed, navigate to MainPage
+        try
+        {
+            // Navigate back to MainPage using direct Shell.CurrentItem assignment
+            // This works better on Android than GoToAsync
+            if (Shell.Current?.Items.Count > 0)
+            {
+                MainThread.BeginInvokeOnMainThread(() => {
+                    Shell.Current.CurrentItem = Shell.Current.Items[0]; // MainPage is the first item
+                    System.Diagnostics.Debug.WriteLine("Navigated back to MainPage using hardware back button in RoastPage");
+                });
+                return true; // Indicate we've handled the back button
+            }
+        }
+        catch (Exception ex)
+        {
+            System.Diagnostics.Debug.WriteLine($"Error handling back button in RoastPage: {ex.Message}");
+        }
+        
+        return base.OnBackButtonPressed(); // Let the system handle it if our code fails
+    }
 }
