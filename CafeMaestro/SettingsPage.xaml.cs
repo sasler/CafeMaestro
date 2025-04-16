@@ -430,6 +430,38 @@ public partial class SettingsPage : ContentPage
         }
     }
     
+    private async void ExportButton_Clicked(object sender, EventArgs e)
+    {
+        try
+        {
+            var customFileType = new FilePickerFileType(
+                new Dictionary<DevicePlatform, IEnumerable<string>>
+                {
+                    { DevicePlatform.WinUI, new[] { ".csv" } },
+                    { DevicePlatform.Android, new[] { "text/csv" } },
+                    { DevicePlatform.iOS, new[] { "public.comma-separated-values-text" } },
+                    { DevicePlatform.MacCatalyst, new[] { "public.comma-separated-values-text" } }
+                });
+
+            var options = new PickOptions
+            {
+                PickerTitle = "Select where to save CSV file",
+                FileTypes = customFileType
+            };
+
+            var result = await FilePicker.PickAsync(options);
+            if (result != null)
+            {
+                await _roastDataService.ExportRoastLogAsync(result.FullPath);
+                await DisplayAlert("Success", "Roast log exported successfully!", "OK");
+            }
+        }
+        catch (Exception ex)
+        {
+            await DisplayAlert("Error", $"Failed to export data: {ex.Message}", "OK");
+        }
+    }
+    
     // Override OnBackButtonPressed to handle Android back button
     protected override bool OnBackButtonPressed()
     {

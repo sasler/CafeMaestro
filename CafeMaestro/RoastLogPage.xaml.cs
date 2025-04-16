@@ -334,49 +334,14 @@ public partial class RoastLogPage : ContentPage
         }
     }
 
-    private async void DataFileButton_Clicked(object sender, EventArgs e)
+    private void DataFileButton_Clicked(object sender, EventArgs e)
     {
-        try
-        {
-            // Navigate to settings page where data file can be managed
-            await Shell.Current.GoToAsync(nameof(SettingsPage));
-        }
-        catch (Exception ex)
-        {
-            await DisplayAlert("Error", $"Failed to navigate to settings: {ex.Message}", "OK");
-        }
+        // Removed functionality for DataFileButton
     }
 
-    private async void ExportButton_Clicked(object sender, EventArgs e)
+    private void ExportButton_Clicked(object sender, EventArgs e)
     {
-        try
-        {
-            var customFileType = new FilePickerFileType(
-                new Dictionary<DevicePlatform, IEnumerable<string>>
-                {
-                    { DevicePlatform.WinUI, new[] { ".csv" } },
-                    { DevicePlatform.Android, new[] { "text/csv" } },
-                    { DevicePlatform.iOS, new[] { "public.comma-separated-values-text" } },
-                    { DevicePlatform.MacCatalyst, new[] { "public.comma-separated-values-text" } }
-                });
-
-            var options = new PickOptions
-            {
-                PickerTitle = "Select where to save CSV file",
-                FileTypes = customFileType
-            };
-
-            var result = await FilePicker.PickAsync(options);
-            if (result != null)
-            {
-                await _roastDataService.ExportRoastLogAsync(result.FullPath);
-                await DisplayAlert("Success", "Roast log exported successfully!", "OK");
-            }
-        }
-        catch (Exception ex)
-        {
-            await DisplayAlert("Error", $"Failed to export data: {ex.Message}", "OK");
-        }
+        // Removed functionality for ExportButton
     }
 
     private async void ImportButton_Clicked(object sender, EventArgs e)

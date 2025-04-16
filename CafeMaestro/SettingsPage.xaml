@@ -132,6 +132,13 @@
                                                          BackgroundColor="#512BD4"
                                                          TextColor="White"
                                                          WidthRequest="110"/>
+
+                                                 <Button x:Name="ExportButton"
+                                                         Text="Export to CSV"
+                                                         Clicked="ExportButton_Clicked"
+                                                         BackgroundColor="{DynamicResource SecondaryColor}"
+                                                         TextColor="{DynamicResource ButtonTextColor}"
+                                                         WidthRequest="120"/>
                                           </HorizontalStackLayout>
                                    </VerticalStackLayout>
                             </Border>

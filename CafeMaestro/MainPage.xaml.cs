@@ -195,18 +195,30 @@ public partial class MainPage : ContentPage
                 return;
             }
             
-            // Find the tab with the matching title and select it
-            foreach (var item in Shell.Current.Items)
+            // With TabBar implementation, we need to look for ShellContent items instead of FlyoutItems
+            // Get all TabBar items (which will be the only items since we disabled flyout)
+            var tabBar = Shell.Current.Items.FirstOrDefault();
+            if (tabBar == null)
             {
-                if (item is FlyoutItem flyoutItem && flyoutItem.Title == tabTitle)
+                Debug.WriteLine("No TabBar found in Shell.Current.Items");
+                return;
+            }
+            
+            // Find the ShellContent with the matching title
+            foreach (var item in Shell.Current.Items.SelectMany(shellItem => shellItem.Items).SelectMany(shellSection => shellSection.Items))
+            {
+                if (item.Title == tabTitle)
                 {
                     Debug.WriteLine($"Found matching tab with title: {tabTitle}");
-                    Shell.Current.CurrentItem = flyoutItem;
+                    Shell.Current.GoToAsync($"//{item.Route}");
                     return;
                 }
             }
             
-            Debug.WriteLine($"No matching tab found with title: {tabTitle}");
+            // If not found by direct title match, try alternative route names
+            string routeName = tabTitle.Replace(" ", ""); // Convert "Roast Log" to "RoastLog"
+            Shell.Current.GoToAsync($"//{routeName}Page");
+            Debug.WriteLine($"Navigating to route: //{routeName}Page");
         }
         catch (Exception ex)
         {

@@ -4,41 +4,38 @@
     xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
     xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
     xmlns:local="clr-namespace:CafeMaestro"
-    Shell.FlyoutBehavior="Flyout">
+    Shell.FlyoutBehavior="Disabled">
 
-    <FlyoutItem Title="Home" Icon="home_icon.png">
+    <TabBar>
         <ShellContent
-            Title="Coffee Roasting"
+            Title="Home"
+            Icon="home_icon.png"
             ContentTemplate="{DataTemplate local:MainPage}"
             Route="MainPage" />
-    </FlyoutItem>
 
-    <FlyoutItem Title="Roast" Icon="roast_icon.png">
         <ShellContent
-            Title="Roast Coffee"
+            Title="Roast"
+            Icon="roast_icon.png"
             ContentTemplate="{DataTemplate local:RoastPage}"
             Route="RoastPage" />
-    </FlyoutItem>
 
-    <FlyoutItem Title="Roast Log" Icon="log_icon.png">
         <ShellContent
-            Title="Roast History"
+            Title="Roast Log"
+            Icon="log_icon.png"
             ContentTemplate="{DataTemplate local:RoastLogPage}"
             Route="RoastLogPage" />
-    </FlyoutItem>
 
-    <FlyoutItem Title="Beans" Icon="beans_icon.png">
         <ShellContent
-            Title="Bean Inventory"
+            Title="Beans"
+            Icon="beans_icon.png"
             ContentTemplate="{DataTemplate local:BeanInventoryPage}"
             Route="BeanInventoryPage" />
-    </FlyoutItem>
 
-    <FlyoutItem Title="Settings" Icon="settings_icon.png">
         <ShellContent
             Title="Settings"
+            Icon="settings_icon.png"
             ContentTemplate="{DataTemplate local:SettingsPage}"
             Route="SettingsPage" />
-    </FlyoutItem>
+    </TabBar>
 
 </Shell>
