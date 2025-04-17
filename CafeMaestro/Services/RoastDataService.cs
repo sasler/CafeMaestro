@@ -866,5 +866,89 @@ namespace CafeMaestro.Services
                 return new List<RoastData>();
             }
         }
+
+        // Get specific roast log by ID
+        public async Task<RoastData?> GetRoastLogByIdAsync(Guid id)
+        {
+            try
+            {
+                // Load all roast logs
+                var roastLogs = await LoadRoastDataAsync();
+                
+                // Find the specific roast by ID
+                return roastLogs.FirstOrDefault(r => r.Id == id);
+            }
+            catch (Exception ex)
+            {
+                System.Diagnostics.Debug.WriteLine($"Error getting roast log by ID: {ex.Message}");
+                return null;
+            }
+        }
+        
+        // Update an existing roast log
+        public async Task<bool> UpdateRoastLogAsync(RoastData roastData)
+        {
+            try
+            {
+                // Load full app data
+                var appData = await _appDataService.LoadAppDataAsync();
+                
+                // Find the roast to update
+                int index = appData.RoastLogs.FindIndex(r => r.Id == roastData.Id);
+                System.Diagnostics.Debug.WriteLine($"Updating roast log at index: {index}");
+                
+                if (index >= 0)
+                {
+                    // Replace the old roast with the updated one
+                    appData.RoastLogs[index] = roastData;
+                    
+                    // Save updated app data
+                    bool success = await _appDataService.SaveAppDataAsync(appData);
+                    return success;
+                }
+                
+                // If the roast was not found, add it as new
+                System.Diagnostics.Debug.WriteLine($"Roast log with ID {roastData.Id} not found, adding as new");
+                appData.RoastLogs.Add(roastData);
+                
+                // Save updated app data
+                bool addResult = await _appDataService.SaveAppDataAsync(appData);
+                return addResult;
+            }
+            catch (Exception ex)
+            {
+                System.Diagnostics.Debug.WriteLine($"Error updating roast log: {ex.Message}");
+                return false;
+            }
+        }
+        
+        // Delete a roast log by ID
+        public async Task<bool> DeleteRoastLogAsync(Guid roastId)
+        {
+            try
+            {
+                // Load full app data
+                var appData = await _appDataService.LoadAppDataAsync();
+                
+                // Find and remove the roast
+                int index = appData.RoastLogs.FindIndex(r => r.Id == roastId);
+                
+                if (index >= 0)
+                {
+                    // Remove the roast
+                    appData.RoastLogs.RemoveAt(index);
+                    
+                    // Save updated app data
+                    return await _appDataService.SaveAppDataAsync(appData);
+                }
+                
+                return false;
+            }
+            catch (Exception ex)
+            {
+                System.Diagnostics.Debug.WriteLine($"Error deleting roast log: {ex.Message}");
+                return false;
+            }
+        }
     }
 }

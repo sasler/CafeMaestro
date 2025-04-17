@@ -31,6 +31,9 @@ public partial class RoastLogPage : ContentPage
     private readonly PreferencesService _preferencesService;
     private ObservableCollection<RoastData> _roastLogs;
     public ICommand RefreshCommand { get; private set; }
+    public ICommand EditRoastCommand { get; private set; }
+    public ICommand DeleteRoastCommand { get; private set; }
+    public ICommand ItemTappedCommand { get; private set; }
 
     public RoastLogPage(RoastDataService? roastDataService = null, AppDataService? appDataService = null, PreferencesService? preferencesService = null)
     {
@@ -108,6 +111,77 @@ public partial class RoastLogPage : ContentPage
         RoastLogCollection.ItemsSource = _roastLogs;
 
         RefreshCommand = new Command(async () => await LoadRoastData());
+        
+        // Edit command - navigate to RoastPage with the selected roast data
+        EditRoastCommand = new Command<RoastData>(async (roastData) => {
+            try {
+                // We already have the roast data from the collection view, so we can use it directly
+                System.Diagnostics.Debug.WriteLine($"Editing roast with ID: {roastData.Id}, Date: {roastData.RoastDate}");
+                
+                // Navigate to RoastPage with parameters - convert Guid to string
+                var navigationParameter = new Dictionary<string, object>
+                {
+                    { "EditRoastId", roastData.Id.ToString() }
+                };
+                await Shell.Current.GoToAsync("//RoastPage", navigationParameter);
+            }
+            catch (Exception ex)
+            {
+                System.Diagnostics.Debug.WriteLine($"Error preparing to edit roast: {ex.Message}");
+                await DisplayAlert("Error", "Error preparing to edit roast", "OK");
+            }
+        });
+        
+        // Delete command - delete the selected roast data without confirmation
+        DeleteRoastCommand = new Command<RoastData>(async (roastData) => {
+            try {
+                // Use RoastDataService's DeleteRoastLogAsync method
+                bool success = await _roastDataService.DeleteRoastLogAsync(roastData.Id);
+
+                if (success)
+                {
+                    // Refresh the list after deletion
+                    await RefreshRoastLogs();
+                }
+                else
+                {
+                    await DisplayAlert("Error", "Failed to delete roast log", "OK");
+                }
+            }
+            catch (Exception ex)
+            {
+                System.Diagnostics.Debug.WriteLine($"Error deleting roast log: {ex.Message}");
+                await DisplayAlert("Error", $"Failed to delete roast log: {ex.Message}", "OK");
+            }
+        });
+        
+        // Item tapped command - show action sheet for Windows users
+        ItemTappedCommand = new Command<RoastData>(async (roastData) => {
+            try {
+                // Show action sheet with options
+                string action = await DisplayActionSheet(
+                    $"Roast from {roastData.RoastDate.ToString("MM/dd/yyyy")}", 
+                    "Cancel",
+                    null,
+                    "Edit", 
+                    "Delete");
+                
+                switch (action)
+                {
+                    case "Edit":
+                        // Use the existing EditRoastCommand
+                        EditRoastCommand.Execute(roastData);
+                        break;
+                    case "Delete":
+                        // Use the existing DeleteRoastCommand
+                        DeleteRoastCommand.Execute(roastData);
+                        break;
+                }
+            }
+            catch (Exception ex) {
+                System.Diagnostics.Debug.WriteLine($"Error handling item tap: {ex.Message}");
+            }
+        });
 
         // Subscribe to data changes
         _appDataService.DataChanged += OnAppDataChanged;

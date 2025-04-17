@@ -18,7 +18,7 @@ namespace CafeMaestro.Models
         public double RemainingQuantity { get; set; } // track how much is left
 
         [JsonIgnore]
-        public string DisplayName => $"{CoffeeName} - {Country} ({Variety})";
+        public string DisplayName => $"{Country} - {CoffeeName} ({Variety})";
 
         [JsonIgnore]
         public string ProcessAndVarietyDisplay => $"{Process} | {Variety}";

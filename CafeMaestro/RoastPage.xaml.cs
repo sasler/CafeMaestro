@@ -11,6 +11,7 @@ using Microsoft.Extensions.DependencyInjection;
 
 namespace CafeMaestro;
 
+[QueryProperty(nameof(EditRoastId), "EditRoastId")]
 public partial class RoastPage : ContentPage
 {
     private TimerService timerService;
@@ -20,6 +21,26 @@ public partial class RoastPage : ContentPage
     private PreferencesService preferencesService;
     private bool isTimerUpdating = false; // Flag to prevent recursive updates
     private string temporaryDigitsBuffer = ""; // Store digits before formatting
+
+    // Property for edit mode
+    private Guid _editRoastId = Guid.Empty;
+    private RoastData? _roastToEdit = null;
+    private bool _isEditMode = false;
+
+    public string EditRoastId
+    {
+        get => _editRoastId.ToString();
+        set
+        {
+            if (Guid.TryParse(value, out Guid parsedId))
+            {
+                _editRoastId = parsedId;
+                _isEditMode = true;
+                System.Diagnostics.Debug.WriteLine($"RoastPage in edit mode for roast ID: {_editRoastId}");
+                LoadRoastDataForEdit();
+            }
+        }
+    }
 
     // Store the selected bean for roasting
     private Bean? selectedBean = null;
@@ -154,8 +175,57 @@ public partial class RoastPage : ContentPage
     protected override async void OnAppearing()
     {
         base.OnAppearing();
+        
+        // Check if we're being navigated to from the tab bar
+        bool isFromTabBar = CheckIfNavigationFromTabBar();
+        
+        // If not in edit mode or if navigation came from tab bar menu, reset the form
+        if (!_isEditMode || isFromTabBar)
+        {
+            System.Diagnostics.Debug.WriteLine($"RoastPage appearing in new roast mode - resetting form. IsEditMode: {_isEditMode}, IsFromTabBar: {isFromTabBar}");
+            ResetPageForNewRoast();
+        }
+        
         // Refresh beans when returning to this page
         await LoadAvailableBeans();
+    }
+    
+    // Method to determine if navigation is from tab bar
+    private bool CheckIfNavigationFromTabBar()
+    {
+        try
+        {
+            // Get the current shell item
+            if (Shell.Current?.CurrentItem != null)
+            {
+                var currentRoute = Shell.Current.CurrentItem.Route;
+                System.Diagnostics.Debug.WriteLine($"Current route: {currentRoute}");
+                
+                // If the current route is "RoastPage", it's likely coming from the tab bar
+                return currentRoute == "RoastPage";
+            }
+        }
+        catch (Exception ex)
+        {
+            System.Diagnostics.Debug.WriteLine($"Error checking navigation source: {ex.Message}");
+        }
+        
+        return false;
+    }
+    
+    // Method to reset the page for a new roast
+    private void ResetPageForNewRoast()
+    {
+        // Reset edit state
+        _isEditMode = false;
+        _roastToEdit = null;
+        _editRoastId = Guid.Empty;
+        
+        // Reset the page title
+        Title = "Roast Coffee";
+        
+        // Clear form fields
+        ClearForm();
     }
 
     private async Task LoadAvailableBeans()
@@ -752,7 +822,13 @@ public partial class RoastPage : ContentPage
     protected override void OnDisappearing()
     {
         base.OnDisappearing();
+        
+        // Stop the timer when leaving the page
         timerService.Stop();
+        
+        // Reset the form state when navigating away from the page
+        ResetPageForNewRoast();
+        System.Diagnostics.Debug.WriteLine("RoastPage.OnDisappearing - Reset page state");
     }
 
     private void OnWeightEntryTextChanged(object? sender, TextChangedEventArgs e)
@@ -775,7 +851,7 @@ public partial class RoastPage : ContentPage
         }
     }
 
-    // New Save button click handler
+    // Save button click handler - handles both new roasts and editing existing ones
     private async void SaveRoast_Clicked(object sender, EventArgs e)
     {
         if (!ValidateInputs(out double batchWeight, out double finalWeight, out double temperature,
@@ -786,42 +862,90 @@ public partial class RoastPage : ContentPage
 
         try
         {
-            // Create RoastData object
-            var roastData = new RoastData
+            // Track whether this is a new roast or an update
+            bool isUpdatingExisting = _isEditMode && _roastToEdit != null;
+            
+            if (isUpdatingExisting)
             {
-                BeanType = selectedBean?.DisplayName ?? "Unknown",
-                Temperature = temperature,
-                BatchWeight = batchWeight,
-                FinalWeight = finalWeight,
-                RoastMinutes = roastMinutes,
-                RoastSeconds = roastSeconds,
-                RoastDate = DateTime.Now,
-                Notes = NotesEditor.Text ?? ""
-            };
-
-            // Update bean inventory (reduce remaining quantity)
-            if (selectedBean != null)
-            {
-                double batchWeightKg = batchWeight / 1000.0; // Convert g to kg
-                await beanService.UpdateBeanQuantityAsync(selectedBean.Id, batchWeightKg);
-            }
-
-            // Save data using service
-            bool success = await roastDataService.SaveRoastDataAsync(roastData);
-
-            if (success)
-            {
-                await DisplayAlert("Success", "Roast data saved successfully!", "OK");
-
-                // Refresh beans after saving (quantity has changed)
-                await LoadAvailableBeans();
-
-                // Clear form for next entry
-                ClearForm();
+                // Update existing roast data
+                System.Diagnostics.Debug.WriteLine($"Updating existing roast with ID: {_roastToEdit!.Id}");
+                
+                // Load the current app data
+                var appData = await appDataService.LoadAppDataAsync();
+                
+                // Find the roast to update
+                var roastToUpdate = appData.RoastLogs?.FirstOrDefault(r => r.Id == _roastToEdit.Id);
+                
+                if (roastToUpdate == null)
+                {
+                    await DisplayAlert("Error", "Could not find the roast log to update", "OK");
+                    return;
+                }
+                
+                // Update the roast data (keep original ID and date)
+                roastToUpdate.BeanType = selectedBean?.DisplayName ?? roastToUpdate.BeanType;
+                roastToUpdate.Temperature = temperature;
+                roastToUpdate.BatchWeight = batchWeight;
+                roastToUpdate.FinalWeight = finalWeight;
+                roastToUpdate.RoastMinutes = roastMinutes;
+                roastToUpdate.RoastSeconds = roastSeconds;
+                roastToUpdate.Notes = NotesEditor.Text ?? roastToUpdate.Notes;
+                
+                // Save the updated app data
+                bool success = await appDataService.SaveAppDataAsync(appData);
+                
+                if (success)
+                {
+                    await DisplayAlert("Success", "Roast data updated successfully!", "OK");
+                    
+                    // Navigate back to RoastLogPage when done with edit
+                    await Shell.Current.GoToAsync("//RoastLogPage");
+                }
+                else
+                {
+                    await DisplayAlert("Error", "Failed to update roast data. Please try again.", "OK");
+                }
             }
             else
             {
-                await DisplayAlert("Error", "Failed to save roast data. Please try again.", "OK");
+                // Create a new RoastData object
+                var roastData = new RoastData
+                {
+                    Id = Guid.NewGuid(),
+                    BeanType = selectedBean?.DisplayName ?? "Unknown",
+                    Temperature = temperature,
+                    BatchWeight = batchWeight,
+                    FinalWeight = finalWeight,
+                    RoastMinutes = roastMinutes,
+                    RoastSeconds = roastSeconds,
+                    RoastDate = DateTime.Now,
+                    Notes = NotesEditor.Text ?? ""
+                };
+
+                // Update bean inventory (reduce remaining quantity)
+                if (selectedBean != null)
+                {
+                    double batchWeightKg = batchWeight / 1000.0; // Convert g to kg
+                    await beanService.UpdateBeanQuantityAsync(selectedBean.Id, batchWeightKg);
+                }
+
+                // Save new data using service
+                bool success = await roastDataService.SaveRoastDataAsync(roastData);
+
+                if (success)
+                {
+                    await DisplayAlert("Success", "Roast data saved successfully!", "OK");
+
+                    // Refresh beans after saving (quantity has changed)
+                    await LoadAvailableBeans();
+
+                    // Clear form for next entry
+                    ClearForm();
+                }
+                else
+                {
+                    await DisplayAlert("Error", "Failed to save roast data. Please try again.", "OK");
+                }
             }
         }
         catch (Exception ex)
@@ -909,5 +1033,158 @@ public partial class RoastPage : ContentPage
         }
         
         return base.OnBackButtonPressed(); // Let the system handle it if our code fails
+    }
+
+    // Method to load roast data when in edit mode
+    private async void LoadRoastDataForEdit()
+    {
+        try
+        {
+            if (_editRoastId == Guid.Empty)
+            {
+                return; // Not in edit mode
+            }
+
+            // Use the RoastDataService to get the specific roast by ID
+            _roastToEdit = await roastDataService.GetRoastLogByIdAsync(_editRoastId);
+            
+            if (_roastToEdit == null)
+            {
+                System.Diagnostics.Debug.WriteLine($"Failed to find roast with ID: {_editRoastId}");
+                await DisplayAlert("Error", "Failed to find the roast data for editing", "OK");
+                return;
+            }
+            
+            System.Diagnostics.Debug.WriteLine($"Found roast to edit: {_roastToEdit.BeanType} from {_roastToEdit.RoastDate}");
+            
+            // Update the UI with the roast data
+            await MainThread.InvokeOnMainThreadAsync(async () => {
+                // Set page title to indicate editing mode
+                Title = "Edit Roast";
+                
+                // Load beans first to ensure the picker is populated before we try to select an item
+                await LoadAvailableBeans();
+                
+                // Set time
+                TimeEntry.Text = $"{_roastToEdit.RoastMinutes:D2}:{_roastToEdit.RoastSeconds:D2}";
+                TimeDisplayLabel.Text = $"{_roastToEdit.RoastMinutes:D2}:{_roastToEdit.RoastSeconds:D2}";
+                
+                // Set weights
+                BatchWeightEntry.Text = _roastToEdit.BatchWeight.ToString("F2");
+                FinalWeightEntry.Text = _roastToEdit.FinalWeight.ToString("F2");
+                
+                // Set temperature
+                TemperatureEntry.Text = _roastToEdit.Temperature.ToString("F0");
+                
+                // Set notes
+                NotesEditor.Text = _roastToEdit.Notes;
+                
+                // Calculate and update loss percentage and roast summary
+                double lossPercentage = _roastToEdit.WeightLossPercentage;
+                LossPercentLabel.Text = $"Weight Loss: {lossPercentage:F2}%";
+                string roastLevel = GetRoastLevel(lossPercentage);
+                RoastSummaryLabel.Text = $"Roast Summary: {roastLevel} roast at {_roastToEdit.Temperature}°C";
+                
+                // Now select the correct bean in the picker
+                await SelectBeanInPicker(_roastToEdit.BeanType);
+            });
+        }
+        catch (Exception ex)
+        {
+            System.Diagnostics.Debug.WriteLine($"Error loading roast data for edit: {ex.Message}");
+            await DisplayAlert("Error", "Failed to load roast data for editing", "OK");
+        }
+    }
+    
+    // Helper method to select the correct bean in the picker
+    private async Task SelectBeanInPicker(string beanType)
+    {
+        try
+        {
+            if (string.IsNullOrEmpty(beanType))
+            {
+                System.Diagnostics.Debug.WriteLine("Bean type is empty, cannot select in picker");
+                return;
+            }
+            
+            System.Diagnostics.Debug.WriteLine($"Trying to select bean: '{beanType}' in picker with {BeanPicker.Items.Count} items");
+            
+            // Debug: Print all available items in picker for comparison
+            for (int i = 0; i < BeanPicker.Items.Count; i++)
+            {
+                System.Diagnostics.Debug.WriteLine($"BeanPicker Item {i}: '{BeanPicker.Items[i]}'");
+            }
+            
+            // Disable the BeanPicker_SelectedIndexChanged event temporarily to avoid side effects
+            BeanPicker.SelectedIndexChanged -= BeanPicker_SelectedIndexChanged;
+            
+            // First try exact match
+            int beanIndex = -1;
+            for (int i = 0; i < BeanPicker.Items.Count; i++)
+            {
+                if (string.Equals(BeanPicker.Items[i], beanType, StringComparison.Ordinal))
+                {
+                    beanIndex = i;
+                    System.Diagnostics.Debug.WriteLine($"Found exact match for bean '{beanType}' at index {beanIndex}");
+                    break;
+                }
+            }
+            
+            // If exact match failed, try case-insensitive match
+            if (beanIndex == -1)
+            {
+                for (int i = 0; i < BeanPicker.Items.Count; i++)
+                {
+                    if (string.Equals(BeanPicker.Items[i], beanType, StringComparison.OrdinalIgnoreCase))
+                    {
+                        beanIndex = i;
+                        System.Diagnostics.Debug.WriteLine($"Found case-insensitive match for bean '{beanType}' at index {beanIndex}");
+                        break;
+                    }
+                }
+            }
+            
+            // If we couldn't find a match, try to find a bean that contains the target name
+            if (beanIndex == -1)
+            {
+                for (int i = 0; i < BeanPicker.Items.Count; i++)
+                {
+                    if (BeanPicker.Items[i].Contains(beanType, StringComparison.OrdinalIgnoreCase) ||
+                        beanType.Contains(BeanPicker.Items[i], StringComparison.OrdinalIgnoreCase))
+                    {
+                        beanIndex = i;
+                        System.Diagnostics.Debug.WriteLine($"Found partial match for bean '{beanType}' at index {beanIndex}: '{BeanPicker.Items[i]}'");
+                        break;
+                    }
+                }
+            }
+            
+            // If we found a match, select it and set the selectedBean
+            if (beanIndex >= 0 && beanIndex < BeanPicker.Items.Count)
+            {
+                BeanPicker.SelectedIndex = beanIndex;
+                
+                if (beanIndex < availableBeans.Count)
+                {
+                    selectedBean = availableBeans[beanIndex];
+                    System.Diagnostics.Debug.WriteLine($"Selected bean at index {beanIndex}: '{BeanPicker.Items[beanIndex]}' with ID: {selectedBean.Id}");
+                }
+                else
+                {
+                    System.Diagnostics.Debug.WriteLine($"Bean index {beanIndex} is out of range for availableBeans (Count: {availableBeans.Count})");
+                }
+            }
+            else
+            {
+                System.Diagnostics.Debug.WriteLine($"Could not find bean '{beanType}' in the picker items");
+            }
+            
+            // Re-enable the event handler
+            BeanPicker.SelectedIndexChanged += BeanPicker_SelectedIndexChanged;
+        }
+        catch (Exception ex)
+        {
+            System.Diagnostics.Debug.WriteLine($"Error selecting bean in picker: {ex.Message}");
+        }
     }
 }

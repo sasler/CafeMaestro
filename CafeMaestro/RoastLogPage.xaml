@@ -91,53 +91,76 @@
                 </CollectionView.EmptyView>
                 <CollectionView.ItemTemplate>
                     <DataTemplate>
-                        <Border Margin="0,6"
-                                Padding="16"
-                                StrokeShape="RoundRectangle 12"
-                                Stroke="{DynamicResource BorderColor}"
-                                StrokeThickness="0.5"
-                                BackgroundColor="{DynamicResource NeutralColor}">
-                            <Border.Shadow>
-                                <Shadow Brush="#20000000"
-                                        Offset="0,3"
-                                        Radius="6"
-                                        Opacity="0.2"/>
-                            </Border.Shadow>
-                            <Grid RowDefinitions="Auto,Auto,Auto"
-                                  ColumnDefinitions="*,Auto">
-                                <Label Grid.Row="0"
-                                       Grid.Column="0"
-                                       Text="{Binding BeanType}"
-                                       FontSize="18"
-                                       FontAttributes="Bold"
-                                       TextColor="{DynamicResource PrimaryTextColor}"/>
-                                <Label Grid.Row="0"
-                                       Grid.Column="1"
-                                       Text="{Binding RoastDate, StringFormat='{0:MM/dd/yyyy}'}"
-                                       FontSize="14"
-                                       TextColor="{AppThemeBinding Light=Gray, Dark=#BBBBBB}"/>
-
-                                <Label Grid.Row="1"
-                                       Grid.Column="0"
-                                       Grid.ColumnSpan="2"
-                                       Text="{Binding Summary}"
-                                       TextColor="{DynamicResource PrimaryTextColor}"
-                                       FontSize="16"/>
-
-                                <HorizontalStackLayout Grid.Row="2"
-                                                       Grid.Column="0"
-                                                       Grid.ColumnSpan="2"
-                                                       Spacing="15"
-                                                       Margin="0,5,0,0">
-                                    <Label Text="{Binding WeightLossPercentage, StringFormat='Loss: {0:F1}%'}"
+                        <SwipeView>
+                            <SwipeView.LeftItems>                                
+                                <SwipeItems>
+                                    <SwipeItem IconImageSource="delete_icon.png"
+                                               BackgroundColor="{DynamicResource SwipeDeleteColor}"
+                                               Command="{Binding Source={RelativeSource AncestorType={x:Type ContentPage}}, Path=DeleteRoastCommand}"
+                                               CommandParameter="{Binding .}"/>
+                                </SwipeItems>
+                            </SwipeView.LeftItems>
+                            <SwipeView.RightItems>
+                                <SwipeItems>
+                                    <SwipeItem IconImageSource="edit_icon.png"
+                                               BackgroundColor="{DynamicResource SwipeEditColor}"
+                                               Command="{Binding Source={RelativeSource AncestorType={x:Type ContentPage}}, Path=EditRoastCommand}"
+                                               CommandParameter="{Binding .}"/>
+                                </SwipeItems>
+                            </SwipeView.RightItems>
+                            <Border Margin="0,6"
+                                    Padding="16"
+                                    StrokeShape="RoundRectangle 12"
+                                    Stroke="{DynamicResource BorderColor}"
+                                    StrokeThickness="0.5"
+                                    BackgroundColor="{DynamicResource NeutralColor}">
+                                <Border.Shadow>
+                                    <Shadow Brush="#20000000"
+                                            Offset="0,3"
+                                            Radius="6"
+                                            Opacity="0.2"/>
+                                </Border.Shadow>
+                                <Border.GestureRecognizers>
+                                    <TapGestureRecognizer 
+                                        Command="{Binding Source={RelativeSource AncestorType={x:Type ContentPage}}, Path=ItemTappedCommand}"
+                                        CommandParameter="{Binding .}" />
+                                </Border.GestureRecognizers>
+                                <Grid RowDefinitions="Auto,Auto,Auto"
+                                      ColumnDefinitions="*,Auto">
+                                    <Label Grid.Row="0"
+                                           Grid.Column="0"
+                                           Text="{Binding BeanType}"
+                                           FontSize="18"
+                                           FontAttributes="Bold"
+                                           TextColor="{DynamicResource PrimaryTextColor}"/>
+                                    <Label Grid.Row="0"
+                                           Grid.Column="1"
+                                           Text="{Binding RoastDate, StringFormat='{0:MM/dd/yyyy}'}"
                                            FontSize="14"
-                                           TextColor="{AppThemeBinding Light=#808080, Dark=#AAAAAA}"/>
-                                    <Label Text="{Binding FormattedTime, StringFormat='Time: {0}'}"
-                                           FontSize="14"
-                                           TextColor="{AppThemeBinding Light=#808080, Dark=#AAAAAA}"/>
-                                </HorizontalStackLayout>
-                            </Grid>
-                        </Border>
+                                           TextColor="{AppThemeBinding Light=Gray, Dark=#BBBBBB}"/>
+
+                                    <Label Grid.Row="1"
+                                           Grid.Column="0"
+                                           Grid.ColumnSpan="2"
+                                           Text="{Binding Summary}"
+                                           TextColor="{DynamicResource PrimaryTextColor}"
+                                           FontSize="16"/>
+
+                                    <HorizontalStackLayout Grid.Row="2"
+                                                           Grid.Column="0"
+                                                           Grid.ColumnSpan="2"
+                                                           Spacing="15"
+                                                           Margin="0,5,0,0">
+                                        <Label Text="{Binding WeightLossPercentage, StringFormat='Loss: {0:F1}%'}"
+                                               FontSize="14"
+                                               TextColor="{AppThemeBinding Light=#808080, Dark=#AAAAAA}"/>
+                                        <Label Text="{Binding FormattedTime, StringFormat='Time: {0}'}"
+                                               FontSize="14"
+                                               TextColor="{AppThemeBinding Light=#808080, Dark=#AAAAAA}"/>
+                                    </HorizontalStackLayout>
+                                </Grid>
+                            </Border>
+                        </SwipeView>
                     </DataTemplate>
                 </CollectionView.ItemTemplate>
             </CollectionView>
