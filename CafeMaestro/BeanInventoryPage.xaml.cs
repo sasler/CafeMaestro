@@ -30,6 +30,7 @@ public partial class BeanInventoryPage : ContentPage
     public ICommand RefreshCommand { get; private set; }
     public ICommand EditBeanCommand { get; private set; }
     public ICommand DeleteBeanCommand { get; private set; }
+    public ICommand ItemTappedCommand { get; private set; }
 
     public BeanInventoryPage(BeanService? beanService = null, AppDataService? appDataService = null)
     {
@@ -96,13 +97,76 @@ public partial class BeanInventoryPage : ContentPage
         _beans = new ObservableCollection<Bean>();
         BeansCollection.ItemsSource = _beans;
 
-        // Setup commands
+        // Setup commands for SwipeView actions
         RefreshCommand = new Command(async () => await LoadBeans());
-        EditBeanCommand = new Command<Bean>(async (bean) => await EditBean(bean));
-        DeleteBeanCommand = new Command<Bean>(async (bean) => await DeleteBean(bean));
-
-        // Don't set BindingContext to this since we'll use NavigationParameters
         
+        // Edit command - directly navigate to edit page for the bean
+        EditBeanCommand = new Command<Bean>(async (bean) => {
+            try {
+                // First fetch the fresh bean from the service to ensure we have the latest data
+                var freshBean = await _beanService.GetBeanByIdAsync(bean.Id);
+                
+                if (freshBean == null)
+                {
+                    System.Diagnostics.Debug.WriteLine($"Bean with ID {bean.Id} not found when trying to edit");
+                    await DisplayAlert("Error", "Bean not found. Please refresh and try again.", "OK");
+                    return;
+                }
+                
+                System.Diagnostics.Debug.WriteLine($"Editing bean with ID: {freshBean.Id}, Name: {freshBean.CoffeeName}");
+                
+                // Create BeanEditPage with the fresh bean and pass in our services
+                var beanEditPage = new BeanEditPage(freshBean, _beanService, _appDataService);
+                await Navigation.PushAsync(beanEditPage);
+            }
+            catch (Exception ex)
+            {
+                System.Diagnostics.Debug.WriteLine($"Error preparing to edit bean: {ex.Message}");
+                await DisplayAlert("Error", "Error preparing to edit bean", "OK");
+            }
+        });
+        
+        // Delete command - directly delete without showing a confirmation dialog
+        DeleteBeanCommand = new Command<Bean>(async (bean) => {
+            bool success = await _beanService.DeleteBeanAsync(bean.Id);
+
+            if (success)
+            {
+                // Refresh the list after successful deletion
+                await LoadBeans();
+            }
+            else
+            {
+                await DisplayAlert("Error", "Failed to delete bean", "OK");
+            }
+        });
+        
+        // Item tapped command - for Windows mouse users since SwipeView only works with touch
+        ItemTappedCommand = new Command<Bean>(async (bean) => {
+            try {
+                // Show action sheet with options
+                string action = await DisplayActionSheet(
+                    bean.DisplayName, 
+                    "Cancel",
+                    null,
+                    "Edit", 
+                    "Delete");
+                
+                switch (action)
+                {
+                    case "Edit":
+                        await EditBean(bean);
+                        break;
+                    case "Delete":
+                        await DeleteBean(bean);
+                        break;
+                }
+            }
+            catch (Exception ex) {
+                System.Diagnostics.Debug.WriteLine($"Error handling item tap: {ex.Message}");
+            }
+        });
+
         // Subscribe to data changes
         _appDataService.DataChanged += OnAppDataChanged;
         
@@ -292,15 +356,15 @@ public partial class BeanInventoryPage : ContentPage
                 selectedBean.DisplayName,
                 "Cancel",
                 null,
-                "Edit Bean",
-                "Delete Bean");
+                "Edit",
+                "Delete");
 
             switch (action)
             {
-                case "Edit Bean":
+                case "Edit":
                     await EditBean(selectedBean);
                     break;
-                case "Delete Bean":
+                case "Delete":
                     await DeleteBean(selectedBean);
                     break;
             }

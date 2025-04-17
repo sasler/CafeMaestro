@@ -29,6 +29,10 @@
     <Color x:Key="SeparatorColor">#404040</Color>
     <Color x:Key="TimerBorderColor">#8B4513</Color> <!-- Match Primary -->
     
+    <!-- SwipeView action colors -->
+    <Color x:Key="SwipeEditColor">#2196F3</Color> <!-- Brighter blue for edit actions in dark mode -->
+    <Color x:Key="SwipeDeleteColor">#FF5252</Color> <!-- Brighter red for delete actions in dark mode -->
+    
     <!-- Misc -->
     <Color x:Key="TransparentColor">Transparent</Color>
     <Color x:Key="ErrorColor">#FF6B6B</Color>
