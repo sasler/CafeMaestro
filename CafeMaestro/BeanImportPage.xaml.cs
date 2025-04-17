@@ -314,7 +314,7 @@ public partial class BeanImportPage : ContentPage
                 new Dictionary<DevicePlatform, IEnumerable<string>>
                 {
                     { DevicePlatform.WinUI, new[] { ".csv" } },
-                    { DevicePlatform.Android, new[] { "text/csv" } },
+                    { DevicePlatform.Android, new[] { "text/csv", "text/comma-separated-values", "application/csv", "*/*" } },
                     { DevicePlatform.iOS, new[] { "public.comma-separated-values-text" } },
                     { DevicePlatform.MacCatalyst, new[] { "public.comma-separated-values-text" } }
                 });
@@ -326,7 +326,7 @@ public partial class BeanImportPage : ContentPage
             };
 
             // Show file picker
-            var result = await FilePicker.PickAsync(options);
+            var result = await FilePicker.Default.PickAsync(options);
             
             if (result != null)
             {

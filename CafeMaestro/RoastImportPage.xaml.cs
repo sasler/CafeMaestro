@@ -41,17 +41,24 @@ namespace CafeMaestro
                 ImportButton.IsEnabled = false;
                 FileStatusLabel.Text = "Opening file picker...";
 
-                var fileResult = await FilePicker.PickAsync(new PickOptions
-                {
-                    FileTypes = new FilePickerFileType(new Dictionary<DevicePlatform, IEnumerable<string>>
+                // Configure file picker with improved MIME type handling for Android
+                var customFileType = new FilePickerFileType(
+                    new Dictionary<DevicePlatform, IEnumerable<string>>
                     {
                         { DevicePlatform.WinUI, new[] { ".csv" } },
                         { DevicePlatform.macOS, new[] { "csv" } },
                         { DevicePlatform.iOS, new[] { "public.comma-separated-values-text" } },
-                        { DevicePlatform.Android, new[] { "text/csv" } }
-                    }),
-                    PickerTitle = "Select a CSV file with roast data"
-                });
+                        { DevicePlatform.Android, new[] { "text/csv", "text/comma-separated-values", "application/csv", "*/*" } }
+                    });
+
+                var options = new PickOptions
+                {
+                    PickerTitle = "Select a CSV file with roast data",
+                    FileTypes = customFileType
+                };
+
+                // Show file picker with FilePicker.Default for reliability
+                var fileResult = await FilePicker.Default.PickAsync(options);
 
                 if (fileResult == null)
                 {
