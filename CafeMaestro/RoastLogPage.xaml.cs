@@ -25,7 +25,7 @@ public partial class RoastLogPage : ContentPage
             }
         }
     }
-    
+
     private readonly RoastDataService _roastDataService;
     private readonly AppDataService _appDataService;
     private readonly PreferencesService _preferencesService;
@@ -37,21 +37,21 @@ public partial class RoastLogPage : ContentPage
         InitializeComponent();
 
         // First try to get the services from the application resources (our stored service provider)
-        if (Application.Current?.Resources != null && 
-            Application.Current.Resources.TryGetValue("ServiceProvider", out var serviceProviderObj) == true && 
+        if (Application.Current?.Resources != null &&
+            Application.Current.Resources.TryGetValue("ServiceProvider", out var serviceProviderObj) == true &&
             serviceProviderObj is IServiceProvider serviceProvider)
         {
-            _appDataService = appDataService ?? 
+            _appDataService = appDataService ??
                              serviceProvider.GetService<AppDataService>() ??
                              Application.Current?.Handler?.MauiContext?.Services.GetService<AppDataService>() ??
                              throw new InvalidOperationException("AppDataService not available");
-            
-            _roastDataService = roastDataService ?? 
+
+            _roastDataService = roastDataService ??
                                serviceProvider.GetService<RoastDataService>() ??
                                Application.Current?.Handler?.MauiContext?.Services.GetService<RoastDataService>() ??
                                throw new InvalidOperationException("RoastDataService not available");
-                               
-            _preferencesService = preferencesService ?? 
+
+            _preferencesService = preferencesService ??
                                  serviceProvider.GetService<PreferencesService>() ??
                                  Application.Current?.Handler?.MauiContext?.Services.GetService<PreferencesService>() ??
                                  throw new InvalidOperationException("PreferencesService not available");
@@ -59,15 +59,15 @@ public partial class RoastLogPage : ContentPage
         else
         {
             // Fall back to the old way if app resources doesn't have our provider
-            _appDataService = appDataService ?? 
+            _appDataService = appDataService ??
                             Application.Current?.Handler?.MauiContext?.Services.GetService<AppDataService>() ??
                             throw new InvalidOperationException("AppDataService not available");
-            
-            _roastDataService = roastDataService ?? 
+
+            _roastDataService = roastDataService ??
                               Application.Current?.Handler?.MauiContext?.Services.GetService<RoastDataService>() ??
                               throw new InvalidOperationException("RoastDataService not available");
-                              
-            _preferencesService = preferencesService ?? 
+
+            _preferencesService = preferencesService ??
                                  Application.Current?.Handler?.MauiContext?.Services.GetService<PreferencesService>() ??
                                  throw new InvalidOperationException("PreferencesService not available");
         }
@@ -78,19 +78,25 @@ public partial class RoastLogPage : ContentPage
             // Get the data from the app directly instead of creating new services
             var appData = app.GetAppData();
             System.Diagnostics.Debug.WriteLine($"RoastLogPage constructor - Getting data directly from App: {_appDataService.DataFilePath}");
-            
+
             // Force the AppDataService to use the same path as the main app
-            Task.Run(async () => {
-                try {
+            Task.Run(async () =>
+            {
+                try
+                {
                     // Get the path from preferences to ensure it's the user-defined one
-                    if (_preferencesService != null) {
+                    if (_preferencesService != null)
+                    {
                         string? savedPath = await _preferencesService.GetAppDataFilePathAsync();
-                        if (!string.IsNullOrEmpty(savedPath)) {
+                        if (!string.IsNullOrEmpty(savedPath))
+                        {
                             System.Diagnostics.Debug.WriteLine($"RoastLogPage - Setting path from preferences: {savedPath}");
                             await _appDataService.SetCustomFilePathAsync(savedPath);
                         }
                     }
-                } catch (Exception ex) {
+                }
+                catch (Exception ex)
+                {
                     System.Diagnostics.Debug.WriteLine($"Error setting file path in RoastLogPage: {ex.Message}");
                 }
             });
@@ -102,47 +108,47 @@ public partial class RoastLogPage : ContentPage
         RoastLogCollection.ItemsSource = _roastLogs;
 
         RefreshCommand = new Command(async () => await LoadRoastData());
-        
+
         // Subscribe to data changes
         _appDataService.DataChanged += OnAppDataChanged;
-        
+
         // Subscribe to navigation events to refresh data when returning to this page
         this.Loaded += RoastLogPage_Loaded;
         this.NavigatedTo += RoastLogPage_NavigatedTo;
     }
-    
+
     private void RoastLogPage_Loaded(object? sender, EventArgs e)
     {
         System.Diagnostics.Debug.WriteLine("RoastLogPage_Loaded event triggered");
         // Refresh data when page is loaded
-        MainThread.BeginInvokeOnMainThread(async () => 
+        MainThread.BeginInvokeOnMainThread(async () =>
         {
             await ForceRefreshData();
         });
     }
-    
+
     private void RoastLogPage_NavigatedTo(object? sender, NavigatedToEventArgs e)
     {
         System.Diagnostics.Debug.WriteLine("RoastLogPage_NavigatedTo event triggered");
         // Refresh data when navigated to this page
-        MainThread.BeginInvokeOnMainThread(async () => 
+        MainThread.BeginInvokeOnMainThread(async () =>
         {
             await ForceRefreshData();
         });
     }
-    
+
     // Force a full refresh from the data store
     private async Task ForceRefreshData()
     {
         try
         {
             System.Diagnostics.Debug.WriteLine("Force refreshing roast log data");
-            
+
             // Force a reload from the data file
             await _appDataService.ReloadDataAsync();
-            
+
             // Update the UI with fresh data
-            MainThread.BeginInvokeOnMainThread(() => 
+            MainThread.BeginInvokeOnMainThread(() =>
             {
                 UpdateRoastLogsFromAppData(_appDataService.CurrentData);
                 System.Diagnostics.Debug.WriteLine($"Force refreshed roast logs with {_roastLogs.Count} logs");
@@ -153,7 +159,7 @@ public partial class RoastLogPage : ContentPage
             System.Diagnostics.Debug.WriteLine($"Error force refreshing roast logs: {ex.Message}");
         }
     }
-    
+
     private void UpdateRecordCount(int count)
     {
         MainThread.BeginInvokeOnMainThread(() =>
@@ -165,25 +171,26 @@ public partial class RoastLogPage : ContentPage
     private void OnAppDataChanged(object? sender, AppData appData)
     {
         // Reload the UI with the new data
-        MainThread.BeginInvokeOnMainThread(() => {
+        MainThread.BeginInvokeOnMainThread(() =>
+        {
             UpdateRoastLogsFromAppData(appData);
             // Update the record count display
             UpdateRecordCount(appData.RoastLogs?.Count ?? 0);
         });
     }
-    
+
     private void UpdateRoastLogsFromAppData(AppData appData)
     {
         _roastLogs.Clear();
-        
+
         // Sort by newest first
         foreach (var log in appData.RoastLogs.OrderByDescending(l => l.RoastDate))
         {
             _roastLogs.Add(log);
         }
-        
+
         System.Diagnostics.Debug.WriteLine($"Updated RoastLogPage with {_roastLogs.Count} logs from AppData");
-        
+
         // Update the record count display
         UpdateRecordCount(_roastLogs.Count);
     }
@@ -192,9 +199,10 @@ public partial class RoastLogPage : ContentPage
     {
         base.OnAppearing();
         System.Diagnostics.Debug.WriteLine("RoastLogPage.OnAppearing");
-        
+
         // Set RefreshView's command execution
-        RoastLogRefreshView.Command = new Command(async () => {
+        RoastLogRefreshView.Command = new Command(async () =>
+        {
             try
             {
                 System.Diagnostics.Debug.WriteLine("RoastLogRefreshView.Command executing");
@@ -207,34 +215,35 @@ public partial class RoastLogPage : ContentPage
                 System.Diagnostics.Debug.WriteLine("RoastLogRefreshView.Command completed");
             }
         });
-        
+
         // Initial load of roast logs - awaited with _ to suppress warning while still allowing execution to continue
         _ = RefreshRoastLogs();
     }
-    
+
     private async Task RefreshRoastLogs()
     {
         try
         {
             System.Diagnostics.Debug.WriteLine("Refreshing roast logs from service...");
-            
+
             // Get all roast logs from service
             var logs = await _roastDataService.GetAllRoastLogsAsync();
-            
+
             // Update UI on main thread
-            await MainThread.InvokeOnMainThreadAsync(() => {
+            await MainThread.InvokeOnMainThreadAsync(() =>
+            {
                 // Clear existing roast logs
                 _roastLogs.Clear();
-                
+
                 // Add logs in order (newest first)
                 foreach (var log in logs.OrderByDescending(l => l.RoastDate))
                 {
                     _roastLogs.Add(log);
                 }
-                
+
                 // Update the record count
                 UpdateRecordCount(logs.Count);
-                
+
                 System.Diagnostics.Debug.WriteLine($"Refreshed roast logs: {_roastLogs.Count} loaded");
             });
         }
@@ -250,23 +259,24 @@ public partial class RoastLogPage : ContentPage
         try
         {
             RoastLogRefreshView.IsRefreshing = true;
-            
+
             // Get all roast logs and update the UI
             var logs = await _roastDataService.GetAllRoastLogsAsync();
-            
+
             // Update UI on main thread
-            await MainThread.InvokeOnMainThreadAsync(() => {
+            await MainThread.InvokeOnMainThreadAsync(() =>
+            {
                 System.Diagnostics.Debug.WriteLine($"Loaded {logs.Count} roast logs");
-                
+
                 // Clear and repopulate the collection
                 _roastLogs.Clear();
-                
+
                 // Add each log in descending date order (newest first)
                 foreach (var log in logs.OrderByDescending(l => l.RoastDate))
                 {
                     _roastLogs.Add(log);
                 }
-                
+
                 // Force refresh the CollectionView by resetting its ItemsSource
                 RoastLogCollection.ItemsSource = null;
                 RoastLogCollection.ItemsSource = _roastLogs;
@@ -305,32 +315,6 @@ public partial class RoastLogPage : ContentPage
         finally
         {
             RoastLogRefreshView.IsRefreshing = false;
-        }
-    }
-
-    private async void OnRoastSelected(object sender, SelectionChangedEventArgs e)
-    {
-        if (e.CurrentSelection.FirstOrDefault() is RoastData selectedRoast)
-        {
-            // Clear selection
-            RoastLogCollection.SelectedItem = null;
-
-            // Show details
-            string details = $"Bean: {selectedRoast.BeanType}\n" +
-                             $"Date: {selectedRoast.RoastDate:MM/dd/yyyy HH:mm}\n" +
-                             $"Temperature: {selectedRoast.Temperature}°C\n" +
-                             $"Batch Weight: {selectedRoast.BatchWeight}g\n" +
-                             $"Final Weight: {selectedRoast.FinalWeight}g\n" +
-                             $"Weight Loss: {selectedRoast.WeightLossPercentage:F1}%\n" +
-                             $"Roast Time: {selectedRoast.FormattedTime}\n" +
-                             $"Roast Level: {selectedRoast.RoastLevel}";
-
-            if (!string.IsNullOrWhiteSpace(selectedRoast.Notes))
-            {
-                details += $"\n\nNotes:\n{selectedRoast.Notes}";
-            }
-
-            await DisplayAlert("Roast Details", details, "Close");
         }
     }
 
@@ -375,7 +359,8 @@ public partial class RoastLogPage : ContentPage
             // This works better on Android than GoToAsync
             if (Shell.Current?.Items.Count > 0)
             {
-                MainThread.BeginInvokeOnMainThread(() => {
+                MainThread.BeginInvokeOnMainThread(() =>
+                {
                     Shell.Current.CurrentItem = Shell.Current.Items[0]; // MainPage is the first item
                     System.Diagnostics.Debug.WriteLine("Navigated back to MainPage using hardware back button");
                 });
@@ -386,7 +371,7 @@ public partial class RoastLogPage : ContentPage
         {
             System.Diagnostics.Debug.WriteLine($"Error handling back button: {ex.Message}");
         }
-        
+
         return base.OnBackButtonPressed(); // Let the system handle it if our code fails
     }
 }

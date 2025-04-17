@@ -74,8 +74,7 @@
                      Command="{Binding RefreshCommand}">
             <!-- Direct child of RefreshView should be CollectionView -->
             <CollectionView x:Name="RoastLogCollection"
-                          SelectionMode="Single"
-                          SelectionChanged="OnRoastSelected"
+                          SelectionMode="None"
                           Margin="20,10,20,10">
                 <CollectionView.ItemsLayout>
                     <LinearItemsLayout Orientation="Vertical" ItemSpacing="16" />
