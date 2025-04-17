@@ -26,6 +26,7 @@ public partial class RoastPage : ContentPage
     private List<Bean> availableBeans = new List<Bean>();
 
     private CancellationTokenSource? _animationCancellationTokenSource;
+    private CancellationTokenSource? _cursorAnimationCancellationTokenSource;
 
     public RoastPage(TimerService? timerService = null, RoastDataService? roastDataService = null, 
                     BeanService? beanService = null, AppDataService? appDataService = null, 
@@ -380,7 +381,6 @@ public partial class RoastPage : ContentPage
         }
     }
 
-    // When time entry is focused, clear the field for easier input
     private void TimeEntry_Focused(object sender, FocusEventArgs e)
     {
         if (sender is Entry entry && e.IsFocused)
@@ -390,63 +390,28 @@ public partial class RoastPage : ContentPage
             entry.Text = "";
             // Keep the display showing the current time
             isTimerUpdating = false;
+            
+            // Start the timer edit animation - the whole display will blink
+            StartTimerEditAnimation();
+            
+            // Add keyboard event handlers to detect Enter key
+            entry.Completed += TimeEntry_Completed;
         }
     }
-
-    private void TimeEntry_TextChanged(object sender, TextChangedEventArgs e)
+    
+    private void TimeEntry_Completed(object? sender, EventArgs e)
     {
-        if (isTimerUpdating)
-            return;
-
-        string text = e.NewTextValue ?? "";
-
-        // Extract only the digits from input
-        string inputDigits = new string(text.Where(char.IsDigit).ToArray());
-
-        // Store digits in our buffer for natural typing experience
-        if (!string.IsNullOrEmpty(inputDigits))
+        // This is triggered when user presses Enter
+        if (sender is Entry entry)
         {
-            temporaryDigitsBuffer = inputDigits;
-
-            // Format the display in real-time based on how many digits were entered
-            UpdateTimeDisplayFromDigits(temporaryDigitsBuffer);
-            return;
-        }
-        else if (string.IsNullOrEmpty(text) || !text.Contains(':'))
-        {
-            // Keep the field empty while user is typing
-            temporaryDigitsBuffer = "";
-            return;
-        }
-    }
-
-    // Helper method to update the display based on digit input
-    private void UpdateTimeDisplayFromDigits(string digits)
-    {
-        if (string.IsNullOrEmpty(digits))
-        {
-            TimeDisplayLabel.Text = "00:00";
-            return;
-        }
-
-        switch (digits.Length)
-        {
-            case 1: // Single digit = seconds (units)
-                TimeDisplayLabel.Text = $"00:0{digits}";
-                break;
-            case 2: // Two digits = seconds (tens + units)
-                TimeDisplayLabel.Text = $"00:{digits}";
-                break;
-            case 3: // Three digits = 1 minute + seconds
-                TimeDisplayLabel.Text = $"0{digits[0]}:{digits.Substring(1)}";
-                break;
-            case 4: // Four digits = minutes + seconds
-                TimeDisplayLabel.Text = $"{digits.Substring(0, 2)}:{digits.Substring(2)}";
-                break;
-            default: // More than 4 digits - take last 4
-                string lastFour = digits.Substring(digits.Length - 4);
-                TimeDisplayLabel.Text = $"{lastFour.Substring(0, 2)}:{lastFour.Substring(2)}";
-                break;
+            // Explicitly unfocus the entry to complete editing
+            entry.Unfocus();
+            
+            // Remove the handler to avoid memory leaks
+            entry.Completed -= TimeEntry_Completed;
+            
+            // Explicitly stop the animation
+            StopTimerEditAnimation();
         }
     }
 
@@ -456,6 +421,9 @@ public partial class RoastPage : ContentPage
         if (isTimerUpdating)
             return;
 
+        // Stop the timer edit animation when unfocused
+        StopTimerEditAnimation();
+        
         // Now apply the formatting using the buffered digits
         if (!string.IsNullOrEmpty(temporaryDigitsBuffer))
         {
@@ -521,6 +489,65 @@ public partial class RoastPage : ContentPage
                 TimeDisplayLabel.Text = $"{minutes:D2}:{seconds:D2}";
                 isTimerUpdating = false;
             }
+        }
+    }
+
+    private void TimeEntry_TextChanged(object sender, TextChangedEventArgs e)
+    {
+        if (isTimerUpdating)
+            return;
+
+        string text = e.NewTextValue ?? "";
+
+        // Extract only the digits from input
+        string inputDigits = new string(text.Where(char.IsDigit).ToArray());
+
+        // Store digits in our buffer for natural typing experience
+        if (!string.IsNullOrEmpty(inputDigits))
+        {
+            temporaryDigitsBuffer = inputDigits;
+
+            // Format the display in real-time based on how many digits were entered
+            UpdateTimeDisplayFromDigits(temporaryDigitsBuffer);
+            
+            return;
+        }
+        else if (string.IsNullOrEmpty(text) || !text.Contains(':'))
+        {
+            // Keep the field empty while user is typing
+            temporaryDigitsBuffer = "";
+            
+            return;
+        }
+    }
+
+    // Helper method to update the display based on digit input
+    private void UpdateTimeDisplayFromDigits(string digits)
+    {
+        if (string.IsNullOrEmpty(digits))
+        {
+            TimeDisplayLabel.Text = "00:00";
+            return;
+        }
+
+        switch (digits.Length)
+        {
+            case 1: // Single digit = seconds (units)
+                TimeDisplayLabel.Text = $"00:0{digits}";
+                break;
+            case 2: // Two digits = seconds (tens + units)
+                TimeDisplayLabel.Text = $"00:{digits}";
+                break;
+            case 3: // Three digits = 1 minute + seconds
+                TimeDisplayLabel.Text = $"0{digits[0]}:{digits.Substring(1)}";
+                break;
+            case 4: // Four digits = minutes + seconds
+                TimeDisplayLabel.Text = $"{digits.Substring(0, 2)}:{digits.Substring(2)}";
+                break;
+            default: // More than 4 digits - take last 4
+                string lastFour = digits.Substring(digits.Length - 4);
+                TimeDisplayLabel.Text = $"{lastFour.Substring(0, 2)}:{lastFour.Substring(2)}";
+                break;
         }
     }
 
@@ -631,6 +658,95 @@ public partial class RoastPage : ContentPage
         
         // Ensure indicator is hidden
         TimerRunningIndicator.IsVisible = false;
+    }
+
+    private void StartTimerEditAnimation()
+    {
+        // Cancel any existing animation
+        _cursorAnimationCancellationTokenSource?.Cancel();
+        _cursorAnimationCancellationTokenSource = new CancellationTokenSource();
+        
+        // Store the original color for restoration later
+        var originalColor = TimeDisplayLabel.TextColor;
+        
+        // Start a new animation task
+        MainThread.BeginInvokeOnMainThread(async () => {
+            try {
+                var token = _cursorAnimationCancellationTokenSource.Token;
+                
+                // Continue animation until canceled
+                while (!token.IsCancellationRequested) {
+                    // Toggle between normal and dimmed color to create blinking effect
+                    TimeDisplayLabel.TextColor = originalColor;
+                    await Task.Delay(500, token); // Normal for 500ms
+                    
+                    if (token.IsCancellationRequested) break;
+                    
+                    // Set to a semi-transparent version of the color
+                    if (originalColor is Microsoft.Maui.Graphics.Color color) {
+                        TimeDisplayLabel.TextColor = color.WithAlpha(0.3f);
+                    } else {
+                        // Fallback if we can't get the color
+                        TimeDisplayLabel.Opacity = 0.3;
+                    }
+                    await Task.Delay(500, token); // Dimmed for 500ms
+                    
+                    if (token.IsCancellationRequested) break;
+                    
+                    // Restore normal opacity if we changed it
+                    if (!(originalColor is Microsoft.Maui.Graphics.Color)) {
+                        TimeDisplayLabel.Opacity = 1.0;
+                    }
+                }
+            }
+            catch (TaskCanceledException) {
+                // This is expected when canceling the animation
+            }
+            catch (Exception ex) {
+                System.Diagnostics.Debug.WriteLine($"Timer edit animation error: {ex.Message}");
+            }
+            finally {
+                // Ensure the display returns to normal
+                TimeDisplayLabel.TextColor = originalColor;
+                TimeDisplayLabel.Opacity = 1.0;
+            }
+        });
+    }
+    
+    private void StopTimerEditAnimation()
+    {
+        try
+        {
+            // Cancel the animation - ensure we clean up properly
+            if (_cursorAnimationCancellationTokenSource != null)
+            {
+                _cursorAnimationCancellationTokenSource.Cancel();
+                _cursorAnimationCancellationTokenSource.Dispose();
+                _cursorAnimationCancellationTokenSource = null;
+            }
+            
+            // Force immediate reset of display properties
+            MainThread.BeginInvokeOnMainThread(() =>
+            {
+                // Ensure the display returns to normal by explicitly setting the values
+                if (Application.Current?.Resources != null && 
+                    Application.Current.Resources.TryGetValue("PrimaryColor", out var colorObj) &&
+                    colorObj is Microsoft.Maui.Graphics.Color color)
+                {
+                    TimeDisplayLabel.TextColor = color;
+                }
+                TimeDisplayLabel.Opacity = 1.0;
+            });
+        }
+        catch (Exception ex)
+        {
+            System.Diagnostics.Debug.WriteLine($"Error stopping timer edit animation: {ex.Message}");
+            // Ensure the display is reset even if there's an error
+            if (TimeDisplayLabel != null)
+            {
+                TimeDisplayLabel.Opacity = 1.0;
+            }
+        }
     }
 
     protected override void OnDisappearing()
