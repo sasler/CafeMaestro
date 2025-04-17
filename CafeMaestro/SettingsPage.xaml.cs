@@ -9,7 +9,7 @@ public partial class SettingsPage : ContentPage
 {
     private readonly PreferencesService _preferencesService;
     private readonly AppDataService _appDataService;
-    private readonly BeanService _beanService;
+    private readonly BeanDataService _beanService;
     private readonly RoastDataService _roastDataService;
 
     private string _currentFilePath = string.Empty;
@@ -18,7 +18,7 @@ public partial class SettingsPage : ContentPage
     private bool _isFirstTimeNavigation = true; // Track if this is the first time appearing
 
     public SettingsPage(PreferencesService? preferencesService = null, AppDataService? appDataService = null,
-                        BeanService? beanService = null, RoastDataService? roastDataService = null)
+                        BeanDataService? beanService = null, RoastDataService? roastDataService = null)
     {
         InitializeComponent();
 
@@ -37,8 +37,8 @@ public partial class SettingsPage : ContentPage
                              throw new InvalidOperationException("AppDataService not available");
                          
             _beanService = beanService ?? 
-                          serviceProvider.GetService<BeanService>() ??
-                          Application.Current?.Handler?.MauiContext?.Services.GetService<BeanService>() ??
+                          serviceProvider.GetService<BeanDataService>() ??
+                          Application.Current?.Handler?.MauiContext?.Services.GetService<BeanDataService>() ??
                           throw new InvalidOperationException("BeanService not available");
                       
             _roastDataService = roastDataService ?? 
@@ -58,7 +58,7 @@ public partial class SettingsPage : ContentPage
                              throw new InvalidOperationException("AppDataService not available");
                          
             _beanService = beanService ?? 
-                          Application.Current?.Handler?.MauiContext?.Services.GetService<BeanService>() ??
+                          Application.Current?.Handler?.MauiContext?.Services.GetService<BeanDataService>() ??
                           throw new InvalidOperationException("BeanService not available");
                       
             _roastDataService = roastDataService ?? 

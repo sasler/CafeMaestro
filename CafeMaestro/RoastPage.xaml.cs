@@ -16,7 +16,7 @@ public partial class RoastPage : ContentPage
 {
     private TimerService timerService;
     private RoastDataService roastDataService;
-    private BeanService beanService;
+    private BeanDataService beanService;
     private AppDataService appDataService;
     private PreferencesService preferencesService;
     private bool isTimerUpdating = false; // Flag to prevent recursive updates
@@ -43,14 +43,14 @@ public partial class RoastPage : ContentPage
     }
 
     // Store the selected bean for roasting
-    private Bean? selectedBean = null;
-    private List<Bean> availableBeans = new List<Bean>();
+    private BeanData? selectedBean = null;
+    private List<BeanData> availableBeans = new List<BeanData>();
 
     private CancellationTokenSource? _animationCancellationTokenSource;
     private CancellationTokenSource? _cursorAnimationCancellationTokenSource;
 
     public RoastPage(TimerService? timerService = null, RoastDataService? roastDataService = null, 
-                    BeanService? beanService = null, AppDataService? appDataService = null, 
+                    BeanDataService? beanService = null, AppDataService? appDataService = null, 
                     PreferencesService? preferencesService = null)
     {
         InitializeComponent();
@@ -75,8 +75,8 @@ public partial class RoastPage : ContentPage
                                    throw new InvalidOperationException("RoastDataService not available");
                                
             this.beanService = beanService ?? 
-                              serviceProvider.GetService<BeanService>() ??
-                              Application.Current?.Handler?.MauiContext?.Services.GetService<BeanService>() ??
+                              serviceProvider.GetService<BeanDataService>() ??
+                              Application.Current?.Handler?.MauiContext?.Services.GetService<BeanDataService>() ??
                               throw new InvalidOperationException("BeanService not available");
                           
             this.preferencesService = preferencesService ?? 
@@ -100,7 +100,7 @@ public partial class RoastPage : ContentPage
                                    throw new InvalidOperationException("RoastDataService not available");
                                
             this.beanService = beanService ?? 
-                              Application.Current?.Handler?.MauiContext?.Services.GetService<BeanService>() ??
+                              Application.Current?.Handler?.MauiContext?.Services.GetService<BeanDataService>() ??
                               throw new InvalidOperationException("BeanService not available");
                           
             this.preferencesService = preferencesService ?? 

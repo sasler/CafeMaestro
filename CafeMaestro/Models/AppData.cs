@@ -12,7 +12,7 @@ namespace CafeMaestro.Models
         /// <summary>
         /// All bean inventory items
         /// </summary>
-        public List<Bean> Beans { get; set; } = new List<Bean>();
+        public List<BeanData> Beans { get; set; } = new List<BeanData>();
         
         /// <summary>
         /// All roast log entries

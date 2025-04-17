@@ -6,12 +6,12 @@ namespace CafeMaestro;
 
 public partial class BeanEditPage : ContentPage
 {
-    private readonly BeanService _beanService;
+    private readonly BeanDataService _beanService;
     private readonly AppDataService _appDataService;
-    private readonly Bean _bean;
+    private readonly BeanData _bean;
     private readonly bool _isNewBean;
 
-    public BeanEditPage(Bean bean, BeanService? beanService = null, AppDataService? appDataService = null)
+    public BeanEditPage(BeanData bean, BeanDataService? beanService = null, AppDataService? appDataService = null)
     {
         InitializeComponent();
 
@@ -26,8 +26,8 @@ public partial class BeanEditPage : ContentPage
                              throw new InvalidOperationException("AppDataService not available");
             
             _beanService = beanService ?? 
-                          serviceProvider.GetService<BeanService>() ??
-                          Application.Current?.Handler?.MauiContext?.Services.GetService<BeanService>() ??
+                          serviceProvider.GetService<BeanDataService>() ??
+                          Application.Current?.Handler?.MauiContext?.Services.GetService<BeanDataService>() ??
                           throw new InvalidOperationException("BeanService not available");
         }
         else
@@ -38,7 +38,7 @@ public partial class BeanEditPage : ContentPage
                             throw new InvalidOperationException("AppDataService not available");
             
             _beanService = beanService ?? 
-                          Application.Current?.Handler?.MauiContext?.Services.GetService<BeanService>() ??
+                          Application.Current?.Handler?.MauiContext?.Services.GetService<BeanDataService>() ??
                           throw new InvalidOperationException("BeanService not available");
         }
 

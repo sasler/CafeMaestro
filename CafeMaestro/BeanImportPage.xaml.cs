@@ -10,14 +10,14 @@ namespace CafeMaestro;
 
 public partial class BeanImportPage : ContentPage
 {
-    private readonly BeanService _beanService;
+    private readonly BeanDataService _beanService;
     private readonly AppDataService _appDataService;
     private string? _selectedFilePath;
     private List<string> _csvHeaders = new List<string>();
     private Dictionary<string, string> _columnMapping = new Dictionary<string, string>();
     private List<Dictionary<string, string>> _previewData = new List<Dictionary<string, string>>();
 
-    public BeanImportPage(BeanService? beanService = null, AppDataService? appDataService = null)
+    public BeanImportPage(BeanDataService? beanService = null, AppDataService? appDataService = null)
     {
         InitializeComponent();
 
@@ -32,8 +32,8 @@ public partial class BeanImportPage : ContentPage
                              throw new InvalidOperationException("AppDataService not available");
             
             _beanService = beanService ?? 
-                          serviceProvider.GetService<BeanService>() ??
-                          Application.Current?.Handler?.MauiContext?.Services.GetService<BeanService>() ??
+                          serviceProvider.GetService<BeanDataService>() ??
+                          Application.Current?.Handler?.MauiContext?.Services.GetService<BeanDataService>() ??
                           throw new InvalidOperationException("BeanService not available");
         }
         else
@@ -44,7 +44,7 @@ public partial class BeanImportPage : ContentPage
                             throw new InvalidOperationException("AppDataService not available");
             
             _beanService = beanService ?? 
-                          Application.Current?.Handler?.MauiContext?.Services.GetService<BeanService>() ??
+                          Application.Current?.Handler?.MauiContext?.Services.GetService<BeanDataService>() ??
                           throw new InvalidOperationException("BeanService not available");
         }
 
@@ -349,7 +349,7 @@ public partial class BeanImportPage : ContentPage
                     FilePathEntry.Text = _selectedFilePath;
                     
                     // Get CSV headers - use the static method
-                    _csvHeaders = await BeanService.GetCsvHeadersAsync(_selectedFilePath);
+                    _csvHeaders = await BeanDataService.GetCsvHeadersAsync(_selectedFilePath);
                     
                     if (_csvHeaders.Count == 0)
                     {
@@ -450,7 +450,7 @@ public partial class BeanImportPage : ContentPage
                     System.Diagnostics.Debug.WriteLine("Removing existing duplicates before import...");
                     
                     // Create a deduplicated list based on unique IDs
-                    var deduplicatedBeans = new List<Bean>();
+                    var deduplicatedBeans = new List<BeanData>();
                     var processedIds = new HashSet<Guid>();
                     
                     foreach (var bean in existingBeans)
@@ -519,7 +519,7 @@ public partial class BeanImportPage : ContentPage
                     System.Diagnostics.Debug.WriteLine("Removing duplicates created during import...");
                     
                     // Create a deduplicated list
-                    var finalDedupedBeans = new List<Bean>();
+                    var finalDedupedBeans = new List<BeanData>();
                     var finalProcessedIds = new HashSet<Guid>();
                     
                     foreach (var bean in afterImportBeans)

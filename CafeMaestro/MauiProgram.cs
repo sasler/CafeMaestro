@@ -20,7 +20,7 @@ public static class MauiProgram
 		// Register services
 		builder.Services.AddSingleton<AppDataService>();
 		builder.Services.AddSingleton<RoastDataService>();
-		builder.Services.AddSingleton<BeanService>();
+		builder.Services.AddSingleton<BeanDataService>();
 		builder.Services.AddSingleton<TimerService>();
 		builder.Services.AddSingleton<PreferencesService>();
 

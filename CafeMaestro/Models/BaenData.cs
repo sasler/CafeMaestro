@@ -3,7 +3,7 @@ using System.Text.Json.Serialization;
 
 namespace CafeMaestro.Models
 {
-    public class Bean
+    public class BeanData
     {
         public Guid Id { get; set; } = Guid.NewGuid();
         public DateTime PurchaseDate { get; set; } = DateTime.Now;
@@ -32,7 +32,7 @@ namespace CafeMaestro.Models
         [JsonIgnore]
         public bool IsOutOfStock => RemainingQuantity <= 0;
 
-        public Bean()
+        public BeanData()
         {
             // Set remaining quantity to match initial quantity by default
             RemainingQuantity = Quantity;

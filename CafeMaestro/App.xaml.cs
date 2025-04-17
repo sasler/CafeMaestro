@@ -177,7 +177,7 @@ public partial class App : Application
                 // Create empty data just for UI initialization
                 _appData = new Models.AppData
                 {
-                    Beans = new List<Models.Bean>(),
+                    Beans = new List<Models.BeanData>(),
                     RoastLogs = new List<Models.RoastData>()
                 };
                 System.Diagnostics.Debug.WriteLine("First run or no saved path detected, will show file selection dialog");
@@ -202,7 +202,7 @@ public partial class App : Application
                 // Create empty data just for UI initialization
                 _appData = new Models.AppData
                 {
-                    Beans = new List<Models.Bean>(),
+                    Beans = new List<Models.BeanData>(),
                     RoastLogs = new List<Models.RoastData>()
                 };
                 // Clear the invalid path
@@ -219,7 +219,7 @@ public partial class App : Application
             // Create empty data just for UI initialization
             _appData = new Models.AppData
             {
-                Beans = new List<Models.Bean>(),
+                Beans = new List<Models.BeanData>(),
                 RoastLogs = new List<Models.RoastData>()
             };
             _appDataInitialized = true;
@@ -362,7 +362,7 @@ public partial class App : Application
     {
         return _appData ?? new Models.AppData
         {
-            Beans = new List<Models.Bean>(),
+            Beans = new List<Models.BeanData>(),
             RoastLogs = new List<Models.RoastData>()
         };
     }

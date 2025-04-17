@@ -319,7 +319,7 @@ namespace CafeMaestro.Services
                     // Initialize collections if they're null
                     if (appData.Beans == null)
                     {
-                        appData.Beans = new List<Bean>();
+                        appData.Beans = new List<BeanData>();
                     }
                     
                     if (appData.RoastLogs == null)
@@ -515,7 +515,7 @@ namespace CafeMaestro.Services
         {
             return new AppData
             {
-                Beans = new List<Bean>(),
+                Beans = new List<BeanData>(),
                 RoastLogs = new List<RoastData>(),
                 LastModified = DateTime.Now,
                 AppVersion = GetAppVersion()

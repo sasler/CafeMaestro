@@ -24,15 +24,15 @@ public partial class BeanInventoryPage : ContentPage
         }
     }
 
-    private readonly BeanService _beanService;
+    private readonly BeanDataService _beanService;
     private readonly AppDataService _appDataService;
-    private ObservableCollection<Bean> _beans;
+    private ObservableCollection<BeanData> _beans;
     public ICommand RefreshCommand { get; private set; }
     public ICommand EditBeanCommand { get; private set; }
     public ICommand DeleteBeanCommand { get; private set; }
     public ICommand ItemTappedCommand { get; private set; }
 
-    public BeanInventoryPage(BeanService? beanService = null, AppDataService? appDataService = null)
+    public BeanInventoryPage(BeanDataService? beanService = null, AppDataService? appDataService = null)
     {
         InitializeComponent();
 
@@ -48,8 +48,8 @@ public partial class BeanInventoryPage : ContentPage
                              throw new InvalidOperationException("AppDataService not available");
             
             _beanService = beanService ?? 
-                          serviceProvider.GetService<BeanService>() ??
-                          Application.Current?.Handler?.MauiContext?.Services.GetService<BeanService>() ??
+                          serviceProvider.GetService<BeanDataService>() ??
+                          Application.Current?.Handler?.MauiContext?.Services.GetService<BeanDataService>() ??
                           throw new InvalidOperationException("BeanService not available");
         }
         else
@@ -60,7 +60,7 @@ public partial class BeanInventoryPage : ContentPage
                             throw new InvalidOperationException("AppDataService not available");
             
             _beanService = beanService ?? 
-                          Application.Current?.Handler?.MauiContext?.Services.GetService<BeanService>() ??
+                          Application.Current?.Handler?.MauiContext?.Services.GetService<BeanDataService>() ??
                           throw new InvalidOperationException("BeanService not available");
         }
 
@@ -94,14 +94,14 @@ public partial class BeanInventoryPage : ContentPage
 
         System.Diagnostics.Debug.WriteLine($"BeanInventoryPage constructor - Using AppDataService at path: {_appDataService.DataFilePath}");
 
-        _beans = new ObservableCollection<Bean>();
+        _beans = new ObservableCollection<BeanData>();
         BeansCollection.ItemsSource = _beans;
 
         // Setup commands for SwipeView actions
         RefreshCommand = new Command(async () => await LoadBeans());
         
         // Edit command - directly navigate to edit page for the bean
-        EditBeanCommand = new Command<Bean>(async (bean) => {
+        EditBeanCommand = new Command<BeanData>(async (bean) => {
             try {
                 // First fetch the fresh bean from the service to ensure we have the latest data
                 var freshBean = await _beanService.GetBeanByIdAsync(bean.Id);
@@ -127,7 +127,7 @@ public partial class BeanInventoryPage : ContentPage
         });
         
         // Delete command - directly delete without showing a confirmation dialog
-        DeleteBeanCommand = new Command<Bean>(async (bean) => {
+        DeleteBeanCommand = new Command<BeanData>(async (bean) => {
             bool success = await _beanService.DeleteBeanAsync(bean.Id);
 
             if (success)
@@ -142,7 +142,7 @@ public partial class BeanInventoryPage : ContentPage
         });
         
         // Item tapped command - for Windows mouse users since SwipeView only works with touch
-        ItemTappedCommand = new Command<Bean>(async (bean) => {
+        ItemTappedCommand = new Command<BeanData>(async (bean) => {
             try {
                 // Show action sheet with options
                 string action = await DisplayActionSheet(
@@ -346,7 +346,7 @@ public partial class BeanInventoryPage : ContentPage
 
     private async void OnBeanSelected(object sender, SelectionChangedEventArgs e)
     {
-        if (e.CurrentSelection.FirstOrDefault() is Bean selectedBean)
+        if (e.CurrentSelection.FirstOrDefault() is BeanData selectedBean)
         {
             // Clear selection
             BeansCollection.SelectedItem = null;
@@ -374,11 +374,11 @@ public partial class BeanInventoryPage : ContentPage
     private async void AddBean_Clicked(object sender, EventArgs e)
     {
         // Create BeanEditPage directly but pass in our services
-        var beanEditPage = new BeanEditPage(new Bean(), _beanService, _appDataService);
+        var beanEditPage = new BeanEditPage(new BeanData(), _beanService, _appDataService);
         await Navigation.PushAsync(beanEditPage);
     }
 
-    private async Task EditBean(Bean bean)
+    private async Task EditBean(BeanData bean)
     {
         try {
             // First fetch the fresh bean from the service to ensure we have the latest data
@@ -405,7 +405,7 @@ public partial class BeanInventoryPage : ContentPage
         }
     }
 
-    private async Task DeleteBean(Bean bean)
+    private async Task DeleteBean(BeanData bean)
     {
         bool confirm = await DisplayAlert(
             "Delete Bean",
@@ -466,7 +466,7 @@ public partial class BeanInventoryPage : ContentPage
 
     private async void DeleteBean_Clicked(object sender, EventArgs e)
     {
-        if (sender is BindableObject bindable && bindable.BindingContext is Bean bean)
+        if (sender is BindableObject bindable && bindable.BindingContext is BeanData bean)
         {
             await DeleteBean(bean);
         }

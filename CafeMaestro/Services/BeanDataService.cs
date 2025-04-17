@@ -10,7 +10,7 @@ using CafeMaestro.Models;
 
 namespace CafeMaestro.Services
 {
-    public class BeanService
+    public class BeanDataService
     {
         private readonly AppDataService _appDataService;
         private readonly SemaphoreSlim _initLock = new SemaphoreSlim(1, 1);
@@ -23,7 +23,7 @@ namespace CafeMaestro.Services
             get => _appDataService.DataFilePath;
         }
 
-        public BeanService(AppDataService appDataService)
+        public BeanDataService(AppDataService appDataService)
         {
             _appDataService = appDataService;
             _currentDataFilePath = _appDataService.DataFilePath;
@@ -86,7 +86,7 @@ namespace CafeMaestro.Services
             }
         }
 
-        public async Task<bool> SaveBeansAsync(List<Bean> beans)
+        public async Task<bool> SaveBeansAsync(List<BeanData> beans)
         {
             try
             {
@@ -114,7 +114,7 @@ namespace CafeMaestro.Services
             }
         }
         
-        public async Task<bool> AddBeanAsync(Bean bean)
+        public async Task<bool> AddBeanAsync(BeanData bean)
         {
             try
             {
@@ -152,7 +152,7 @@ namespace CafeMaestro.Services
             }
         }
         
-        public async Task<bool> UpdateBeanAsync(Bean bean)
+        public async Task<bool> UpdateBeanAsync(BeanData bean)
         {
             try
             {
@@ -243,7 +243,7 @@ namespace CafeMaestro.Services
             }
         }
         
-        public async Task<Bean?> GetBeanByIdAsync(Guid id)
+        public async Task<BeanData?> GetBeanByIdAsync(Guid id)
         {
             var allBeans = await GetAllBeansAsync();
             return allBeans.FirstOrDefault(b => b.Id == id);
@@ -275,7 +275,7 @@ namespace CafeMaestro.Services
             }
         }
         
-        public async Task<List<Bean>> GetAllBeansAsync()
+        public async Task<List<BeanData>> GetAllBeansAsync()
         {
             try
             {
@@ -303,16 +303,16 @@ namespace CafeMaestro.Services
                     }
                 }
                 
-                return appData.Beans ?? new List<Bean>();
+                return appData.Beans ?? new List<BeanData>();
             }
             catch (Exception ex)
             {
                 System.Diagnostics.Debug.WriteLine($"Error loading beans: {ex.Message}");
-                return new List<Bean>();
+                return new List<BeanData>();
             }
         }
         
-        public async Task<List<Bean>> SearchBeansAsync(string searchTerm = "")
+        public async Task<List<BeanData>> SearchBeansAsync(string searchTerm = "")
         {
             var beans = await GetAllBeansAsync();
             
@@ -326,7 +326,7 @@ namespace CafeMaestro.Services
                 b.Process.Contains(searchTerm, StringComparison.OrdinalIgnoreCase));
         }
         
-        public async Task<List<Bean>> GetAvailableBeansAsync()
+        public async Task<List<BeanData>> GetAvailableBeansAsync()
         {
             try
             {
@@ -347,7 +347,7 @@ namespace CafeMaestro.Services
                 if (appData.Beans == null || appData.Beans.Count == 0)
                 {
                     System.Diagnostics.Debug.WriteLine("No beans found in app data");
-                    return new List<Bean>();
+                    return new List<BeanData>();
                 }
                 
                 // Get beans with remaining quantity
@@ -367,7 +367,7 @@ namespace CafeMaestro.Services
             {
                 System.Diagnostics.Debug.WriteLine($"Error getting available beans: {ex.Message}");
                 System.Diagnostics.Debug.WriteLine($"Stack trace: {ex.StackTrace}");
-                return new List<Bean>();
+                return new List<BeanData>();
             }
         }
 
@@ -608,7 +608,7 @@ namespace CafeMaestro.Services
                 {
                     try
                     {
-                        var bean = new Bean
+                        var bean = new BeanData
                         {
                             Id = Guid.NewGuid(),
                             PurchaseDate = DateTime.Now, // Default
@@ -832,7 +832,7 @@ namespace CafeMaestro.Services
         }
 
         // Add a special version of AddBeanAsync that avoids event recursion
-        private async Task<bool> AddBeanDirectAsync(Bean bean)
+        private async Task<bool> AddBeanDirectAsync(BeanData bean)
         {
             try
             {
