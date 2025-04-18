@@ -1,7 +1,10 @@
 using System.Diagnostics;
 using CafeMaestro.Services;
 using Microsoft.Extensions.DependencyInjection;
+using CommunityToolkit.Maui;
 using MauiAppTheme = Microsoft.Maui.ApplicationModel.AppTheme;
+using CommunityToolkit.Maui.Storage;
+using System.Text;
 
 namespace CafeMaestro;
 
@@ -11,6 +14,8 @@ public partial class SettingsPage : ContentPage
     private readonly AppDataService _appDataService;
     private readonly BeanDataService _beanService;
     private readonly RoastDataService _roastDataService;
+    private readonly IFileSaver _fileSaver;
+    private readonly IFolderPicker _folderPicker;
 
     private string _currentFilePath = string.Empty;
     private bool _isLoadingThemeSettings = false; // Flag to suppress events during initialization
@@ -18,7 +23,8 @@ public partial class SettingsPage : ContentPage
     private bool _isFirstTimeNavigation = true; // Track if this is the first time appearing
 
     public SettingsPage(PreferencesService? preferencesService = null, AppDataService? appDataService = null,
-                        BeanDataService? beanService = null, RoastDataService? roastDataService = null)
+                        BeanDataService? beanService = null, RoastDataService? roastDataService = null,
+                        IFileSaver? fileSaver = null, IFolderPicker? folderPicker = null)
     {
         InitializeComponent();
 
@@ -45,6 +51,16 @@ public partial class SettingsPage : ContentPage
                                serviceProvider.GetService<RoastDataService>() ??
                                Application.Current?.Handler?.MauiContext?.Services.GetService<RoastDataService>() ??
                                throw new InvalidOperationException("RoastDataService not available");
+                               
+            _fileSaver = fileSaver ?? 
+                        serviceProvider.GetService<IFileSaver>() ??
+                        Application.Current?.Handler?.MauiContext?.Services.GetService<IFileSaver>() ??
+                        FileSaver.Default;
+                        
+            _folderPicker = folderPicker ?? 
+                           serviceProvider.GetService<IFolderPicker>() ??
+                           Application.Current?.Handler?.MauiContext?.Services.GetService<IFolderPicker>() ??
+                           FolderPicker.Default;
         }
         else
         {
@@ -64,6 +80,14 @@ public partial class SettingsPage : ContentPage
             _roastDataService = roastDataService ?? 
                                Application.Current?.Handler?.MauiContext?.Services.GetService<RoastDataService>() ??
                                throw new InvalidOperationException("RoastDataService not available");
+                               
+            _fileSaver = fileSaver ?? 
+                        Application.Current?.Handler?.MauiContext?.Services.GetService<IFileSaver>() ??
+                        FileSaver.Default;
+                        
+            _folderPicker = folderPicker ?? 
+                           Application.Current?.Handler?.MauiContext?.Services.GetService<IFolderPicker>() ??
+                           FolderPicker.Default;
         }
 
         System.Diagnostics.Debug.WriteLine($"SettingsPage constructor - Using AppDataService at path: {_appDataService.DataFilePath}");
@@ -147,18 +171,18 @@ public partial class SettingsPage : ContentPage
 
             var theme = await _preferencesService.GetThemePreferenceAsync();
 
-            // Set the corresponding radio button
+            // Set the selected index of the ThemePicker
             switch (theme)
             {
                 case ThemePreference.Light:
-                    LightThemeRadio.IsChecked = true;
+                    ThemePicker.SelectedIndex = 1; // Light Theme
                     break;
                 case ThemePreference.Dark:
-                    DarkThemeRadio.IsChecked = true;
+                    ThemePicker.SelectedIndex = 2; // Dark Theme
                     break;
                 case ThemePreference.System:
                 default:
-                    SystemThemeRadio.IsChecked = true;
+                    ThemePicker.SelectedIndex = 0; // System Theme
                     break;
             }
 
@@ -167,7 +191,7 @@ public partial class SettingsPage : ContentPage
         catch (Exception ex)
         {
             Debug.WriteLine($"Error loading theme settings: {ex.Message}");
-            SystemThemeRadio.IsChecked = true; // Default to system theme
+            ThemePicker.SelectedIndex = 0; // Default to system theme
         }
         finally
         {
@@ -175,30 +199,37 @@ public partial class SettingsPage : ContentPage
         }
     }
 
-    private async void ThemeRadioButton_CheckedChanged(object sender, CheckedChangedEventArgs e)
+    private async void ThemePicker_SelectedIndexChanged(object sender, EventArgs e)
     {
-        if (_isLoadingThemeSettings || !_isThemeInitialized || !e.Value) // Ignore events during initialization or unchecked state
+        if (_isLoadingThemeSettings || !_isThemeInitialized) // Ignore events during initialization
             return;
 
         try
         {
-            var radioButton = sender as RadioButton;
             ThemePreference selectedTheme = ThemePreference.System; // Default
 
-            // Determine which theme was selected
-            if (radioButton == LightThemeRadio)
-                selectedTheme = ThemePreference.Light;
-            else if (radioButton == DarkThemeRadio)
-                selectedTheme = ThemePreference.Dark;
-            else if (radioButton == SystemThemeRadio)
-                selectedTheme = ThemePreference.System;
+            // Determine which theme was selected based on the picker index
+            switch (ThemePicker.SelectedIndex)
+            {
+                case 1: // Light Theme
+                    selectedTheme = ThemePreference.Light;
+                    break;
+                case 2: // Dark Theme
+                    selectedTheme = ThemePreference.Dark;
+                    break;
+                case 0: // System Theme
+                default:
+                    selectedTheme = ThemePreference.System;
+                    break;
+            }
 
             // Save the preference
             await _preferencesService.SaveThemePreferenceAsync(selectedTheme);
 
             // Apply the theme immediately
             ApplyTheme(selectedTheme);
-        }        catch (Exception ex)
+        }
+        catch (Exception ex)
         {
             Debug.WriteLine($"Error changing theme: {ex.Message}");
             Debug.WriteLine($"Stack trace: {ex.StackTrace}");
@@ -231,7 +262,7 @@ public partial class SettingsPage : ContentPage
         }
     }
 
-    private async void SelectDataFileButton_Clicked(object sender, EventArgs e)
+    private async void ExistingDataFileButton_Clicked(object sender, EventArgs e)
     {
         try
         {
@@ -275,67 +306,38 @@ public partial class SettingsPage : ContentPage
         }
     }
 
-    private async void CreateDataFileButton_Clicked(object sender, EventArgs e)
+    private async void NewDataFileButton_Clicked(object sender, EventArgs e)
     {
         try
         {
-            #if WINDOWS
-            // On Windows, use the folder picker then prompt for filename
-            try
+            // Create empty JSON content for the new file
+            var jsonContent = "{}";
+            var fileName = "NewCafeMaestroDataFile.json";
+            
+            // Use a memory stream for the file content
+            using var stream = new MemoryStream(Encoding.UTF8.GetBytes(jsonContent));
+            
+            // Save the file using FileSaver
+            var result = await _fileSaver.SaveAsync(fileName, stream, CancellationToken.None);
+            
+            // Check if operation was canceled by the user (no exception but not successful)
+            if (!result.IsSuccessful && result.Exception.Message.Contains("cancel"))
             {
-                var folderPicker = new Windows.Storage.Pickers.FolderPicker();
-                folderPicker.SuggestedStartLocation = Windows.Storage.Pickers.PickerLocationId.DocumentsLibrary;
-                folderPicker.FileTypeFilter.Add("*");
-                
-                // Get the current window handle
-                IntPtr hwnd = IntPtr.Zero;
-                if (Application.Current?.Windows != null && Application.Current.Windows.Count > 0)
-                {
-                    hwnd = WinRT.Interop.WindowNative.GetWindowHandle(Application.Current.Windows[0]);
-                }
-                else
-                {
-                    // Can't get window handle, show error and use standard picker
-                    await DisplayAlert("Error", "Cannot access window handle", "OK");
-                    await UseStandardFilePicker();
-                    return;
-                }
-                // Associate the folder picker with the window
-                WinRT.Interop.InitializeWithWindow.Initialize(folderPicker, hwnd);
-                
-                var folder = await folderPicker.PickSingleFolderAsync();
-                if (folder != null)
-                {
-                    // Prompt user for filename
-                    string fileName = await DisplayPromptAsync(
-                        "Create Data File", 
-                        "Enter a filename for your data file:", 
-                        initialValue: "cafemaestro_data.json",
-                        maxLength: 100);
-                        
-                    if (string.IsNullOrWhiteSpace(fileName))
-                        return;
-                    
-                    // Ensure filename has .json extension
-                    if (!fileName.EndsWith(".json", StringComparison.OrdinalIgnoreCase))
-                        fileName += ".json";
-                    
-                    string filePath = Path.Combine(folder.Path, fileName);
-                    await CreateNewDataFile(filePath);
-                }
+                return;
             }
-            catch (Exception ex)
+            
+            if (result.IsSuccessful)
             {
-                await DisplayAlert("Error", $"Windows folder picker failed: {ex.Message}", "OK");
-                await UseStandardFilePicker();
+                await CreateNewDataFile(result.FilePath);
             }
-            #else
-            await UseStandardFilePicker();
-            #endif
+            else if (result.Exception != null)
+            {
+                await DisplayAlert("Error", $"Failed to create file: {result.Exception.Message}", "OK");
+            }
         }
         catch (Exception ex)
         {
-            await DisplayAlert("Error", $"Failed to create data file: {ex.Message}", "OK");
+            await DisplayAlert("Error", $"Failed to create file: {ex.Message}", "OK");
         }
     }
     
@@ -392,73 +394,83 @@ public partial class SettingsPage : ContentPage
             await DisplayAlert("Error", $"Failed to create file: {ex.Message}", "OK");
         }
     }
-
-    private async void UseDefaultButton_Clicked(object sender, EventArgs e)
-    {
-        try
-        {
-            bool confirmed = await DisplayAlert("Confirm", 
-                "Are you sure you want to use the default data location? This will move your data to the app's private storage.", 
-                "Yes", "No");
-                
-            if (confirmed)
-            {
-                // First clear the preferences
-                await _preferencesService.ClearAppDataFilePathAsync();
-                
-                // Then reset the AppDataService path - now returns loaded data
-                var appData = await _appDataService.ResetToDefaultPathAsync();
-                
-                // Create the file if it doesn't exist
-                if (!_appDataService.DataFileExists())
-                {
-                    appData = await _appDataService.CreateEmptyDataFileAsync(_appDataService.DataFilePath);
-                }
-                
-                // Update UI
-                LoadDataFilePath();
-                
-                // If this was during first run, mark setup as completed
-                await _preferencesService.SetFirstRunCompletedAsync();
-                
-                await DisplayAlert("Success", "Using default data location.", "OK");
-            }
-        }
-        catch (Exception ex)
-        {
-            await DisplayAlert("Error", $"Failed to set default data file: {ex.Message}", "OK");
-        }
-    }
     
     private async void ExportButton_Clicked(object sender, EventArgs e)
     {
         try
         {
-            var customFileType = new FilePickerFileType(
-                new Dictionary<DevicePlatform, IEnumerable<string>>
-                {
-                    { DevicePlatform.WinUI, new[] { ".csv" } },
-                    { DevicePlatform.Android, new[] { "text/csv" } },
-                    { DevicePlatform.iOS, new[] { "public.comma-separated-values-text" } },
-                    { DevicePlatform.MacCatalyst, new[] { "public.comma-separated-values-text" } }
-                });
-
-            var options = new PickOptions
+            // Create a cancellation token source with a reasonable timeout
+            using var cts = new CancellationTokenSource(TimeSpan.FromMinutes(2));
+            
+            // Open the folder picker
+            var result = await _folderPicker.PickAsync(cts.Token);
+            
+            if (result.IsSuccessful && result.Folder != null)
             {
-                PickerTitle = "Select where to save CSV file",
-                FileTypes = customFileType
-            };
-
-            var result = await FilePicker.PickAsync(options);
-            if (result != null)
-            {
-                await _roastDataService.ExportRoastLogAsync(result.FullPath);
-                await DisplayAlert("Success", "Roast log exported successfully!", "OK");
+                // Generate a filename with current date
+                string fileName = $"CafeMaestro_RoastLog_{DateTime.Now:yyyy-MM-dd}.csv";
+                
+                // Combine the folder path with the filename
+                string fullPath = Path.Combine(result.Folder.Path, fileName);
+                
+                // Export the data to the selected folder
+                await _roastDataService.ExportRoastLogAsync(fullPath);
+                
+                await DisplayAlert("Success", $"Roast log exported successfully to:\n{fullPath}", "OK");
             }
+            else if (!result.IsSuccessful && result.Exception != null)
+            {
+                // Check if the operation was canceled through the token
+                if (result.Exception is OperationCanceledException)
+                {
+                    // Operation was canceled through the token, no need for an error message
+                    return;
+                }
+                
+                await DisplayAlert("Error", $"Failed to select folder: {result.Exception.Message}", "OK");
+            }
+        }
+        catch (OperationCanceledException)
+        {
+            // Silently handle cancellation
+            return;
         }
         catch (Exception ex)
         {
             await DisplayAlert("Error", $"Failed to export data: {ex.Message}", "OK");
+        }
+    }
+    
+    public async void ImportButton_Clicked(object sender, EventArgs e)
+    {
+        try
+        {
+            // Show a selection dialog for what to import
+            string action = await DisplayActionSheet("Select Import Type", "Cancel", null, "Coffee Beans", "Roast Logs");
+            
+            // Handle the selection
+            switch (action)
+            {
+                case "Coffee Beans":
+                    // Navigate to the BeanImportPage using the registered route name
+                    await Shell.Current.GoToAsync(nameof(BeanImportPage));
+                    break;
+                    
+                case "Roast Logs":
+                    // Navigate to the RoastImportPage using the registered route name
+                    await Shell.Current.GoToAsync(nameof(RoastImportPage));
+                    break;
+                    
+                case "Cancel":
+                default:
+                    // User canceled, do nothing
+                    break;
+            }
+        }
+        catch (Exception ex)
+        {
+            Debug.WriteLine($"Error in import selection: {ex.Message}");
+            await DisplayAlert("Error", $"Failed to open import page: {ex.Message}", "OK");
         }
     }
     

@@ -42,8 +42,7 @@
                             <!-- Theme Section -->
                             <Border Stroke="{DynamicResource BorderColor}"
                                     StrokeThickness="0.5"
-                                    StrokeShape="RoundRectangle 12"
-                                    BackgroundColor="{DynamicResource NeutralColor}">
+                                    StrokeShape="RoundRectangle 12">
                                    <Border.Shadow>
                                           <Shadow Brush="#20000000"
                                                   Offset="0,2"
@@ -57,31 +56,19 @@
                                                  FontAttributes="Bold"
                                                  TextColor="{DynamicResource PrimaryTextColor}"/>
 
-                                          <Label Text="Choose your preferred appearance for the app:"
-                                                 FontSize="14"
-                                                 TextColor="{DynamicResource PrimaryTextColor}"/>
-                                          <RadioButton x:Name="SystemThemeRadio"
-                                                       Content="System Theme"
-                                                       GroupName="ThemeGroup"
-                                                       CheckedChanged="ThemeRadioButton_CheckedChanged"
-                                                       TextColor="{DynamicResource PrimaryTextColor}"
-                                                       IsChecked="True"/>
-
-                                          <RadioButton x:Name="LightThemeRadio"
-                                                       Content="Light Theme"
-                                                       GroupName="ThemeGroup"
-                                                       TextColor="{DynamicResource PrimaryTextColor}"
-                                                       CheckedChanged="ThemeRadioButton_CheckedChanged"/>
-
-                                          <RadioButton x:Name="DarkThemeRadio"
-                                                       Content="Dark Theme"
-                                                       GroupName="ThemeGroup"
-                                                       TextColor="{DynamicResource PrimaryTextColor}"
-                                                       CheckedChanged="ThemeRadioButton_CheckedChanged"/>
-
-                                          <Label Text="Theme changes will apply immediately"
-                                                 FontSize="12"
-                                                 TextColor="{AppThemeBinding Light=Gray, Dark=#BBBBBB}"/>
+                                          <Picker x:Name="ThemePicker" 
+                                                  Title="Select your preferred theme for the app"
+                                                  SelectedIndexChanged="ThemePicker_SelectedIndexChanged"
+                                                  TextColor="{DynamicResource PrimaryTextColor}"
+                                                  TitleColor="{DynamicResource SecondaryTextColor}"
+                                                  BackgroundColor="{DynamicResource InputBackgroundColor}"
+                                                  Margin="0,5,0,10">
+                                              <Picker.Items>
+                                                  <x:String>System Theme</x:String>
+                                                  <x:String>Light Theme</x:String>
+                                                  <x:String>Dark Theme</x:String>
+                                              </Picker.Items>
+                                          </Picker>
                                    </VerticalStackLayout>
                             </Border>
 
@@ -112,33 +99,41 @@
 
                                           <HorizontalStackLayout Spacing="10"
                                                                  HorizontalOptions="Center">
-                                                 <Button x:Name="SelectDataFileButton"
-                                                         Text="Select File"
-                                                         Clicked="SelectDataFileButton_Clicked"
-                                                         BackgroundColor="#008000"
-                                                         TextColor="White"
-                                                         WidthRequest="110"/>
+                                                 <ImageButton x:Name="NewDataFileButton"
+                                                              Source="new_icon.png"
+                                                              Clicked="NewDataFileButton_Clicked"
+                                                              BackgroundColor="#0078D4"
+                                                              WidthRequest="50"
+                                                              HeightRequest="50"
+                                                              Padding="10"
+                                                              CornerRadius="25"/>
 
-                                                 <Button x:Name="CreateDataFileButton"
-                                                         Text="Create New"
-                                                         Clicked="CreateDataFileButton_Clicked"
-                                                         BackgroundColor="#0078D4"
-                                                         TextColor="White"
-                                                         WidthRequest="110"/>
+                                                 <ImageButton x:Name="ExistingDataFileButton"
+                                                              Source="load_icon.png"
+                                                              Clicked="ExistingDataFileButton_Clicked"
+                                                              BackgroundColor="#008000"
+                                                              WidthRequest="50"
+                                                              HeightRequest="50"
+                                                              Padding="10"
+                                                              CornerRadius="25"/>
 
-                                                 <Button x:Name="UseDefaultButton"
-                                                         Text="Use Default"
-                                                         Clicked="UseDefaultButton_Clicked"
-                                                         BackgroundColor="#512BD4"
-                                                         TextColor="White"
-                                                         WidthRequest="110"/>
+                                                 <ImageButton x:Name="ExportButton"
+                                                              Source="export_icon.png"
+                                                              Clicked="ExportButton_Clicked"
+                                                              BackgroundColor="{DynamicResource SecondaryColor}"
+                                                              WidthRequest="50"
+                                                              HeightRequest="50"
+                                                              Padding="10"
+                                                              CornerRadius="25"/>
 
-                                                 <Button x:Name="ExportButton"
-                                                         Text="Export to CSV"
-                                                         Clicked="ExportButton_Clicked"
-                                                         BackgroundColor="{DynamicResource SecondaryColor}"
-                                                         TextColor="{DynamicResource ButtonTextColor}"
-                                                         WidthRequest="120"/>
+                                                 <ImageButton x:Name="ImportButton"
+                                                              Source="import_icon.png"
+                                                              Clicked="ImportButton_Clicked"
+                                                              BackgroundColor="{DynamicResource TertiaryColor}"
+                                                              WidthRequest="50"
+                                                              HeightRequest="50"
+                                                              Padding="10"
+                                                              CornerRadius="25"/>
                                           </HorizontalStackLayout>
                                    </VerticalStackLayout>
                             </Border>
