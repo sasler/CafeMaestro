@@ -1,181 +1,362 @@
 <?xml version="1.0" encoding="utf-8" ?>
 <ContentPage xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
              xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
+             xmlns:local="clr-namespace:CafeMaestro"
              x:Class="CafeMaestro.SettingsPage"
              BackgroundColor="{DynamicResource PageBackgroundColor}"
              Title="Settings">
-       <ScrollView Padding="0"
-                   Margin="0">
-              <Grid RowDefinitions="Auto, *"
-                    Padding="0"
-                    Margin="0">
-                     <!-- Header Area - Clean Design -->
-                     <Grid Grid.Row="0"
-                           ColumnDefinitions="Auto,*"
-                           Padding="20,20"
-                           HeightRequest="100"
-                           HorizontalOptions="Fill"
+       <ContentPage.Resources>
+              <!-- Popup resources for roast level editing -->
+              <Style x:Key="EditEntryStyle"
+                     TargetType="Entry">
+                     <Setter Property="BackgroundColor"
+                             Value="{DynamicResource InputBackgroundColor}"/>
+                     <Setter Property="TextColor"
+                             Value="{DynamicResource PrimaryTextColor}"/>
+                     <Setter Property="PlaceholderColor"
+                             Value="{DynamicResource SecondaryTextColor}"/>
+                     <Setter Property="HeightRequest"
+                             Value="50"/>
+                     <Setter Property="FontSize"
+                             Value="16"/>
+              </Style>
+       </ContentPage.Resources>
+
+       <Grid>
+              <!-- Main ScrollView content -->
+              <ScrollView Padding="0"
+                          Margin="0">
+                     <Grid RowDefinitions="Auto, *"
+                           Padding="0"
                            Margin="0">
-                            <!-- Logo and Title within Header -->
-                            <Image Grid.Column="0"
-                                   Source="settings_icon.png"
-                                   HeightRequest="60"
-                                   WidthRequest="60"
-                                   Aspect="AspectFit"
-                                   VerticalOptions="Center"/>
-                            <Label Grid.Column="1"
-                                   Text="Application Settings"
-                                   FontSize="28"
-                                   FontAttributes="Bold"
-                                   HorizontalOptions="Start"
-                                   VerticalOptions="Center"
-                                   TextColor="{DynamicResource PrimaryColor}"
-                                   Margin="16,0,0,0"/>
+                            <!-- Header Area - Clean Design -->
+                            <Grid Grid.Row="0"
+                                  ColumnDefinitions="Auto,*"
+                                  Padding="20,20"
+                                  HeightRequest="100"
+                                  HorizontalOptions="Fill"
+                                  Margin="0">
+                                   <!-- Logo and Title within Header -->
+                                   <Image Grid.Column="0"
+                                          Source="settings_icon.png"
+                                          HeightRequest="60"
+                                          WidthRequest="60"
+                                          Aspect="AspectFit"
+                                          VerticalOptions="Center"/>
+                                   <Label Grid.Column="1"
+                                          Text="Application Settings"
+                                          FontSize="28"
+                                          FontAttributes="Bold"
+                                          HorizontalOptions="Start"
+                                          VerticalOptions="Center"
+                                          TextColor="{DynamicResource PrimaryColor}"
+                                          Margin="16,0,0,0"/>
+                            </Grid>
+
+                            <!-- Main Content Area -->
+                            <VerticalStackLayout Grid.Row="1"
+                                                 Padding="24,0,24,24"
+                                                 Spacing="15"
+                                                 BackgroundColor="{DynamicResource PageBackgroundColor}"
+                                                 Margin="0,10,0,0">
+
+                                   <!-- Data File Section -->
+                                   <Border x:Name="DataFileSection"
+                                           Stroke="{DynamicResource BorderColor}"
+                                           BackgroundColor="{DynamicResource PageBackgroundColor}"
+                                           StrokeThickness="0.5"
+                                           StrokeShape="RoundRectangle 12">
+                                          <Border.Shadow>
+                                                 <Shadow Brush="#20000000"
+                                                         Offset="0,2"
+                                                         Radius="4"
+                                                         Opacity="0.2"/>
+                                          </Border.Shadow>
+                                          <VerticalStackLayout Spacing="16"
+                                                               Padding="16,10">
+                                                 <Label Text="Data File"
+                                                        FontSize="18"
+                                                        FontAttributes="Bold"
+                                                        TextColor="{DynamicResource PrimaryTextColor}"/>
+
+                                                 <Label x:Name="DataFilePath"
+                                                        Text="Loading..."
+                                                        FontSize="14"
+                                                        LineBreakMode="CharacterWrap"
+                                                        TextColor="{DynamicResource PrimaryTextColor}"/>
+
+                                                 <HorizontalStackLayout Spacing="10"
+                                                                        HorizontalOptions="Center">
+                                                        <ImageButton x:Name="NewDataFileButton"
+                                                                     Source="new_icon.png"
+                                                                     Clicked="NewDataFileButton_Clicked"
+                                                                     BackgroundColor="#0078D4"
+                                                                     WidthRequest="50"
+                                                                     HeightRequest="50"
+                                                                     Padding="10"
+                                                                     CornerRadius="25"/>
+
+                                                        <ImageButton x:Name="ExistingDataFileButton"
+                                                                     Source="load_icon.png"
+                                                                     Clicked="ExistingDataFileButton_Clicked"
+                                                                     BackgroundColor="#008000"
+                                                                     WidthRequest="50"
+                                                                     HeightRequest="50"
+                                                                     Padding="10"
+                                                                     CornerRadius="25"/>
+
+                                                        <ImageButton x:Name="ExportButton"
+                                                                     Source="export_icon.png"
+                                                                     Clicked="ExportButton_Clicked"
+                                                                     BackgroundColor="{DynamicResource SecondaryColor}"
+                                                                     WidthRequest="50"
+                                                                     HeightRequest="50"
+                                                                     Padding="10"
+                                                                     CornerRadius="25"/>
+
+                                                        <ImageButton x:Name="ImportButton"
+                                                                     Source="import_icon.png"
+                                                                     Clicked="ImportButton_Clicked"
+                                                                     BackgroundColor="{DynamicResource TertiaryColor}"
+                                                                     WidthRequest="50"
+                                                                     HeightRequest="50"
+                                                                     Padding="10"
+                                                                     CornerRadius="25"/>
+                                                 </HorizontalStackLayout>
+                                          </VerticalStackLayout>
+                                   </Border>
+
+                                   <!-- Roast Levels Section -->
+                                   <Border Stroke="{DynamicResource BorderColor}"
+                                           BackgroundColor="{DynamicResource PageBackgroundColor}"
+                                           StrokeThickness="0.5"
+                                           StrokeShape="RoundRectangle 12">
+                                          <Border.Shadow>
+                                                 <Shadow Brush="#20000000"
+                                                         Offset="0,2"
+                                                         Radius="4"
+                                                         Opacity="0.2"/>
+                                          </Border.Shadow>
+                                          <VerticalStackLayout Spacing="5"
+                                                               Padding="16,10">
+                                                 <Label Text="Roast Levels"
+                                                        FontSize="18"
+                                                        FontAttributes="Bold"
+                                                        TextColor="{DynamicResource PrimaryTextColor}"/>
+
+                                                 <Label Text="Configure custom roast levels based on weight loss percentage"
+                                                        FontSize="14"
+                                                        TextColor="{DynamicResource SecondaryTextColor}"/>
+
+                                                 <!-- List of roast levels -->
+                                                 <CollectionView x:Name="RoastLevelsCollection"
+                                                                 EmptyView="No roast levels defined"
+                                                                 SelectionMode="None">
+                                                        <CollectionView.ItemTemplate>
+                                                               <DataTemplate>
+                                                                      <Grid Padding="5"
+                                                                            ColumnDefinitions="*, Auto, Auto">
+                                                                             <Border Grid.Column="0"
+                                                                                     BackgroundColor="{DynamicResource CardBackgroundColor}"
+                                                                                     StrokeShape="RoundRectangle 8"
+                                                                                     Padding="3">
+                                                                                    <VerticalStackLayout>
+                                                                                           <Label Text="{Binding Name}"
+                                                                                                  FontSize="16"
+                                                                                                  FontAttributes="Bold"
+                                                                                                  TextColor="{DynamicResource PrimaryTextColor}"/>
+                                                                                           <Label Text="{Binding DisplayRange}"
+                                                                                                  FontSize="14"
+                                                                                                  TextColor="{DynamicResource SecondaryTextColor}"/>
+                                                                                    </VerticalStackLayout>
+                                                                             </Border>
+
+                                                                             <ImageButton Grid.Column="1"
+                                                                                          Source="edit_icon.png"
+                                                                                          Command="{Binding Source={RelativeSource AncestorType={x:Type local:SettingsPage}}, Path=EditRoastLevelCommand}"
+                                                                                          CommandParameter="{Binding .}"
+                                                                                          BackgroundColor="#0078D4"
+                                                                                          WidthRequest="40"
+                                                                                          HeightRequest="40"
+                                                                                          Padding="8"
+                                                                                          Margin="8,0,0,0"
+                                                                                          CornerRadius="20"/>
+
+                                                                             <ImageButton Grid.Column="2"
+                                                                                          Source="delete_icon.png"
+                                                                                          Command="{Binding Source={RelativeSource AncestorType={x:Type local:SettingsPage}}, Path=DeleteRoastLevelCommand}"
+                                                                                          CommandParameter="{Binding .}"
+                                                                                          BackgroundColor="#E74C3C"
+                                                                                          WidthRequest="40"
+                                                                                          HeightRequest="40"
+                                                                                          Padding="8"
+                                                                                          Margin="8,0,0,0"
+                                                                                          CornerRadius="20"/>
+                                                                      </Grid>
+                                                               </DataTemplate>
+                                                        </CollectionView.ItemTemplate>
+                                                 </CollectionView>
+
+                                                 <Button Text="Add New Roast Level"
+                                                         Clicked="AddRoastLevel_Clicked"
+                                                         BackgroundColor="{DynamicResource SecondaryColor}"
+                                                         TextColor="White"
+                                                         HeightRequest="50"
+                                                         CornerRadius="25"
+                                                         HorizontalOptions="Fill"/>
+                                          </VerticalStackLayout>
+                                   </Border>
+
+                                   <!-- Theme Section -->
+                                   <Border Stroke="{DynamicResource BorderColor}"
+                                           StrokeThickness="0.5"
+                                           StrokeShape="RoundRectangle 12">
+                                          <Border.Shadow>
+                                                 <Shadow Brush="#20000000"
+                                                         Offset="0,2"
+                                                         Radius="4"
+                                                         Opacity="0.2"/>
+                                          </Border.Shadow>
+                                          <VerticalStackLayout Spacing="16"
+                                                               Padding="16,10">
+                                                 <Label Text="App Theme"
+                                                        FontSize="18"
+                                                        FontAttributes="Bold"
+                                                        TextColor="{DynamicResource PrimaryTextColor}"/>
+
+                                                 <Picker x:Name="ThemePicker"
+                                                         Title="Select your preferred theme for the app"
+                                                         SelectedIndexChanged="ThemePicker_SelectedIndexChanged"
+                                                         TextColor="{DynamicResource PrimaryTextColor}"
+                                                         TitleColor="{DynamicResource SecondaryTextColor}"
+                                                         BackgroundColor="{DynamicResource InputBackgroundColor}"
+                                                         Margin="0,5,0,10">
+                                                        <Picker.Items>
+                                                               <x:String>System Theme</x:String>
+                                                               <x:String>Light Theme</x:String>
+                                                               <x:String>Dark Theme</x:String>
+                                                        </Picker.Items>
+                                                 </Picker>
+                                          </VerticalStackLayout>
+                                   </Border>
+
+                                   <!-- About Section -->
+                                   <Border Stroke="{DynamicResource BorderColor}"
+                                           BackgroundColor="{DynamicResource PageBackgroundColor}"
+                                           StrokeThickness="0.5"
+                                           StrokeShape="RoundRectangle 12">
+                                          <Border.Shadow>
+                                                 <Shadow Brush="#20000000"
+                                                         Offset="0,2"
+                                                         Radius="4"
+                                                         Opacity="0.2"/>
+                                          </Border.Shadow>
+                                          <VerticalStackLayout Spacing="8"
+                                                               Padding="16,10">
+
+                                                 <Label Text="About"
+                                                        FontSize="18"
+                                                        FontAttributes="Bold"
+                                                        TextColor="{DynamicResource PrimaryTextColor}"/>
+
+                                                 <Label Text="CafeMaestro - Coffee Roasting App"
+                                                        FontSize="16"
+                                                        TextColor="{DynamicResource PrimaryTextColor}"/>
+
+                                                 <HorizontalStackLayout Spacing="5">
+                                                        <Label Text="Version:"
+                                                               FontSize="14"
+                                                               TextColor="{DynamicResource PrimaryTextColor}"/>
+                                                        <Label x:Name="VersionLabel"
+                                                               Text="1.0.0"
+                                                               FontSize="14"
+                                                               TextColor="{DynamicResource PrimaryTextColor}"/>
+                                                 </HorizontalStackLayout>
+                                                 <Label Text="© 2025 CafeMaestro Team"
+                                                        FontSize="14"
+                                                        TextColor="{AppThemeBinding Light=Gray, Dark=#BBBBBB}"/>
+                                          </VerticalStackLayout>
+                                   </Border>
+                            </VerticalStackLayout>
                      </Grid>
+              </ScrollView>
 
-                     <!-- Main Content Area -->
-                     <VerticalStackLayout Grid.Row="1"
-                                          Padding="24,0,24,24"
-                                          Spacing="15"
-                                          BackgroundColor="{DynamicResource PageBackgroundColor}"
-                                          Margin="0,10,0,0">
-                            <!-- Theme Section -->
-                            <Border Stroke="{DynamicResource BorderColor}"
-                                    StrokeThickness="0.5"
-                                    StrokeShape="RoundRectangle 12">
-                                   <Border.Shadow>
-                                          <Shadow Brush="#20000000"
-                                                  Offset="0,2"
-                                                  Radius="4"
-                                                  Opacity="0.2"/>
-                                   </Border.Shadow>
-                                   <VerticalStackLayout Spacing="16"
-                                                        Padding="16,10">
-                                          <Label Text="App Theme"
-                                                 FontSize="18"
-                                                 FontAttributes="Bold"
-                                                 TextColor="{DynamicResource PrimaryTextColor}"/>
+              <!-- Popup for editing roast levels -->
+              <Grid x:Name="EditRoastLevelPopup"
+                    IsVisible="False"
+                    BackgroundColor="#80000000"
+                    InputTransparent="False">
+                     <Border BackgroundColor="{DynamicResource PageBackgroundColor}"
+                             WidthRequest="320"
+                             StrokeShape="RoundRectangle 12"
+                             Stroke="{DynamicResource BorderColor}"
+                             StrokeThickness="1"
+                             HorizontalOptions="Center"
+                             VerticalOptions="Center">
+                            <Grid RowDefinitions="Auto,*,Auto"
+                                  Padding="20">
+                                   <!-- Header -->
+                                   <Label x:Name="EditPopupTitle"
+                                          Grid.Row="0"
+                                          Text="Edit Roast Level"
+                                          FontSize="22"
+                                          FontAttributes="Bold"
+                                          HorizontalOptions="Center"
+                                          TextColor="{DynamicResource PrimaryTextColor}"
+                                          Margin="0,0,0,15"/>
 
-                                          <Picker x:Name="ThemePicker" 
-                                                  Title="Select your preferred theme for the app"
-                                                  SelectedIndexChanged="ThemePicker_SelectedIndexChanged"
-                                                  TextColor="{DynamicResource PrimaryTextColor}"
-                                                  TitleColor="{DynamicResource SecondaryTextColor}"
-                                                  BackgroundColor="{DynamicResource InputBackgroundColor}"
-                                                  Margin="0,5,0,10">
-                                              <Picker.Items>
-                                                  <x:String>System Theme</x:String>
-                                                  <x:String>Light Theme</x:String>
-                                                  <x:String>Dark Theme</x:String>
-                                              </Picker.Items>
-                                          </Picker>
-                                   </VerticalStackLayout>
-                            </Border>
-
-                            <!-- Data File Section -->
-                            <Border x:Name="DataFileSection"
-                                    Stroke="{DynamicResource BorderColor}"
-                                    BackgroundColor="{DynamicResource PageBackgroundColor}"
-                                    StrokeThickness="0.5"
-                                    StrokeShape="RoundRectangle 12">
-                                   <Border.Shadow>
-                                          <Shadow Brush="#20000000"
-                                                  Offset="0,2"
-                                                  Radius="4"
-                                                  Opacity="0.2"/>
-                                   </Border.Shadow>
-                                   <VerticalStackLayout Spacing="16"
-                                                        Padding="16,10">
-                                          <Label Text="Data File Location"
-                                                 FontSize="18"
-                                                 FontAttributes="Bold"
-                                                 TextColor="{DynamicResource PrimaryTextColor}"/>
-
-                                          <Label x:Name="DataFilePath"
-                                                 Text="Loading..."
-                                                 FontSize="14"
-                                                 LineBreakMode="CharacterWrap"
-                                                 TextColor="{DynamicResource PrimaryTextColor}"/>
-
-                                          <HorizontalStackLayout Spacing="10"
-                                                                 HorizontalOptions="Center">
-                                                 <ImageButton x:Name="NewDataFileButton"
-                                                              Source="new_icon.png"
-                                                              Clicked="NewDataFileButton_Clicked"
-                                                              BackgroundColor="#0078D4"
-                                                              WidthRequest="50"
-                                                              HeightRequest="50"
-                                                              Padding="10"
-                                                              CornerRadius="25"/>
-
-                                                 <ImageButton x:Name="ExistingDataFileButton"
-                                                              Source="load_icon.png"
-                                                              Clicked="ExistingDataFileButton_Clicked"
-                                                              BackgroundColor="#008000"
-                                                              WidthRequest="50"
-                                                              HeightRequest="50"
-                                                              Padding="10"
-                                                              CornerRadius="25"/>
-
-                                                 <ImageButton x:Name="ExportButton"
-                                                              Source="export_icon.png"
-                                                              Clicked="ExportButton_Clicked"
-                                                              BackgroundColor="{DynamicResource SecondaryColor}"
-                                                              WidthRequest="50"
-                                                              HeightRequest="50"
-                                                              Padding="10"
-                                                              CornerRadius="25"/>
-
-                                                 <ImageButton x:Name="ImportButton"
-                                                              Source="import_icon.png"
-                                                              Clicked="ImportButton_Clicked"
-                                                              BackgroundColor="{DynamicResource TertiaryColor}"
-                                                              WidthRequest="50"
-                                                              HeightRequest="50"
-                                                              Padding="10"
-                                                              CornerRadius="25"/>
-                                          </HorizontalStackLayout>
-                                   </VerticalStackLayout>
-                            </Border>
-
-                            <!-- About Section -->
-                            <Border Stroke="{DynamicResource BorderColor}"
-                                    BackgroundColor="{DynamicResource PageBackgroundColor}"
-                                    StrokeThickness="0.5"
-                                    StrokeShape="RoundRectangle 12">
-                                   <Border.Shadow>
-                                          <Shadow Brush="#20000000"
-                                                  Offset="0,2"
-                                                  Radius="4"
-                                                  Opacity="0.2"/>
-                                   </Border.Shadow>
-                                   <VerticalStackLayout Spacing="8"
-                                                        Padding="16,10">
-
-                                          <Label Text="About"
-                                                 FontSize="18"
-                                                 FontAttributes="Bold"
-                                                 TextColor="{DynamicResource PrimaryTextColor}"/>
-
-                                          <Label Text="CafeMaestro - Coffee Roasting App"
+                                   <!-- Form fields -->
+                                   <VerticalStackLayout Grid.Row="1"
+                                                        Spacing="15">
+                                          <Label Text="Name"
                                                  FontSize="16"
                                                  TextColor="{DynamicResource PrimaryTextColor}"/>
+                                          <Entry x:Name="RoastLevelNameEntry"
+                                                 Placeholder="Enter roast level name"
+                                                 Style="{StaticResource EditEntryStyle}"/>
 
-                                          <HorizontalStackLayout Spacing="5">
-                                                 <Label Text="Version:"
-                                                        FontSize="14"
-                                                        TextColor="{DynamicResource PrimaryTextColor}"/>
-                                                 <Label x:Name="VersionLabel"
-                                                        Text="1.0.0"
-                                                        FontSize="14"
-                                                        TextColor="{DynamicResource PrimaryTextColor}"/>
-                                          </HorizontalStackLayout>
-                                          <Label Text="© 2025 CafeMaestro Team"
-                                                 FontSize="14"
-                                                 TextColor="{AppThemeBinding Light=Gray, Dark=#BBBBBB}"/>
+                                          <Label Text="Min Weight Loss (%)"
+                                                 FontSize="16"
+                                                 TextColor="{DynamicResource PrimaryTextColor}"/>
+                                          <Entry x:Name="MinWeightLossEntry"
+                                                 Placeholder="0.0"
+                                                 Keyboard="Numeric"
+                                                 Style="{StaticResource EditEntryStyle}"/>
+
+                                          <Label Text="Max Weight Loss (%)"
+                                                 FontSize="16"
+                                                 TextColor="{DynamicResource PrimaryTextColor}"/>
+                                          <Entry x:Name="MaxWeightLossEntry"
+                                                 Placeholder="100.0"
+                                                 Keyboard="Numeric"
+                                                 Style="{StaticResource EditEntryStyle}"/>
                                    </VerticalStackLayout>
-                            </Border>
-                     </VerticalStackLayout>
+
+                                   <!-- Action buttons -->
+                                   <HorizontalStackLayout Grid.Row="2"
+                                                          Spacing="10"
+                                                          HorizontalOptions="Center"
+                                                          Margin="0,15,0,0">
+                                          <Button x:Name="SaveRoastLevelButton"
+                                                  Text="Save"
+                                                  Clicked="SaveRoastLevel_Clicked"
+                                                  BackgroundColor="{DynamicResource PrimaryColor}"
+                                                  TextColor="White"
+                                                  WidthRequest="120"
+                                                  HeightRequest="45"
+                                                  CornerRadius="22"/>
+
+                                          <Button x:Name="CancelRoastLevelButton"
+                                                  Text="Cancel"
+                                                  Clicked="CancelRoastLevel_Clicked"
+                                                  BackgroundColor="#666666"
+                                                  TextColor="White"
+                                                  WidthRequest="120"
+                                                  HeightRequest="45"
+                                                  CornerRadius="22"/>
+                                   </HorizontalStackLayout>
+                            </Grid>
+                     </Border>
               </Grid>
-       </ScrollView>
+       </Grid>
 </ContentPage>

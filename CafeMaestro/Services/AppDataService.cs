@@ -326,6 +326,24 @@ namespace CafeMaestro.Services
                     {
                         appData.RoastLogs = new List<RoastData>();
                     }
+                    
+                    // Initialize roast levels if they're null (for backward compatibility)
+                    if (appData.RoastLevels == null || appData.RoastLevels.Count == 0)
+                    {
+                        // Create default roast levels
+                        appData.RoastLevels = new List<RoastLevelData>
+                        {
+                            new RoastLevelData("Under Developed", 0.0, 11.0),
+                            new RoastLevelData("Light", 11.0, 13.0),
+                            new RoastLevelData("Medium-Light", 13.0, 14.0),
+                            new RoastLevelData("Medium", 14.0, 16.0),
+                            new RoastLevelData("Dark", 16.0, 18.0),
+                            new RoastLevelData("Extra Dark", 18.0, 22.0),
+                            new RoastLevelData("Burned", 22.0, 100.0)
+                        };
+                        
+                        System.Diagnostics.Debug.WriteLine("Added default roast levels to existing data");
+                    }
                 }
                 
                 _cachedData = appData;
@@ -511,15 +529,25 @@ namespace CafeMaestro.Services
         }
         
         // Helper method to create an empty app data object
-        private AppData CreateEmptyAppData()
+        internal AppData CreateEmptyAppData()
         {
-            return new AppData
+            var appData = new AppData
             {
+                LastModified = DateTime.Now,
+                AppVersion = GetAppVersion(),
                 Beans = new List<BeanData>(),
                 RoastLogs = new List<RoastData>(),
-                LastModified = DateTime.Now,
-                AppVersion = GetAppVersion()
+                RoastLevels = new List<RoastLevelData>
+                {
+                    new RoastLevelData("Light", 0.0, 12.0),
+                    new RoastLevelData("Medium-Light", 12.0, 14.0),
+                    new RoastLevelData("Medium", 14.0, 16.0),
+                    new RoastLevelData("Medium-Dark", 16.0, 18.0),
+                    new RoastLevelData("Dark", 18.0, 100.0)
+                }
             };
+            
+            return appData;
         }
         
         // Get current app version
@@ -546,75 +574,29 @@ namespace CafeMaestro.Services
         // Create new empty data file
         public async Task<AppData> CreateEmptyDataFileAsync(string filePath)
         {
-            if (string.IsNullOrEmpty(filePath))
-                throw new ArgumentException("File path cannot be empty", nameof(filePath));
-                
-            // Use a lock to prevent concurrent operations
-            await _dataAccessLock.WaitAsync();
-            
             try
             {
                 // Create empty app data structure
                 var emptyData = CreateEmptyAppData();
                 
-                System.Diagnostics.Debug.WriteLine($"Creating new empty data file at: {filePath}");
-                _pathInitializedFromPreferences = true;
+                // Write it to file
+                await File.WriteAllTextAsync(filePath, JsonSerializer.Serialize(emptyData, _jsonOptions));
                 
-                // Set file path
-                DataFilePath = filePath;
+                // Save the path in preferences
+                _filePath = filePath;
                 
-                // Make sure directory exists
-                string? directory = Path.GetDirectoryName(filePath);
-                if (!string.IsNullOrEmpty(directory) && !Directory.Exists(directory))
-                {
-                    Directory.CreateDirectory(directory);
-                }
+                // Emit path changed event
+                DataFilePathChanged?.Invoke(this, _filePath);
                 
-                // Create and save empty data to the file directly to ensure it works
-                string jsonString = JsonSerializer.Serialize(emptyData, _jsonOptions);
+                // Load the newly created data
+                var result = await LoadAppDataAsync();
                 
-                // CRITICAL FIX FOR ANDROID: Use streams for file writing
-                try 
-                {
-                    using (var fileStream = new FileStream(filePath, FileMode.Create, FileAccess.Write, FileShare.None))
-                    using (var writer = new StreamWriter(fileStream))
-                    {
-                        await writer.WriteAsync(jsonString);
-                        await writer.FlushAsync();
-                    }
-                    System.Diagnostics.Debug.WriteLine($"Successfully created new file with stream: {filePath}");
-                }
-                catch (Exception streamEx)
-                {
-                    System.Diagnostics.Debug.WriteLine($"Error writing with stream: {streamEx.Message}, falling back to direct write");
-                    await File.WriteAllTextAsync(filePath, jsonString);
-                }
-                
-                // Verify file was created
-                if (!File.Exists(filePath))
-                {
-                    throw new IOException($"Failed to create file at {filePath}");
-                }
-                
-                // Update cache
-                _cachedData = emptyData;
-                _isDirty = false;
-                
-                System.Diagnostics.Debug.WriteLine($"Created new empty data file at: {filePath}");
-                
-                // Notify about the new data
-                DataChanged?.Invoke(this, emptyData);
-                
-                return emptyData;
+                return result;
             }
             catch (Exception ex)
             {
-                System.Diagnostics.Debug.WriteLine($"Error creating empty data file: {ex.Message}");
+                System.Diagnostics.Debug.WriteLine($"Failed to create empty data file: {ex.Message}");
                 throw;
-            }
-            finally
-            {
-                _dataAccessLock.Release();
             }
         }
         

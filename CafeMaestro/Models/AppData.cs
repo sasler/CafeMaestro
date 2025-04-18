@@ -20,6 +20,11 @@ namespace CafeMaestro.Models
         public List<RoastData> RoastLogs { get; set; } = new List<RoastData>();
         
         /// <summary>
+        /// User-configurable roast levels
+        /// </summary>
+        public List<RoastLevelData> RoastLevels { get; set; } = new List<RoastLevelData>();
+        
+        /// <summary>
         /// Timestamp of last modification
         /// </summary>
         public DateTime LastModified { get; set; } = DateTime.Now;

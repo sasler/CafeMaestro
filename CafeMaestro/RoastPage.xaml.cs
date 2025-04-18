@@ -20,6 +20,7 @@ public partial class RoastPage : ContentPage
     private BeanDataService beanService;
     private AppDataService appDataService;
     private PreferencesService preferencesService;
+    private RoastLevelService roastLevelService;
     private bool isTimerUpdating = false; // Flag to prevent recursive updates
     private string temporaryDigitsBuffer = ""; // Store digits before formatting
 
@@ -128,6 +129,10 @@ public partial class RoastPage : ContentPage
                                      serviceProvider.GetService<PreferencesService>() ??
                                      Application.Current?.Handler?.MauiContext?.Services.GetService<PreferencesService>() ??
                                      throw new InvalidOperationException("PreferencesService not available");
+
+            this.roastLevelService = serviceProvider.GetService<RoastLevelService>() ??
+                                     Application.Current?.Handler?.MauiContext?.Services.GetService<RoastLevelService>() ??
+                                     throw new InvalidOperationException("RoastLevelService not available");
         }
         else
         {
@@ -146,11 +151,14 @@ public partial class RoastPage : ContentPage
 
             this.beanService = beanService ??
                               Application.Current?.Handler?.MauiContext?.Services.GetService<BeanDataService>() ??
-                              throw new InvalidOperationException("BeanService not available");
+                              throw new InvalidOperationException("BeanDataService not available");
 
             this.preferencesService = preferencesService ??
                                      Application.Current?.Handler?.MauiContext?.Services.GetService<PreferencesService>() ??
                                      throw new InvalidOperationException("PreferencesService not available");
+
+            this.roastLevelService = Application.Current?.Handler?.MauiContext?.Services.GetService<RoastLevelService>() ??
+                                     throw new InvalidOperationException("RoastLevelService not available");
         }
 
         System.Diagnostics.Debug.WriteLine($"RoastPage constructor - Using AppDataService at path: {this.appDataService.DataFilePath}");
@@ -484,19 +492,17 @@ public partial class RoastPage : ContentPage
         return false;
     }
 
-    private string GetRoastLevel(double lossPercentage)
+    private async Task<string> GetRoastLevel(double lossPercentage)
     {
-        // Classify roast level based on weight loss percentage
-        if (lossPercentage < 12.0)
-            return "Light";
-        else if (lossPercentage < 14.0)
-            return "Medium-Light";
-        else if (lossPercentage < 16.0)
-            return "Medium";
-        else if (lossPercentage < 18.0)
-            return "Medium-Dark";
-        else
-            return "Dark";
+        try
+        {
+            return await roastLevelService.GetRoastLevelNameAsync(lossPercentage);
+        }
+        catch (Exception ex)
+        {
+            System.Diagnostics.Debug.WriteLine($"Error getting roast level: {ex.Message}");
+            return "Unknown";
+        }
     }
 
     private string FormatRoastTime(int minutes, int seconds)
@@ -933,7 +939,7 @@ public partial class RoastPage : ContentPage
         {
             double lossWeight = batchWeight - finalWeight;
             double lossPercentage = (lossWeight / batchWeight) * 100;
-            string roastLevel = GetRoastLevel(lossPercentage);
+            string roastLevel = GetRoastLevel(lossPercentage).Result;
             LossPercentLabel.Text = $"Weight loss {lossPercentage:F1}% ({roastLevel} roast)";
         }
     }
@@ -1178,7 +1184,7 @@ public partial class RoastPage : ContentPage
 
                     // Calculate and update loss percentage and roast summary
                     double lossPercentage = _roastToEdit.WeightLossPercentage;
-                    string roastLevel = GetRoastLevel(lossPercentage);
+                    string roastLevel = await GetRoastLevel(lossPercentage);
                     LossPercentLabel.Text = $"Weight loss {lossPercentage:F1}% ({roastLevel} roast)";
 
                     // Now select the correct bean in the picker - make sure we have the bean type

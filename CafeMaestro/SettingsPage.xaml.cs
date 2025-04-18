@@ -5,6 +5,9 @@ using CommunityToolkit.Maui;
 using MauiAppTheme = Microsoft.Maui.ApplicationModel.AppTheme;
 using CommunityToolkit.Maui.Storage;
 using System.Text;
+using System.Windows.Input;
+using System.Collections.ObjectModel;
+using CafeMaestro.Models;
 
 namespace CafeMaestro;
 
@@ -14,17 +17,29 @@ public partial class SettingsPage : ContentPage
     private readonly AppDataService _appDataService;
     private readonly BeanDataService _beanService;
     private readonly RoastDataService _roastDataService;
+    private readonly RoastLevelService _roastLevelService;
     private readonly IFileSaver _fileSaver;
     private readonly IFolderPicker _folderPicker;
+
+    // Collection for roast levels
+    private ObservableCollection<RoastLevelViewModel> _roastLevels = new ObservableCollection<RoastLevelViewModel>();
+
+    // Commands for roast level management
+    public ICommand EditRoastLevelCommand { get; private set; }
+    public ICommand DeleteRoastLevelCommand { get; private set; }
 
     private string _currentFilePath = string.Empty;
     private bool _isLoadingThemeSettings = false; // Flag to suppress events during initialization
     private bool _isThemeInitialized = false; // Additional safeguard for theme initialization
     private bool _isFirstTimeNavigation = true; // Track if this is the first time appearing
 
+    // Current roast level being edited
+    private RoastLevelViewModel? _currentEditRoastLevel;
+    private bool _isNewRoastLevel = false;
+
     public SettingsPage(PreferencesService? preferencesService = null, AppDataService? appDataService = null,
                         BeanDataService? beanService = null, RoastDataService? roastDataService = null,
-                        IFileSaver? fileSaver = null, IFolderPicker? folderPicker = null)
+                        RoastLevelService? roastLevelService = null, IFileSaver? fileSaver = null, IFolderPicker? folderPicker = null)
     {
         InitializeComponent();
 
@@ -51,6 +66,11 @@ public partial class SettingsPage : ContentPage
                                serviceProvider.GetService<RoastDataService>() ??
                                Application.Current?.Handler?.MauiContext?.Services.GetService<RoastDataService>() ??
                                throw new InvalidOperationException("RoastDataService not available");
+
+            _roastLevelService = roastLevelService ??
+                                serviceProvider.GetService<RoastLevelService>() ??
+                                Application.Current?.Handler?.MauiContext?.Services.GetService<RoastLevelService>() ??
+                                throw new InvalidOperationException("RoastLevelService not available");
                                
             _fileSaver = fileSaver ?? 
                         serviceProvider.GetService<IFileSaver>() ??
@@ -80,6 +100,10 @@ public partial class SettingsPage : ContentPage
             _roastDataService = roastDataService ?? 
                                Application.Current?.Handler?.MauiContext?.Services.GetService<RoastDataService>() ??
                                throw new InvalidOperationException("RoastDataService not available");
+
+            _roastLevelService = roastLevelService ??
+                                Application.Current?.Handler?.MauiContext?.Services.GetService<RoastLevelService>() ??
+                                throw new InvalidOperationException("RoastLevelService not available");
                                
             _fileSaver = fileSaver ?? 
                         Application.Current?.Handler?.MauiContext?.Services.GetService<IFileSaver>() ??
@@ -96,12 +120,22 @@ public partial class SettingsPage : ContentPage
         LoadDataFilePath();
         LoadVersionInfo();
         LoadThemeSettings();
+        LoadRoastLevels();
+
+        // Initialize commands
+        EditRoastLevelCommand = new Command<RoastLevelViewModel>(EditRoastLevel);
+        DeleteRoastLevelCommand = new Command<RoastLevelViewModel>(DeleteRoastLevel);
     }
 
     protected override async void OnAppearing()
     {
         base.OnAppearing();
+        
+        // Reload data
         LoadDataFilePath();
+        
+        // Reload roast levels when returning to this page
+        LoadRoastLevels();
         
         // Check if this is first run and first navigation to this page
         // This will highlight the data file section when coming from first-run setup
@@ -497,5 +531,210 @@ public partial class SettingsPage : ContentPage
         }
         
         return base.OnBackButtonPressed(); // Let the system handle it if our code fails
+    }
+
+    private async void LoadRoastLevels()
+    {
+        try
+        {
+            var roastLevels = await _roastLevelService.GetRoastLevelsAsync();
+            _roastLevels.Clear();
+            
+            foreach (var roastLevel in roastLevels.OrderBy(l => l.MinWeightLossPercentage))
+            {
+                _roastLevels.Add(RoastLevelViewModel.FromModel(roastLevel));
+            }
+            
+            // Set the collection as the ItemsSource for the CollectionView
+            RoastLevelsCollection.ItemsSource = _roastLevels;
+        }
+        catch (Exception ex)
+        {
+            Debug.WriteLine($"Error loading roast levels: {ex.Message}");
+        }
+    }
+
+    private void EditRoastLevel(RoastLevelViewModel roastLevelViewModel)
+    {
+        try
+        {
+            // Store the roast level being edited
+            _currentEditRoastLevel = new RoastLevelViewModel
+            {
+                Id = roastLevelViewModel.Id,
+                Name = roastLevelViewModel.Name,
+                MinWeightLossPercentage = roastLevelViewModel.MinWeightLossPercentage,
+                MaxWeightLossPercentage = roastLevelViewModel.MaxWeightLossPercentage
+            };
+            _isNewRoastLevel = false;
+            
+            // Set title
+            EditPopupTitle.Text = "Edit Roast Level";
+            
+            // Populate the form fields
+            RoastLevelNameEntry.Text = _currentEditRoastLevel.Name;
+            MinWeightLossEntry.Text = _currentEditRoastLevel.MinWeightLossPercentage.ToString("F1");
+            MaxWeightLossEntry.Text = _currentEditRoastLevel.MaxWeightLossPercentage.ToString("F1");
+            
+            // Show the popup
+            EditRoastLevelPopup.IsVisible = true;
+            RoastLevelNameEntry.Focus();
+        }
+        catch (Exception ex)
+        {
+            Debug.WriteLine($"Error showing edit popup: {ex.Message}");
+            DisplayAlert("Error", $"Failed to edit roast level: {ex.Message}", "OK");
+        }
+    }
+
+    private async void DeleteRoastLevel(RoastLevelViewModel roastLevelViewModel)
+    {
+        try
+        {
+            bool confirm = await DisplayAlert("Confirm Delete", $"Are you sure you want to delete the roast level '{roastLevelViewModel.Name}'?", "Yes", "No");
+            if (confirm)
+            {
+                await _roastLevelService.DeleteRoastLevelAsync(roastLevelViewModel.Id);
+                _roastLevels.Remove(roastLevelViewModel);
+            }
+        }
+        catch (Exception ex)
+        {
+            Debug.WriteLine($"Error deleting roast level: {ex.Message}");
+            await DisplayAlert("Error", $"Failed to delete roast level: {ex.Message}", "OK");
+        }
+    }
+
+    private void AddRoastLevel_Clicked(object sender, EventArgs e)
+    {
+        try
+        {
+            // Create a new roast level
+            _currentEditRoastLevel = new RoastLevelViewModel
+            {
+                Id = Guid.NewGuid(),
+                Name = "",
+                MinWeightLossPercentage = 0,
+                MaxWeightLossPercentage = 0
+            };
+            _isNewRoastLevel = true;
+            
+            // Set title
+            EditPopupTitle.Text = "Add Roast Level";
+            
+            // Clear form fields
+            RoastLevelNameEntry.Text = string.Empty;
+            MinWeightLossEntry.Text = "0.0";
+            MaxWeightLossEntry.Text = "0.0";
+            
+            // Show the popup
+            EditRoastLevelPopup.IsVisible = true;
+            RoastLevelNameEntry.Focus();
+        }
+        catch (Exception ex)
+        {
+            Debug.WriteLine($"Error showing add popup: {ex.Message}");
+            DisplayAlert("Error", $"Failed to create new roast level: {ex.Message}", "OK");
+        }
+    }
+    
+    private async void SaveRoastLevel_Clicked(object sender, EventArgs e)
+    {
+        if (_currentEditRoastLevel == null)
+        {
+            EditRoastLevelPopup.IsVisible = false;
+            return;
+        }
+        
+        try
+        {
+            // Validate input
+            if (string.IsNullOrWhiteSpace(RoastLevelNameEntry.Text))
+            {
+                await DisplayAlert("Validation Error", "Name is required.", "OK");
+                return;
+            }
+            
+            if (!double.TryParse(MinWeightLossEntry.Text, out double minWeight))
+            {
+                await DisplayAlert("Validation Error", "Min weight loss must be a valid number.", "OK");
+                return;
+            }
+            
+            if (!double.TryParse(MaxWeightLossEntry.Text, out double maxWeight))
+            {
+                await DisplayAlert("Validation Error", "Max weight loss must be a valid number.", "OK");
+                return;
+            }
+            
+            if (minWeight < 0)
+            {
+                await DisplayAlert("Validation Error", "Minimum weight loss percentage must be at least 0.", "OK");
+                return;
+            }
+            
+            if (maxWeight <= minWeight)
+            {
+                await DisplayAlert("Validation Error", "Maximum weight loss must be greater than minimum weight loss.", "OK");
+                return;
+            }
+            
+            // Update the roast level model
+            _currentEditRoastLevel.Name = RoastLevelNameEntry.Text;
+            _currentEditRoastLevel.MinWeightLossPercentage = minWeight;
+            _currentEditRoastLevel.MaxWeightLossPercentage = maxWeight;
+            
+            // Save changes
+            bool success;
+            if (_isNewRoastLevel)
+            {
+                // Add new roast level
+                success = await _roastLevelService.AddRoastLevelAsync(_currentEditRoastLevel.ToModel());
+                if (success)
+                {
+                    // Add to the collection view
+                    _roastLevels.Add(_currentEditRoastLevel);
+                }
+            }
+            else
+            {
+                // Update existing roast level
+                success = await _roastLevelService.UpdateRoastLevelAsync(_currentEditRoastLevel.ToModel());
+                if (success)
+                {
+                    // Update in the collection view
+                    var existingItem = _roastLevels.FirstOrDefault(r => r.Id == _currentEditRoastLevel.Id);
+                    if (existingItem != null)
+                    {
+                        var index = _roastLevels.IndexOf(existingItem);
+                        _roastLevels[index] = _currentEditRoastLevel;
+                    }
+                }
+            }
+            
+            if (success)
+            {
+                // Hide the popup
+                EditRoastLevelPopup.IsVisible = false;
+                
+                // Refresh the display
+                LoadRoastLevels();
+            }
+            else
+            {
+                await DisplayAlert("Error", "Failed to save roast level. Please try again.", "OK");
+            }
+        }
+        catch (Exception ex)
+        {
+            Debug.WriteLine($"Error saving roast level: {ex.Message}");
+            await DisplayAlert("Error", $"An error occurred: {ex.Message}", "OK");
+        }
+    }
+    
+    private void CancelRoastLevel_Clicked(object sender, EventArgs e)
+    {
+        // Just hide the popup, don't save changes
+        EditRoastLevelPopup.IsVisible = false;
     }
 }

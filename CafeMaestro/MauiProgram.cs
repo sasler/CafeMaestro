@@ -26,6 +26,7 @@ public static class MauiProgram
 		builder.Services.AddSingleton<BeanDataService>();
 		builder.Services.AddSingleton<TimerService>();
 		builder.Services.AddSingleton<PreferencesService>();
+		builder.Services.AddSingleton<RoastLevelService>();
 		builder.Services.AddSingleton<IFileSaver>(FileSaver.Default);
 		builder.Services.AddSingleton<IFolderPicker>(FolderPicker.Default);
 

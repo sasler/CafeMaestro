@@ -12,6 +12,7 @@ namespace CafeMaestro.Services
     public class RoastDataService
     {
         private readonly AppDataService _appDataService;
+        private readonly RoastLevelService _roastLevelService;
         private readonly JsonSerializerOptions _jsonOptions;
         private readonly SemaphoreSlim _initLock = new SemaphoreSlim(1, 1);
         private bool _isInitialized = false;
@@ -23,9 +24,11 @@ namespace CafeMaestro.Services
             get => _appDataService.DataFilePath;
         }
 
-        public RoastDataService(AppDataService appDataService)
+        public RoastDataService(AppDataService appDataService, RoastLevelService roastLevelService)
         {
             _appDataService = appDataService;
+            _roastLevelService = roastLevelService;
+            _currentDataFilePath = _appDataService.DataFilePath;
             
             _jsonOptions = new JsonSerializerOptions
             {
@@ -48,6 +51,14 @@ namespace CafeMaestro.Services
             Task.Run(async () => {
                 try
                 {
+                    // Update stored path
+                    _currentDataFilePath = newPath;
+                    System.Diagnostics.Debug.WriteLine($"RoastDataService - Path changed to: {newPath}");
+                    
+                    // Reset initialized flag to force reload with new path
+                    _isInitialized = false;
+                    
+                    // Reload data with new path
                     await _appDataService.ReloadDataAsync();
                 }
                 catch (Exception ex)
@@ -91,6 +102,9 @@ namespace CafeMaestro.Services
         {
             try
             {
+                // Before saving, determine and set the roast level name
+                roastData.RoastLevelName = await _roastLevelService.GetRoastLevelNameAsync(roastData.WeightLossPercentage);
+                
                 // Load full app data
                 var appData = await _appDataService.LoadAppDataAsync();
                 
@@ -113,6 +127,25 @@ namespace CafeMaestro.Services
             {
                 // Load full app data
                 var appData = await _appDataService.LoadAppDataAsync();
+                
+                // Check and update RoastLevelName for all roast logs
+                bool needsUpdate = false;
+                
+                foreach (var roastLog in appData.RoastLogs)
+                {
+                    if (string.IsNullOrEmpty(roastLog.RoastLevelName))
+                    {
+                        // Use the RoastLevelService to get the correct level name
+                        roastLog.RoastLevelName = await _roastLevelService.GetRoastLevelNameAsync(roastLog.WeightLossPercentage);
+                        needsUpdate = true;
+                    }
+                }
+                
+                // If we updated any roast level names, save the changes back
+                if (needsUpdate)
+                {
+                    await _appDataService.SaveAppDataAsync(appData);
+                }
                 
                 return appData.RoastLogs ?? new List<RoastData>();
             }
@@ -153,7 +186,7 @@ namespace CafeMaestro.Services
                                   $"{roast.FinalWeight}," +
                                   $"{roast.WeightLossPercentage}," +
                                   $"{roast.FormattedTime}," +
-                                  $"{roast.RoastLevel}," +
+                                  $"{roast.RoastLevelName}," +
                                   $"\"{roast.Notes}\"");
                 }
                 
@@ -845,25 +878,14 @@ namespace CafeMaestro.Services
         {
             try
             {
-                // First verify current path
-                if (_currentDataFilePath != _appDataService.DataFilePath)
-                {
-                    System.Diagnostics.Debug.WriteLine($"Path mismatch detected in RoastDataService.GetAllRoastLogsAsync. Expected: {_currentDataFilePath}, Actual: {_appDataService.DataFilePath}");
-                    // Synchronize the path
-                    _currentDataFilePath = _appDataService.DataFilePath;
-                }
-                
-                // Load full app data from current (correct) path
+                // Load full app data
                 var appData = await _appDataService.LoadAppDataAsync();
                 
-                // Log loaded data
-                System.Diagnostics.Debug.WriteLine($"RoastDataService loaded {appData.RoastLogs?.Count ?? 0} roast logs from {_currentDataFilePath}");
-                
-                return appData.RoastLogs ?? new List<RoastData>();
+                return appData.RoastLogs?.ToList() ?? new List<RoastData>();
             }
             catch (Exception ex)
             {
-                System.Diagnostics.Debug.WriteLine($"Error loading roast logs: {ex.Message}");
+                System.Diagnostics.Debug.WriteLine($"Error getting all roast logs: {ex.Message}");
                 return new List<RoastData>();
             }
         }
@@ -873,11 +895,13 @@ namespace CafeMaestro.Services
         {
             try
             {
-                // Load all roast logs
-                var roastLogs = await LoadRoastDataAsync();
+                // Load full app data
+                var appData = await _appDataService.LoadAppDataAsync();
                 
-                // Find the specific roast by ID
-                return roastLogs.FirstOrDefault(r => r.Id == id);
+                // Find the specific roast log
+                var roastData = appData.RoastLogs?.FirstOrDefault(r => r.Id == id);
+                
+                return roastData;
             }
             catch (Exception ex)
             {
@@ -887,34 +911,36 @@ namespace CafeMaestro.Services
         }
         
         // Update an existing roast log
-        public async Task<bool> UpdateRoastLogAsync(RoastData roastData)
+        public async Task<bool> UpdateRoastLogAsync(RoastData updatedRoast)
         {
             try
             {
+                // Before saving, determine and set the roast level name
+                updatedRoast.RoastLevelName = await _roastLevelService.GetRoastLevelNameAsync(updatedRoast.WeightLossPercentage);
+                
                 // Load full app data
                 var appData = await _appDataService.LoadAppDataAsync();
                 
                 // Find the roast to update
-                int index = appData.RoastLogs.FindIndex(r => r.Id == roastData.Id);
-                System.Diagnostics.Debug.WriteLine($"Updating roast log at index: {index}");
+                var existingRoast = appData.RoastLogs?.FirstOrDefault(r => r.Id == updatedRoast.Id);
                 
-                if (index >= 0)
+                if (existingRoast != null)
                 {
-                    // Replace the old roast with the updated one
-                    appData.RoastLogs[index] = roastData;
+                    // Update all properties
+                    existingRoast.BeanType = updatedRoast.BeanType;
+                    existingRoast.Temperature = updatedRoast.Temperature;
+                    existingRoast.BatchWeight = updatedRoast.BatchWeight;
+                    existingRoast.FinalWeight = updatedRoast.FinalWeight;
+                    existingRoast.RoastMinutes = updatedRoast.RoastMinutes;
+                    existingRoast.RoastSeconds = updatedRoast.RoastSeconds;
+                    existingRoast.Notes = updatedRoast.Notes;
+                    existingRoast.RoastLevelName = updatedRoast.RoastLevelName;
                     
                     // Save updated app data
-                    bool success = await _appDataService.SaveAppDataAsync(appData);
-                    return success;
+                    return await _appDataService.SaveAppDataAsync(appData);
                 }
                 
-                // If the roast was not found, add it as new
-                System.Diagnostics.Debug.WriteLine($"Roast log with ID {roastData.Id} not found, adding as new");
-                appData.RoastLogs.Add(roastData);
-                
-                // Save updated app data
-                bool addResult = await _appDataService.SaveAppDataAsync(appData);
-                return addResult;
+                return false;
             }
             catch (Exception ex)
             {
@@ -924,20 +950,20 @@ namespace CafeMaestro.Services
         }
         
         // Delete a roast log by ID
-        public async Task<bool> DeleteRoastLogAsync(Guid roastId)
+        public async Task<bool> DeleteRoastLogAsync(Guid id)
         {
             try
             {
                 // Load full app data
                 var appData = await _appDataService.LoadAppDataAsync();
                 
-                // Find and remove the roast
-                int index = appData.RoastLogs.FindIndex(r => r.Id == roastId);
+                // Find the roast to delete
+                var roastToRemove = appData.RoastLogs?.FirstOrDefault(r => r.Id == id);
                 
-                if (index >= 0)
+                if (roastToRemove != null && appData.RoastLogs != null)
                 {
                     // Remove the roast
-                    appData.RoastLogs.RemoveAt(index);
+                    appData.RoastLogs.Remove(roastToRemove);
                     
                     // Save updated app data
                     return await _appDataService.SaveAppDataAsync(appData);
