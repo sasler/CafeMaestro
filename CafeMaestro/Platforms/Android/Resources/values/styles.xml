@@ -1,0 +1,7 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<resources>
+  <style name="Maui.MainTheme" parent="Theme.MaterialComponents.DayNight">
+    <!-- Remove the reference to the missing drawable -->
+    <item name="android:windowSplashScreenAnimatedIcon">@drawable/splashscreen</item>
+  </style>
+</resources>

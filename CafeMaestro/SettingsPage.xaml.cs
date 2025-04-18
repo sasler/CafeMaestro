@@ -1,9 +1,9 @@
 using System.Diagnostics;
 using CafeMaestro.Services;
 using Microsoft.Extensions.DependencyInjection;
-using CommunityToolkit.Maui;
+// using CommunityToolkit.Maui;
 using MauiAppTheme = Microsoft.Maui.ApplicationModel.AppTheme;
-using CommunityToolkit.Maui.Storage;
+// using CommunityToolkit.Maui.Storage;
 using System.Text;
 
 namespace CafeMaestro;
@@ -14,8 +14,8 @@ public partial class SettingsPage : ContentPage
     private readonly AppDataService _appDataService;
     private readonly BeanDataService _beanService;
     private readonly RoastDataService _roastDataService;
-    private readonly IFileSaver _fileSaver;
-    private readonly IFolderPicker _folderPicker;
+    // private readonly IFileSaver _fileSaver;
+    // private readonly IFolderPicker _folderPicker;
 
     private string _currentFilePath = string.Empty;
     private bool _isLoadingThemeSettings = false; // Flag to suppress events during initialization
@@ -23,8 +23,8 @@ public partial class SettingsPage : ContentPage
     private bool _isFirstTimeNavigation = true; // Track if this is the first time appearing
 
     public SettingsPage(PreferencesService? preferencesService = null, AppDataService? appDataService = null,
-                        BeanDataService? beanService = null, RoastDataService? roastDataService = null,
-                        IFileSaver? fileSaver = null, IFolderPicker? folderPicker = null)
+                        BeanDataService? beanService = null, RoastDataService? roastDataService = null)
+                        // IFileSaver? fileSaver = null, IFolderPicker? folderPicker = null)
     {
         InitializeComponent();
 
@@ -52,15 +52,15 @@ public partial class SettingsPage : ContentPage
                                Application.Current?.Handler?.MauiContext?.Services.GetService<RoastDataService>() ??
                                throw new InvalidOperationException("RoastDataService not available");
                                
-            _fileSaver = fileSaver ?? 
-                        serviceProvider.GetService<IFileSaver>() ??
-                        Application.Current?.Handler?.MauiContext?.Services.GetService<IFileSaver>() ??
-                        FileSaver.Default;
+            // _fileSaver = fileSaver ?? 
+            //             serviceProvider.GetService<IFileSaver>() ??
+            //             Application.Current?.Handler?.MauiContext?.Services.GetService<IFileSaver>() ??
+            //             FileSaver.Default;
                         
-            _folderPicker = folderPicker ?? 
-                           serviceProvider.GetService<IFolderPicker>() ??
-                           Application.Current?.Handler?.MauiContext?.Services.GetService<IFolderPicker>() ??
-                           FolderPicker.Default;
+            // _folderPicker = folderPicker ?? 
+            //                serviceProvider.GetService<IFolderPicker>() ??
+            //                Application.Current?.Handler?.MauiContext?.Services.GetService<IFolderPicker>() ??
+            //                FolderPicker.Default;
         }
         else
         {
@@ -81,13 +81,13 @@ public partial class SettingsPage : ContentPage
                                Application.Current?.Handler?.MauiContext?.Services.GetService<RoastDataService>() ??
                                throw new InvalidOperationException("RoastDataService not available");
                                
-            _fileSaver = fileSaver ?? 
-                        Application.Current?.Handler?.MauiContext?.Services.GetService<IFileSaver>() ??
-                        FileSaver.Default;
+            // _fileSaver = fileSaver ?? 
+            //             Application.Current?.Handler?.MauiContext?.Services.GetService<IFileSaver>() ??
+            //             FileSaver.Default;
                         
-            _folderPicker = folderPicker ?? 
-                           Application.Current?.Handler?.MauiContext?.Services.GetService<IFolderPicker>() ??
-                           FolderPicker.Default;
+            // _folderPicker = folderPicker ?? 
+            //                Application.Current?.Handler?.MauiContext?.Services.GetService<IFolderPicker>() ??
+            //                FolderPicker.Default;
         }
 
         System.Diagnostics.Debug.WriteLine($"SettingsPage constructor - Using AppDataService at path: {_appDataService.DataFilePath}");
@@ -317,23 +317,23 @@ public partial class SettingsPage : ContentPage
             // Use a memory stream for the file content
             using var stream = new MemoryStream(Encoding.UTF8.GetBytes(jsonContent));
             
-            // Save the file using FileSaver
-            var result = await _fileSaver.SaveAsync(fileName, stream, CancellationToken.None);
+            // // Save the file using FileSaver
+            // var result = await _fileSaver.SaveAsync(fileName, stream, CancellationToken.None);
             
-            // Check if operation was canceled by the user (no exception but not successful)
-            if (!result.IsSuccessful && result.Exception.Message.Contains("cancel"))
-            {
-                return;
-            }
+            // // Check if operation was canceled by the user (no exception but not successful)
+            // if (!result.IsSuccessful && result.Exception.Message.Contains("cancel"))
+            // {
+            //     return;
+            // }
             
-            if (result.IsSuccessful)
-            {
-                await CreateNewDataFile(result.FilePath);
-            }
-            else if (result.Exception != null)
-            {
-                await DisplayAlert("Error", $"Failed to create file: {result.Exception.Message}", "OK");
-            }
+            // if (result.IsSuccessful)
+            // {
+            //     await CreateNewDataFile(result.FilePath);
+            // }
+            // else if (result.Exception != null)
+            // {
+            //     await DisplayAlert("Error", $"Failed to create file: {result.Exception.Message}", "OK");
+            // }
         }
         catch (Exception ex)
         {
@@ -402,33 +402,33 @@ public partial class SettingsPage : ContentPage
             // Create a cancellation token source with a reasonable timeout
             using var cts = new CancellationTokenSource(TimeSpan.FromMinutes(2));
             
-            // Open the folder picker
-            var result = await _folderPicker.PickAsync(cts.Token);
+            // // Open the folder picker
+            // var result = await _folderPicker.PickAsync(cts.Token);
             
-            if (result.IsSuccessful && result.Folder != null)
-            {
-                // Generate a filename with current date
-                string fileName = $"CafeMaestro_RoastLog_{DateTime.Now:yyyy-MM-dd}.csv";
+            // if (result.IsSuccessful && result.Folder != null)
+            // {
+            //     // Generate a filename with current date
+            //     string fileName = $"CafeMaestro_RoastLog_{DateTime.Now:yyyy-MM-dd}.csv";
                 
-                // Combine the folder path with the filename
-                string fullPath = Path.Combine(result.Folder.Path, fileName);
+            //     // Combine the folder path with the filename
+            //     string fullPath = Path.Combine(result.Folder.Path, fileName);
                 
-                // Export the data to the selected folder
-                await _roastDataService.ExportRoastLogAsync(fullPath);
+            //     // Export the data to the selected folder
+            //     await _roastDataService.ExportRoastLogAsync(fullPath);
                 
-                await DisplayAlert("Success", $"Roast log exported successfully to:\n{fullPath}", "OK");
-            }
-            else if (!result.IsSuccessful && result.Exception != null)
-            {
-                // Check if the operation was canceled through the token
-                if (result.Exception is OperationCanceledException)
-                {
-                    // Operation was canceled through the token, no need for an error message
-                    return;
-                }
+            //     await DisplayAlert("Success", $"Roast log exported successfully to:\n{fullPath}", "OK");
+            // }
+            // else if (!result.IsSuccessful && result.Exception != null)
+            // {
+            //     // Check if the operation was canceled through the token
+            //     if (result.Exception is OperationCanceledException)
+            //     {
+            //         // Operation was canceled through the token, no need for an error message
+            //         return;
+            //     }
                 
-                await DisplayAlert("Error", $"Failed to select folder: {result.Exception.Message}", "OK");
-            }
+            //     await DisplayAlert("Error", $"Failed to select folder: {result.Exception.Message}", "OK");
+            // }
         }
         catch (OperationCanceledException)
         {
