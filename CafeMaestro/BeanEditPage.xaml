@@ -5,20 +5,28 @@
              Title="Bean Details">
 
     <ScrollView>
-        <VerticalStackLayout Padding="30,20" Spacing="15">
-            <Label Text="Add New Bean" x:Name="PageTitleLabel" FontSize="32" HorizontalOptions="Center" />
+        <VerticalStackLayout Padding="30,20"
+                Spacing="15">
+            <Label Text="Add New Bean"
+                    x:Name="PageTitleLabel"
+                    FontSize="32"
+                    HorizontalOptions="Center"/>
 
-            <Label Text="Coffee Name:" />
-            <Entry x:Name="CoffeeNameEntry" Placeholder="Enter coffee name" />
+            <Label Text="Coffee Name:"/>
+            <Entry x:Name="CoffeeNameEntry"
+                    Placeholder="Enter coffee name"/>
 
-            <Label Text="Country of Origin:" />
-            <Entry x:Name="CountryEntry" Placeholder="Enter country" />
+            <Label Text="Country of Origin:"/>
+            <Entry x:Name="CountryEntry"
+                    Placeholder="Enter country"/>
 
-            <Label Text="Variety:" />
-            <Entry x:Name="VarietyEntry" Placeholder="Enter variety (e.g., Bourbon, Typica)" />
+            <Label Text="Variety:"/>
+            <Entry x:Name="VarietyEntry"
+                    Placeholder="Enter variety (e.g., Bourbon, Typica)"/>
 
-            <Label Text="Processing Method:" />
-            <Picker x:Name="ProcessPicker" Title="Select Process">
+            <Label Text="Processing Method:"/>
+            <Picker x:Name="ProcessPicker"
+                    Title="Select Process">
                 <Picker.Items>
                     <x:String>Washed</x:String>
                     <x:String>Natural</x:String>
@@ -30,40 +38,46 @@
                 </Picker.Items>
             </Picker>
 
-            <Label Text="Purchase Date:" />
-            <DatePicker x:Name="PurchaseDatePicker" Format="D" />
+            <Label Text="Purchase Date:"/>
+            <DatePicker x:Name="PurchaseDatePicker"
+                    Format="D"/>
 
-            <Label Text="Quantity (kg):" />
-            <Entry x:Name="QuantityEntry" Keyboard="Numeric" Placeholder="Enter quantity in kg" />
+            <Label Text="Quantity (kg):"/>
+            <Entry x:Name="QuantityEntry"
+                    Keyboard="Numeric"
+                    Placeholder="Enter quantity in kg"/>
 
-            <Label Text="Price ($):" />
-            <Entry x:Name="PriceEntry" Keyboard="Numeric" Placeholder="Enter price" />
+            <Label Text="Price ($):"/>
+            <Entry x:Name="PriceEntry"
+                    Keyboard="Numeric"
+                    Placeholder="Enter price"/>
 
-            <Label Text="Store/Website Link:" />
-            <Entry x:Name="LinkEntry" Placeholder="Enter URL (optional)" />
+            <Label Text="Store/Website Link:"/>
+            <Entry x:Name="LinkEntry"
+                    Placeholder="Enter URL (optional)"/>
 
-            <Label Text="Notes:" />
-            <Editor x:Name="NotesEditor" 
-                   Placeholder="Add notes about this coffee bean..."
-                   HeightRequest="100"
-                   AutoSize="TextChanges" />
+            <Label Text="Notes:"/>
+            <Editor x:Name="NotesEditor"
+                    Placeholder="Add notes about this coffee bean..."
+                    HeightRequest="100"
+                    AutoSize="TextChanges"/>
 
             <!-- Save Button -->
             <Button x:Name="SaveButton"
-                   Text="Save Bean"
-                   Clicked="SaveButton_Clicked"
-                   BackgroundColor="#512BD4"
-                   TextColor="White"
-                   HorizontalOptions="Fill"
-                   Margin="0,20,0,10" />
+                    Text="Save Bean"
+                    Clicked="SaveButton_Clicked"
+                    BackgroundColor="#512BD4"
+                    TextColor="White"
+                    HorizontalOptions="Fill"
+                    Margin="0,20,0,10"/>
 
             <!-- Cancel Button -->
             <Button x:Name="CancelButton"
-                   Text="Cancel"
-                   Clicked="CancelButton_Clicked"
-                   BackgroundColor="#666666"
-                   TextColor="White"
-                   HorizontalOptions="Fill" />
+                    Text="Cancel"
+                    Clicked="CancelButton_Clicked"
+                    BackgroundColor="#666666"
+                    TextColor="White"
+                    HorizontalOptions="Fill"/>
         </VerticalStackLayout>
     </ScrollView>
 

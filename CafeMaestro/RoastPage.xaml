@@ -5,10 +5,10 @@
              BackgroundColor="{DynamicResource PageBackgroundColor}"
              Title="Roast Coffee">
     <ScrollView Padding="0"
-            Margin="0">
-        <Grid RowDefinitions="Auto, *"
-                Padding="0"
                 Margin="0">
+        <Grid RowDefinitions="Auto, *"
+              Padding="0"
+              Margin="0">
             <!-- Header Area - Clean Design -->
             <Grid Grid.Row="0"
                   ColumnDefinitions="Auto,*,Auto"
@@ -31,25 +31,27 @@
                        VerticalOptions="Center"
                        TextColor="{DynamicResource PrimaryColor}"
                        Margin="16,0,0,0"/>
-                       
+
                 <!-- Action button in the top right -->
                 <ImageButton Grid.Column="2"
-                       x:Name="SaveRoastButton"
-                       Source="save_icon.png"
-                       Clicked="SaveRoast_Clicked"
-                       BackgroundColor="{DynamicResource PrimaryColor}"
-                       WidthRequest="50"
-                       HeightRequest="50"
-                       Padding="10"
-                       CornerRadius="25"
-                       VerticalOptions="Center">
+                             x:Name="SaveRoastButton"
+                             Source="save_icon.png"
+                             Clicked="SaveRoast_Clicked"
+                             BackgroundColor="{DynamicResource PrimaryColor}"
+                             WidthRequest="50"
+                             HeightRequest="50"
+                             Padding="10"
+                             CornerRadius="25"
+                             VerticalOptions="Center">
                     <VisualStateManager.VisualStateGroups>
                         <VisualStateGroup Name="CommonStates">
-                            <VisualState Name="Normal" />
+                            <VisualState Name="Normal"/>
                             <VisualState Name="Pressed">
                                 <VisualState.Setters>
-                                    <Setter Property="Scale" Value="0.9" />
-                                    <Setter Property="Opacity" Value="0.8" />
+                                    <Setter Property="Scale"
+                                            Value="0.9"/>
+                                    <Setter Property="Opacity"
+                                            Value="0.8"/>
                                 </VisualState.Setters>
                             </VisualState>
                         </VisualStateGroup>
@@ -64,40 +66,14 @@
                                  BackgroundColor="{DynamicResource PageBackgroundColor}"
                                  Margin="0,10,0,0">
 
-                <Label Text="Green Bean Selection:"
-                       TextColor="{DynamicResource PrimaryTextColor}"/>
-                <Picker x:Name="BeanPicker"
-                        Title="Select Bean Type"
-                        TextColor="{DynamicResource PrimaryTextColor}"
-                        BackgroundColor="{DynamicResource PickerBackgroundColor}">
-                    <Picker.Items>
-                        <x:String>Loading beans...</x:String>
-                    </Picker.Items>
-                </Picker>
-
-                <Label Text="Roasting Temperature (°C):"
-                       TextColor="{DynamicResource PrimaryTextColor}"/>
-                <Border Stroke="{DynamicResource EntryBorderColor}"
-                        StrokeThickness="1"
-                        StrokeShape="RoundRectangle 5">
-                    <Entry x:Name="TemperatureEntry"
-                           Keyboard="Numeric"
-                           Placeholder="Enter temperature"
-                           TextColor="{DynamicResource PrimaryTextColor}"
-                           BackgroundColor="{DynamicResource EntryBackgroundColor}"
-                           PlaceholderColor="{DynamicResource PlaceholderColor}"/>
-                </Border>
-                <Label Text="Roasting Time:"
-                       TextColor="{DynamicResource PrimaryTextColor}"/>
                 <!-- Timer UI with improved styling -->
                 <VerticalStackLayout Spacing="15">
                     <!-- The digital timer display with improved styling -->
                     <Border Stroke="{DynamicResource BorderColor}"
                             BackgroundColor="{DynamicResource NeutralColor}"
-                            Padding="20"
                             StrokeShape="RoundRectangle 12"
                             HorizontalOptions="Fill"
-                            HeightRequest="120">
+                            HeightRequest="110">
                         <Border.Shadow>
                             <Shadow Brush="#20000000"
                                     Offset="0,3"
@@ -113,21 +89,20 @@
                                    VerticalOptions="Center"
                                    HorizontalTextAlignment="Center"
                                    VerticalTextAlignment="Center"
-                                   TextColor="{DynamicResource PrimaryColor}"
-                                   FontFamily="Digital7"/>
+                                   TextColor="{DynamicResource PrimaryColor}"/>
 
                             <!-- Pulsating indicator for when timer is running -->
                             <Border x:Name="TimerRunningIndicator"
-                                   WidthRequest="20"
-                                   HeightRequest="20"
-                                   BackgroundColor="Red"
-                                   Stroke="Transparent"
-                                   StrokeShape="RoundRectangle 10"
-                                   HorizontalOptions="End"
-                                   VerticalOptions="Start"
-                                   Margin="0,10,10,0"
-                                   Padding="0"
-                                   IsVisible="False"/>
+                                    WidthRequest="20"
+                                    HeightRequest="20"
+                                    BackgroundColor="Red"
+                                    Stroke="Transparent"
+                                    StrokeShape="RoundRectangle 10"
+                                    HorizontalOptions="End"
+                                    VerticalOptions="Start"
+                                    Margin="0,10,10,0"
+                                    Padding="0"
+                                    IsVisible="False"/>
 
                             <!-- Invisible entry for user input - same size as the label but transparent -->
                             <Entry x:Name="TimeEntry"
@@ -153,16 +128,19 @@
                                      CornerRadius="25">
                             <VisualStateManager.VisualStateGroups>
                                 <VisualStateGroup Name="CommonStates">
-                                    <VisualState Name="Normal" />
+                                    <VisualState Name="Normal"/>
                                     <VisualState Name="Pressed">
                                         <VisualState.Setters>
-                                            <Setter Property="Scale" Value="0.9" />
-                                            <Setter Property="Opacity" Value="0.8" />
+                                            <Setter Property="Scale"
+                                                    Value="0.9"/>
+                                            <Setter Property="Opacity"
+                                                    Value="0.8"/>
                                         </VisualState.Setters>
                                     </VisualState>
                                     <VisualState Name="Disabled">
                                         <VisualState.Setters>
-                                            <Setter Property="Opacity" Value="0.5" />
+                                            <Setter Property="Opacity"
+                                                    Value="0.5"/>
                                         </VisualState.Setters>
                                     </VisualState>
                                 </VisualStateGroup>
@@ -179,16 +157,19 @@
                                      IsEnabled="False">
                             <VisualStateManager.VisualStateGroups>
                                 <VisualStateGroup Name="CommonStates">
-                                    <VisualState Name="Normal" />
+                                    <VisualState Name="Normal"/>
                                     <VisualState Name="Pressed">
                                         <VisualState.Setters>
-                                            <Setter Property="Scale" Value="0.9" />
-                                            <Setter Property="Opacity" Value="0.8" />
+                                            <Setter Property="Scale"
+                                                    Value="0.9"/>
+                                            <Setter Property="Opacity"
+                                                    Value="0.8"/>
                                         </VisualState.Setters>
                                     </VisualState>
                                     <VisualState Name="Disabled">
                                         <VisualState.Setters>
-                                            <Setter Property="Opacity" Value="0.5" />
+                                            <Setter Property="Opacity"
+                                                    Value="0.5"/>
                                         </VisualState.Setters>
                                     </VisualState>
                                 </VisualStateGroup>
@@ -205,16 +186,19 @@
                                      IsEnabled="False">
                             <VisualStateManager.VisualStateGroups>
                                 <VisualStateGroup Name="CommonStates">
-                                    <VisualState Name="Normal" />
+                                    <VisualState Name="Normal"/>
                                     <VisualState Name="Pressed">
                                         <VisualState.Setters>
-                                            <Setter Property="Scale" Value="0.9" />
-                                            <Setter Property="Opacity" Value="0.8" />
+                                            <Setter Property="Scale"
+                                                    Value="0.9"/>
+                                            <Setter Property="Opacity"
+                                                    Value="0.8"/>
                                         </VisualState.Setters>
                                     </VisualState>
                                     <VisualState Name="Disabled">
                                         <VisualState.Setters>
-                                            <Setter Property="Opacity" Value="0.5" />
+                                            <Setter Property="Opacity"
+                                                    Value="0.5"/>
                                         </VisualState.Setters>
                                     </VisualState>
                                 </VisualStateGroup>
@@ -230,28 +214,52 @@
                                      CornerRadius="25">
                             <VisualStateManager.VisualStateGroups>
                                 <VisualStateGroup Name="CommonStates">
-                                    <VisualState Name="Normal" />
+                                    <VisualState Name="Normal"/>
                                     <VisualState Name="Pressed">
                                         <VisualState.Setters>
-                                            <Setter Property="Scale" Value="0.9" />
-                                            <Setter Property="Opacity" Value="0.8" />
+                                            <Setter Property="Scale"
+                                                    Value="0.9"/>
+                                            <Setter Property="Opacity"
+                                                    Value="0.8"/>
                                         </VisualState.Setters>
                                     </VisualState>
                                     <VisualState Name="Disabled">
                                         <VisualState.Setters>
-                                            <Setter Property="Opacity" Value="0.5" />
+                                            <Setter Property="Opacity"
+                                                    Value="0.5"/>
                                         </VisualState.Setters>
                                     </VisualState>
                                 </VisualStateGroup>
                             </VisualStateManager.VisualStateGroups>
                         </ImageButton>
                     </HorizontalStackLayout>
-                    <Label x:Name="TimerInstructionLabel"
-                           Text="Tap timer to enter time: 1=1s, 12=12s, 123=1m:23s, 1234=12m:34s"
-                           FontSize="12"
-                           TextColor="{DynamicResource TimerInstructionColor}"
-                           HorizontalOptions="Center"/>
                 </VerticalStackLayout>
+
+                <!-- Coffee Bean Selection -->
+                <Picker x:Name="BeanPicker"
+                        Title="Coffee:"
+                        TextColor="{DynamicResource PrimaryTextColor}"
+                        BackgroundColor="{DynamicResource PickerBackgroundColor}">
+                    <Picker.Items>
+                        <x:String>Loading beans...</x:String>
+                    </Picker.Items>
+                </Picker>
+
+                <!-- Temperature -->
+                <Label Text="Roasting Temperature (°C):"
+                       TextColor="{DynamicResource PrimaryTextColor}"/>
+                <Border Stroke="{DynamicResource EntryBorderColor}"
+                        StrokeThickness="1"
+                        StrokeShape="RoundRectangle 5">
+                    <Entry x:Name="TemperatureEntry"
+                           Keyboard="Numeric"
+                           Placeholder="Enter temperature"
+                           TextColor="{DynamicResource PrimaryTextColor}"
+                           BackgroundColor="{DynamicResource EntryBackgroundColor}"
+                           PlaceholderColor="{DynamicResource PlaceholderColor}"/>
+                </Border>
+
+                <!-- Weight Entry -->
                 <Label Text="Batch Weight (g):"
                        TextColor="{DynamicResource PrimaryTextColor}"/>
                 <Border Stroke="{DynamicResource EntryBorderColor}"
@@ -265,6 +273,7 @@
                            PlaceholderColor="{DynamicResource PlaceholderColor}"/>
                 </Border>
 
+                <!-- Final Weight Entry -->
                 <Label Text="Final Weight (g):"
                        TextColor="{DynamicResource PrimaryTextColor}"/>
                 <Border Stroke="{DynamicResource EntryBorderColor}"
@@ -278,18 +287,13 @@
                            PlaceholderColor="{DynamicResource PlaceholderColor}"/>
                 </Border>
 
+                <!-- Final Weight Loss Percentage -->
                 <Label x:Name="LossPercentLabel"
-                       Text="Weight Loss: --"
+                       Text=""
                        FontSize="18"
-                       TextColor="{DynamicResource PrimaryTextColor}"/>
-                <Label x:Name="RoastSummaryLabel"
-                       Text="Roast Summary: --"
-                       FontSize="18"
-                       TextColor="{DynamicResource PrimaryTextColor}"/>
+                       TextColor="{DynamicResource PrimaryColor}"/>
 
-                <!-- New Notes field -->
-                <Label Text="Notes:"
-                       TextColor="{DynamicResource PrimaryTextColor}"/>
+                <!-- Notes field -->
                 <Editor x:Name="NotesEditor"
                         Placeholder="Add notes about this roast..."
                         HeightRequest="100"

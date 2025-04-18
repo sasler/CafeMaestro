@@ -49,37 +49,37 @@ public partial class RoastPage : ContentPage
     private CancellationTokenSource? _animationCancellationTokenSource;
     private CancellationTokenSource? _cursorAnimationCancellationTokenSource;
 
-    public RoastPage(TimerService? timerService = null, RoastDataService? roastDataService = null, 
-                    BeanDataService? beanService = null, AppDataService? appDataService = null, 
+    public RoastPage(TimerService? timerService = null, RoastDataService? roastDataService = null,
+                    BeanDataService? beanService = null, AppDataService? appDataService = null,
                     PreferencesService? preferencesService = null)
     {
         InitializeComponent();
 
         // First try to get the services from the application resources (our stored service provider)
-        if (Application.Current?.Resources.TryGetValue("ServiceProvider", out var serviceProviderObj) == true && 
+        if (Application.Current?.Resources.TryGetValue("ServiceProvider", out var serviceProviderObj) == true &&
             serviceProviderObj is IServiceProvider serviceProvider)
         {
-            this.appDataService = appDataService ?? 
+            this.appDataService = appDataService ??
                                  serviceProvider.GetService<AppDataService>() ??
                                  Application.Current?.Handler?.MauiContext?.Services.GetService<AppDataService>() ??
                                  throw new InvalidOperationException("AppDataService not available");
-                             
-            this.timerService = timerService ?? 
+
+            this.timerService = timerService ??
                                serviceProvider.GetService<TimerService>() ??
                                Application.Current?.Handler?.MauiContext?.Services.GetService<TimerService>() ??
                                throw new InvalidOperationException("TimerService not available");
-                           
-            this.roastDataService = roastDataService ?? 
+
+            this.roastDataService = roastDataService ??
                                    serviceProvider.GetService<RoastDataService>() ??
                                    Application.Current?.Handler?.MauiContext?.Services.GetService<RoastDataService>() ??
                                    throw new InvalidOperationException("RoastDataService not available");
-                               
-            this.beanService = beanService ?? 
+
+            this.beanService = beanService ??
                               serviceProvider.GetService<BeanDataService>() ??
                               Application.Current?.Handler?.MauiContext?.Services.GetService<BeanDataService>() ??
                               throw new InvalidOperationException("BeanService not available");
-                          
-            this.preferencesService = preferencesService ?? 
+
+            this.preferencesService = preferencesService ??
                                      serviceProvider.GetService<PreferencesService>() ??
                                      Application.Current?.Handler?.MauiContext?.Services.GetService<PreferencesService>() ??
                                      throw new InvalidOperationException("PreferencesService not available");
@@ -87,23 +87,23 @@ public partial class RoastPage : ContentPage
         else
         {
             // Fall back to the old way if app resources doesn't have our provider
-            this.appDataService = appDataService ?? 
+            this.appDataService = appDataService ??
                                  Application.Current?.Handler?.MauiContext?.Services.GetService<AppDataService>() ??
                                  throw new InvalidOperationException("AppDataService not available");
-                             
-            this.timerService = timerService ?? 
+
+            this.timerService = timerService ??
                                Application.Current?.Handler?.MauiContext?.Services.GetService<TimerService>() ??
                                throw new InvalidOperationException("TimerService not available");
-                           
-            this.roastDataService = roastDataService ?? 
+
+            this.roastDataService = roastDataService ??
                                    Application.Current?.Handler?.MauiContext?.Services.GetService<RoastDataService>() ??
                                    throw new InvalidOperationException("RoastDataService not available");
-                               
-            this.beanService = beanService ?? 
+
+            this.beanService = beanService ??
                               Application.Current?.Handler?.MauiContext?.Services.GetService<BeanDataService>() ??
                               throw new InvalidOperationException("BeanService not available");
-                          
-            this.preferencesService = preferencesService ?? 
+
+            this.preferencesService = preferencesService ??
                                      Application.Current?.Handler?.MauiContext?.Services.GetService<PreferencesService>() ??
                                      throw new InvalidOperationException("PreferencesService not available");
         }
@@ -126,7 +126,7 @@ public partial class RoastPage : ContentPage
         {
             // Check if this is the first run
             bool isFirstRun = await preferencesService.IsFirstRunAsync();
-            
+
             // Check if user has a saved file path preference
             string? savedFilePath = await preferencesService.GetAppDataFilePathAsync();
 
@@ -137,7 +137,7 @@ public partial class RoastPage : ContentPage
                 {
                     // Use the async version of SetCustomFilePath
                     await appDataService.SetCustomFilePathAsync(savedFilePath);
-                    
+
                     // Also initialize related services with the same path
                     await roastDataService.InitializeFromPreferencesAsync(preferencesService);
                     await beanService.InitializeFromPreferencesAsync(preferencesService);
@@ -145,10 +145,10 @@ public partial class RoastPage : ContentPage
                 else
                 {
                     // File doesn't exist anymore
-                    await DisplayAlert("Data File Not Found", 
-                        $"The previously used data file could not be found: {savedFilePath}\n\nUsing default location instead.", 
+                    await DisplayAlert("Data File Not Found",
+                        $"The previously used data file could not be found: {savedFilePath}\n\nUsing default location instead.",
                         "OK");
-                        
+
                     // Reset to default path - use the async version
                     await appDataService.ResetToDefaultPathAsync();
                     await preferencesService.ClearAppDataFilePathAsync();
@@ -160,9 +160,9 @@ public partial class RoastPage : ContentPage
                 // This shouldn't normally happen as App.xaml.cs should handle first run,
                 // but handle it as a fallback
                 await Shell.Current.GoToAsync(nameof(SettingsPage));
-                
-                await DisplayAlert("Welcome to CafeMaestro", 
-                    "Please select or create a data file location to store your coffee roasting data.", 
+
+                await DisplayAlert("Welcome to CafeMaestro",
+                    "Please select or create a data file location to store your coffee roasting data.",
                     "OK");
             }
         }
@@ -175,21 +175,21 @@ public partial class RoastPage : ContentPage
     protected override async void OnAppearing()
     {
         base.OnAppearing();
-        
+
         // Check if we're being navigated to from the tab bar
         bool isFromTabBar = CheckIfNavigationFromTabBar();
-        
+
         // If not in edit mode or if navigation came from tab bar menu, reset the form
         if (!_isEditMode || isFromTabBar)
         {
             System.Diagnostics.Debug.WriteLine($"RoastPage appearing in new roast mode - resetting form. IsEditMode: {_isEditMode}, IsFromTabBar: {isFromTabBar}");
             ResetPageForNewRoast();
         }
-        
+
         // Refresh beans when returning to this page
         await LoadAvailableBeans();
     }
-    
+
     // Method to determine if navigation is from tab bar
     private bool CheckIfNavigationFromTabBar()
     {
@@ -200,7 +200,7 @@ public partial class RoastPage : ContentPage
             {
                 var currentRoute = Shell.Current.CurrentItem.Route;
                 System.Diagnostics.Debug.WriteLine($"Current route: {currentRoute}");
-                
+
                 // If the current route is "RoastPage", it's likely coming from the tab bar
                 return currentRoute == "RoastPage";
             }
@@ -209,10 +209,10 @@ public partial class RoastPage : ContentPage
         {
             System.Diagnostics.Debug.WriteLine($"Error checking navigation source: {ex.Message}");
         }
-        
+
         return false;
     }
-    
+
     // Method to reset the page for a new roast
     private void ResetPageForNewRoast()
     {
@@ -220,10 +220,10 @@ public partial class RoastPage : ContentPage
         _isEditMode = false;
         _roastToEdit = null;
         _editRoastId = Guid.Empty;
-        
+
         // Reset the page title
         Title = "Roast Coffee";
-        
+
         // Clear form fields
         ClearForm();
     }
@@ -235,35 +235,35 @@ public partial class RoastPage : ContentPage
             // Clear existing items first
             BeanPicker.Items.Clear();
             BeanPicker.Title = "Loading beans...";
-            
+
             // Use MainThread to ensure UI updates happen on the UI thread
             await MainThread.InvokeOnMainThreadAsync(async () =>
             {
                 // Get available beans from service
                 availableBeans = await beanService.GetAvailableBeansAsync();
-                
+
                 // Log the count for debugging
                 System.Diagnostics.Debug.WriteLine($"Loaded {availableBeans.Count} available beans");
-                
+
                 if (availableBeans.Count > 0)
                 {
                     // Clear the picker again in case any items were added while loading
                     BeanPicker.Items.Clear();
-                    
+
                     // Add each bean to the picker
                     foreach (var bean in availableBeans)
                     {
                         BeanPicker.Items.Add(bean.DisplayName);
                     }
-                    
+
                     // Update picker title
                     BeanPicker.Title = "Select Bean Type";
-                    
+
                     // Select first bean as default
                     BeanPicker.SelectedIndex = 0;
                     selectedBean = availableBeans[0];
-                } 
-                else 
+                }
+                else
                 {
                     // No beans available
                     BeanPicker.Title = "No beans available";
@@ -274,7 +274,7 @@ public partial class RoastPage : ContentPage
         catch (Exception ex)
         {
             System.Diagnostics.Debug.WriteLine($"Error loading beans: {ex.Message}");
-            
+
             // Update UI on main thread to show error
             await MainThread.InvokeOnMainThreadAsync(() =>
             {
@@ -283,7 +283,7 @@ public partial class RoastPage : ContentPage
                 BeanPicker.Title = "Error loading beans";
                 selectedBean = null;
             });
-            
+
             // Display alert to user
             await DisplayAlert("Error", "Failed to load beans. Please try again.", "OK");
         }
@@ -460,15 +460,15 @@ public partial class RoastPage : ContentPage
             entry.Text = "";
             // Keep the display showing the current time
             isTimerUpdating = false;
-            
+
             // Start the timer edit animation - the whole display will blink
             StartTimerEditAnimation();
-            
+
             // Add keyboard event handlers to detect Enter key
             entry.Completed += TimeEntry_Completed;
         }
     }
-    
+
     private void TimeEntry_Completed(object? sender, EventArgs e)
     {
         // This is triggered when user presses Enter
@@ -476,10 +476,10 @@ public partial class RoastPage : ContentPage
         {
             // Explicitly unfocus the entry to complete editing
             entry.Unfocus();
-            
+
             // Remove the handler to avoid memory leaks
             entry.Completed -= TimeEntry_Completed;
-            
+
             // Explicitly stop the animation
             StopTimerEditAnimation();
         }
@@ -493,7 +493,7 @@ public partial class RoastPage : ContentPage
 
         // Stop the timer edit animation when unfocused
         StopTimerEditAnimation();
-        
+
         // Now apply the formatting using the buffered digits
         if (!string.IsNullOrEmpty(temporaryDigitsBuffer))
         {
@@ -579,14 +579,14 @@ public partial class RoastPage : ContentPage
 
             // Format the display in real-time based on how many digits were entered
             UpdateTimeDisplayFromDigits(temporaryDigitsBuffer);
-            
+
             return;
         }
         else if (string.IsNullOrEmpty(text) || !text.Contains(':'))
         {
             // Keep the field empty while user is typing
             temporaryDigitsBuffer = "";
-            
+
             return;
         }
     }
@@ -630,7 +630,7 @@ public partial class RoastPage : ContentPage
 
         // Disable manual editing while timer is running
         TimeEntry.IsEnabled = false;
-        
+
         // Show and animate the timer running indicator
         TimerRunningIndicator.IsVisible = true;
         StartTimerPulseAnimation();
@@ -644,7 +644,7 @@ public partial class RoastPage : ContentPage
 
         // Re-enable manual editing when timer is paused
         TimeEntry.IsEnabled = true;
-        
+
         // Stop the pulse animation when timer is paused
         StopTimerPulseAnimation();
     }
@@ -660,7 +660,7 @@ public partial class RoastPage : ContentPage
 
         // Re-enable manual editing when timer is stopped
         TimeEntry.IsEnabled = true;
-        
+
         // Stop the pulse animation when timer is stopped
         StopTimerPulseAnimation();
     }
@@ -680,52 +680,57 @@ public partial class RoastPage : ContentPage
 
         // Re-enable manual editing when timer is reset
         TimeEntry.IsEnabled = true;
-        
+
         // Stop the pulse animation when timer is reset
         StopTimerPulseAnimation();
     }
-    
+
     private void StartTimerPulseAnimation()
     {
         // Make sure the indicator is visible
         TimerRunningIndicator.IsVisible = true;
-        
+
         // Cancel any existing animation
         _animationCancellationTokenSource?.Cancel();
         _animationCancellationTokenSource = new CancellationTokenSource();
-        
+
         // Start a new animation task
-        MainThread.BeginInvokeOnMainThread(async () => {
-            try {
+        MainThread.BeginInvokeOnMainThread(async () =>
+        {
+            try
+            {
                 var token = _animationCancellationTokenSource.Token;
-                
+
                 // Continue animation until canceled
-                while (!token.IsCancellationRequested) {
+                while (!token.IsCancellationRequested)
+                {
                     // Toggle between visible and invisible to create blinking effect
                     TimerRunningIndicator.IsVisible = true;
                     await Task.Delay(500, token); // Visible for 500ms
-                    
+
                     if (token.IsCancellationRequested) break;
-                    
+
                     TimerRunningIndicator.IsVisible = false;
                     await Task.Delay(500, token); // Invisible for 500ms
                 }
             }
-            catch (TaskCanceledException) {
+            catch (TaskCanceledException)
+            {
                 // This is expected when canceling the animation
             }
-            catch (Exception ex) {
+            catch (Exception ex)
+            {
                 System.Diagnostics.Debug.WriteLine($"Animation error: {ex.Message}");
             }
         });
     }
-    
+
     private void StopTimerPulseAnimation()
     {
         // Cancel the animation
         _animationCancellationTokenSource?.Cancel();
         _animationCancellationTokenSource = null;
-        
+
         // Ensure indicator is hidden
         TimerRunningIndicator.IsVisible = false;
     }
@@ -735,54 +740,64 @@ public partial class RoastPage : ContentPage
         // Cancel any existing animation
         _cursorAnimationCancellationTokenSource?.Cancel();
         _cursorAnimationCancellationTokenSource = new CancellationTokenSource();
-        
+
         // Store the original color for restoration later
         var originalColor = TimeDisplayLabel.TextColor;
-        
+
         // Start a new animation task
-        MainThread.BeginInvokeOnMainThread(async () => {
-            try {
+        MainThread.BeginInvokeOnMainThread(async () =>
+        {
+            try
+            {
                 var token = _cursorAnimationCancellationTokenSource.Token;
-                
+
                 // Continue animation until canceled
-                while (!token.IsCancellationRequested) {
+                while (!token.IsCancellationRequested)
+                {
                     // Toggle between normal and dimmed color to create blinking effect
                     TimeDisplayLabel.TextColor = originalColor;
                     await Task.Delay(500, token); // Normal for 500ms
-                    
+
                     if (token.IsCancellationRequested) break;
-                    
+
                     // Set to a semi-transparent version of the color
-                    if (originalColor is Microsoft.Maui.Graphics.Color color) {
+                    if (originalColor is Microsoft.Maui.Graphics.Color color)
+                    {
                         TimeDisplayLabel.TextColor = color.WithAlpha(0.3f);
-                    } else {
+                    }
+                    else
+                    {
                         // Fallback if we can't get the color
                         TimeDisplayLabel.Opacity = 0.3;
                     }
                     await Task.Delay(500, token); // Dimmed for 500ms
-                    
+
                     if (token.IsCancellationRequested) break;
-                    
+
                     // Restore normal opacity if we changed it
-                    if (!(originalColor is Microsoft.Maui.Graphics.Color)) {
+                    if (!(originalColor is Microsoft.Maui.Graphics.Color))
+                    {
                         TimeDisplayLabel.Opacity = 1.0;
                     }
                 }
             }
-            catch (TaskCanceledException) {
+            catch (TaskCanceledException)
+            {
                 // This is expected when canceling the animation
             }
-            catch (Exception ex) {
+            catch (Exception ex)
+            {
                 System.Diagnostics.Debug.WriteLine($"Timer edit animation error: {ex.Message}");
             }
-            finally {
+            finally
+            {
                 // Ensure the display returns to normal
                 TimeDisplayLabel.TextColor = originalColor;
                 TimeDisplayLabel.Opacity = 1.0;
             }
         });
     }
-    
+
     private void StopTimerEditAnimation()
     {
         try
@@ -794,12 +809,12 @@ public partial class RoastPage : ContentPage
                 _cursorAnimationCancellationTokenSource.Dispose();
                 _cursorAnimationCancellationTokenSource = null;
             }
-            
+
             // Force immediate reset of display properties
             MainThread.BeginInvokeOnMainThread(() =>
             {
                 // Ensure the display returns to normal by explicitly setting the values
-                if (Application.Current?.Resources != null && 
+                if (Application.Current?.Resources != null &&
                     Application.Current.Resources.TryGetValue("PrimaryColor", out var colorObj) &&
                     colorObj is Microsoft.Maui.Graphics.Color color)
                 {
@@ -822,10 +837,10 @@ public partial class RoastPage : ContentPage
     protected override void OnDisappearing()
     {
         base.OnDisappearing();
-        
+
         // Stop the timer when leaving the page
         timerService.Stop();
-        
+
         // Reset the form state when navigating away from the page
         ResetPageForNewRoast();
         System.Diagnostics.Debug.WriteLine("RoastPage.OnDisappearing - Reset page state");
@@ -839,15 +854,8 @@ public partial class RoastPage : ContentPage
         {
             double lossWeight = batchWeight - finalWeight;
             double lossPercentage = (lossWeight / batchWeight) * 100;
-            LossPercentLabel.Text = $"Weight Loss: {lossPercentage:F2}%";
-
             string roastLevel = GetRoastLevel(lossPercentage);
-            RoastSummaryLabel.Text = $"Roast Summary: {roastLevel} roast at {TemperatureEntry.Text}°C";
-        }
-        else
-        {
-            LossPercentLabel.Text = "Weight Loss: --";
-            RoastSummaryLabel.Text = "Roast Summary: --";
+            LossPercentLabel.Text = $"Weight loss {lossPercentage:F1}% ({roastLevel} roast)";
         }
     }
 
@@ -864,24 +872,24 @@ public partial class RoastPage : ContentPage
         {
             // Track whether this is a new roast or an update
             bool isUpdatingExisting = _isEditMode && _roastToEdit != null;
-            
+
             if (isUpdatingExisting)
             {
                 // Update existing roast data
                 System.Diagnostics.Debug.WriteLine($"Updating existing roast with ID: {_roastToEdit!.Id}");
-                
+
                 // Load the current app data
                 var appData = await appDataService.LoadAppDataAsync();
-                
+
                 // Find the roast to update
                 var roastToUpdate = appData.RoastLogs?.FirstOrDefault(r => r.Id == _roastToEdit.Id);
-                
+
                 if (roastToUpdate == null)
                 {
                     await DisplayAlert("Error", "Could not find the roast log to update", "OK");
                     return;
                 }
-                
+
                 // Update the roast data (keep original ID and date)
                 roastToUpdate.BeanType = selectedBean?.DisplayName ?? roastToUpdate.BeanType;
                 roastToUpdate.Temperature = temperature;
@@ -890,14 +898,14 @@ public partial class RoastPage : ContentPage
                 roastToUpdate.RoastMinutes = roastMinutes;
                 roastToUpdate.RoastSeconds = roastSeconds;
                 roastToUpdate.Notes = NotesEditor.Text ?? roastToUpdate.Notes;
-                
+
                 // Save the updated app data
                 bool success = await appDataService.SaveAppDataAsync(appData);
-                
+
                 if (success)
                 {
                     await DisplayAlert("Success", "Roast data updated successfully!", "OK");
-                    
+
                     // Navigate back to RoastLogPage when done with edit
                     await Shell.Current.GoToAsync("//RoastLogPage");
                 }
@@ -972,8 +980,7 @@ public partial class RoastPage : ContentPage
         NotesEditor.Text = string.Empty;
 
         // Reset labels
-        LossPercentLabel.Text = "Weight Loss: --";
-        RoastSummaryLabel.Text = "Roast Summary: --";
+        LossPercentLabel.Text = "";
     }
 
     // Future enhancement: Method to export data to CSV
@@ -1009,7 +1016,7 @@ public partial class RoastPage : ContentPage
             await DisplayAlert("Error", $"Failed to export data: {ex.Message}", "OK");
         }
     }
-    
+
     // Override OnBackButtonPressed to handle Android back button
     protected override bool OnBackButtonPressed()
     {
@@ -1020,7 +1027,8 @@ public partial class RoastPage : ContentPage
             // This works better on Android than GoToAsync
             if (Shell.Current?.Items.Count > 0)
             {
-                MainThread.BeginInvokeOnMainThread(() => {
+                MainThread.BeginInvokeOnMainThread(() =>
+                {
                     Shell.Current.CurrentItem = Shell.Current.Items[0]; // MainPage is the first item
                     System.Diagnostics.Debug.WriteLine("Navigated back to MainPage using hardware back button in RoastPage");
                 });
@@ -1031,7 +1039,7 @@ public partial class RoastPage : ContentPage
         {
             System.Diagnostics.Debug.WriteLine($"Error handling back button in RoastPage: {ex.Message}");
         }
-        
+
         return base.OnBackButtonPressed(); // Let the system handle it if our code fails
     }
 
@@ -1047,44 +1055,46 @@ public partial class RoastPage : ContentPage
 
             // Use the RoastDataService to get the specific roast by ID
             _roastToEdit = await roastDataService.GetRoastLogByIdAsync(_editRoastId);
-            
+
             if (_roastToEdit == null)
             {
                 System.Diagnostics.Debug.WriteLine($"Failed to find roast with ID: {_editRoastId}");
                 await DisplayAlert("Error", "Failed to find the roast data for editing", "OK");
                 return;
             }
-            
+
             System.Diagnostics.Debug.WriteLine($"Found roast to edit: {_roastToEdit.BeanType} from {_roastToEdit.RoastDate}");
-            
+
             // Update the UI with the roast data
-            await MainThread.InvokeOnMainThreadAsync(async () => {
+            await MainThread.InvokeOnMainThreadAsync(async () =>
+            {
                 // Set page title to indicate editing mode
                 Title = "Edit Roast";
-                
+
                 // Load beans first to ensure the picker is populated before we try to select an item
                 await LoadAvailableBeans();
-                
+
                 // Set time
                 TimeEntry.Text = $"{_roastToEdit.RoastMinutes:D2}:{_roastToEdit.RoastSeconds:D2}";
                 TimeDisplayLabel.Text = $"{_roastToEdit.RoastMinutes:D2}:{_roastToEdit.RoastSeconds:D2}";
-                
+
                 // Set weights
-                BatchWeightEntry.Text = _roastToEdit.BatchWeight.ToString("F2");
-                FinalWeightEntry.Text = _roastToEdit.FinalWeight.ToString("F2");
-                
+                BatchWeightEntry.Text = _roastToEdit.BatchWeight.ToString("F1");
+                FinalWeightEntry.Text = _roastToEdit.FinalWeight.ToString("F1");
+
                 // Set temperature
                 TemperatureEntry.Text = _roastToEdit.Temperature.ToString("F0");
-                
+
                 // Set notes
                 NotesEditor.Text = _roastToEdit.Notes;
-                
+
                 // Calculate and update loss percentage and roast summary
                 double lossPercentage = _roastToEdit.WeightLossPercentage;
-                LossPercentLabel.Text = $"Weight Loss: {lossPercentage:F2}%";
                 string roastLevel = GetRoastLevel(lossPercentage);
-                RoastSummaryLabel.Text = $"Roast Summary: {roastLevel} roast at {_roastToEdit.Temperature}°C";
-                
+                LossPercentLabel.Text = $"Weight loss {lossPercentage:F1}% ({roastLevel} roast)";
+
+                // RoastSummaryLabel.Text = $"Roast Summary: {roastLevel} roast at {_roastToEdit.Temperature}°C";
+
                 // Now select the correct bean in the picker
                 await SelectBeanInPicker(_roastToEdit.BeanType);
             });
@@ -1095,7 +1105,7 @@ public partial class RoastPage : ContentPage
             await DisplayAlert("Error", "Failed to load roast data for editing", "OK");
         }
     }
-    
+
     // Helper method to select the correct bean in the picker
     private async Task SelectBeanInPicker(string beanType)
     {
@@ -1106,18 +1116,18 @@ public partial class RoastPage : ContentPage
                 System.Diagnostics.Debug.WriteLine("Bean type is empty, cannot select in picker");
                 return;
             }
-            
+
             System.Diagnostics.Debug.WriteLine($"Trying to select bean: '{beanType}' in picker with {BeanPicker.Items.Count} items");
-            
+
             // Debug: Print all available items in picker for comparison
             for (int i = 0; i < BeanPicker.Items.Count; i++)
             {
                 System.Diagnostics.Debug.WriteLine($"BeanPicker Item {i}: '{BeanPicker.Items[i]}'");
             }
-            
+
             // Disable the BeanPicker_SelectedIndexChanged event temporarily to avoid side effects
             BeanPicker.SelectedIndexChanged -= BeanPicker_SelectedIndexChanged;
-            
+
             // First try exact match
             int beanIndex = -1;
             for (int i = 0; i < BeanPicker.Items.Count; i++)
@@ -1129,7 +1139,7 @@ public partial class RoastPage : ContentPage
                     break;
                 }
             }
-            
+
             // If exact match failed, try case-insensitive match
             if (beanIndex == -1)
             {
@@ -1143,7 +1153,7 @@ public partial class RoastPage : ContentPage
                     }
                 }
             }
-            
+
             // If we couldn't find a match, try to find a bean that contains the target name
             if (beanIndex == -1)
             {
@@ -1158,12 +1168,12 @@ public partial class RoastPage : ContentPage
                     }
                 }
             }
-            
+
             // If we found a match, select it and set the selectedBean
             if (beanIndex >= 0 && beanIndex < BeanPicker.Items.Count)
             {
                 BeanPicker.SelectedIndex = beanIndex;
-                
+
                 if (beanIndex < availableBeans.Count)
                 {
                     selectedBean = availableBeans[beanIndex];
@@ -1178,7 +1188,7 @@ public partial class RoastPage : ContentPage
             {
                 System.Diagnostics.Debug.WriteLine($"Could not find bean '{beanType}' in the picker items");
             }
-            
+
             // Re-enable the event handler
             BeanPicker.SelectedIndexChanged += BeanPicker_SelectedIndexChanged;
         }
