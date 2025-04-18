@@ -612,8 +612,8 @@ namespace CafeMaestro.Services
                         {
                             Id = Guid.NewGuid(),
                             PurchaseDate = DateTime.Now, // Default
-                            Quantity = 1, // Default
-                            RemainingQuantity = 1 // Default
+                            Quantity = 0, // Default
+                            RemainingQuantity = 0 // Default
                         };
                         
                         System.Diagnostics.Debug.WriteLine($"Processing row with data: {string.Join(", ", row.Select(kv => $"{kv.Key}={kv.Value}"))}");
@@ -644,27 +644,27 @@ namespace CafeMaestro.Services
                             switch (beanProperty)
                             {
                                 case "CoffeeName":
-                                    bean.CoffeeName = csvValue;
+                                    bean.CoffeeName = csvValue.Trim();
                                     System.Diagnostics.Debug.WriteLine($"Set CoffeeName = {bean.CoffeeName}");
                                     break;
                                 case "Country":
-                                    bean.Country = csvValue;
+                                    bean.Country = csvValue.Trim();
                                     System.Diagnostics.Debug.WriteLine($"Set Country = {bean.Country}");
                                     break;
                                 case "Variety":
-                                    bean.Variety = csvValue;
+                                    bean.Variety = csvValue.Trim();
                                     System.Diagnostics.Debug.WriteLine($"Set Variety = {bean.Variety}");
                                     break;
                                 case "Process":
-                                    bean.Process = csvValue;
+                                    bean.Process = csvValue.Trim();
                                     System.Diagnostics.Debug.WriteLine($"Set Process = {bean.Process}");
                                     break;
                                 case "Notes":
-                                    bean.Notes = csvValue;
+                                    bean.Notes = csvValue.Trim();
                                     System.Diagnostics.Debug.WriteLine($"Set Notes = {bean.Notes}");
                                     break;
                                 case "Link":
-                                    bean.Link = csvValue;
+                                    bean.Link = csvValue.Trim();
                                     System.Diagnostics.Debug.WriteLine($"Set Link = {bean.Link}");
                                     break;
                                 case "PurchaseDate":

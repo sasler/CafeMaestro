@@ -1065,7 +1065,7 @@ public partial class RoastPage : ContentPage
 
             System.Diagnostics.Debug.WriteLine($"Found roast to edit: {_roastToEdit.BeanType} from {_roastToEdit.RoastDate}");
 
-            // Update the UI with the roast data
+            // Update the UI with the roast data - ensure we await this call
             await MainThread.InvokeOnMainThreadAsync(async () =>
             {
                 // Set page title to indicate editing mode
@@ -1092,8 +1092,6 @@ public partial class RoastPage : ContentPage
                 double lossPercentage = _roastToEdit.WeightLossPercentage;
                 string roastLevel = GetRoastLevel(lossPercentage);
                 LossPercentLabel.Text = $"Weight loss {lossPercentage:F1}% ({roastLevel} roast)";
-
-                // RoastSummaryLabel.Text = $"Roast Summary: {roastLevel} roast at {_roastToEdit.Temperature}°C";
 
                 // Now select the correct bean in the picker
                 await SelectBeanInPicker(_roastToEdit.BeanType);
@@ -1172,17 +1170,20 @@ public partial class RoastPage : ContentPage
             // If we found a match, select it and set the selectedBean
             if (beanIndex >= 0 && beanIndex < BeanPicker.Items.Count)
             {
-                BeanPicker.SelectedIndex = beanIndex;
+                // Update UI on main thread since we're modifying UI elements
+                await MainThread.InvokeOnMainThreadAsync(() => {
+                    BeanPicker.SelectedIndex = beanIndex;
 
-                if (beanIndex < availableBeans.Count)
-                {
-                    selectedBean = availableBeans[beanIndex];
-                    System.Diagnostics.Debug.WriteLine($"Selected bean at index {beanIndex}: '{BeanPicker.Items[beanIndex]}' with ID: {selectedBean.Id}");
-                }
-                else
-                {
-                    System.Diagnostics.Debug.WriteLine($"Bean index {beanIndex} is out of range for availableBeans (Count: {availableBeans.Count})");
-                }
+                    if (beanIndex < availableBeans.Count)
+                    {
+                        selectedBean = availableBeans[beanIndex];
+                        System.Diagnostics.Debug.WriteLine($"Selected bean at index {beanIndex}: '{BeanPicker.Items[beanIndex]}' with ID: {selectedBean.Id}");
+                    }
+                    else
+                    {
+                        System.Diagnostics.Debug.WriteLine($"Bean index {beanIndex} is out of range for availableBeans (Count: {availableBeans.Count})");
+                    }
+                });
             }
             else
             {
@@ -1195,6 +1196,8 @@ public partial class RoastPage : ContentPage
         catch (Exception ex)
         {
             System.Diagnostics.Debug.WriteLine($"Error selecting bean in picker: {ex.Message}");
+            // Use Task.Delay as another await point to satisfy the compiler warning
+            await Task.Delay(1);
         }
     }
 }

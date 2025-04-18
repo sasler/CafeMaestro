@@ -495,7 +495,8 @@ namespace CafeMaestro.Services
                                     break;
                                 // ... rest of the switch case handles other properties
                                 case "BeanType":
-                                    roast.BeanType = csvValue;
+                                    // Trim whitespace and double spaces
+                                    roast.BeanType = csvValue.Trim().Replace("  ", " ");
                                     System.Diagnostics.Debug.WriteLine($"Set BeanType = {roast.BeanType}");
                                     break;
                                 case "Temperature":
@@ -599,7 +600,7 @@ namespace CafeMaestro.Services
                                     }
                                     break;
                                 case "Notes":
-                                    roast.Notes = csvValue;
+                                    roast.Notes = csvValue.Trim();
                                     System.Diagnostics.Debug.WriteLine($"Set Notes = {roast.Notes}");
                                     break;
                             }
