@@ -87,10 +87,10 @@
 
                             <!-- Data File Section -->
                             <Border x:Name="DataFileSection"
-                                   Stroke="{DynamicResource BorderColor}"
-                                   BackgroundColor="{DynamicResource PageBackgroundColor}"
-                                   StrokeThickness="0.5"
-                                   StrokeShape="RoundRectangle 12">
+                                    Stroke="{DynamicResource BorderColor}"
+                                    BackgroundColor="{DynamicResource PageBackgroundColor}"
+                                    StrokeThickness="0.5"
+                                    StrokeShape="RoundRectangle 12">
                                    <Border.Shadow>
                                           <Shadow Brush="#20000000"
                                                   Offset="0,2"
@@ -145,9 +145,18 @@
 
                             <!-- About Section -->
                             <Border Stroke="{DynamicResource BorderColor}"
-                                    BackgroundColor="{DynamicResource PageBackgroundColor}">
+                                    BackgroundColor="{DynamicResource PageBackgroundColor}"
+                                    StrokeThickness="0.5"
+                                    StrokeShape="RoundRectangle 12">
+                                   <Border.Shadow>
+                                          <Shadow Brush="#20000000"
+                                                  Offset="0,2"
+                                                  Radius="4"
+                                                  Opacity="0.2"/>
+                                   </Border.Shadow>
                                    <VerticalStackLayout Spacing="8"
                                                         Padding="16,10">
+
                                           <Label Text="About"
                                                  FontSize="18"
                                                  FontAttributes="Bold"

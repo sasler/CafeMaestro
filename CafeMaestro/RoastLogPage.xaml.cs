@@ -419,8 +419,23 @@ public partial class RoastLogPage : ContentPage
 
     private async void AddRoast_Clicked(object sender, EventArgs e)
     {
-        // Navigate to the RoastPage for adding a new roast
-        await Shell.Current.GoToAsync("//RoastPage");
+        try
+        {
+            // First navigate to the RoastPage for adding a new roast
+            // We need to navigate with an explicit parameter to indicate this is a new roast
+            var navigationParameter = new Dictionary<string, object>
+            {
+                { "NewRoast", "true" }  // Add parameter to signal this is a new roast
+            };
+            
+            System.Diagnostics.Debug.WriteLine("Navigating to RoastPage for NEW roast");
+            await Shell.Current.GoToAsync("//RoastPage", navigationParameter);
+        }
+        catch (Exception ex)
+        {
+            System.Diagnostics.Debug.WriteLine($"Error navigating to RoastPage: {ex.Message}");
+            await DisplayAlert("Error", $"Could not navigate to roast page: {ex.Message}", "OK");
+        }
     }
 
     // We'll keep OnBackButtonPressed for hardware back button support

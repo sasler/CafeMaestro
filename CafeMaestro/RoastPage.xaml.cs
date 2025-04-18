@@ -12,6 +12,7 @@ using Microsoft.Extensions.DependencyInjection;
 namespace CafeMaestro;
 
 [QueryProperty(nameof(EditRoastId), "EditRoastId")]
+[QueryProperty(nameof(NewRoast), "NewRoast")]
 public partial class RoastPage : ContentPage
 {
     private TimerService timerService;
@@ -26,6 +27,27 @@ public partial class RoastPage : ContentPage
     private Guid _editRoastId = Guid.Empty;
     private RoastData? _roastToEdit = null;
     private bool _isEditMode = false;
+    
+    // Property to force new roast mode
+    private bool _isForceNewRoast = false;
+    
+    public string NewRoast
+    {
+        get => _isForceNewRoast.ToString();
+        set
+        {
+            if (bool.TryParse(value, out bool isNew) && isNew)
+            {
+                _isForceNewRoast = true;
+                System.Diagnostics.Debug.WriteLine("NewRoast property set to true - will force reset form");
+                
+                // Force a reset of the page for a new roast
+                MainThread.BeginInvokeOnMainThread(() => {
+                    ResetPageForNewRoast();
+                });
+            }
+        }
+    }
 
     public string EditRoastId
     {
@@ -34,10 +56,33 @@ public partial class RoastPage : ContentPage
         {
             if (Guid.TryParse(value, out Guid parsedId))
             {
+                System.Diagnostics.Debug.WriteLine($"Setting EditRoastId to: {parsedId}");
                 _editRoastId = parsedId;
                 _isEditMode = true;
-                System.Diagnostics.Debug.WriteLine($"RoastPage in edit mode for roast ID: {_editRoastId}");
-                LoadRoastDataForEdit();
+                
+                // Delay the data loading to ensure the page is fully ready
+                MainThread.BeginInvokeOnMainThread(async () =>
+                {
+                    try
+                    {
+                        // Reset any previous selections to avoid conflicts
+                        selectedBean = null;
+                        
+                        // Clear and wait for page to be ready
+                        await Task.Delay(50);
+                        
+                        System.Diagnostics.Debug.WriteLine($"Now loading data for edit ID: {_editRoastId}");
+                        await Task.Run(() => LoadRoastDataForEdit());
+                    }
+                    catch (Exception ex)
+                    {
+                        System.Diagnostics.Debug.WriteLine($"Error in delayed LoadRoastDataForEdit: {ex.Message}");
+                    }
+                });
+            }
+            else
+            {
+                System.Diagnostics.Debug.WriteLine($"Invalid roast ID format: {value}");
             }
         }
     }
@@ -176,15 +221,40 @@ public partial class RoastPage : ContentPage
     {
         base.OnAppearing();
 
+        // Track the current edit ID before potentially making changes that affect state
+        Guid currentEditId = _editRoastId;
+        
         // Check if we're being navigated to from the tab bar
         bool isFromTabBar = CheckIfNavigationFromTabBar();
+        
+        System.Diagnostics.Debug.WriteLine($"RoastPage.OnAppearing - IsEditMode: {_isEditMode}, IsFromTabBar: {isFromTabBar}, EditId: {currentEditId}, ForceNew: {_isForceNewRoast}");
 
-        // If not in edit mode or if navigation came from tab bar menu, reset the form
-        if (!_isEditMode || isFromTabBar)
+        // If we're coming from the tab bar or the force new flag is set, and we're not in edit mode, reset the form
+        if ((isFromTabBar || _isForceNewRoast) && currentEditId == Guid.Empty)
         {
-            System.Diagnostics.Debug.WriteLine($"RoastPage appearing in new roast mode - resetting form. IsEditMode: {_isEditMode}, IsFromTabBar: {isFromTabBar}");
+            System.Diagnostics.Debug.WriteLine("RoastPage appearing - resetting form for new roast");
             ResetPageForNewRoast();
+            ClearForm(); // Make sure we call ClearForm explicitly
         }
+        else if (isFromTabBar && currentEditId != Guid.Empty)
+        {
+            // Coming from tab bar with an edit ID - make sure we preserve it
+            System.Diagnostics.Debug.WriteLine($"RoastPage appearing from tab bar with edit ID: {currentEditId} - preserving edit mode");
+        }
+        else if (!_isEditMode)
+        {
+            // Always reset the form if we're not in edit mode, regardless of the navigation source
+            System.Diagnostics.Debug.WriteLine("RoastPage appearing without edit mode - forcing form reset");
+            ResetPageForNewRoast();
+            ClearForm(); // Make sure we call ClearForm explicitly
+        }
+        else
+        {
+            System.Diagnostics.Debug.WriteLine($"RoastPage appearing in edit mode - keeping form data");
+        }
+        
+        // Reset the force new flag
+        _isForceNewRoast = false;
 
         // Refresh beans when returning to this page
         await LoadAvailableBeans();
@@ -840,10 +910,19 @@ public partial class RoastPage : ContentPage
 
         // Stop the timer when leaving the page
         timerService.Stop();
-
-        // Reset the form state when navigating away from the page
-        ResetPageForNewRoast();
-        System.Diagnostics.Debug.WriteLine("RoastPage.OnDisappearing - Reset page state");
+        
+        // Store whether we were in edit mode before completing
+        bool wasInEditMode = _isEditMode;
+        
+        // Reset the edit flags but keep the ID temporarily for debugging
+        Guid previousEditId = _editRoastId;
+        
+        // Reset edit mode flags but don't clear form data yet
+        _isEditMode = false;
+        _roastToEdit = null;
+        _editRoastId = Guid.Empty;
+        
+        System.Diagnostics.Debug.WriteLine($"RoastPage.OnDisappearing - Cleared edit mode. Was editing: {wasInEditMode}, ID: {previousEditId}");
     }
 
     private void OnWeightEntryTextChanged(object? sender, TextChangedEventArgs e)
@@ -1050,6 +1129,7 @@ public partial class RoastPage : ContentPage
         {
             if (_editRoastId == Guid.Empty)
             {
+                System.Diagnostics.Debug.WriteLine("LoadRoastDataForEdit called but edit ID is empty");
                 return; // Not in edit mode
             }
 
@@ -1068,38 +1148,62 @@ public partial class RoastPage : ContentPage
             // Update the UI with the roast data - ensure we await this call
             await MainThread.InvokeOnMainThreadAsync(async () =>
             {
-                // Set page title to indicate editing mode
-                Title = "Edit Roast";
+                try
+                {
+                    // Set page title to indicate editing mode
+                    Title = "Edit Roast";
 
-                // Load beans first to ensure the picker is populated before we try to select an item
-                await LoadAvailableBeans();
+                    // Make sure we're in edit mode
+                    _isEditMode = true;
 
-                // Set time
-                TimeEntry.Text = $"{_roastToEdit.RoastMinutes:D2}:{_roastToEdit.RoastSeconds:D2}";
-                TimeDisplayLabel.Text = $"{_roastToEdit.RoastMinutes:D2}:{_roastToEdit.RoastSeconds:D2}";
+                    // Load beans first to ensure the picker is populated before we try to select an item
+                    await LoadAvailableBeans();
+                    
+                    // Important: After loading beans, wait briefly to ensure UI is updated
+                    await Task.Delay(100);
 
-                // Set weights
-                BatchWeightEntry.Text = _roastToEdit.BatchWeight.ToString("F1");
-                FinalWeightEntry.Text = _roastToEdit.FinalWeight.ToString("F1");
+                    // Set time
+                    TimeEntry.Text = $"{_roastToEdit.RoastMinutes:D2}:{_roastToEdit.RoastSeconds:D2}";
+                    TimeDisplayLabel.Text = $"{_roastToEdit.RoastMinutes:D2}:{_roastToEdit.RoastSeconds:D2}";
 
-                // Set temperature
-                TemperatureEntry.Text = _roastToEdit.Temperature.ToString("F0");
+                    // Set weights
+                    BatchWeightEntry.Text = _roastToEdit.BatchWeight.ToString("F1");
+                    FinalWeightEntry.Text = _roastToEdit.FinalWeight.ToString("F1");
 
-                // Set notes
-                NotesEditor.Text = _roastToEdit.Notes;
+                    // Set temperature
+                    TemperatureEntry.Text = _roastToEdit.Temperature.ToString("F0");
 
-                // Calculate and update loss percentage and roast summary
-                double lossPercentage = _roastToEdit.WeightLossPercentage;
-                string roastLevel = GetRoastLevel(lossPercentage);
-                LossPercentLabel.Text = $"Weight loss {lossPercentage:F1}% ({roastLevel} roast)";
+                    // Set notes
+                    NotesEditor.Text = _roastToEdit.Notes;
 
-                // Now select the correct bean in the picker
-                await SelectBeanInPicker(_roastToEdit.BeanType);
+                    // Calculate and update loss percentage and roast summary
+                    double lossPercentage = _roastToEdit.WeightLossPercentage;
+                    string roastLevel = GetRoastLevel(lossPercentage);
+                    LossPercentLabel.Text = $"Weight loss {lossPercentage:F1}% ({roastLevel} roast)";
+
+                    // Now select the correct bean in the picker - make sure we have the bean type
+                    string beanTypeToSelect = _roastToEdit.BeanType;
+                    System.Diagnostics.Debug.WriteLine($"Now attempting to select bean: '{beanTypeToSelect}'");
+                    if (!string.IsNullOrEmpty(beanTypeToSelect))
+                    {
+                        await SelectBeanInPicker(beanTypeToSelect);
+                    }
+                    else
+                    {
+                        System.Diagnostics.Debug.WriteLine("Bean type from roast data is empty!");
+                    }
+                }
+                catch (Exception ex)
+                {
+                    System.Diagnostics.Debug.WriteLine($"Error in LoadRoastDataForEdit UI update: {ex.Message}");
+                    System.Diagnostics.Debug.WriteLine($"Stack trace: {ex.StackTrace}");
+                }
             });
         }
         catch (Exception ex)
         {
             System.Diagnostics.Debug.WriteLine($"Error loading roast data for edit: {ex.Message}");
+            System.Diagnostics.Debug.WriteLine($"Stack trace: {ex.StackTrace}");
             await DisplayAlert("Error", "Failed to load roast data for editing", "OK");
         }
     }
@@ -1116,11 +1220,18 @@ public partial class RoastPage : ContentPage
             }
 
             System.Diagnostics.Debug.WriteLine($"Trying to select bean: '{beanType}' in picker with {BeanPicker.Items.Count} items");
+            System.Diagnostics.Debug.WriteLine($"Available beans count: {availableBeans.Count}");
 
             // Debug: Print all available items in picker for comparison
             for (int i = 0; i < BeanPicker.Items.Count; i++)
             {
                 System.Diagnostics.Debug.WriteLine($"BeanPicker Item {i}: '{BeanPicker.Items[i]}'");
+            }
+
+            // Debug: Print all available beans objects 
+            for (int i = 0; i < availableBeans.Count; i++)
+            {
+                System.Diagnostics.Debug.WriteLine($"AvailableBeans Item {i}: '{availableBeans[i].DisplayName}' (ID: {availableBeans[i].Id})");
             }
 
             // Disable the BeanPicker_SelectedIndexChanged event temporarily to avoid side effects
@@ -1196,6 +1307,7 @@ public partial class RoastPage : ContentPage
         catch (Exception ex)
         {
             System.Diagnostics.Debug.WriteLine($"Error selecting bean in picker: {ex.Message}");
+            System.Diagnostics.Debug.WriteLine($"Stack trace: {ex.StackTrace}");
             // Use Task.Delay as another await point to satisfy the compiler warning
             await Task.Delay(1);
         }
