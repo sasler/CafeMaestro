@@ -1318,4 +1318,13 @@ public partial class RoastPage : ContentPage
             await Task.Delay(1);
         }
     }
+
+    // Cancel button handler: navigate based on edit mode
+    private async void CancelButton_Clicked(object sender, EventArgs e)
+    {
+        if (_isEditMode)
+            await Shell.Current.GoToAsync("//RoastLogPage");
+        else
+            await Shell.Current.GoToAsync("//MainPage");
+    }
 }

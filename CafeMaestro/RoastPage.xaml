@@ -31,32 +31,39 @@
                        VerticalOptions="Center"
                        TextColor="{DynamicResource PrimaryColor}"
                        Margin="16,0,0,0"/>
-
-                <!-- Action button in the top right -->
-                <ImageButton Grid.Column="2"
-                             x:Name="SaveRoastButton"
-                             Source="save_icon.png"
-                             Clicked="SaveRoast_Clicked"
-                             BackgroundColor="{DynamicResource PrimaryColor}"
-                             WidthRequest="50"
-                             HeightRequest="50"
-                             Padding="10"
-                             CornerRadius="25"
-                             VerticalOptions="Center">
-                    <VisualStateManager.VisualStateGroups>
-                        <VisualStateGroup Name="CommonStates">
-                            <VisualState Name="Normal"/>
-                            <VisualState Name="Pressed">
-                                <VisualState.Setters>
-                                    <Setter Property="Scale"
-                                            Value="0.9"/>
-                                    <Setter Property="Opacity"
-                                            Value="0.8"/>
-                                </VisualState.Setters>
-                            </VisualState>
-                        </VisualStateGroup>
-                    </VisualStateManager.VisualStateGroups>
-                </ImageButton>
+                <!-- Action buttons -->
+                <HorizontalStackLayout Grid.Column="2"
+                                       Spacing="10"
+                                       VerticalOptions="Center">
+                    <ImageButton x:Name="CancelButton"
+                                 Source="cancel_icon.png"
+                                 Clicked="CancelButton_Clicked"
+                                 BackgroundColor="{DynamicResource SwipeDeleteColor}"
+                                 WidthRequest="50"
+                                 HeightRequest="50"
+                                 Padding="10"
+                                 CornerRadius="25"/>
+                    <ImageButton x:Name="SaveRoastButton"
+                                 Source="save_icon.png"
+                                 Clicked="SaveRoast_Clicked"
+                                 BackgroundColor="{DynamicResource PrimaryColor}"
+                                 WidthRequest="50"
+                                 HeightRequest="50"
+                                 Padding="10"
+                                 CornerRadius="25">
+                        <VisualStateManager.VisualStateGroups>
+                            <VisualStateGroup Name="CommonStates">
+                                <VisualState Name="Normal"/>
+                                <VisualState Name="Pressed">
+                                    <VisualState.Setters>
+                                        <Setter Property="Scale" Value="0.9"/>
+                                        <Setter Property="Opacity" Value="0.8"/>
+                                    </VisualState.Setters>
+                                </VisualState>
+                            </VisualStateGroup>
+                        </VisualStateManager.VisualStateGroups>
+                    </ImageButton>
+                </HorizontalStackLayout>
             </Grid>
 
             <!-- Main Content Area -->
