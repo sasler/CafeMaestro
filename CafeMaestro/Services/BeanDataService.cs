@@ -371,6 +371,55 @@ namespace CafeMaestro.Services
             }
         }
 
+        public async Task<List<BeanData>> GetSortedAvailableBeansAsync()
+        {
+            try
+            {
+                System.Diagnostics.Debug.WriteLine("Getting sorted available beans (RemainingQuantity > 0)...");
+                
+                // First verify current path matches what we expect
+                if (_currentDataFilePath != _appDataService.DataFilePath)
+                {
+                    System.Diagnostics.Debug.WriteLine($"Path mismatch detected in BeanService.GetSortedAvailableBeansAsync. Expected: {_currentDataFilePath}, Actual: {_appDataService.DataFilePath}");
+                    // Synchronize the path
+                    _currentDataFilePath = _appDataService.DataFilePath;
+                }
+                
+                // Load app data directly from file to ensure freshness
+                var appData = await _appDataService.LoadAppDataAsync();
+                
+                // Check if beans collection is null or empty
+                if (appData.Beans == null || appData.Beans.Count == 0)
+                {
+                    System.Diagnostics.Debug.WriteLine("No beans found in app data");
+                    return new List<BeanData>();
+                }
+                
+                // Filter beans with remaining quantity > 0 and sort by purchase date (newest first) and then by display name
+                var sortedBeans = appData.Beans
+                    .Where(b => b.RemainingQuantity > 0)
+                    .OrderByDescending(b => b.PurchaseDate)
+                    .ThenBy(b => b.DisplayName)
+                    .ToList();
+                
+                System.Diagnostics.Debug.WriteLine($"Found {sortedBeans.Count} available beans out of {appData.Beans.Count} total beans");
+                
+                // Log details of available beans for debugging
+                foreach (var bean in sortedBeans)
+                {
+                    System.Diagnostics.Debug.WriteLine($"  Sorted bean: ID={bean.Id}, Name={bean.DisplayName}, Remaining={bean.RemainingQuantity}kg, Date={bean.PurchaseDate.ToShortDateString()}");
+                }
+                
+                return sortedBeans;
+            }
+            catch (Exception ex)
+            {
+                System.Diagnostics.Debug.WriteLine($"Error getting sorted available beans: {ex.Message}");
+                System.Diagnostics.Debug.WriteLine($"Stack trace: {ex.StackTrace}");
+                return new List<BeanData>();
+            }
+        }
+
         // Make this method static since it doesn't access instance data
         public static async Task<List<string>> GetCsvHeadersAsync(string filePath)
         {

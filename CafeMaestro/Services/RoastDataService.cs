@@ -985,5 +985,42 @@ namespace CafeMaestro.Services
                 return false;
             }
         }
+
+        // Get the most recent roast for a specific bean type
+        public async Task<RoastData?> GetLastRoastForBeanTypeAsync(string beanType)
+        {
+            try
+            {
+                if (string.IsNullOrEmpty(beanType))
+                    return null;
+                
+                System.Diagnostics.Debug.WriteLine($"Looking for the most recent roast of bean type: {beanType}");
+                
+                // Load all roast logs
+                var allRoasts = await GetAllRoastsAsync();
+                
+                // Find the most recent roast with the matching bean type
+                var lastRoast = allRoasts
+                    .Where(r => r.BeanType.Equals(beanType, StringComparison.OrdinalIgnoreCase))
+                    .OrderByDescending(r => r.RoastDate)
+                    .FirstOrDefault();
+                
+                if (lastRoast != null)
+                {
+                    System.Diagnostics.Debug.WriteLine($"Found previous roast from {lastRoast.RoastDate.ToShortDateString()}: {lastRoast.Summary}");
+                }
+                else
+                {
+                    System.Diagnostics.Debug.WriteLine($"No previous roasts found for bean type: {beanType}");
+                }
+                
+                return lastRoast;
+            }
+            catch (Exception ex)
+            {
+                System.Diagnostics.Debug.WriteLine($"Error finding previous roast: {ex.Message}");
+                return null;
+            }
+        }
     }
 }
