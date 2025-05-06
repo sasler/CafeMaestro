@@ -987,11 +987,22 @@ public partial class RoastPage : ContentPage
             // Disable the button to prevent multiple presses
             FirstCrackButton.IsEnabled = false;
             
+            // Log the first crack event
             System.Diagnostics.Debug.WriteLine($"First Crack marked at {firstCrackMinutes:D2}:{firstCrackSeconds:D2}");
         }
         catch (Exception ex)
         {
+            // Provide a more descriptive error message
             System.Diagnostics.Debug.WriteLine($"Error marking First Crack: {ex.Message}");
+            System.Diagnostics.Debug.WriteLine($"Stack trace: {ex.StackTrace}");
+            
+            // Ensure UI is reset if there's an error
+            ResetFirstCrackTracking();
+            
+            // Display an error message to the user
+            MainThread.BeginInvokeOnMainThread(async () => {
+                await DisplayAlert("Error", "Failed to mark First Crack. Please try again.", "OK");
+            });
         }
     }
     
