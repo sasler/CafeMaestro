@@ -177,6 +177,9 @@ public partial class RoastPage : ContentPage
         // Attach event handlers for weight entry text changes
         BatchWeightEntry.TextChanged += OnWeightEntryTextChanged;
         FinalWeightEntry.TextChanged += OnWeightEntryTextChanged;
+        
+        // Attach event handler for batch weight validation
+        BatchWeightEntry.TextChanged += BatchWeightEntry_TextChanged;
 
         // Handle bean selection changes
         BeanPicker.SelectedIndexChanged += BeanPicker_SelectedIndexChanged;
@@ -281,6 +284,9 @@ public partial class RoastPage : ContentPage
 
         // Refresh beans when returning to this page
         await LoadAvailableBeans();
+        
+        // Run validation on the batch weight (if any)
+        ValidateBatchWeight();
     }
 
     // Method to determine if navigation is from tab bar
@@ -397,6 +403,9 @@ public partial class RoastPage : ContentPage
             if (selectedBean != null)
             {
                 await LoadPreviousRoastData(selectedBean.DisplayName);
+                
+                // Validate the batch weight against the newly selected bean's remaining quantity
+                ValidateBatchWeight();
             }
         }
         else
@@ -405,6 +414,9 @@ public partial class RoastPage : ContentPage
             // Clear previous roast data when no bean is selected
             _previousRoast = null;
             UpdatePreviousRoastDisplay();
+            
+            // Hide any validation warnings when no bean is selected
+            BatchWeightWarningLabel.IsVisible = false;
         }
     }
 
@@ -471,6 +483,63 @@ public partial class RoastPage : ContentPage
                 PreviousRoastDetailsLabel.Text = "";
             }
         });
+    }
+    
+    // New method to handle batch weight validation
+    private void BatchWeightEntry_TextChanged(object sender, TextChangedEventArgs e)
+    {
+        ValidateBatchWeight();
+    }
+    
+    // Method to validate batch weight against available bean quantity
+    private void ValidateBatchWeight()
+    {
+        try
+        {
+            // Skip validation if no bean is selected or no weight entered
+            if (selectedBean == null || string.IsNullOrWhiteSpace(BatchWeightEntry.Text))
+            {
+                // Hide warning and ensure timer start button is enabled
+                BatchWeightWarningLabel.IsVisible = false;
+                StartTimerButton.IsEnabled = true;
+                return;
+            }
+            
+            // Parse batch weight and validate against remaining quantity
+            if (double.TryParse(BatchWeightEntry.Text, out double batchWeight) && batchWeight > 0)
+            {
+                // Calculate available beans in grams (convert kg to g)
+                double availableBeans = selectedBean.RemainingQuantity * 1000.0;
+                
+                // Check if batch weight exceeds available quantity
+                if (batchWeight > availableBeans)
+                {
+                    // Show warning and disable timer start button
+                    BatchWeightWarningLabel.Text = $"Insufficient beans available! (only {availableBeans:F1}g remaining)";
+                    BatchWeightWarningLabel.IsVisible = true;
+                    StartTimerButton.IsEnabled = false;
+                    
+                    System.Diagnostics.Debug.WriteLine($"Batch weight validation failed: {batchWeight}g exceeds available {availableBeans}g");
+                }
+                else
+                {
+                    // Clear warning and enable timer start button
+                    BatchWeightWarningLabel.IsVisible = false;
+                    StartTimerButton.IsEnabled = true;
+                    
+                    System.Diagnostics.Debug.WriteLine($"Batch weight validation passed: {batchWeight}g <= {availableBeans}g available");
+                }
+            }
+            else
+            {
+                // Invalid or zero weight - clear warning but don't enable timer button
+                BatchWeightWarningLabel.IsVisible = false;
+            }
+        }
+        catch (Exception ex)
+        {
+            System.Diagnostics.Debug.WriteLine($"Error in batch weight validation: {ex.Message}");
+        }
     }
 
     private async void ManageBeans_Clicked(object sender, EventArgs e)
