@@ -26,7 +26,7 @@
                                                      BackgroundColor="{DynamicResource SwipeDeleteColor}"
                                                      WidthRequest="50"
                                                      HeightRequest="50"
-                                                     Padding="10"
+                                                     Padding="5"
                                                      CornerRadius="25"/>
                                         <ImageButton x:Name="SaveButton"
                                                      Source="save_icon.png"
@@ -34,7 +34,7 @@
                                                      BackgroundColor="{DynamicResource PrimaryColor}"
                                                      WidthRequest="50"
                                                      HeightRequest="50"
-                                                     Padding="10"
+                                                     Padding="5"
                                                      CornerRadius="25"/>
                                 </HorizontalStackLayout>
                         </Grid>

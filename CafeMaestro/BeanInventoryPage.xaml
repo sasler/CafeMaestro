@@ -40,7 +40,7 @@
                              BackgroundColor="{DynamicResource PrimaryColor}"
                              WidthRequest="50"
                              HeightRequest="50"
-                             Padding="10"
+                             Padding="5"
                              CornerRadius="25"/>
 
                 <ImageButton x:Name="ImportButton"
@@ -49,7 +49,7 @@
                              BackgroundColor="{DynamicResource TertiaryColor}"
                              WidthRequest="50"
                              HeightRequest="50"
-                             Padding="10"
+                             Padding="5"
                              CornerRadius="25"/>
 
                 <Border BackgroundColor="{DynamicResource PrimaryColor}"

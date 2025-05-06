@@ -62,6 +62,18 @@
         <MauiImage Update="Resources\Images\timer_pause_icon.svg" BaseSize="60,60" />
         <MauiImage Update="Resources\Images\timer_stop_icon.svg" BaseSize="60,60" />
         <MauiImage Update="Resources\Images\timer_reset_icon.svg" BaseSize="60,60" />
+
+		<!-- Common icons -->
+		<MauiImage Update="Resources\Images\add_icon.svg" BaseSize="60,60" />
+		<MauiImage Update="Resources\Images\cancel_icon.svg" BaseSize="60,60" />
+		<MauiImage Update="Resources\Images\delete_icon.svg" BaseSize="60,60" />
+		<MauiImage Update="Resources\Images\edit_icon.svg" BaseSize="60,60" />
+		<MauiImage Update="Resources\Images\export_icon.svg" BaseSize="60,60" />
+		<MauiImage Update="Resources\Images\import_icon.svg" BaseSize="60,60" />
+		<MauiImage Update="Resources\Images\load_icon.svg" BaseSize="60,60" />
+		<MauiImage Update="Resources\Images\new_icon.svg" BaseSize="60,60" />
+		<MauiImage Update="Resources\Images\ok_icon.svg" BaseSize="60,60" />
+		<MauiImage Update="Resources\Images\save_icon.svg" BaseSize="60,60" />
         
         <!-- Navigation Menu Icons -->
         <MauiImage Update="Resources\Images\home_icon.svg" BaseSize="150,150" />
