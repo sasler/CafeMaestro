@@ -720,11 +720,8 @@ public partial class RoastPage : ContentPage
         // Disable manual editing while timer is running
         TimeEntry.IsEnabled = false;
         
-        // Enable First Crack button when timer starts
-        if (!firstCrackSeconds.HasValue)
-        {
-            FirstCrackButton.IsEnabled = true;
-        }
+        // Update First Crack button state based on timer running
+        UpdateFirstCrackButtonState(true);
 
         // Show and animate the timer running indicator
         TimerRunningIndicator.IsVisible = true;
@@ -740,11 +737,8 @@ public partial class RoastPage : ContentPage
         // Re-enable manual editing when timer is paused
         TimeEntry.IsEnabled = true;
         
-        // Disable First Crack button when timer is paused
-        if (!firstCrackSeconds.HasValue)
-        {
-            FirstCrackButton.IsEnabled = false;
-        }
+        // Update First Crack button state when timer is paused
+        UpdateFirstCrackButtonState(false);
 
         // Stop the pulse animation when timer is paused
         StopTimerPulseAnimation();
@@ -762,11 +756,8 @@ public partial class RoastPage : ContentPage
         // Re-enable manual editing when timer is stopped
         TimeEntry.IsEnabled = true;
         
-        // Disable First Crack button when timer is stopped
-        if (!firstCrackSeconds.HasValue)
-        {
-            FirstCrackButton.IsEnabled = false;
-        }
+        // Update First Crack button state when timer is stopped
+        UpdateFirstCrackButtonState(false);
 
         // Stop the pulse animation when timer is stopped
         StopTimerPulseAnimation();
@@ -1014,12 +1005,21 @@ public partial class RoastPage : ContentPage
         FirstCrackLabel.Text = "First Crack: Not marked";
         FirstCrackButton.IsEnabled = false;
         
+        // Reset the button's background color to the application's accent color.
+        // This ensures the button visually aligns with the app's theme after being reset.
         if (Application.Current?.Resources != null &&
             Application.Current.Resources.TryGetValue("AccentColor", out var colorObj) &&
             colorObj is Microsoft.Maui.Graphics.Color color)
         {
             FirstCrackButton.BackgroundColor = color;
         }
+    }
+
+    // Helper method to update FirstCrackButton state based on timer and crack status
+    private void UpdateFirstCrackButtonState(bool isTimerRunning)
+    {
+        // Only enable the First Crack button when the timer is running and first crack hasn't been marked yet
+        FirstCrackButton.IsEnabled = isTimerRunning && !firstCrackSeconds.HasValue;
     }
 
     // Save button click handler - handles both new roasts and editing existing ones
