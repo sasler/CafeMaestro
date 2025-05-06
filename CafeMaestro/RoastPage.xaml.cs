@@ -3,6 +3,7 @@ using Microsoft.Maui.ApplicationModel;
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Text; // Add System.Text namespace for StringBuilder
 using System.Threading.Tasks;
 using CafeMaestro.Models;
 using CafeMaestro.Services;
@@ -95,6 +96,10 @@ public partial class RoastPage : ContentPage
     // Store the selected bean for roasting
     private BeanData? selectedBean = null;
     private List<BeanData> availableBeans = new List<BeanData>();
+    
+    // Previous roast tracking
+    private RoastData? _previousRoast = null;
+    public bool HasPreviousRoast => _previousRoast != null;
 
     private CancellationTokenSource? _animationCancellationTokenSource;
     private CancellationTokenSource? _cursorAnimationCancellationTokenSource;
@@ -330,11 +335,13 @@ public partial class RoastPage : ContentPage
             // Use MainThread to ensure UI updates happen on the UI thread
             await MainThread.InvokeOnMainThreadAsync(async () =>
             {
-                // Get available beans from service
-                availableBeans = await beanService.GetAvailableBeansAsync();
+                // Get available beans from service - use the sorted version which:
+                // 1. Filters out beans with RemainingQuantity <= 0 
+                // 2. Orders by purchase date (newest first) then by display name
+                availableBeans = await beanService.GetSortedAvailableBeansAsync();
 
                 // Log the count for debugging
-                System.Diagnostics.Debug.WriteLine($"Loaded {availableBeans.Count} available beans");
+                System.Diagnostics.Debug.WriteLine($"Loaded {availableBeans.Count} sorted available beans");
 
                 if (availableBeans.Count > 0)
                 {
@@ -380,16 +387,90 @@ public partial class RoastPage : ContentPage
         }
     }
 
-    private void BeanPicker_SelectedIndexChanged(object? sender, EventArgs e)
+    private async void BeanPicker_SelectedIndexChanged(object? sender, EventArgs e)
     {
         if (BeanPicker.SelectedIndex >= 0 && BeanPicker.SelectedIndex < availableBeans.Count)
         {
             selectedBean = availableBeans[BeanPicker.SelectedIndex];
+            
+            // Look up previous roast of this bean type
+            if (selectedBean != null)
+            {
+                await LoadPreviousRoastData(selectedBean.DisplayName);
+            }
         }
         else
         {
             selectedBean = null;
+            // Clear previous roast data when no bean is selected
+            _previousRoast = null;
+            UpdatePreviousRoastDisplay();
         }
+    }
+
+    // Method to load previous roast data
+    private async Task LoadPreviousRoastData(string beanType)
+    {
+        try
+        {
+            _previousRoast = await roastDataService.GetLastRoastForBeanTypeAsync(beanType);
+            
+            // Update the UI to show/hide previous roast info
+            UpdatePreviousRoastDisplay();
+            
+            if (_previousRoast != null)
+            {
+                System.Diagnostics.Debug.WriteLine($"Loaded previous roast: {_previousRoast.Summary}");
+            }
+        }
+        catch (Exception ex)
+        {
+            System.Diagnostics.Debug.WriteLine($"Error loading previous roast: {ex.Message}");
+            _previousRoast = null;
+            // Update UI to hide previous roast section
+            UpdatePreviousRoastDisplay();
+        }
+    }
+    
+    // Method to update the previous roast display
+    private void UpdatePreviousRoastDisplay()
+    {
+        MainThread.BeginInvokeOnMainThread(() => {
+            // Only show previous roast section if we have data
+            PreviousRoastInfoSection.IsVisible = HasPreviousRoast;
+            
+            if (HasPreviousRoast && _previousRoast != null)
+            {
+                // Format date to a user-friendly format
+                string dateText = _previousRoast.RoastDate.ToString("MM/dd/yyyy");
+                
+                // First line: Date and summary
+                PreviousRoastSummaryLabel.Text = $"{dateText}: {_previousRoast.RoastLevelName} roast";
+                
+                // Second line: Details
+                StringBuilder details = new StringBuilder();
+                details.Append($"Batch: {_previousRoast.BatchWeight:F1}g | ");
+                details.Append($"Temp: {_previousRoast.Temperature}°C | ");
+                details.Append($"Time: {_previousRoast.FormattedTime} | ");
+                details.Append($"Loss: {_previousRoast.WeightLossPercentage:F1}%");
+                
+                // Add first crack info if available
+                if (_previousRoast.FirstCrackSeconds.HasValue)
+                {
+                    details.Append($" | First Crack: {_previousRoast.FirstCrackTime}");
+                }
+                
+                PreviousRoastDetailsLabel.Text = details.ToString();
+                
+                // If we need to prefill form fields, do it here - will be handled separately
+                PrefillFieldsFromPreviousRoast();
+            }
+            else
+            {
+                PreviousRoastSummaryLabel.Text = "";
+                PreviousRoastDetailsLabel.Text = "";
+            }
+        });
     }
 
     private async void ManageBeans_Clicked(object sender, EventArgs e)
@@ -1435,5 +1516,31 @@ public partial class RoastPage : ContentPage
             await Shell.Current.GoToAsync("//RoastLogPage");
         else
             await Shell.Current.GoToAsync("//MainPage");
+    }
+
+    // Method to prefill form fields from the previous roast data
+    private void PrefillFieldsFromPreviousRoast()
+    {
+        try
+        {
+            // Only prefill if we're not in edit mode and we have previous roast data
+            if (!_isEditMode && _previousRoast != null)
+            {
+                System.Diagnostics.Debug.WriteLine($"Previous roast data: ID={_previousRoast.Id}, BatchWeight={_previousRoast.BatchWeight}, Temp={_previousRoast.Temperature}");
+
+                // Always prefill temperature field - bean selection happens first in workflow
+                TemperatureEntry.Text = _previousRoast.Temperature.ToString("F0");
+                System.Diagnostics.Debug.WriteLine($"Prefilled temperature: {TemperatureEntry.Text}");
+                
+                // Always prefill batch weight field - bean selection happens first in workflow
+                var batchWeightValue = _previousRoast.BatchWeight;
+                BatchWeightEntry.Text = batchWeightValue.ToString("F1");
+                System.Diagnostics.Debug.WriteLine($"Prefilled batch weight: {BatchWeightEntry.Text} (from value: {batchWeightValue})");
+            }
+        }
+        catch (Exception ex)
+        {
+            System.Diagnostics.Debug.WriteLine($"Error prefilling fields: {ex.Message}");
+        }
     }
 }
