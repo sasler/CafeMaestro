@@ -157,6 +157,18 @@
                                         <Label Text="{Binding FormattedTime, StringFormat='Time: {0}'}"
                                                FontSize="14"
                                                TextColor="{AppThemeBinding Light=#808080, Dark=#AAAAAA}"/>
+                                        <!-- First Crack information (using FirstCrackTime as both visibility check and display) -->
+                                        <Label Text="{Binding FirstCrackTime, StringFormat='First Crack: {0}'}"
+                                               FontSize="14"
+                                               TextColor="{AppThemeBinding Light=#808080, Dark=#AAAAAA}">
+                                            <Label.Triggers>
+                                                <DataTrigger TargetType="Label"
+                                                             Binding="{Binding FirstCrackTime}"
+                                                             Value="Not marked">
+                                                    <Setter Property="IsVisible" Value="False" />
+                                                </DataTrigger>
+                                            </Label.Triggers>
+                                        </Label>
                                     </HorizontalStackLayout>
                                 </Grid>
                             </Border>
