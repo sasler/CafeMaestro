@@ -340,8 +340,16 @@
                            Placeholder="Enter batch weight"
                            TextColor="{DynamicResource PrimaryTextColor}"
                            BackgroundColor="{DynamicResource EntryBackgroundColor}"
-                           PlaceholderColor="{DynamicResource PlaceholderColor}"/>
+                           PlaceholderColor="{DynamicResource PlaceholderColor}"
+                           TextChanged="BatchWeightEntry_TextChanged"/>
                 </Border>
+                
+                <!-- Warning label for batch weight validation -->
+                <Label x:Name="BatchWeightWarningLabel" 
+                       IsVisible="false"
+                       Text="Insufficient beans available!" 
+                       TextColor="{StaticResource SwipeDeleteColor}" 
+                       FontAttributes="Bold"/>
 
                 <!-- Final Weight Entry -->
                 <Label Text="Final Weight (g):"
