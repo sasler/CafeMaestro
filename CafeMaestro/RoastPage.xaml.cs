@@ -486,7 +486,7 @@ public partial class RoastPage : ContentPage
     }
     
     // New method to handle batch weight validation
-    private void BatchWeightEntry_TextChanged(object sender, TextChangedEventArgs e)
+    private void BatchWeightEntry_TextChanged(object? sender, TextChangedEventArgs e)
     {
         ValidateBatchWeight();
     }
@@ -515,7 +515,7 @@ public partial class RoastPage : ContentPage
                 if (batchWeight > availableBeans)
                 {
                     // Show warning and disable timer start button
-                    BatchWeightWarningLabel.Text = $"Insufficient beans available! (only {availableBeans:F1}g remaining)";
+                    BatchWeightWarningLabel.Text = $"Insufficient beans available! (only {availableBeans:F1} g remaining)";
                     BatchWeightWarningLabel.IsVisible = true;
                     StartTimerButton.IsEnabled = false;
                     
