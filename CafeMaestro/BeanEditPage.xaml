@@ -75,7 +75,13 @@
                                Keyboard="Numeric"
                                Placeholder="Enter quantity in kg"/>
 
-                        <Label Text="Price ($):"/>
+                        <!-- Add new field for Remaining Quantity -->
+                        <Label Text="Remaining Quantity (kg):"/>
+                        <Entry x:Name="RemainingQuantityEntry"
+                               Keyboard="Numeric"
+                               Placeholder="Enter remaining quantity in kg"/>
+
+                        <Label Text="Price:"/>
                         <Entry x:Name="PriceEntry"
                                Keyboard="Numeric"
                                Placeholder="Enter price"/>

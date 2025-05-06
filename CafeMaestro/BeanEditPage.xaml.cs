@@ -102,6 +102,7 @@ public partial class BeanEditPage : ContentPage
             
             PurchaseDatePicker.Date = _bean.PurchaseDate;
             QuantityEntry.Text = _bean.Quantity.ToString("F2");
+            RemainingQuantityEntry.Text = _bean.RemainingQuantity.ToString("F2");
             PriceEntry.Text = _bean.Price?.ToString("F2") ?? string.Empty;
             LinkEntry.Text = _bean.Link;
             NotesEditor.Text = _bean.Notes;
@@ -200,26 +201,32 @@ public partial class BeanEditPage : ContentPage
             return false;
         }
         
-        // Update remaining quantity if this is a new bean
-        if (_bean.Id == Guid.Empty || _bean.RemainingQuantity == 0)
+        // Set the parsed quantity
+        // Note: The assignment of _bean.Quantity is placed before validating the remaining quantity.
+        // This ordering is intentional as the validation logic uses the local variable 'quantity'
+        // and does not depend on the original value of _bean.Quantity.
+        _bean.Quantity = quantity;
+        
+        // Validate remaining quantity
+        if (string.IsNullOrWhiteSpace(RemainingQuantityEntry.Text) || 
+            !double.TryParse(RemainingQuantityEntry.Text, out double remainingQuantity) || 
+            remainingQuantity < 0)
         {
-            _bean.RemainingQuantity = quantity;
-        }
-        else if (quantity < _bean.Quantity)
-        {
-            // If reducing total quantity, reduce remaining proportionally
-            double ratio = quantity / _bean.Quantity;
-            _bean.RemainingQuantity = Math.Min(_bean.RemainingQuantity, quantity) * ratio;
-        }
-        else if (quantity > _bean.Quantity)
-        {
-            // If increasing total quantity, increase remaining by the difference
-            double increase = quantity - _bean.Quantity;
-            _bean.RemainingQuantity += increase;
+            DisplayAlert("Validation Error", "Please enter a valid remaining quantity", "OK");
+            return false;
         }
         
-        // Set the parsed quantity
-        _bean.Quantity = quantity;
+        // Validate remaining quantity doesn't exceed total quantity
+        // Note: Unlike previous behavior, remaining quantity is now directly controlled by user input
+        // rather than being automatically adjusted based on changes to the total quantity.
+        if (remainingQuantity > quantity)
+        {
+            DisplayAlert("Validation Error", "Remaining quantity cannot exceed total quantity", "OK");
+            return false;
+        }
+        
+        // Set the parsed remaining quantity
+        _bean.RemainingQuantity = remainingQuantity;
         
         // Validate price (optional)
         if (!string.IsNullOrWhiteSpace(PriceEntry.Text))
