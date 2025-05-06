@@ -202,6 +202,9 @@ public partial class BeanEditPage : ContentPage
         }
         
         // Set the parsed quantity
+        // Note: The assignment of _bean.Quantity is placed before validating the remaining quantity.
+        // This ordering is intentional as the validation logic uses the local variable 'quantity'
+        // and does not depend on the original value of _bean.Quantity.
         _bean.Quantity = quantity;
         
         // Validate remaining quantity
@@ -214,6 +217,8 @@ public partial class BeanEditPage : ContentPage
         }
         
         // Validate remaining quantity doesn't exceed total quantity
+        // Note: Unlike previous behavior, remaining quantity is now directly controlled by user input
+        // rather than being automatically adjusted based on changes to the total quantity.
         if (remainingQuantity > quantity)
         {
             DisplayAlert("Validation Error", "Remaining quantity cannot exceed total quantity", "OK");
