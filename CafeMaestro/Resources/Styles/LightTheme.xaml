@@ -8,6 +8,7 @@
     <Color x:Key="SecondaryColor">#26A69A</Color> <!-- Teal -->
     <Color x:Key="TertiaryColor">#7986CB</Color> <!-- Indigo -->
     <Color x:Key="NeutralColor">#F0F0F0</Color>
+    <Color x:Key="AccentColor">#FF5722</Color> <!-- Deep orange -->
     
     <!-- Text colors -->
     <Color x:Key="PrimaryTextColor">#202020</Color>

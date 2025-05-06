@@ -239,7 +239,45 @@
                                 </VisualStateGroup>
                             </VisualStateManager.VisualStateGroups>
                         </ImageButton>
+                        <!-- New First Crack button with matching style -->
+                        <ImageButton x:Name="FirstCrackButton"
+                                     Source="first_crack_icon.png"
+                                     Clicked="FirstCrackButton_Clicked"
+                                     BackgroundColor="{DynamicResource AccentColor}"
+                                     WidthRequest="50"
+                                     HeightRequest="50"
+                                     Padding="5"
+                                     CornerRadius="25"
+                                     IsEnabled="False">
+                            <VisualStateManager.VisualStateGroups>
+                                <VisualStateGroup Name="CommonStates">
+                                    <VisualState Name="Normal"/>
+                                    <VisualState Name="Pressed">
+                                        <VisualState.Setters>
+                                            <Setter Property="Scale"
+                                                    Value="0.9"/>
+                                            <Setter Property="Opacity"
+                                                    Value="0.8"/>
+                                        </VisualState.Setters>
+                                    </VisualState>
+                                    <VisualState Name="Disabled">
+                                        <VisualState.Setters>
+                                            <Setter Property="Opacity"
+                                                    Value="0.5"/>
+                                        </VisualState.Setters>
+                                    </VisualState>
+                                </VisualStateGroup>
+                            </VisualStateManager.VisualStateGroups>
+                        </ImageButton>
                     </HorizontalStackLayout>
+
+                    <!-- First Crack info label -->
+                    <Label x:Name="FirstCrackLabel"
+                           Text="First Crack: Not marked"
+                           FontSize="16"
+                           HorizontalOptions="Center"
+                           TextColor="{DynamicResource AccentColor}"
+                           Margin="0,10,0,0"/>
                 </VerticalStackLayout>
 
                 <!-- Coffee Bean Selection -->

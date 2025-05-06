@@ -23,6 +23,10 @@ public partial class RoastPage : ContentPage
     private RoastLevelService roastLevelService;
     private bool isTimerUpdating = false; // Flag to prevent recursive updates
     private string temporaryDigitsBuffer = ""; // Store digits before formatting
+    
+    // First Crack tracking
+    private int? firstCrackMinutes = null;
+    private int? firstCrackSeconds = null;
 
     // Property for edit mode
     private Guid _editRoastId = Guid.Empty;
@@ -243,6 +247,9 @@ public partial class RoastPage : ContentPage
             System.Diagnostics.Debug.WriteLine("RoastPage appearing - resetting form for new roast");
             ResetPageForNewRoast();
             ClearForm(); // Make sure we call ClearForm explicitly
+            
+            // Reset First Crack tracking
+            ResetFirstCrackTracking();
         }
         else if (isFromTabBar && currentEditId != Guid.Empty)
         {
@@ -255,6 +262,9 @@ public partial class RoastPage : ContentPage
             System.Diagnostics.Debug.WriteLine("RoastPage appearing without edit mode - forcing form reset");
             ResetPageForNewRoast();
             ClearForm(); // Make sure we call ClearForm explicitly
+            
+            // Reset First Crack tracking
+            ResetFirstCrackTracking();
         }
         else
         {
@@ -304,6 +314,9 @@ public partial class RoastPage : ContentPage
 
         // Clear form fields
         ClearForm();
+        
+        // Reset First Crack tracking
+        ResetFirstCrackTracking();
     }
 
     private async Task LoadAvailableBeans()
@@ -706,6 +719,9 @@ public partial class RoastPage : ContentPage
 
         // Disable manual editing while timer is running
         TimeEntry.IsEnabled = false;
+        
+        // Update First Crack button state based on timer running
+        UpdateFirstCrackButtonState(true);
 
         // Show and animate the timer running indicator
         TimerRunningIndicator.IsVisible = true;
@@ -720,6 +736,9 @@ public partial class RoastPage : ContentPage
 
         // Re-enable manual editing when timer is paused
         TimeEntry.IsEnabled = true;
+        
+        // Update First Crack button state when timer is paused
+        UpdateFirstCrackButtonState(false);
 
         // Stop the pulse animation when timer is paused
         StopTimerPulseAnimation();
@@ -736,6 +755,9 @@ public partial class RoastPage : ContentPage
 
         // Re-enable manual editing when timer is stopped
         TimeEntry.IsEnabled = true;
+        
+        // Update First Crack button state when timer is stopped
+        UpdateFirstCrackButtonState(false);
 
         // Stop the pulse animation when timer is stopped
         StopTimerPulseAnimation();
@@ -756,6 +778,9 @@ public partial class RoastPage : ContentPage
 
         // Re-enable manual editing when timer is reset
         TimeEntry.IsEnabled = true;
+        
+        // Reset First Crack tracking when timer is reset
+        ResetFirstCrackTracking();
 
         // Stop the pulse animation when timer is reset
         StopTimerPulseAnimation();
@@ -944,6 +969,70 @@ public partial class RoastPage : ContentPage
         }
     }
 
+    // Add this method to handle the First Crack button click
+    private void FirstCrackButton_Clicked(object sender, EventArgs e)
+    {
+        try
+        {
+            // Get current time from timer service
+            TimeSpan currentTime = timerService.GetElapsedTime();
+            
+            // Store first crack time
+            firstCrackMinutes = currentTime.Minutes;
+            firstCrackSeconds = currentTime.Seconds;
+            
+            // Update UI
+            FirstCrackLabel.Text = $"First Crack: {firstCrackMinutes:D2}:{firstCrackSeconds:D2}";
+            
+            // Disable the button to prevent multiple presses
+            FirstCrackButton.IsEnabled = false;
+            
+            // Log the first crack event
+            System.Diagnostics.Debug.WriteLine($"First Crack marked at {firstCrackMinutes:D2}:{firstCrackSeconds:D2}");
+        }
+        catch (Exception ex)
+        {
+            // Provide a more descriptive error message
+            System.Diagnostics.Debug.WriteLine($"Error marking First Crack: {ex.Message}");
+            System.Diagnostics.Debug.WriteLine($"Stack trace: {ex.StackTrace}");
+            
+            // Ensure UI is reset if there's an error
+            ResetFirstCrackTracking();
+            
+            // Display an error message to the user
+            MainThread.BeginInvokeOnMainThread(async () => {
+                await DisplayAlert("Error", "Failed to mark First Crack. Please try again.", "OK");
+            });
+        }
+    }
+    
+    // Method to reset First Crack tracking
+    private void ResetFirstCrackTracking()
+    {
+        firstCrackMinutes = null;
+        firstCrackSeconds = null;
+        
+        // Reset UI elements
+        FirstCrackLabel.Text = "First Crack: Not marked";
+        FirstCrackButton.IsEnabled = false;
+        
+        // Reset the button's background color to the application's accent color.
+        // This ensures the button visually aligns with the app's theme after being reset.
+        if (Application.Current?.Resources != null &&
+            Application.Current.Resources.TryGetValue("AccentColor", out var colorObj) &&
+            colorObj is Microsoft.Maui.Graphics.Color color)
+        {
+            FirstCrackButton.BackgroundColor = color;
+        }
+    }
+
+    // Helper method to update FirstCrackButton state based on timer and crack status
+    private void UpdateFirstCrackButtonState(bool isTimerRunning)
+    {
+        // Only enable the First Crack button when the timer is running and first crack hasn't been marked yet
+        FirstCrackButton.IsEnabled = isTimerRunning && !firstCrackSeconds.HasValue;
+    }
+
     // Save button click handler - handles both new roasts and editing existing ones
     private async void SaveRoast_Clicked(object sender, EventArgs e)
     {
@@ -975,7 +1064,9 @@ public partial class RoastPage : ContentPage
                     FinalWeight = finalWeight,
                     RoastMinutes = roastMinutes,
                     RoastSeconds = roastSeconds,
-                    Notes = NotesEditor.Text ?? _roastToEdit.Notes
+                    Notes = NotesEditor.Text ?? _roastToEdit.Notes,
+                    FirstCrackMinutes = firstCrackMinutes,
+                    FirstCrackSeconds = firstCrackSeconds
                     // RoastLevelName will be set in UpdateRoastLogAsync
                 };
                 
@@ -1007,7 +1098,9 @@ public partial class RoastPage : ContentPage
                     RoastMinutes = roastMinutes,
                     RoastSeconds = roastSeconds,
                     RoastDate = DateTime.Now,
-                    Notes = NotesEditor.Text ?? ""
+                    Notes = NotesEditor.Text ?? "",
+                    FirstCrackMinutes = firstCrackMinutes,
+                    FirstCrackSeconds = firstCrackSeconds
                     // RoastLevelName will be set in SaveRoastDataAsync
                 };
                 
@@ -1064,6 +1157,9 @@ public partial class RoastPage : ContentPage
 
         // Reset labels
         LossPercentLabel.Text = "";
+        
+        // Reset First Crack tracking
+        ResetFirstCrackTracking();
     }
 
     // Future enhancement: Method to export data to CSV
@@ -1179,6 +1275,21 @@ public partial class RoastPage : ContentPage
 
                     // Set notes
                     NotesEditor.Text = _roastToEdit.Notes;
+                    
+                    // Set First Crack data if it was marked
+                    if (_roastToEdit.FirstCrackSeconds.HasValue)
+                    {
+                        firstCrackMinutes = _roastToEdit.FirstCrackMinutes;
+                        firstCrackSeconds = _roastToEdit.FirstCrackSeconds;
+                        
+                        FirstCrackLabel.Text = $"First Crack: {firstCrackMinutes:D2}:{firstCrackSeconds:D2}";
+                        FirstCrackButton.IsEnabled = false;
+                        FirstCrackButton.BackgroundColor = Colors.Gray;
+                    }
+                    else
+                    {
+                        ResetFirstCrackTracking();
+                    }
 
                     // Calculate and update loss percentage and roast summary
                     double lossPercentage = _roastToEdit.WeightLossPercentage;

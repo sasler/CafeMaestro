@@ -7,8 +7,9 @@
     <Color x:Key="PrimaryColor">#42A5F5</Color> <!-- Bright blue -->
     <Color x:Key="SecondaryColor">#4DB6AC</Color> <!-- Light teal -->
     <Color x:Key="TertiaryColor">#9FA8DA</Color> <!-- Light indigo -->
-    <Color x:Key="NeutralColor">#2D2D2D</Color>
-    
+    <Color x:Key="NeutralColor">#2D2D2D</Color> <!-- Dark grey -->
+    <Color x:Key="AccentColor">#FFAC563B</Color> <!-- Bright orange -->
+
     <!-- Text colors -->
     <Color x:Key="PrimaryTextColor">White</Color>
     <Color x:Key="SecondaryTextColor">#e0e0e0</Color>
