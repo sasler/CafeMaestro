@@ -2,6 +2,8 @@
 
 A modern, cross-platform coffee roasting companion app built with .NET MAUI.
 
+**ROAST - BREW - SAVOR - REPEAT**
+
 ![CafeMaestro Logo](CafeMaestro/Resources/Images/cafemaestro_logo.svg)
 
 ## Overview
@@ -14,7 +16,10 @@ CafeMaestro is a comprehensive tool designed for coffee enthusiasts and professi
 - **Roast Timer**: Precision timer with digital display for accurate roast timing.
 - **Roast Logging**: Record all aspects of each roast including temperature, batch weight, final weight, and calculated weight loss.
 - **Roast Level Analysis**: Automatic classification of roast levels based on weight loss percentage.
-- **Data Import/Export**: Import and export bean and roast data for backup and analysis.
+- **Custom Roast Levels**: Define and customize your own roast levels based on weight loss percentages.
+- **Data Import/Export**: Import and export bean and roast data via CSV for backup and analysis.
+- **Theme Support**: Choose between light, dark, or system theme preferences.
+- **Custom Data Storage**: Select where your data file is stored or use the default location.
 - **Cross-Platform**: Built with .NET MAUI for compatibility with Android, iOS, macOS, and Windows.
 
 ## Getting Started
@@ -22,13 +27,15 @@ CafeMaestro is a comprehensive tool designed for coffee enthusiasts and professi
 ### Prerequisites
 
 - .NET 9.0 SDK or higher
-- Visual Studio 2022 or higher with the .NET MAUI workload installed
+- One of the following IDEs:
+  - Visual Studio 2022 or higher with the .NET MAUI workload installed
+  - Visual Studio Code with the .NET MAUI extension
 
 ### Installation
 
 1. Clone the repository:
    ```
-   git clone https://github.com/yourusername/CafeMaestro.git
+   git clone https://github.com/sasler/CafeMaestro.git
    ```
 
 2. Open the solution file (`CafeMaestro.sln`) in Visual Studio.
@@ -54,6 +61,7 @@ The Roast Coffee feature helps you:
 - Track batch and final weights
 - Automatically calculate weight loss percentage
 - Classify roast level based on weight loss
+- Record the time of first crack during roasting
 
 ### Reviewing Roast Logs
 

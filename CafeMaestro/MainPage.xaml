@@ -33,7 +33,7 @@
                                           FontAttributes="Bold"
                                           HorizontalOptions="Start"
                                           TextColor="{DynamicResource PrimaryColor}"/>
-                                   <Label Text="Your Coffee Roasting Companion"
+                                   <Label Text="ROAST - BREW - SAVOR - REPEAT"
                                           FontSize="14"
                                           HorizontalOptions="Start"
                                           TextColor="{DynamicResource SecondaryTextColor}"
