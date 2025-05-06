@@ -957,36 +957,31 @@ public partial class RoastPage : ContentPage
         {
             // Track whether this is a new roast or an update
             bool isUpdatingExisting = _isEditMode && _roastToEdit != null;
+            bool success = false;
 
             if (isUpdatingExisting)
             {
                 // Update existing roast data
                 System.Diagnostics.Debug.WriteLine($"Updating existing roast with ID: {_roastToEdit!.Id}");
 
-                // Load the current app data
-                var appData = await appDataService.LoadAppDataAsync();
-
-                // Find the roast to update
-                var roastToUpdate = appData.RoastLogs?.FirstOrDefault(r => r.Id == _roastToEdit.Id);
-
-                if (roastToUpdate == null)
+                // Create an updated roast object (keeping the original ID and date)
+                var updatedRoast = new RoastData
                 {
-                    await DisplayAlert("Error", "Could not find the roast log to update", "OK");
-                    return;
-                }
-
-                // Update the roast data (keep original ID and date)
-                roastToUpdate.BeanType = selectedBean?.DisplayName ?? roastToUpdate.BeanType;
-                roastToUpdate.Temperature = temperature;
-                roastToUpdate.BatchWeight = batchWeight;
-                roastToUpdate.FinalWeight = finalWeight;
-                roastToUpdate.RoastMinutes = roastMinutes;
-                roastToUpdate.RoastSeconds = roastSeconds;
-                roastToUpdate.Notes = NotesEditor.Text ?? roastToUpdate.Notes;
-
-                // Save the updated app data
-                bool success = await appDataService.SaveAppDataAsync(appData);
-
+                    Id = _roastToEdit.Id,
+                    RoastDate = _roastToEdit.RoastDate,
+                    BeanType = selectedBean?.DisplayName ?? _roastToEdit.BeanType,
+                    Temperature = temperature,
+                    BatchWeight = batchWeight,
+                    FinalWeight = finalWeight,
+                    RoastMinutes = roastMinutes,
+                    RoastSeconds = roastSeconds,
+                    Notes = NotesEditor.Text ?? _roastToEdit.Notes
+                    // RoastLevelName will be set in UpdateRoastLogAsync
+                };
+                
+                // Use the service to update the roast
+                success = await roastDataService.UpdateRoastLogAsync(updatedRoast);
+                
                 if (success)
                 {
                     await DisplayAlert("Success", "Roast data updated successfully!", "OK");
@@ -1013,7 +1008,10 @@ public partial class RoastPage : ContentPage
                     RoastSeconds = roastSeconds,
                     RoastDate = DateTime.Now,
                     Notes = NotesEditor.Text ?? ""
+                    // RoastLevelName will be set in SaveRoastDataAsync
                 };
+                
+                System.Diagnostics.Debug.WriteLine($"Creating new roast for {roastData.BeanType}");
 
                 // Update bean inventory (reduce remaining quantity)
                 if (selectedBean != null)
@@ -1023,7 +1021,7 @@ public partial class RoastPage : ContentPage
                 }
 
                 // Save new data using service
-                bool success = await roastDataService.SaveRoastDataAsync(roastData);
+                success = await roastDataService.SaveRoastDataAsync(roastData);
 
                 if (success)
                 {

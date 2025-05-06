@@ -103,7 +103,12 @@ namespace CafeMaestro.Services
             try
             {
                 // Before saving, determine and set the roast level name
-                roastData.RoastLevelName = await _roastLevelService.GetRoastLevelNameAsync(roastData.WeightLossPercentage);
+                string roastLevelName = await _roastLevelService.GetRoastLevelNameAsync(roastData.WeightLossPercentage);
+                System.Diagnostics.Debug.WriteLine($"Setting roast level name to: {roastLevelName} for weight loss {roastData.WeightLossPercentage}%");
+                roastData.RoastLevelName = roastLevelName;
+                
+                // Double-check that it was set
+                System.Diagnostics.Debug.WriteLine($"Verified roast level name is now: {roastData.RoastLevelName}");
                 
                 // Load full app data
                 var appData = await _appDataService.LoadAppDataAsync();
@@ -112,7 +117,10 @@ namespace CafeMaestro.Services
                 appData.RoastLogs.Add(roastData);
                 
                 // Save updated app data
-                return await _appDataService.SaveAppDataAsync(appData);
+                bool result = await _appDataService.SaveAppDataAsync(appData);
+                
+                System.Diagnostics.Debug.WriteLine($"SaveAppDataAsync result: {result}");
+                return result;
             }
             catch (Exception ex)
             {
