@@ -45,6 +45,11 @@ GitHub repository: [CafeMaestro](https://github.com/sasler/CafeMaestro)
 - Whenever starting work on a **GitHub issue**, create a **new Git branch** specific to that issue.
   - Branch naming convention: `issue-<number>-<short-description>` (e.g., `issue-42-fix-ui-layout`).
 - **Do not create a commit until satisfied with the changes.** Ensure the code is stable, follows project guidelines, and is reviewed if needed.
+- **Always update the CHANGELOG.md** when submitting a pull request:
+  - Add your changes under the `[Unreleased]` section.
+  - Follow the established format: Added/Changed/Fixed/Removed categories.
+  - Be clear and concise about what was changed.
+  - Example: `- Added version tracking functionality using .NET MAUI's built-in capabilities`
 - For **commit messages and pull requests**, use [Gitmoji](https://gitmoji.dev/) for clarity and consistency.  
   - Example: `✨ Add new feature for roast tracking`
   - Helps visually categorize changes and improves commit readability.

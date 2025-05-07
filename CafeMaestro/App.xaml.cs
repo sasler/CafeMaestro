@@ -1,5 +1,6 @@
 ﻿using CafeMaestro.Services;
 using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Maui.ApplicationModel;
 
 namespace CafeMaestro;
 
@@ -52,6 +53,14 @@ public partial class App : Application
         // Get services using GetService with null fallbacks
         _appDataService = serviceProvider.GetService<AppDataService>() ?? new AppDataService();
         _preferencesService = serviceProvider.GetService<PreferencesService>() ?? new PreferencesService();
+        
+        // Log version tracking information
+        System.Diagnostics.Debug.WriteLine($"App Version: {AppInfo.Current.VersionString} (Build {AppInfo.Current.BuildString})");
+        System.Diagnostics.Debug.WriteLine($"First launch ever: {VersionTracking.IsFirstLaunchEver}");
+        System.Diagnostics.Debug.WriteLine($"First launch for version: {VersionTracking.IsFirstLaunchForCurrentVersion}");
+        System.Diagnostics.Debug.WriteLine($"First installed version: {VersionTracking.FirstInstalledVersion}");
+        System.Diagnostics.Debug.WriteLine($"Previous version: {VersionTracking.PreviousVersion ?? "None"}");
+        System.Diagnostics.Debug.WriteLine($"Version history: {string.Join(", ", VersionTracking.VersionHistory)}");
         
         System.Diagnostics.Debug.WriteLine($"App.xaml.cs: AppDataService: {_appDataService.GetHashCode()}");
         System.Diagnostics.Debug.WriteLine($"App.xaml.cs: AppDataService created");

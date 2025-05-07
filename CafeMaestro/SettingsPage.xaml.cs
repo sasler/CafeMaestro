@@ -194,7 +194,42 @@ public partial class SettingsPage : ContentPage
         var version = AppInfo.Current.VersionString;
         var build = AppInfo.Current.BuildString;
         
+        // Basic version info
         VersionLabel.Text = $"{version} (Build {build})";
+        
+        // Add version history information from VersionTracking
+        var versionHistory = new StringBuilder();
+        
+        // Check if this is the first launch for the current version
+        if (Microsoft.Maui.ApplicationModel.VersionTracking.IsFirstLaunchForCurrentVersion)
+        {
+            versionHistory.AppendLine("\nThis is the first time running this version.");
+        }
+
+        // Add first installed version info
+        versionHistory.AppendLine($"\nFirst installed version: {Microsoft.Maui.ApplicationModel.VersionTracking.FirstInstalledVersion}");
+        
+        // Add version history (limited to last 5 versions)
+        var versions = Microsoft.Maui.ApplicationModel.VersionTracking.VersionHistory.ToList();
+        if (versions.Any())
+        {
+            versionHistory.AppendLine("\nVersion History:");
+            
+            // Display the most recent 5 versions
+            foreach (var v in versions.Take(5))
+            {
+                versionHistory.AppendLine($"- {v}");
+            }
+            
+            // Indicate if there are more versions in history
+            if (versions.Count > 5)
+            {
+                versionHistory.AppendLine($"(+ {versions.Count - 5} more versions)");
+            }
+        }
+        
+        // Add the version history to the label
+        VersionHistoryLabel.Text = versionHistory.ToString();
     }
 
     private async void LoadThemeSettings()

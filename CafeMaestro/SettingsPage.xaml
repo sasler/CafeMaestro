@@ -272,6 +272,13 @@
                                                                FontSize="14"
                                                                TextColor="{DynamicResource PrimaryTextColor}"/>
                                                  </HorizontalStackLayout>
+                                                 
+                                                 <!-- Version History Label -->
+                                                 <Label x:Name="VersionHistoryLabel" 
+                                                        FontSize="14"
+                                                        TextColor="{DynamicResource SecondaryTextColor}"
+                                                        LineBreakMode="WordWrap" />
+                                                        
                                                  <Label Text="© 2025 CafeMaestro Team"
                                                         FontSize="14"
                                                         TextColor="{AppThemeBinding Light=Gray, Dark=#BBBBBB}"/>
