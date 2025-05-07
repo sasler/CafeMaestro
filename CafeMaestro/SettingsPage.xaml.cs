@@ -210,7 +210,7 @@ public partial class SettingsPage : ContentPage
         versionHistory.AppendLine($"\nFirst installed version: {Microsoft.Maui.ApplicationModel.VersionTracking.FirstInstalledVersion}");
         
         // Add version history (limited to last 5 versions)
-        var versions = Microsoft.Maui.ApplicationModel.VersionTracking.VersionHistory;
+        var versions = Microsoft.Maui.ApplicationModel.VersionTracking.VersionHistory.ToList();
         if (versions.Any())
         {
             versionHistory.AppendLine("\nVersion History:");
@@ -222,9 +222,9 @@ public partial class SettingsPage : ContentPage
             }
             
             // Indicate if there are more versions in history
-            if (versions.Count() > 5)
+            if (versions.Count > 5)
             {
-                versionHistory.AppendLine($"(+ {versions.Count() - 5} more versions)");
+                versionHistory.AppendLine($"(+ {versions.Count - 5} more versions)");
             }
         }
         
