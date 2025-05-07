@@ -96,7 +96,7 @@
                 <CollectionView.ItemTemplate>
                     <DataTemplate>
                         <SwipeView>
-                            <SwipeView.LeftItems>                                
+                            <SwipeView.LeftItems>
                                 <SwipeItems>
                                     <SwipeItem IconImageSource="delete_icon.png"
                                                BackgroundColor="{DynamicResource SwipeDeleteColor}"
@@ -117,7 +117,8 @@
                                     StrokeShape="RoundRectangle 12"
                                     Stroke="{DynamicResource BorderColor}"
                                     StrokeThickness="0.5"
-                                    BackgroundColor="{DynamicResource NeutralColor}">
+                                    BackgroundColor="{DynamicResource NeutralColor}"
+                                    Style="{StaticResource ItemCardStyle}">
                                 <Border.Shadow>
                                     <Shadow Brush="#20000000"
                                             Offset="0,3"
@@ -125,9 +126,9 @@
                                             Opacity="0.2"/>
                                 </Border.Shadow>
                                 <Border.GestureRecognizers>
-                                    <TapGestureRecognizer 
+                                    <TapGestureRecognizer
                                         Command="{Binding Source={RelativeSource AncestorType={x:Type ContentPage}}, Path=ItemTappedCommand}"
-                                        CommandParameter="{Binding .}" />
+                                        CommandParameter="{Binding .}"/>
                                 </Border.GestureRecognizers>
                                 <Grid RowDefinitions="Auto,Auto,Auto"
                                       ColumnDefinitions="*,Auto">

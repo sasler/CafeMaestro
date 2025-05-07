@@ -6,6 +6,10 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
+### Added
+- Hover feedback for buttons to improve user interaction experience
+- Visual feedback for card elements during hover interaction
+
 ### Changed
 - Removed unnecessary Debug.WriteLine statements to improve code quality
 - Fixed potential null reference exceptions in RoastPage.xaml.cs

@@ -4,98 +4,98 @@
              x:Class="CafeMaestro.BeanEditPage"
              Title="Bean Details">
 
-        <ScrollView>
-                <VerticalStackLayout Padding="30,20"
-                                     Spacing="15">
+       <ScrollView>
+              <VerticalStackLayout Padding="30,20"
+                                   Spacing="15">
 
-                        <Grid ColumnDefinitions="*,Auto"
-                              VerticalOptions="Center"
-                              HorizontalOptions="Fill">
-                                <Label Text="Add New Bean"
-                                       x:Name="PageTitleLabel"
-                                       FontSize="32"
-                                       VerticalOptions="Center"/>
-                                       
-                                <!-- Action buttons -->
-                                <HorizontalStackLayout Grid.Column="1"
-                                                       Spacing="10"
-                                                       VerticalOptions="Center">
-                                        <ImageButton x:Name="CancelButton"
-                                                     Source="cancel_icon.png"
-                                                     Clicked="CancelButton_Clicked"
-                                                     BackgroundColor="{DynamicResource SwipeDeleteColor}"
-                                                     WidthRequest="50"
-                                                     HeightRequest="50"
-                                                     Padding="5"
-                                                     CornerRadius="25"/>
-                                        <ImageButton x:Name="SaveButton"
-                                                     Source="save_icon.png"
-                                                     Clicked="SaveButton_Clicked"
-                                                     BackgroundColor="{DynamicResource PrimaryColor}"
-                                                     WidthRequest="50"
-                                                     HeightRequest="50"
-                                                     Padding="5"
-                                                     CornerRadius="25"/>
-                                </HorizontalStackLayout>
-                        </Grid>
+                     <Grid ColumnDefinitions="*,Auto"
+                           VerticalOptions="Center"
+                           HorizontalOptions="Fill">
+                            <Label Text="Add New Bean"
+                                   x:Name="PageTitleLabel"
+                                   FontSize="32"
+                                   VerticalOptions="Center"/>
 
-                        <!-- Coffee Name field re-added -->
-                        <Label Text="Coffee Name:"/>
-                        <Entry x:Name="CoffeeNameEntry"
-                               Placeholder="Enter coffee name"/>
+                            <!-- Action buttons -->
+                            <HorizontalStackLayout Grid.Column="1"
+                                                   Spacing="10"
+                                                   VerticalOptions="Center">
+                                   <ImageButton x:Name="CancelButton"
+                                                Source="cancel_icon.png"
+                                                Clicked="CancelButton_Clicked"
+                                                BackgroundColor="{DynamicResource SwipeDeleteColor}"
+                                                WidthRequest="50"
+                                                HeightRequest="50"
+                                                Padding="5"
+                                                CornerRadius="25"/>
+                                   <ImageButton x:Name="SaveButton"
+                                                Source="save_icon.png"
+                                                Clicked="SaveButton_Clicked"
+                                                BackgroundColor="{DynamicResource PrimaryColor}"
+                                                WidthRequest="50"
+                                                HeightRequest="50"
+                                                Padding="5"
+                                                CornerRadius="25"/>
+                            </HorizontalStackLayout>
+                     </Grid>
 
-                        <Label Text="Country of Origin:"/>
-                        <Entry x:Name="CountryEntry"
-                               Placeholder="Enter country"/>
+                     <!-- Coffee Name field re-added -->
+                     <Label Text="Coffee Name:"/>
+                     <Entry x:Name="CoffeeNameEntry"
+                            Placeholder="Enter coffee name"/>
 
-                        <Label Text="Variety:"/>
-                        <Entry x:Name="VarietyEntry"
-                               Placeholder="Enter variety (e.g., Bourbon, Typica)"/>
+                     <Label Text="Country of Origin:"/>
+                     <Entry x:Name="CountryEntry"
+                            Placeholder="Enter country"/>
 
-                        <Label Text="Processing Method:"/>
-                        <Picker x:Name="ProcessPicker"
-                                Title="Select Process">
-                                <Picker.Items>
-                                        <x:String>Washed</x:String>
-                                        <x:String>Natural</x:String>
-                                        <x:String>Honey</x:String>
-                                        <x:String>Wet-hulled</x:String>
-                                        <x:String>Anaerobic</x:String>
-                                        <x:String>Carbonic Maceration</x:String>
-                                        <x:String>Other</x:String>
-                                </Picker.Items>
-                        </Picker>
+                     <Label Text="Variety:"/>
+                     <Entry x:Name="VarietyEntry"
+                            Placeholder="Enter variety (e.g., Bourbon, Typica)"/>
 
-                        <Label Text="Purchase Date:"/>
-                        <DatePicker x:Name="PurchaseDatePicker"
-                                    Format="D"/>
+                     <Label Text="Processing Method:"/>
+                     <Picker x:Name="ProcessPicker"
+                             Title="Select Process">
+                            <Picker.Items>
+                                   <x:String>Washed</x:String>
+                                   <x:String>Natural</x:String>
+                                   <x:String>Honey</x:String>
+                                   <x:String>Wet-hulled</x:String>
+                                   <x:String>Anaerobic</x:String>
+                                   <x:String>Carbonic Maceration</x:String>
+                                   <x:String>Other</x:String>
+                            </Picker.Items>
+                     </Picker>
 
-                        <Label Text="Quantity (kg):"/>
-                        <Entry x:Name="QuantityEntry"
-                               Keyboard="Numeric"
-                               Placeholder="Enter quantity in kg"/>
+                     <Label Text="Purchase Date:"/>
+                     <DatePicker x:Name="PurchaseDatePicker"
+                                 Format="D"/>
 
-                        <!-- Add new field for Remaining Quantity -->
-                        <Label Text="Remaining Quantity (kg):"/>
-                        <Entry x:Name="RemainingQuantityEntry"
-                               Keyboard="Numeric"
-                               Placeholder="Enter remaining quantity in kg"/>
+                     <Label Text="Quantity (kg):"/>
+                     <Entry x:Name="QuantityEntry"
+                            Keyboard="Numeric"
+                            Placeholder="Enter quantity in kg"/>
 
-                        <Label Text="Price:"/>
-                        <Entry x:Name="PriceEntry"
-                               Keyboard="Numeric"
-                               Placeholder="Enter price"/>
+                     <!-- Add new field for Remaining Quantity -->
+                     <Label Text="Remaining Quantity (kg):"/>
+                     <Entry x:Name="RemainingQuantityEntry"
+                            Keyboard="Numeric"
+                            Placeholder="Enter remaining quantity in kg"/>
 
-                        <Label Text="Store/Website Link:"/>
-                        <Entry x:Name="LinkEntry"
-                               Placeholder="Enter URL (optional)"/>
+                     <Label Text="Price:"/>
+                     <Entry x:Name="PriceEntry"
+                            Keyboard="Numeric"
+                            Placeholder="Enter price"/>
 
-                        <Label Text="Notes:"/>
-                        <Editor x:Name="NotesEditor"
-                                Placeholder="Add notes about this coffee bean..."
-                                HeightRequest="100"
-                                AutoSize="TextChanges"/>
-                </VerticalStackLayout>
-        </ScrollView>
+                     <Label Text="Store/Website Link:"/>
+                     <Entry x:Name="LinkEntry"
+                            Placeholder="Enter URL (optional)"/>
+
+                     <Label Text="Notes:"/>
+                     <Editor x:Name="NotesEditor"
+                             Placeholder="Add notes about this coffee bean..."
+                             HeightRequest="100"
+                             AutoSize="TextChanges"/>
+              </VerticalStackLayout>
+       </ScrollView>
 
 </ContentPage>
