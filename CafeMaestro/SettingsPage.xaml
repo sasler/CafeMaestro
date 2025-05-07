@@ -203,6 +203,7 @@
                                                          TextColor="White"
                                                          HeightRequest="50"
                                                          CornerRadius="25"
+                                                         Style="{StaticResource ActionButtonStyle}"
                                                          HorizontalOptions="Fill"/>
                                           </VerticalStackLayout>
                                    </Border>
@@ -347,6 +348,7 @@
                                           <Button x:Name="SaveRoastLevelButton"
                                                   Text="Save"
                                                   Clicked="SaveRoastLevel_Clicked"
+                                                  Style="{StaticResource ActionButtonStyle}"
                                                   BackgroundColor="{DynamicResource PrimaryColor}"
                                                   TextColor="White"
                                                   WidthRequest="120"
@@ -356,6 +358,7 @@
                                           <Button x:Name="CancelRoastLevelButton"
                                                   Text="Cancel"
                                                   Clicked="CancelRoastLevel_Clicked"
+                                                  Style="{StaticResource DestructiveButtonStyle}"
                                                   BackgroundColor="#666666"
                                                   TextColor="White"
                                                   WidthRequest="120"

@@ -73,7 +73,8 @@
                                    Stroke="{DynamicResource BorderColor}"
                                    StrokeThickness="0.5"
                                    BackgroundColor="{DynamicResource PrimaryColor}"
-                                   Padding="20,16">
+                                   Padding="20,16"
+                                   Style="{StaticResource NavigationCardStyle}">
                                 <Border.Shadow>
                                     <Shadow Brush="{DynamicResource PrimaryColor}"
                                             Offset="0,3"
@@ -105,7 +106,8 @@
                                        Stroke="{DynamicResource BorderColor}"
                                        StrokeThickness="0.5"
                                        BackgroundColor="{DynamicResource SecondaryColor}"
-                                       Padding="16,18">
+                                       Padding="16,18"
+                                       Style="{StaticResource NavigationCardStyle}">
                                     <Border.Shadow>
                                         <Shadow Brush="{DynamicResource SecondaryColor}"
                                                 Offset="0,3"
@@ -137,7 +139,8 @@
                                        Stroke="{DynamicResource BorderColor}"
                                        StrokeThickness="0.5"
                                        BackgroundColor="{DynamicResource SecondaryColor}"
-                                       Padding="16,18">
+                                       Padding="16,18"
+                                       Style="{StaticResource NavigationCardStyle}">
                                     <Border.Shadow>
                                         <Shadow Brush="{DynamicResource SecondaryColor}"
                                                 Offset="0,3"
@@ -168,7 +171,8 @@
                                    StrokeThickness="0.5"
                                    BackgroundColor="{DynamicResource TertiaryColor}"
                                    Padding="20,16"
-                                   Margin="0,4,0,0">
+                                   Margin="0,4,0,0"
+                                   Style="{StaticResource NavigationCardStyle}">
                                 <Border.Shadow>
                                     <Shadow Brush="{DynamicResource TertiaryColor}"
                                             Offset="0,3"

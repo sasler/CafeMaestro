@@ -117,7 +117,8 @@
                                     StrokeShape="RoundRectangle 12"
                                     Stroke="{DynamicResource BorderColor}"
                                     StrokeThickness="0.5"
-                                    BackgroundColor="{DynamicResource NeutralColor}">
+                                    BackgroundColor="{DynamicResource NeutralColor}"
+                                    Style="{StaticResource ItemCardStyle}">
                                 <Border.Shadow>
                                     <Shadow Brush="#20000000"
                                             Offset="0,3"
