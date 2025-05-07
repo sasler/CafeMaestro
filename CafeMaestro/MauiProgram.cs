@@ -2,6 +2,8 @@
 using CafeMaestro.Services;
 using CommunityToolkit.Maui;
 using CommunityToolkit.Maui.Storage;
+using Microsoft.Maui.Controls;
+using Microsoft.Maui.Platform;
 
 namespace CafeMaestro;
 

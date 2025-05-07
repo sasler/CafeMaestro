@@ -2,30 +2,49 @@
 <ResourceDictionary xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
                     xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml">
 
-    <!-- Button Style -->
-    <Style x:Key="ButtonStyle" TargetType="Button">
-        <Setter Property="TextColor" Value="{DynamicResource PrimaryTextColor}" />
-        <Setter Property="BackgroundColor" Value="{DynamicResource PageBackgroundColor}" />
-        <Setter Property="FontSize" Value="14" />
-        <Setter Property="Padding" Value="10,5" />
-        <Setter Property="CornerRadius" Value="8" />
+    <!-- Button Style with subtle hover effect -->
+    <Style x:Key="ButtonStyle"
+           TargetType="Button">
+        <Setter Property="TextColor"
+                Value="{DynamicResource PrimaryTextColor}"/>
+        <Setter Property="BackgroundColor"
+                Value="{DynamicResource PageBackgroundColor}"/>
+        <Setter Property="FontSize"
+                Value="14"/>
+        <Setter Property="Padding"
+                Value="10,5"/>
+        <Setter Property="CornerRadius"
+                Value="8"/>
         <Setter Property="VisualStateManager.VisualStateGroups">
             <VisualStateGroupList>
-                <VisualStateGroup x:Name="CommonStates">
-                    <VisualState x:Name="Normal" />
-                    <VisualState x:Name="PointerOver">
+                <VisualStateGroup Name="CommonStates">
+                    <VisualState Name="Normal"/>
+                    <VisualState Name="PointerOver">
                         <VisualState.Setters>
-                            <Setter Property="BackgroundColor" Value="{DynamicResource PrimaryColor}" />
-                            <Setter Property="TextColor" Value="{DynamicResource InverseTextColor}" />
-                            <Setter Property="Opacity" Value="0.9" />
-                            <Setter Property="Scale" Value="1.05" />
+                            <Setter Property="BackgroundColor"
+                                    Value="{DynamicResource PrimaryColor}"/>
+                            <Setter Property="TextColor"
+                                    Value="{DynamicResource InverseTextColor}"/>
+                            <Setter Property="Opacity"
+                                    Value="0.95"/>
+                            <Setter Property="Scale"
+                                    Value="1.01"/>
                         </VisualState.Setters>
                     </VisualState>
-                    <VisualState x:Name="Pressed">
+                    <VisualState Name="Pressed">
                         <VisualState.Setters>
-                            <Setter Property="BackgroundColor" Value="{DynamicResource SecondaryColor}" />
-                            <Setter Property="TextColor" Value="{DynamicResource InverseTextColor}" />
-                            <Setter Property="Scale" Value="0.95" />
+                            <Setter Property="BackgroundColor"
+                                    Value="{DynamicResource SecondaryColor}"/>
+                            <Setter Property="TextColor"
+                                    Value="{DynamicResource InverseTextColor}"/>
+                            <Setter Property="Scale"
+                                    Value="0.98"/>
+                        </VisualState.Setters>
+                    </VisualState>
+                    <VisualState Name="Disabled">
+                        <VisualState.Setters>
+                            <Setter Property="Opacity"
+                                    Value="0.6"/>
                         </VisualState.Setters>
                     </VisualState>
                 </VisualStateGroup>
@@ -33,87 +52,101 @@
         </Setter>
     </Style>
 
+    <!-- Apply style implicitly to Button -->
+    <Style TargetType="Button"
+           BasedOn="{StaticResource ButtonStyle}"/>
+
     <!-- Label Style -->
-    <Style x:Key="LabelStyle" TargetType="Label">
-        <Setter Property="TextColor" Value="{DynamicResource PrimaryTextColor}" />
-        <Setter Property="FontSize" Value="14" />
+    <Style x:Key="LabelStyle"
+           TargetType="Label">
+        <Setter Property="TextColor"
+                Value="{DynamicResource PrimaryTextColor}"/>
+        <Setter Property="FontSize"
+                Value="14"/>
     </Style>
 
     <!-- Headline Style -->
-    <Style x:Key="HeadlineStyle" TargetType="Label">
-        <Setter Property="TextColor" Value="{DynamicResource PrimaryTextColor}" />
-        <Setter Property="FontSize" Value="32" />
-        <Setter Property="HorizontalOptions" Value="Center" />
-        <Setter Property="HorizontalTextAlignment" Value="Center" />
+    <Style x:Key="HeadlineStyle"
+           TargetType="Label">
+        <Setter Property="TextColor"
+                Value="{DynamicResource PrimaryTextColor}"/>
+        <Setter Property="FontSize"
+                Value="32"/>
+        <Setter Property="HorizontalOptions"
+                Value="Center"/>
+        <Setter Property="HorizontalTextAlignment"
+                Value="Center"/>
     </Style>
 
     <!-- SubHeadline Style -->
-    <Style x:Key="SubHeadlineStyle" TargetType="Label">
-        <Setter Property="TextColor" Value="{DynamicResource SecondaryTextColor}" />
-        <Setter Property="FontSize" Value="24" />
-        <Setter Property="HorizontalOptions" Value="Center" />
-        <Setter Property="HorizontalTextAlignment" Value="Center" />
+    <Style x:Key="SubHeadlineStyle"
+           TargetType="Label">
+        <Setter Property="TextColor"
+                Value="{DynamicResource SecondaryTextColor}"/>
+        <Setter Property="FontSize"
+                Value="24"/>
+        <Setter Property="HorizontalOptions"
+                Value="Center"/>
+        <Setter Property="HorizontalTextAlignment"
+                Value="Center"/>
     </Style>
 
     <!-- Entry Style -->
-    <Style x:Key="EntryStyle" TargetType="Entry">
-        <Setter Property="TextColor" Value="{DynamicResource PrimaryTextColor}" />
-        <Setter Property="PlaceholderColor" Value="{DynamicResource TertiaryTextColor}" />
-        <Setter Property="FontSize" Value="14" />
+    <Style x:Key="EntryStyle"
+           TargetType="Entry">
+        <Setter Property="TextColor"
+                Value="{DynamicResource PrimaryTextColor}"/>
+        <Setter Property="PlaceholderColor"
+                Value="{DynamicResource TertiaryTextColor}"/>
+        <Setter Property="FontSize"
+                Value="14"/>
     </Style>
 
     <!-- Page Style -->
-    <Style x:Key="PageStyle" TargetType="Page">
-        <Setter Property="Padding" Value="0" />
-        <Setter Property="BackgroundColor" Value="{DynamicResource PageBackgroundColor}" />
+    <Style x:Key="PageStyle"
+           TargetType="Page">
+        <Setter Property="Padding"
+                Value="0"/>
+        <Setter Property="BackgroundColor"
+                Value="{DynamicResource PageBackgroundColor}"/>
     </Style>
 
     <!-- Action Button Style (for primary actions like Save) -->
-    <Style x:Key="ActionButtonStyle" TargetType="Button" BasedOn="{StaticResource ButtonStyle}">
-        <Setter Property="BackgroundColor" Value="{DynamicResource PrimaryColor}" />
-        <Setter Property="TextColor" Value="{DynamicResource ButtonTextColor}" />
-        <Setter Property="FontAttributes" Value="Bold" />
+    <Style x:Key="ActionButtonStyle"
+           TargetType="Button"
+           BasedOn="{StaticResource ButtonStyle}">
+        <Setter Property="BackgroundColor"
+                Value="{DynamicResource PrimaryColor}"/>
+        <Setter Property="TextColor"
+                Value="{DynamicResource ButtonTextColor}"/>
+        <Setter Property="FontAttributes"
+                Value="Bold"/>
         <Setter Property="VisualStateManager.VisualStateGroups">
             <VisualStateGroupList>
-                <VisualStateGroup x:Name="CommonStates">
-                    <VisualState x:Name="Normal" />
-                    <VisualState x:Name="PointerOver">
+                <VisualStateGroup Name="CommonStates">
+                    <VisualState Name="Normal"/>
+                    <VisualState Name="PointerOver">
                         <VisualState.Setters>
-                            <Setter Property="BackgroundColor" Value="{DynamicResource SecondaryColor}" />
-                            <Setter Property="Scale" Value="1.05" />
-                            <Setter Property="Opacity" Value="0.9" />
+                            <Setter Property="BackgroundColor"
+                                    Value="{DynamicResource SecondaryColor}"/>
+                            <Setter Property="Scale"
+                                    Value="1.02"/>
+                            <Setter Property="Opacity"
+                                    Value="0.95"/>
                         </VisualState.Setters>
                     </VisualState>
-                    <VisualState x:Name="Pressed">
+                    <VisualState Name="Pressed">
                         <VisualState.Setters>
-                            <Setter Property="BackgroundColor" Value="{DynamicResource TertiaryColor}" />
-                            <Setter Property="Scale" Value="0.95" />
+                            <Setter Property="BackgroundColor"
+                                    Value="{DynamicResource TertiaryColor}"/>
+                            <Setter Property="Scale"
+                                    Value="0.98"/>
                         </VisualState.Setters>
                     </VisualState>
-                </VisualStateGroup>
-            </VisualStateGroupList>
-        </Setter>
-    </Style>
-    
-    <!-- Destructive Button Style (for delete or cancel actions) -->
-    <Style x:Key="DestructiveButtonStyle" TargetType="Button" BasedOn="{StaticResource ButtonStyle}">
-        <Setter Property="BackgroundColor" Value="{DynamicResource ErrorColor}" />
-        <Setter Property="TextColor" Value="{DynamicResource ButtonTextColor}" />
-        <Setter Property="VisualStateManager.VisualStateGroups">
-            <VisualStateGroupList>
-                <VisualStateGroup x:Name="CommonStates">
-                    <VisualState x:Name="Normal" />
-                    <VisualState x:Name="PointerOver">
+                    <VisualState Name="Disabled">
                         <VisualState.Setters>
-                            <Setter Property="BackgroundColor" Value="{DynamicResource SwipeDeleteColor}" />
-                            <Setter Property="Scale" Value="1.05" />
-                            <Setter Property="Opacity" Value="0.9" />
-                        </VisualState.Setters>
-                    </VisualState>
-                    <VisualState x:Name="Pressed">
-                        <VisualState.Setters>
-                            <Setter Property="BackgroundColor" Value="{DynamicResource SwipeDeleteColor}" />
-                            <Setter Property="Scale" Value="0.95" />
+                            <Setter Property="Opacity"
+                                    Value="0.6"/>
                         </VisualState.Setters>
                     </VisualState>
                 </VisualStateGroup>
@@ -121,77 +154,145 @@
         </Setter>
     </Style>
 
-    <!-- ImageButton hover styles -->
-    <Style x:Key="ImageButtonStyle" TargetType="ImageButton">
-        <Setter Property="BackgroundColor" Value="Transparent" />
-        <Setter Property="BorderWidth" Value="0" />
-        <Setter Property="CornerRadius" Value="20" />
+    <!-- Destructive Button Style (for delete or cancel actions) -->
+    <Style x:Key="DestructiveButtonStyle"
+           TargetType="Button"
+           BasedOn="{StaticResource ButtonStyle}">
+        <Setter Property="BackgroundColor"
+                Value="{DynamicResource ErrorColor}"/>
+        <Setter Property="TextColor"
+                Value="{DynamicResource ButtonTextColor}"/>
         <Setter Property="VisualStateManager.VisualStateGroups">
             <VisualStateGroupList>
-                <VisualStateGroup x:Name="CommonStates">
-                    <VisualState x:Name="Normal" />
-                    <VisualState x:Name="PointerOver">
+                <VisualStateGroup Name="CommonStates">
+                    <VisualState Name="Normal"/>
+                    <VisualState Name="PointerOver">
                         <VisualState.Setters>
-                            <Setter Property="BackgroundColor" Value="{DynamicResource NeutralColor}" />
-                            <Setter Property="Scale" Value="1.1" />
+                            <Setter Property="BackgroundColor"
+                                    Value="{DynamicResource SwipeDeleteColor}"/>
+                            <Setter Property="Scale"
+                                    Value="1.02"/>
+                            <Setter Property="Opacity"
+                                    Value="0.95"/>
                         </VisualState.Setters>
                     </VisualState>
-                    <VisualState x:Name="Pressed">
+                    <VisualState Name="Pressed">
                         <VisualState.Setters>
-                            <Setter Property="BackgroundColor" Value="{DynamicResource SeparatorColor}" />
-                            <Setter Property="Scale" Value="0.9" />
+                            <Setter Property="BackgroundColor"
+                                    Value="{DynamicResource SwipeDeleteColor}"/>
+                            <Setter Property="Scale"
+                                    Value="0.98"/>
+                        </VisualState.Setters>
+                    </VisualState>
+                    <VisualState Name="Disabled">
+                        <VisualState.Setters>
+                            <Setter Property="Opacity"
+                                    Value="0.6"/>
                         </VisualState.Setters>
                     </VisualState>
                 </VisualStateGroup>
             </VisualStateGroupList>
         </Setter>
     </Style>
-    
-    <!-- Implicit styles that apply automatically to controls -->
-    <Style TargetType="ImageButton" BasedOn="{StaticResource ImageButtonStyle}" />
-    <Style TargetType="Button" BasedOn="{StaticResource ButtonStyle}" />
-    
+
     <!-- Navigation Card Style for card-based UI elements with tap gestures -->
-    <Style x:Key="NavigationCardStyle" TargetType="Border">
-        <Setter Property="StrokeShape" Value="RoundRectangle 16" />
-        <Setter Property="Stroke" Value="{DynamicResource BorderColor}" />
-        <Setter Property="StrokeThickness" Value="0.5" />
-        <Setter Property="Padding" Value="16" />
+    <Style x:Key="NavigationCardStyle"
+           TargetType="Border">
+        <Setter Property="StrokeShape"
+                Value="RoundRectangle 16"/>
+        <Setter Property="Stroke"
+                Value="{DynamicResource BorderColor}"/>
+        <Setter Property="StrokeThickness"
+                Value="0.5"/>
+        <Setter Property="Padding"
+                Value="16"/>
         <Setter Property="VisualStateManager.VisualStateGroups">
             <VisualStateGroupList>
-                <VisualStateGroup x:Name="CommonStates">
-                    <VisualState x:Name="Normal" />
-                    <VisualState x:Name="PointerOver">
+                <VisualStateGroup Name="CommonStates">
+                    <VisualState Name="Normal"/>
+                    <VisualState Name="PointerOver">
                         <VisualState.Setters>
-                            <Setter Property="Scale" Value="1.03" />
-                            <Setter Property="Opacity" Value="0.95" />
+                            <Setter Property="Scale"
+                                    Value="1.01"/>
+                            <Setter Property="Opacity"
+                                    Value="0.97"/>
                         </VisualState.Setters>
                     </VisualState>
                 </VisualStateGroup>
             </VisualStateGroupList>
         </Setter>
     </Style>
-    
+
     <!-- Item Card Style for list/collection items with swipe actions -->
-    <Style x:Key="ItemCardStyle" TargetType="Border">
-        <Setter Property="StrokeShape" Value="RoundRectangle 12" />
-        <Setter Property="Stroke" Value="{DynamicResource BorderColor}" />
-        <Setter Property="StrokeThickness" Value="0.5" />
-        <Setter Property="Padding" Value="16" />
-        <Setter Property="BackgroundColor" Value="{DynamicResource NeutralColor}" />
+    <Style x:Key="ItemCardStyle"
+           TargetType="Border">
+        <Setter Property="StrokeShape"
+                Value="RoundRectangle 12"/>
+        <Setter Property="Stroke"
+                Value="{DynamicResource BorderColor}"/>
+        <Setter Property="StrokeThickness"
+                Value="0.5"/>
+        <Setter Property="Padding"
+                Value="16"/>
+        <Setter Property="BackgroundColor"
+                Value="{DynamicResource NeutralColor}"/>
         <Setter Property="VisualStateManager.VisualStateGroups">
             <VisualStateGroupList>
-                <VisualStateGroup x:Name="CommonStates">
-                    <VisualState x:Name="Normal" />
-                    <VisualState x:Name="PointerOver">
+                <VisualStateGroup Name="CommonStates">
+                    <VisualState Name="Normal"/>
+                    <VisualState Name="PointerOver">
                         <VisualState.Setters>
-                            <Setter Property="BackgroundColor" Value="{AppThemeBinding Light=#E8E8E8, Dark=#383838}" />
-                            <Setter Property="Scale" Value="1.01" />
+                            <Setter Property="BackgroundColor"
+                                    Value="{AppThemeBinding Light=#E8E8E8, Dark=#383838}"/>
+                            <Setter Property="Scale"
+                                    Value="1.005"/>
                         </VisualState.Setters>
                     </VisualState>
                 </VisualStateGroup>
             </VisualStateGroupList>
         </Setter>
     </Style>
+
+    <!-- For ImageButtons, we provide a style that needs to be explicitly applied -->
+    <Style x:Key="ImageButtonStyle"
+           TargetType="ImageButton">
+        <Setter Property="BackgroundColor"
+                Value="Transparent"/>
+        <Setter Property="BorderWidth"
+                Value="0"/>
+        <Setter Property="CornerRadius"
+                Value="20"/>
+        <Setter Property="VisualStateManager.VisualStateGroups">
+            <VisualStateGroupList>
+                <VisualStateGroup Name="CommonStates">
+                    <VisualState Name="Normal"/>
+                    <VisualState Name="PointerOver">
+                        <VisualState.Setters>
+                            <Setter Property="Opacity"
+                                    Value="0.9"/>
+                            <Setter Property="Scale"
+                                    Value="1.03"/>
+                        </VisualState.Setters>
+                    </VisualState>
+                    <VisualState Name="Pressed">
+                        <VisualState.Setters>
+                            <Setter Property="Scale"
+                                    Value="0.97"/>
+                        </VisualState.Setters>
+                    </VisualState>
+                    <VisualState Name="Disabled">
+                        <VisualState.Setters>
+                            <Setter Property="Opacity"
+                                    Value="0.6"/>
+                        </VisualState.Setters>
+                    </VisualState>
+                </VisualStateGroup>
+            </VisualStateGroupList>
+        </Setter>
+    </Style>
+
+    <!-- Apply style implicitly to ImageButton -->
+    <Style TargetType="ImageButton"
+           BasedOn="{StaticResource ImageButtonStyle}"/>
 
 </ResourceDictionary>

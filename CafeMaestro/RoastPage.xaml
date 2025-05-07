@@ -42,7 +42,8 @@
                                  WidthRequest="50"
                                  HeightRequest="50"
                                  Padding="5"
-                                 CornerRadius="25"/>
+                                 CornerRadius="25">
+                    </ImageButton>
                     <ImageButton x:Name="SaveRoastButton"
                                  Source="save_icon.png"
                                  Clicked="SaveRoast_Clicked"
@@ -51,17 +52,6 @@
                                  HeightRequest="50"
                                  Padding="5"
                                  CornerRadius="25">
-                        <VisualStateManager.VisualStateGroups>
-                            <VisualStateGroup Name="CommonStates">
-                                <VisualState Name="Normal"/>
-                                <VisualState Name="Pressed">
-                                    <VisualState.Setters>
-                                        <Setter Property="Scale" Value="0.9"/>
-                                        <Setter Property="Opacity" Value="0.8"/>
-                                    </VisualState.Setters>
-                                </VisualState>
-                            </VisualStateGroup>
-                        </VisualStateManager.VisualStateGroups>
                     </ImageButton>
                 </HorizontalStackLayout>
             </Grid>
@@ -133,25 +123,6 @@
                                      HeightRequest="50"
                                      Padding="5"
                                      CornerRadius="25">
-                            <VisualStateManager.VisualStateGroups>
-                                <VisualStateGroup Name="CommonStates">
-                                    <VisualState Name="Normal"/>
-                                    <VisualState Name="Pressed">
-                                        <VisualState.Setters>
-                                            <Setter Property="Scale"
-                                                    Value="0.9"/>
-                                            <Setter Property="Opacity"
-                                                    Value="0.8"/>
-                                        </VisualState.Setters>
-                                    </VisualState>
-                                    <VisualState Name="Disabled">
-                                        <VisualState.Setters>
-                                            <Setter Property="Opacity"
-                                                    Value="0.5"/>
-                                        </VisualState.Setters>
-                                    </VisualState>
-                                </VisualStateGroup>
-                            </VisualStateManager.VisualStateGroups>
                         </ImageButton>
                         <ImageButton x:Name="PauseTimerButton"
                                      Source="timer_pause_icon.png"
@@ -162,25 +133,6 @@
                                      Padding="5"
                                      CornerRadius="25"
                                      IsEnabled="False">
-                            <VisualStateManager.VisualStateGroups>
-                                <VisualStateGroup Name="CommonStates">
-                                    <VisualState Name="Normal"/>
-                                    <VisualState Name="Pressed">
-                                        <VisualState.Setters>
-                                            <Setter Property="Scale"
-                                                    Value="0.9"/>
-                                            <Setter Property="Opacity"
-                                                    Value="0.8"/>
-                                        </VisualState.Setters>
-                                    </VisualState>
-                                    <VisualState Name="Disabled">
-                                        <VisualState.Setters>
-                                            <Setter Property="Opacity"
-                                                    Value="0.5"/>
-                                        </VisualState.Setters>
-                                    </VisualState>
-                                </VisualStateGroup>
-                            </VisualStateManager.VisualStateGroups>
                         </ImageButton>
                         <ImageButton x:Name="StopTimerButton"
                                      Source="timer_stop_icon.png"
@@ -191,25 +143,6 @@
                                      Padding="5"
                                      CornerRadius="25"
                                      IsEnabled="False">
-                            <VisualStateManager.VisualStateGroups>
-                                <VisualStateGroup Name="CommonStates">
-                                    <VisualState Name="Normal"/>
-                                    <VisualState Name="Pressed">
-                                        <VisualState.Setters>
-                                            <Setter Property="Scale"
-                                                    Value="0.9"/>
-                                            <Setter Property="Opacity"
-                                                    Value="0.8"/>
-                                        </VisualState.Setters>
-                                    </VisualState>
-                                    <VisualState Name="Disabled">
-                                        <VisualState.Setters>
-                                            <Setter Property="Opacity"
-                                                    Value="0.5"/>
-                                        </VisualState.Setters>
-                                    </VisualState>
-                                </VisualStateGroup>
-                            </VisualStateManager.VisualStateGroups>
                         </ImageButton>
                         <ImageButton x:Name="ResetTimerButton"
                                      Source="timer_reset_icon.png"
@@ -219,25 +152,6 @@
                                      HeightRequest="50"
                                      Padding="5"
                                      CornerRadius="25">
-                            <VisualStateManager.VisualStateGroups>
-                                <VisualStateGroup Name="CommonStates">
-                                    <VisualState Name="Normal"/>
-                                    <VisualState Name="Pressed">
-                                        <VisualState.Setters>
-                                            <Setter Property="Scale"
-                                                    Value="0.9"/>
-                                            <Setter Property="Opacity"
-                                                    Value="0.8"/>
-                                        </VisualState.Setters>
-                                    </VisualState>
-                                    <VisualState Name="Disabled">
-                                        <VisualState.Setters>
-                                            <Setter Property="Opacity"
-                                                    Value="0.5"/>
-                                        </VisualState.Setters>
-                                    </VisualState>
-                                </VisualStateGroup>
-                            </VisualStateManager.VisualStateGroups>
                         </ImageButton>
                         <!-- New First Crack button with matching style -->
                         <ImageButton x:Name="FirstCrackButton"
@@ -249,25 +163,6 @@
                                      Padding="5"
                                      CornerRadius="25"
                                      IsEnabled="False">
-                            <VisualStateManager.VisualStateGroups>
-                                <VisualStateGroup Name="CommonStates">
-                                    <VisualState Name="Normal"/>
-                                    <VisualState Name="Pressed">
-                                        <VisualState.Setters>
-                                            <Setter Property="Scale"
-                                                    Value="0.9"/>
-                                            <Setter Property="Opacity"
-                                                    Value="0.8"/>
-                                        </VisualState.Setters>
-                                    </VisualState>
-                                    <VisualState Name="Disabled">
-                                        <VisualState.Setters>
-                                            <Setter Property="Opacity"
-                                                    Value="0.5"/>
-                                        </VisualState.Setters>
-                                    </VisualState>
-                                </VisualStateGroup>
-                            </VisualStateManager.VisualStateGroups>
                         </ImageButton>
                     </HorizontalStackLayout>
 
@@ -290,28 +185,28 @@
                         <x:String>Loading beans...</x:String>
                     </Picker.Items>
                 </Picker>
-                
+
                 <!-- Previous Roast Info Section -->
-                <Border x:Name="PreviousRoastInfoSection" 
-                       IsVisible="false" 
-                       Margin="0,5,0,10" 
-                       Padding="10" 
-                       BackgroundColor="{AppThemeBinding Light=#f0f0f0, Dark=#303030}"
-                       Stroke="{AppThemeBinding Light=#dddddd, Dark=#444444}"
-                       StrokeShape="RoundRectangle 8">
+                <Border x:Name="PreviousRoastInfoSection"
+                        IsVisible="false"
+                        Margin="0,5,0,10"
+                        Padding="10"
+                        BackgroundColor="{AppThemeBinding Light=#f0f0f0, Dark=#303030}"
+                        Stroke="{AppThemeBinding Light=#dddddd, Dark=#444444}"
+                        StrokeShape="RoundRectangle 8">
                     <VerticalStackLayout>
-                        <Label Text="Previous Roast" 
-                               FontAttributes="Bold" 
-                               TextColor="{StaticResource PrimaryColor}" 
+                        <Label Text="Previous Roast"
+                               FontAttributes="Bold"
+                               TextColor="{StaticResource PrimaryColor}"
                                Margin="0,0,0,5"/>
-                        <Label x:Name="PreviousRoastSummaryLabel" 
-                               Text="" 
-                               FontSize="14" 
-                               LineBreakMode="WordWrap" />
-                        <Label x:Name="PreviousRoastDetailsLabel" 
-                               Text="" 
-                               FontSize="14" 
-                               LineBreakMode="WordWrap" />
+                        <Label x:Name="PreviousRoastSummaryLabel"
+                               Text=""
+                               FontSize="14"
+                               LineBreakMode="WordWrap"/>
+                        <Label x:Name="PreviousRoastDetailsLabel"
+                               Text=""
+                               FontSize="14"
+                               LineBreakMode="WordWrap"/>
                     </VerticalStackLayout>
                 </Border>
 
@@ -343,12 +238,12 @@
                            PlaceholderColor="{DynamicResource PlaceholderColor}"
                            TextChanged="BatchWeightEntry_TextChanged"/>
                 </Border>
-                
+
                 <!-- Warning label for batch weight validation -->
-                <Label x:Name="BatchWeightWarningLabel" 
+                <Label x:Name="BatchWeightWarningLabel"
                        IsVisible="false"
-                       Text="Insufficient beans available!" 
-                       TextColor="{StaticResource SwipeDeleteColor}" 
+                       Text="Insufficient beans available!"
+                       TextColor="{StaticResource SwipeDeleteColor}"
                        FontAttributes="Bold"/>
 
                 <!-- Final Weight Entry -->

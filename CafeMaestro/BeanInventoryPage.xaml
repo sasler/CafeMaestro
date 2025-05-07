@@ -96,7 +96,7 @@
                 <CollectionView.ItemTemplate>
                     <DataTemplate>
                         <SwipeView>
-                            <SwipeView.LeftItems>                                
+                            <SwipeView.LeftItems>
                                 <SwipeItems>
                                     <SwipeItem IconImageSource="delete_icon.png"
                                                BackgroundColor="{DynamicResource SwipeDeleteColor}"
@@ -126,9 +126,9 @@
                                             Opacity="0.2"/>
                                 </Border.Shadow>
                                 <Border.GestureRecognizers>
-                                    <TapGestureRecognizer 
+                                    <TapGestureRecognizer
                                         Command="{Binding Source={RelativeSource AncestorType={x:Type ContentPage}}, Path=ItemTappedCommand}"
-                                        CommandParameter="{Binding .}" />
+                                        CommandParameter="{Binding .}"/>
                                 </Border.GestureRecognizers>
                                 <Grid RowDefinitions="Auto,Auto,Auto"
                                       ColumnDefinitions="*,Auto">

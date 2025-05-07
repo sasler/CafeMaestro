@@ -4,8 +4,10 @@
              x:Class="CafeMaestro.RoastLogPage"
              BackgroundColor="{DynamicResource PageBackgroundColor}"
              Title="Roast Log">
-    
-    <Grid RowDefinitions="Auto,*" Padding="0" Margin="0">
+
+    <Grid RowDefinitions="Auto,*"
+          Padding="0"
+          Margin="0">
         <!-- Header Area -->
         <Grid Grid.Row="0"
               ColumnDefinitions="Auto,*,Auto"
@@ -29,27 +31,28 @@
                    TextColor="{DynamicResource PrimaryColor}"
                    Margin="16,0,0,0"/>
             <!-- Action buttons and record count in the top right -->
-            <HorizontalStackLayout Grid.Column="2" 
-                                  Spacing="10" 
-                                  VerticalOptions="Center">
+            <HorizontalStackLayout Grid.Column="2"
+                                   Spacing="10"
+                                   VerticalOptions="Center">
                 <ImageButton x:Name="AddRoastButton"
-                       Source="add_icon.png"
-                       Clicked="AddRoast_Clicked"
-                       BackgroundColor="{DynamicResource PrimaryColor}"
-                       WidthRequest="50"
-                       HeightRequest="50"
-                       Padding="5"
-                       CornerRadius="25"/>
-                       
+                             Source="add_icon.png"
+                             Clicked="AddRoast_Clicked"
+                             BackgroundColor="{DynamicResource PrimaryColor}"
+                             WidthRequest="50"
+                             HeightRequest="50"
+                             Padding="5"
+                             CornerRadius="25"/>
+
                 <ImageButton x:Name="ImportButton"
-                       Source="import_icon.png"
-                       Clicked="ImportButton_Clicked"
-                       BackgroundColor="{DynamicResource TertiaryColor}"
-                       WidthRequest="50"
-                       HeightRequest="50"
-                       Padding="5"
-                       CornerRadius="25"/>
-                       
+                             Source="import_icon.png"
+                             Clicked="ImportButton_Clicked"
+                             BackgroundColor="{DynamicResource TertiaryColor}"
+                             WidthRequest="50"
+                             HeightRequest="50"
+                             Padding="5"
+                             CornerRadius="25">
+                </ImageButton>
+
                 <Border BackgroundColor="{DynamicResource PrimaryColor}"
                         WidthRequest="50"
                         HeightRequest="50"
@@ -66,21 +69,23 @@
                 </Border>
             </HorizontalStackLayout>
         </Grid>
-        
+
         <!-- Content Area with CollectionView -->
         <RefreshView x:Name="RoastLogRefreshView"
                      Grid.Row="1"
-                     IsRefreshing="False" 
+                     IsRefreshing="False"
                      Command="{Binding RefreshCommand}">
             <!-- Direct child of RefreshView should be CollectionView -->
             <CollectionView x:Name="RoastLogCollection"
-                          SelectionMode="None"
-                          Margin="20,10,20,10">
+                            SelectionMode="None"
+                            Margin="20,10,20,10">
                 <CollectionView.ItemsLayout>
-                    <LinearItemsLayout Orientation="Vertical" ItemSpacing="16" />
+                    <LinearItemsLayout Orientation="Vertical"
+                                       ItemSpacing="16"/>
                 </CollectionView.ItemsLayout>
                 <CollectionView.EmptyView>
-                    <StackLayout HorizontalOptions="Center" VerticalOptions="Center">
+                    <StackLayout HorizontalOptions="Center"
+                                 VerticalOptions="Center">
                         <Label Text="No roast logs found"
                                FontSize="18"
                                TextColor="{DynamicResource TertiaryTextColor}"/>
@@ -92,7 +97,7 @@
                 <CollectionView.ItemTemplate>
                     <DataTemplate>
                         <SwipeView>
-                            <SwipeView.LeftItems>                                
+                            <SwipeView.LeftItems>
                                 <SwipeItems>
                                     <SwipeItem IconImageSource="delete_icon.png"
                                                BackgroundColor="{DynamicResource SwipeDeleteColor}"
@@ -122,9 +127,9 @@
                                             Opacity="0.2"/>
                                 </Border.Shadow>
                                 <Border.GestureRecognizers>
-                                    <TapGestureRecognizer 
+                                    <TapGestureRecognizer
                                         Command="{Binding Source={RelativeSource AncestorType={x:Type ContentPage}}, Path=ItemTappedCommand}"
-                                        CommandParameter="{Binding .}" />
+                                        CommandParameter="{Binding .}"/>
                                 </Border.GestureRecognizers>
                                 <Grid RowDefinitions="Auto,Auto,Auto"
                                       ColumnDefinitions="*,Auto">
@@ -166,7 +171,8 @@
                                                 <DataTrigger TargetType="Label"
                                                              Binding="{Binding FirstCrackTime}"
                                                              Value="Not marked">
-                                                    <Setter Property="IsVisible" Value="False" />
+                                                    <Setter Property="IsVisible"
+                                                            Value="False"/>
                                                 </DataTrigger>
                                             </Label.Triggers>
                                         </Label>
