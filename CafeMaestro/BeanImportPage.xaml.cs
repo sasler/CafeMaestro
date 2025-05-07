@@ -22,16 +22,16 @@ public partial class BeanImportPage : ContentPage
         InitializeComponent();
 
         // First try to get the services from the application resources (our stored service provider)
-        if (Application.Current?.Resources != null && 
-            Application.Current?.Resources.TryGetValue("ServiceProvider", out var serviceProviderObj) == true && 
+        if (Application.Current?.Resources != null &&
+            Application.Current?.Resources.TryGetValue("ServiceProvider", out var serviceProviderObj) == true &&
             serviceProviderObj is IServiceProvider serviceProvider)
         {
-            _appDataService = appDataService ?? 
+            _appDataService = appDataService ??
                              serviceProvider.GetService<AppDataService>() ??
                              Application.Current?.Handler?.MauiContext?.Services.GetService<AppDataService>() ??
                              throw new InvalidOperationException("AppDataService not available");
-            
-            _beanService = beanService ?? 
+
+            _beanService = beanService ??
                           serviceProvider.GetService<BeanDataService>() ??
                           Application.Current?.Handler?.MauiContext?.Services.GetService<BeanDataService>() ??
                           throw new InvalidOperationException("BeanService not available");
@@ -39,16 +39,14 @@ public partial class BeanImportPage : ContentPage
         else
         {
             // Fall back to the old way if app resources doesn't have our provider
-            _appDataService = appDataService ?? 
+            _appDataService = appDataService ??
                             Application.Current?.Handler?.MauiContext?.Services.GetService<AppDataService>() ??
                             throw new InvalidOperationException("AppDataService not available");
-            
-            _beanService = beanService ?? 
+
+            _beanService = beanService ??
                           Application.Current?.Handler?.MauiContext?.Services.GetService<BeanDataService>() ??
                           throw new InvalidOperationException("BeanService not available");
         }
-
-        Debug.WriteLine($"BeanImportPage constructor - Using AppDataService at path: {_appDataService.DataFilePath}");
 
         // Initialize pickers
         SetupPickers();
@@ -69,7 +67,7 @@ public partial class BeanImportPage : ContentPage
     {
         // Add an empty option to all pickers
         var emptyList = new List<string> { "-- None --" };
-        
+
         CoffeeNamePicker.ItemsSource = new List<string>(emptyList);
         CountryPicker.ItemsSource = new List<string>(emptyList);
         VarietyPicker.ItemsSource = new List<string>(emptyList);
@@ -85,10 +83,10 @@ public partial class BeanImportPage : ContentPage
     {
         // Add empty option first
         var options = new List<string> { "-- None --" };
-        
+
         // Add all headers
         options.AddRange(_csvHeaders);
-        
+
         // Update all pickers with the same options
         CoffeeNamePicker.ItemsSource = options;
         CountryPicker.ItemsSource = options;
@@ -99,7 +97,7 @@ public partial class BeanImportPage : ContentPage
         PricePicker.ItemsSource = options;
         NotesPicker.ItemsSource = options;
         LinkPicker.ItemsSource = options;
-        
+
         // Try to automatically match columns based on names
         TryAutoMatchColumns();
     }
@@ -108,7 +106,7 @@ public partial class BeanImportPage : ContentPage
     {
         // Reset mapping
         _columnMapping.Clear();
-        
+
         // Define keywords for matching
         var mappings = new Dictionary<string, List<string>>
         {
@@ -122,7 +120,7 @@ public partial class BeanImportPage : ContentPage
             { "Notes", new List<string> { "note", "notes", "description", "flavor", "profile" } },
             { "Link", new List<string> { "link", "url", "website", "web" } }
         };
-        
+
         // For each CSV header, check if it matches any of our properties
         foreach (var header in _csvHeaders)
         {
@@ -130,7 +128,7 @@ public partial class BeanImportPage : ContentPage
             {
                 string property = mapping.Key;
                 List<string> keywords = mapping.Value;
-                
+
                 // Check if the header contains any of the keywords
                 if (keywords.Any(keyword => header.Contains(keyword, StringComparison.OrdinalIgnoreCase)))
                 {
@@ -140,35 +138,28 @@ public partial class BeanImportPage : ContentPage
                 }
             }
         }
-        
+
         // Special case handling for common CSV formats
         // If we have "Coffee" column but no CoffeeName mapping, use it
-        if (!_columnMapping.ContainsKey("CoffeeName") && 
+        if (!_columnMapping.ContainsKey("CoffeeName") &&
             _csvHeaders.Any(h => h.Equals("Coffee", StringComparison.OrdinalIgnoreCase)))
         {
             _columnMapping["CoffeeName"] = _csvHeaders.First(h => h.Equals("Coffee", StringComparison.OrdinalIgnoreCase));
         }
 
         // Handle the specific misspelled columns in your CSV
-        if (!_columnMapping.ContainsKey("Variety") && 
+        if (!_columnMapping.ContainsKey("Variety") &&
             _csvHeaders.Any(h => h.Equals("Variaty", StringComparison.OrdinalIgnoreCase)))
         {
             _columnMapping["Variety"] = "Variaty";
         }
 
-        if (!_columnMapping.ContainsKey("Quantity") && 
+        if (!_columnMapping.ContainsKey("Quantity") &&
             _csvHeaders.Any(h => h.Contains("Oreder", StringComparison.OrdinalIgnoreCase)))
         {
             _columnMapping["Quantity"] = _csvHeaders.First(h => h.Contains("Oreder", StringComparison.OrdinalIgnoreCase));
         }
-        
-        // Add debug logging to see what mappings were created
-        System.Diagnostics.Debug.WriteLine("Column mappings created:");
-        foreach (var mapping in _columnMapping)
-        {
-            System.Diagnostics.Debug.WriteLine($"  Bean property '{mapping.Key}' -> CSV column '{mapping.Value}'");
-        }
-        
+
         // Apply mappings to pickers
         SetPickerSelectionFromMapping();
     }
@@ -187,7 +178,7 @@ public partial class BeanImportPage : ContentPage
                 }
             }
         }
-        
+
         // Set all pickers
         SetPickerValue(CoffeeNamePicker, "CoffeeName");
         SetPickerValue(CountryPicker, "Country");
@@ -209,10 +200,10 @@ public partial class BeanImportPage : ContentPage
             {
                 return;
             }
-            
+
             string selectedColumnName = (string)picker.SelectedItem;
             string propertyName = "";
-            
+
             // Determine which property this picker represents
             if (picker == CoffeeNamePicker) propertyName = "CoffeeName";
             else if (picker == CountryPicker) propertyName = "Country";
@@ -223,10 +214,10 @@ public partial class BeanImportPage : ContentPage
             else if (picker == PricePicker) propertyName = "Price";
             else if (picker == NotesPicker) propertyName = "Notes";
             else if (picker == LinkPicker) propertyName = "Link";
-            
+
             // Update mapping
             _columnMapping[propertyName] = selectedColumnName;
-            
+
             // Update preview
             _ = UpdatePreview();
         }
@@ -237,50 +228,50 @@ public partial class BeanImportPage : ContentPage
         try
         {
             PreviewSection.IsVisible = true;
-            
+
             // Check if required mappings are present
             bool hasRequiredMappings = _columnMapping.ContainsKey("CoffeeName") && _columnMapping.ContainsKey("Country");
-            
+
             if (!hasRequiredMappings)
             {
                 PreviewStatusLabel.Text = "Please map both Coffee Name and Country to continue.";
                 ImportButton.IsEnabled = false;
                 return;
             }
-            
+
             // Count rows in preview
             if (_previewData.Count == 0 && !string.IsNullOrEmpty(_selectedFilePath))
             {
                 // Load preview data if not already loaded
                 _previewData = await _beanService.ReadCsvContentAsync(_selectedFilePath, 5);
             }
-            
+
             int totalRows = _previewData.Count;
-            
+
             if (totalRows == 0)
             {
                 PreviewStatusLabel.Text = "No data rows found in CSV file.";
                 ImportButton.IsEnabled = false;
                 return;
             }
-            
+
             // Count how many rows have coffee name and country
             int validRows = 0;
             foreach (var row in _previewData)
             {
                 string coffeeName = GetMappedValue(row, "CoffeeName");
                 string country = GetMappedValue(row, "Country");
-                
+
                 if (!string.IsNullOrWhiteSpace(coffeeName) && !string.IsNullOrWhiteSpace(country))
                 {
                     validRows++;
                 }
             }
-            
+
             // Show preview statistics
             PreviewStatusLabel.Text = $"Found {validRows} valid beans out of {totalRows} rows in the preview.\n" +
                               $"The first bean will be '{GetMappedValue(_previewData[0], "CoffeeName")}' from {GetMappedValue(_previewData[0], "Country")}.";
-            
+
             // Enable import button if we have valid data
             ImportButton.IsEnabled = validRows > 0;
         }
@@ -291,17 +282,17 @@ public partial class BeanImportPage : ContentPage
             ImportButton.IsEnabled = false;
         }
     }
-    
+
     // Helper to get value from a row using the mapping
     private string GetMappedValue(Dictionary<string, string> row, string propertyName)
     {
-        if (_columnMapping.TryGetValue(propertyName, out var columnName) && 
+        if (_columnMapping.TryGetValue(propertyName, out var columnName) &&
             columnName != null &&
             row.TryGetValue(columnName, out var value))
         {
             return value ?? string.Empty;
         }
-        
+
         return string.Empty;
     }
 
@@ -327,7 +318,7 @@ public partial class BeanImportPage : ContentPage
 
             // Show file picker
             var result = await FilePicker.Default.PickAsync(options);
-            
+
             if (result != null)
             {
                 // Reset UI state
@@ -337,38 +328,38 @@ public partial class BeanImportPage : ContentPage
                 MapFieldsSection.IsVisible = false;
                 PreviewSection.IsVisible = false;
                 ImportButton.IsEnabled = false;
-                
+
                 // Show loading indicator
                 LoadingIndicator.IsVisible = true;
                 LoadingIndicator.IsRunning = true;
-                
+
                 try
                 {
                     // Save selected file path
                     _selectedFilePath = result.FullPath;
                     FilePathEntry.Text = _selectedFilePath;
-                    
+
                     // Get CSV headers - use the static method
                     _csvHeaders = await BeanDataService.GetCsvHeadersAsync(_selectedFilePath);
-                    
+
                     if (_csvHeaders.Count == 0)
                     {
                         FileStatusLabel.Text = "Error: No headers found in CSV file";
                         return;
                     }
-                    
+
                     // Load preview data
                     _previewData = await _beanService.ReadCsvContentAsync(_selectedFilePath, 5);
-                    
+
                     // Update pickers with headers
                     UpdatePickersWithHeaders();
-                    
+
                     // Show mapping section
                     MapFieldsSection.IsVisible = true;
-                    
+
                     // Update preview section
                     await UpdatePreview();
-                    
+
                     FileStatusLabel.Text = $"Found {_csvHeaders.Count} columns and {_previewData.Count} rows in preview.";
                 }
                 catch (Exception ex)
@@ -398,7 +389,7 @@ public partial class BeanImportPage : ContentPage
             await DisplayAlert("Error", "Please select a CSV file first", "OK");
             return;
         }
-        
+
         try
         {
             // Show loading indicator
@@ -406,53 +397,42 @@ public partial class BeanImportPage : ContentPage
             LoadingIndicator.IsRunning = true;
             ImportButton.IsEnabled = false;
 
-            // Log what we're trying to import
-            System.Diagnostics.Debug.WriteLine("======= STARTING BEAN IMPORT =======");
-            System.Diagnostics.Debug.WriteLine($"Selected file: {_selectedFilePath}");
-            System.Diagnostics.Debug.WriteLine($"Column mappings: {string.Join(", ", _columnMapping.Select(m => $"{m.Key}={m.Value}"))}");
-            
             // Check path exists
             if (!File.Exists(_selectedFilePath))
             {
-                System.Diagnostics.Debug.WriteLine($"ERROR: File not found: {_selectedFilePath}");
                 await DisplayAlert("Error", $"File not found: {_selectedFilePath}", "OK");
                 return;
             }
-            
+
             // ADDITIONAL FIX: Get existing beans FIRST to avoid potential duplication
             var existingBeans = await _beanService.GetAllBeansAsync();
             int originalBeanCount = existingBeans.Count;
-            System.Diagnostics.Debug.WriteLine($"INITIAL BEAN COUNT BEFORE IMPORT: {originalBeanCount}");
-            
+
             // Verify if the existing beans already contain duplicates
             var distinctBeanIds = new HashSet<Guid>();
             bool existingDuplicates = false;
-            
+
             foreach (var bean in existingBeans)
             {
                 if (!distinctBeanIds.Add(bean.Id))
                 {
                     existingDuplicates = true;
-                    System.Diagnostics.Debug.WriteLine($"DUPLICATE BEAN DETECTED IN EXISTING DATA - ID: {bean.Id}, Name: {bean.CoffeeName}");
                 }
             }
-            
+
             if (existingDuplicates)
             {
                 bool shouldContinue = await DisplayAlert(
-                    "Existing Duplicates", 
-                    "Your database already contains duplicate beans. Would you like to remove them before importing?", 
+                    "Existing Duplicates",
+                    "Your database already contains duplicate beans. Would you like to remove them before importing?",
                     "Yes, clean up duplicates", "No, continue anyway");
-                    
+
                 if (shouldContinue)
                 {
-                    // Remove duplicates before proceeding
-                    System.Diagnostics.Debug.WriteLine("Removing existing duplicates before import...");
-                    
                     // Create a deduplicated list based on unique IDs
                     var deduplicatedBeans = new List<BeanData>();
                     var processedIds = new HashSet<Guid>();
-                    
+
                     foreach (var bean in existingBeans)
                     {
                         if (processedIds.Add(bean.Id))
@@ -460,68 +440,56 @@ public partial class BeanImportPage : ContentPage
                             deduplicatedBeans.Add(bean);
                         }
                     }
-                    
+
                     // Save the deduplicated beans
                     bool saveResult = await _beanService.SaveBeansAsync(deduplicatedBeans);
-                    
+
                     if (!saveResult)
                     {
                         await DisplayAlert("Error", "Failed to remove duplicates from the database.", "OK");
                         return;
                     }
-                    
-                    System.Diagnostics.Debug.WriteLine($"Removed {existingBeans.Count - deduplicatedBeans.Count} duplicate beans. New count: {deduplicatedBeans.Count}");
+
                     existingBeans = deduplicatedBeans;
                 }
             }
 
             // Perform import
-            System.Diagnostics.Debug.WriteLine("Calling BeanService.ImportBeansFromCsvAsync...");
             var result = await _beanService.ImportBeansFromCsvAsync(_selectedFilePath, _columnMapping);
-            
-            System.Diagnostics.Debug.WriteLine($"Import result: Success={result.Success}, Failed={result.Failed}, Errors={result.Errors.Count}");
             foreach (var error in result.Errors)
             {
                 System.Diagnostics.Debug.WriteLine($"Import error: {error}");
             }
-            
+
             // ADDITIONAL FIX: Verify the beans weren't duplicated during import
             var afterImportBeans = await _beanService.GetAllBeansAsync();
             int afterImportCount = afterImportBeans.Count;
-            
-            System.Diagnostics.Debug.WriteLine($"BEAN COUNT AFTER IMPORT: {afterImportCount}");
-            System.Diagnostics.Debug.WriteLine($"EXPECTED COUNT: {originalBeanCount + result.Success}");
-            
+
             // Check for new duplicates
             var afterImportIds = new HashSet<Guid>();
             bool newDuplicatesFound = false;
-            
+
             foreach (var bean in afterImportBeans)
             {
                 if (!afterImportIds.Add(bean.Id))
                 {
                     newDuplicatesFound = true;
-                    System.Diagnostics.Debug.WriteLine($"NEW DUPLICATE FOUND AFTER IMPORT - ID: {bean.Id}, Name: {bean.CoffeeName}");
                 }
             }
-            
+
             if (newDuplicatesFound)
             {
-                System.Diagnostics.Debug.WriteLine("CRITICAL: Duplicates were created during this import operation!");
                 bool shouldFix = await DisplayAlert(
-                    "Duplication Detected", 
-                    "Beans were duplicated during import. Would you like to automatically fix this?", 
+                    "Duplication Detected",
+                    "Beans were duplicated during import. Would you like to automatically fix this?",
                     "Yes, remove duplicates", "No, keep as is");
-                    
+
                 if (shouldFix)
                 {
-                    // Fix the duplicates
-                    System.Diagnostics.Debug.WriteLine("Removing duplicates created during import...");
-                    
                     // Create a deduplicated list
                     var finalDedupedBeans = new List<BeanData>();
                     var finalProcessedIds = new HashSet<Guid>();
-                    
+
                     foreach (var bean in afterImportBeans)
                     {
                         if (finalProcessedIds.Add(bean.Id))
@@ -529,28 +497,23 @@ public partial class BeanImportPage : ContentPage
                             finalDedupedBeans.Add(bean);
                         }
                     }
-                    
+
                     // Save the deduplicated list
                     bool fixResult = await _beanService.SaveBeansAsync(finalDedupedBeans);
-                    
+
                     if (fixResult)
                     {
-                        System.Diagnostics.Debug.WriteLine($"Successfully removed {afterImportBeans.Count - finalDedupedBeans.Count} duplicates");
                         afterImportCount = finalDedupedBeans.Count;
-                    }
-                    else
-                    {
-                        System.Diagnostics.Debug.WriteLine("Failed to remove duplicates!");
                     }
                 }
             }
-            
+
             // Show result
             string message = $"Import complete!\n\n" +
                            $"Beans successfully imported: {result.Success}\n" +
                            $"Failed imports: {result.Failed}\n" +
                            $"Final bean count: {afterImportCount}";
-            
+
             if (result.Errors.Count > 0)
             {
                 message += "\n\nErrors:";
@@ -558,25 +521,20 @@ public partial class BeanImportPage : ContentPage
                 {
                     message += $"\n- {error}";
                 }
-                
+
                 if (result.Errors.Count > 5)
                 {
                     message += $"\n...and {result.Errors.Count - 5} more errors.";
                 }
             }
-            
-            System.Diagnostics.Debug.WriteLine($"Showing result dialog: {message}");
+
             await DisplayAlert("Import Complete", message, "OK");
-            
+
             // Return to bean inventory page
-            System.Diagnostics.Debug.WriteLine("Navigating back to Bean Inventory page");
             await Navigation.PopAsync();
         }
         catch (Exception ex)
         {
-            System.Diagnostics.Debug.WriteLine($"ERROR importing beans: {ex.Message}");
-            System.Diagnostics.Debug.WriteLine($"Exception type: {ex.GetType().Name}");
-            System.Diagnostics.Debug.WriteLine($"Stack trace: {ex.StackTrace}");
             await DisplayAlert("Error", $"Failed to import beans: {ex.Message}", "OK");
         }
         finally
@@ -585,7 +543,6 @@ public partial class BeanImportPage : ContentPage
             LoadingIndicator.IsVisible = false;
             LoadingIndicator.IsRunning = false;
             ImportButton.IsEnabled = true;
-            System.Diagnostics.Debug.WriteLine("======= BEAN IMPORT COMPLETED =======");
         }
     }
 
@@ -593,14 +550,14 @@ public partial class BeanImportPage : ContentPage
     {
         await Navigation.PopAsync();
     }
-    
+
     // Override OnBackButtonPressed to handle Android back button
     protected override bool OnBackButtonPressed()
     {
         // Use the same logic as CancelButton_Clicked but in a synchronous way
-        MainThread.BeginInvokeOnMainThread(() => {
+        MainThread.BeginInvokeOnMainThread(() =>
+        {
             Navigation.PopAsync();
-            System.Diagnostics.Debug.WriteLine("Navigated back using hardware back button in BeanImportPage");
         });
         return true; // Indicate we've handled the back button
     }

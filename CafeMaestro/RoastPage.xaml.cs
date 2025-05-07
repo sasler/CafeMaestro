@@ -24,7 +24,7 @@ public partial class RoastPage : ContentPage
     private RoastLevelService roastLevelService;
     private bool isTimerUpdating = false; // Flag to prevent recursive updates
     private string temporaryDigitsBuffer = ""; // Store digits before formatting
-    
+
     // First Crack tracking
     private int? firstCrackMinutes = null;
     private int? firstCrackSeconds = null;
@@ -33,10 +33,10 @@ public partial class RoastPage : ContentPage
     private Guid _editRoastId = Guid.Empty;
     private RoastData? _roastToEdit = null;
     private bool _isEditMode = false;
-    
+
     // Property to force new roast mode
     private bool _isForceNewRoast = false;
-    
+
     public string NewRoast
     {
         get => _isForceNewRoast.ToString();
@@ -45,10 +45,10 @@ public partial class RoastPage : ContentPage
             if (bool.TryParse(value, out bool isNew) && isNew)
             {
                 _isForceNewRoast = true;
-                System.Diagnostics.Debug.WriteLine("NewRoast property set to true - will force reset form");
-                
+
                 // Force a reset of the page for a new roast
-                MainThread.BeginInvokeOnMainThread(() => {
+                MainThread.BeginInvokeOnMainThread(() =>
+                {
                     ResetPageForNewRoast();
                 });
             }
@@ -62,10 +62,9 @@ public partial class RoastPage : ContentPage
         {
             if (Guid.TryParse(value, out Guid parsedId))
             {
-                System.Diagnostics.Debug.WriteLine($"Setting EditRoastId to: {parsedId}");
                 _editRoastId = parsedId;
                 _isEditMode = true;
-                
+
                 // Delay the data loading to ensure the page is fully ready
                 MainThread.BeginInvokeOnMainThread(async () =>
                 {
@@ -73,11 +72,10 @@ public partial class RoastPage : ContentPage
                     {
                         // Reset any previous selections to avoid conflicts
                         selectedBean = null;
-                        
+
                         // Clear and wait for page to be ready
                         await Task.Delay(50);
-                        
-                        System.Diagnostics.Debug.WriteLine($"Now loading data for edit ID: {_editRoastId}");
+
                         await Task.Run(() => LoadRoastDataForEdit());
                     }
                     catch (Exception ex)
@@ -96,7 +94,7 @@ public partial class RoastPage : ContentPage
     // Store the selected bean for roasting
     private BeanData? selectedBean = null;
     private List<BeanData> availableBeans = new List<BeanData>();
-    
+
     // Previous roast tracking
     private RoastData? _previousRoast = null;
     public bool HasPreviousRoast => _previousRoast != null;
@@ -170,14 +168,12 @@ public partial class RoastPage : ContentPage
                                      throw new InvalidOperationException("RoastLevelService not available");
         }
 
-        System.Diagnostics.Debug.WriteLine($"RoastPage constructor - Using AppDataService at path: {this.appDataService.DataFilePath}");
-
         this.timerService.TimeUpdated += OnTimeUpdated;
 
         // Attach event handlers for weight entry text changes
         BatchWeightEntry.TextChanged += OnWeightEntryTextChanged;
         FinalWeightEntry.TextChanged += OnWeightEntryTextChanged;
-        
+
         // Attach event handler for batch weight validation
         BatchWeightEntry.TextChanged += BatchWeightEntry_TextChanged;
 
@@ -243,48 +239,35 @@ public partial class RoastPage : ContentPage
 
         // Track the current edit ID before potentially making changes that affect state
         Guid currentEditId = _editRoastId;
-        
+
         // Check if we're being navigated to from the tab bar
         bool isFromTabBar = CheckIfNavigationFromTabBar();
-        
-        System.Diagnostics.Debug.WriteLine($"RoastPage.OnAppearing - IsEditMode: {_isEditMode}, IsFromTabBar: {isFromTabBar}, EditId: {currentEditId}, ForceNew: {_isForceNewRoast}");
 
         // If we're coming from the tab bar or the force new flag is set, and we're not in edit mode, reset the form
         if ((isFromTabBar || _isForceNewRoast) && currentEditId == Guid.Empty)
         {
-            System.Diagnostics.Debug.WriteLine("RoastPage appearing - resetting form for new roast");
             ResetPageForNewRoast();
             ClearForm(); // Make sure we call ClearForm explicitly
-            
+
             // Reset First Crack tracking
             ResetFirstCrackTracking();
-        }
-        else if (isFromTabBar && currentEditId != Guid.Empty)
-        {
-            // Coming from tab bar with an edit ID - make sure we preserve it
-            System.Diagnostics.Debug.WriteLine($"RoastPage appearing from tab bar with edit ID: {currentEditId} - preserving edit mode");
         }
         else if (!_isEditMode)
         {
             // Always reset the form if we're not in edit mode, regardless of the navigation source
-            System.Diagnostics.Debug.WriteLine("RoastPage appearing without edit mode - forcing form reset");
             ResetPageForNewRoast();
             ClearForm(); // Make sure we call ClearForm explicitly
-            
+
             // Reset First Crack tracking
             ResetFirstCrackTracking();
         }
-        else
-        {
-            System.Diagnostics.Debug.WriteLine($"RoastPage appearing in edit mode - keeping form data");
-        }
-        
+
         // Reset the force new flag
         _isForceNewRoast = false;
 
         // Refresh beans when returning to this page
         await LoadAvailableBeans();
-        
+
         // Run validation on the batch weight (if any)
         ValidateBatchWeight();
     }
@@ -298,7 +281,6 @@ public partial class RoastPage : ContentPage
             if (Shell.Current?.CurrentItem != null)
             {
                 var currentRoute = Shell.Current.CurrentItem.Route;
-                System.Diagnostics.Debug.WriteLine($"Current route: {currentRoute}");
 
                 // If the current route is "RoastPage", it's likely coming from the tab bar
                 return currentRoute == "RoastPage";
@@ -325,7 +307,7 @@ public partial class RoastPage : ContentPage
 
         // Clear form fields
         ClearForm();
-        
+
         // Reset First Crack tracking
         ResetFirstCrackTracking();
     }
@@ -345,9 +327,6 @@ public partial class RoastPage : ContentPage
                 // 1. Filters out beans with RemainingQuantity <= 0 
                 // 2. Orders by purchase date (newest first) then by display name
                 availableBeans = await beanService.GetSortedAvailableBeansAsync();
-
-                // Log the count for debugging
-                System.Diagnostics.Debug.WriteLine($"Loaded {availableBeans.Count} sorted available beans");
 
                 if (availableBeans.Count > 0)
                 {
@@ -398,12 +377,12 @@ public partial class RoastPage : ContentPage
         if (BeanPicker.SelectedIndex >= 0 && BeanPicker.SelectedIndex < availableBeans.Count)
         {
             selectedBean = availableBeans[BeanPicker.SelectedIndex];
-            
+
             // Look up previous roast of this bean type
             if (selectedBean != null)
             {
                 await LoadPreviousRoastData(selectedBean.DisplayName);
-                
+
                 // Validate the batch weight against the newly selected bean's remaining quantity
                 ValidateBatchWeight();
             }
@@ -414,7 +393,7 @@ public partial class RoastPage : ContentPage
             // Clear previous roast data when no bean is selected
             _previousRoast = null;
             UpdatePreviousRoastDisplay();
-            
+
             // Hide any validation warnings when no bean is selected
             BatchWeightWarningLabel.IsVisible = false;
         }
@@ -426,54 +405,49 @@ public partial class RoastPage : ContentPage
         try
         {
             _previousRoast = await roastDataService.GetLastRoastForBeanTypeAsync(beanType);
-            
+
             // Update the UI to show/hide previous roast info
             UpdatePreviousRoastDisplay();
-            
-            if (_previousRoast != null)
-            {
-                System.Diagnostics.Debug.WriteLine($"Loaded previous roast: {_previousRoast.Summary}");
-            }
         }
-        catch (Exception ex)
+        catch
         {
-            System.Diagnostics.Debug.WriteLine($"Error loading previous roast: {ex.Message}");
             _previousRoast = null;
             // Update UI to hide previous roast section
             UpdatePreviousRoastDisplay();
         }
     }
-    
+
     // Method to update the previous roast display
     private void UpdatePreviousRoastDisplay()
     {
-        MainThread.BeginInvokeOnMainThread(() => {
+        MainThread.BeginInvokeOnMainThread(() =>
+        {
             // Only show previous roast section if we have data
             PreviousRoastInfoSection.IsVisible = HasPreviousRoast;
-            
+
             if (HasPreviousRoast && _previousRoast != null)
             {
                 // Format date to a user-friendly format
                 string dateText = _previousRoast.RoastDate.ToString("MM/dd/yyyy");
-                
+
                 // First line: Date and summary
                 PreviousRoastSummaryLabel.Text = $"{dateText}: {_previousRoast.RoastLevelName} roast";
-                
+
                 // Second line: Details
                 StringBuilder details = new StringBuilder();
                 details.Append($"Batch: {_previousRoast.BatchWeight:F1}g | ");
                 details.Append($"Temp: {_previousRoast.Temperature}°C | ");
                 details.Append($"Time: {_previousRoast.FormattedTime} | ");
                 details.Append($"Loss: {_previousRoast.WeightLossPercentage:F1}%");
-                
+
                 // Add first crack info if available
                 if (_previousRoast.FirstCrackSeconds.HasValue)
                 {
                     details.Append($" | First Crack: {_previousRoast.FirstCrackTime}");
                 }
-                
+
                 PreviousRoastDetailsLabel.Text = details.ToString();
-                
+
                 // If we need to prefill form fields, do it here - will be handled separately
                 PrefillFieldsFromPreviousRoast();
             }
@@ -484,13 +458,13 @@ public partial class RoastPage : ContentPage
             }
         });
     }
-    
+
     // New method to handle batch weight validation
     private void BatchWeightEntry_TextChanged(object? sender, TextChangedEventArgs e)
     {
         ValidateBatchWeight();
     }
-    
+
     // Method to validate batch weight against available bean quantity
     private void ValidateBatchWeight()
     {
@@ -504,13 +478,13 @@ public partial class RoastPage : ContentPage
                 StartTimerButton.IsEnabled = true;
                 return;
             }
-            
+
             // Parse batch weight and validate against remaining quantity
             if (double.TryParse(BatchWeightEntry.Text, out double batchWeight) && batchWeight > 0)
             {
                 // Calculate available beans in grams (convert kg to g)
                 double availableBeans = selectedBean.RemainingQuantity * 1000.0;
-                
+
                 // Check if batch weight exceeds available quantity
                 if (batchWeight > availableBeans)
                 {
@@ -518,7 +492,7 @@ public partial class RoastPage : ContentPage
                     BatchWeightWarningLabel.Text = $"Insufficient beans available! (only {availableBeans:F1} g remaining)";
                     BatchWeightWarningLabel.IsVisible = true;
                     StartTimerButton.IsEnabled = false;
-                    
+
                     System.Diagnostics.Debug.WriteLine($"Batch weight validation failed: {batchWeight}g exceeds available {availableBeans}g");
                 }
                 else
@@ -526,8 +500,6 @@ public partial class RoastPage : ContentPage
                     // Clear warning and enable timer start button
                     BatchWeightWarningLabel.IsVisible = false;
                     StartTimerButton.IsEnabled = true;
-                    
-                    System.Diagnostics.Debug.WriteLine($"Batch weight validation passed: {batchWeight}g <= {availableBeans}g available");
                 }
             }
             else
@@ -869,7 +841,7 @@ public partial class RoastPage : ContentPage
 
         // Disable manual editing while timer is running
         TimeEntry.IsEnabled = false;
-        
+
         // Update First Crack button state based on timer running
         UpdateFirstCrackButtonState(true);
 
@@ -886,7 +858,7 @@ public partial class RoastPage : ContentPage
 
         // Re-enable manual editing when timer is paused
         TimeEntry.IsEnabled = true;
-        
+
         // Update First Crack button state when timer is paused
         UpdateFirstCrackButtonState(false);
 
@@ -905,7 +877,7 @@ public partial class RoastPage : ContentPage
 
         // Re-enable manual editing when timer is stopped
         TimeEntry.IsEnabled = true;
-        
+
         // Update First Crack button state when timer is stopped
         UpdateFirstCrackButtonState(false);
 
@@ -928,7 +900,7 @@ public partial class RoastPage : ContentPage
 
         // Re-enable manual editing when timer is reset
         TimeEntry.IsEnabled = true;
-        
+
         // Reset First Crack tracking when timer is reset
         ResetFirstCrackTracking();
 
@@ -1074,9 +1046,8 @@ public partial class RoastPage : ContentPage
                 TimeDisplayLabel.Opacity = 1.0;
             });
         }
-        catch (Exception ex)
+        catch
         {
-            System.Diagnostics.Debug.WriteLine($"Error stopping timer edit animation: {ex.Message}");
             // Ensure the display is reset even if there's an error
             if (TimeDisplayLabel != null)
             {
@@ -1091,19 +1062,17 @@ public partial class RoastPage : ContentPage
 
         // Stop the timer when leaving the page
         timerService.Stop();
-        
+
         // Store whether we were in edit mode before completing
         bool wasInEditMode = _isEditMode;
-        
+
         // Reset the edit flags but keep the ID temporarily for debugging
         Guid previousEditId = _editRoastId;
-        
+
         // Reset edit mode flags but don't clear form data yet
         _isEditMode = false;
         _roastToEdit = null;
         _editRoastId = Guid.Empty;
-        
-        System.Diagnostics.Debug.WriteLine($"RoastPage.OnDisappearing - Cleared edit mode. Was editing: {wasInEditMode}, ID: {previousEditId}");
     }
 
     private void OnWeightEntryTextChanged(object? sender, TextChangedEventArgs e)
@@ -1126,46 +1095,40 @@ public partial class RoastPage : ContentPage
         {
             // Get current time from timer service
             TimeSpan currentTime = timerService.GetElapsedTime();
-            
+
             // Store first crack time
             firstCrackMinutes = currentTime.Minutes;
             firstCrackSeconds = currentTime.Seconds;
-            
+
             // Update UI
             FirstCrackLabel.Text = $"First Crack: {firstCrackMinutes:D2}:{firstCrackSeconds:D2}";
-            
+
             // Disable the button to prevent multiple presses
             FirstCrackButton.IsEnabled = false;
-            
-            // Log the first crack event
-            System.Diagnostics.Debug.WriteLine($"First Crack marked at {firstCrackMinutes:D2}:{firstCrackSeconds:D2}");
         }
-        catch (Exception ex)
+        catch
         {
-            // Provide a more descriptive error message
-            System.Diagnostics.Debug.WriteLine($"Error marking First Crack: {ex.Message}");
-            System.Diagnostics.Debug.WriteLine($"Stack trace: {ex.StackTrace}");
-            
             // Ensure UI is reset if there's an error
             ResetFirstCrackTracking();
-            
+
             // Display an error message to the user
-            MainThread.BeginInvokeOnMainThread(async () => {
+            MainThread.BeginInvokeOnMainThread(async () =>
+            {
                 await DisplayAlert("Error", "Failed to mark First Crack. Please try again.", "OK");
             });
         }
     }
-    
+
     // Method to reset First Crack tracking
     private void ResetFirstCrackTracking()
     {
         firstCrackMinutes = null;
         firstCrackSeconds = null;
-        
+
         // Reset UI elements
         FirstCrackLabel.Text = "First Crack: Not marked";
         FirstCrackButton.IsEnabled = false;
-        
+
         // Reset the button's background color to the application's accent color.
         // This ensures the button visually aligns with the app's theme after being reset.
         if (Application.Current?.Resources != null &&
@@ -1200,13 +1163,10 @@ public partial class RoastPage : ContentPage
 
             if (isUpdatingExisting)
             {
-                // Update existing roast data
-                System.Diagnostics.Debug.WriteLine($"Updating existing roast with ID: {_roastToEdit!.Id}");
-
                 // Create an updated roast object (keeping the original ID and date)
                 var updatedRoast = new RoastData
                 {
-                    Id = _roastToEdit.Id,
+                    Id = _roastToEdit!.Id,
                     RoastDate = _roastToEdit.RoastDate,
                     BeanType = selectedBean?.DisplayName ?? _roastToEdit.BeanType,
                     Temperature = temperature,
@@ -1219,10 +1179,10 @@ public partial class RoastPage : ContentPage
                     FirstCrackSeconds = firstCrackSeconds
                     // RoastLevelName will be set in UpdateRoastLogAsync
                 };
-                
+
                 // Use the service to update the roast
                 success = await roastDataService.UpdateRoastLogAsync(updatedRoast);
-                
+
                 if (success)
                 {
                     await DisplayAlert("Success", "Roast data updated successfully!", "OK");
@@ -1253,8 +1213,6 @@ public partial class RoastPage : ContentPage
                     FirstCrackSeconds = firstCrackSeconds
                     // RoastLevelName will be set in SaveRoastDataAsync
                 };
-                
-                System.Diagnostics.Debug.WriteLine($"Creating new roast for {roastData.BeanType}");
 
                 // Update bean inventory (reduce remaining quantity)
                 if (selectedBean != null)
@@ -1307,7 +1265,7 @@ public partial class RoastPage : ContentPage
 
         // Reset labels
         LossPercentLabel.Text = "";
-        
+
         // Reset First Crack tracking
         ResetFirstCrackTracking();
     }
@@ -1359,7 +1317,6 @@ public partial class RoastPage : ContentPage
                 MainThread.BeginInvokeOnMainThread(() =>
                 {
                     Shell.Current.CurrentItem = Shell.Current.Items[0]; // MainPage is the first item
-                    System.Diagnostics.Debug.WriteLine("Navigated back to MainPage using hardware back button in RoastPage");
                 });
                 return true; // Indicate we've handled the back button
             }
@@ -1379,7 +1336,6 @@ public partial class RoastPage : ContentPage
         {
             if (_editRoastId == Guid.Empty)
             {
-                System.Diagnostics.Debug.WriteLine("LoadRoastDataForEdit called but edit ID is empty");
                 return; // Not in edit mode
             }
 
@@ -1388,12 +1344,9 @@ public partial class RoastPage : ContentPage
 
             if (_roastToEdit == null)
             {
-                System.Diagnostics.Debug.WriteLine($"Failed to find roast with ID: {_editRoastId}");
                 await DisplayAlert("Error", "Failed to find the roast data for editing", "OK");
                 return;
             }
-
-            System.Diagnostics.Debug.WriteLine($"Found roast to edit: {_roastToEdit.BeanType} from {_roastToEdit.RoastDate}");
 
             // Update the UI with the roast data - ensure we await this call
             await MainThread.InvokeOnMainThreadAsync(async () =>
@@ -1408,7 +1361,7 @@ public partial class RoastPage : ContentPage
 
                     // Load beans first to ensure the picker is populated before we try to select an item
                     await LoadAvailableBeans();
-                    
+
                     // Important: After loading beans, wait briefly to ensure UI is updated
                     await Task.Delay(100);
 
@@ -1425,13 +1378,13 @@ public partial class RoastPage : ContentPage
 
                     // Set notes
                     NotesEditor.Text = _roastToEdit.Notes;
-                    
+
                     // Set First Crack data if it was marked
                     if (_roastToEdit.FirstCrackSeconds.HasValue)
                     {
                         firstCrackMinutes = _roastToEdit.FirstCrackMinutes;
                         firstCrackSeconds = _roastToEdit.FirstCrackSeconds;
-                        
+
                         FirstCrackLabel.Text = $"First Crack: {firstCrackMinutes:D2}:{firstCrackSeconds:D2}";
                         FirstCrackButton.IsEnabled = false;
                         FirstCrackButton.BackgroundColor = Colors.Gray;
@@ -1448,14 +1401,9 @@ public partial class RoastPage : ContentPage
 
                     // Now select the correct bean in the picker - make sure we have the bean type
                     string beanTypeToSelect = _roastToEdit.BeanType;
-                    System.Diagnostics.Debug.WriteLine($"Now attempting to select bean: '{beanTypeToSelect}'");
                     if (!string.IsNullOrEmpty(beanTypeToSelect))
                     {
                         await SelectBeanInPicker(beanTypeToSelect);
-                    }
-                    else
-                    {
-                        System.Diagnostics.Debug.WriteLine("Bean type from roast data is empty!");
                     }
                 }
                 catch (Exception ex)
@@ -1465,10 +1413,8 @@ public partial class RoastPage : ContentPage
                 }
             });
         }
-        catch (Exception ex)
+        catch
         {
-            System.Diagnostics.Debug.WriteLine($"Error loading roast data for edit: {ex.Message}");
-            System.Diagnostics.Debug.WriteLine($"Stack trace: {ex.StackTrace}");
             await DisplayAlert("Error", "Failed to load roast data for editing", "OK");
         }
     }
@@ -1480,23 +1426,7 @@ public partial class RoastPage : ContentPage
         {
             if (string.IsNullOrEmpty(beanType))
             {
-                System.Diagnostics.Debug.WriteLine("Bean type is empty, cannot select in picker");
                 return;
-            }
-
-            System.Diagnostics.Debug.WriteLine($"Trying to select bean: '{beanType}' in picker with {BeanPicker.Items.Count} items");
-            System.Diagnostics.Debug.WriteLine($"Available beans count: {availableBeans.Count}");
-
-            // Debug: Print all available items in picker for comparison
-            for (int i = 0; i < BeanPicker.Items.Count; i++)
-            {
-                System.Diagnostics.Debug.WriteLine($"BeanPicker Item {i}: '{BeanPicker.Items[i]}'");
-            }
-
-            // Debug: Print all available beans objects 
-            for (int i = 0; i < availableBeans.Count; i++)
-            {
-                System.Diagnostics.Debug.WriteLine($"AvailableBeans Item {i}: '{availableBeans[i].DisplayName}' (ID: {availableBeans[i].Id})");
             }
 
             // Disable the BeanPicker_SelectedIndexChanged event temporarily to avoid side effects
@@ -1509,7 +1439,6 @@ public partial class RoastPage : ContentPage
                 if (string.Equals(BeanPicker.Items[i], beanType, StringComparison.Ordinal))
                 {
                     beanIndex = i;
-                    System.Diagnostics.Debug.WriteLine($"Found exact match for bean '{beanType}' at index {beanIndex}");
                     break;
                 }
             }
@@ -1522,7 +1451,6 @@ public partial class RoastPage : ContentPage
                     if (string.Equals(BeanPicker.Items[i], beanType, StringComparison.OrdinalIgnoreCase))
                     {
                         beanIndex = i;
-                        System.Diagnostics.Debug.WriteLine($"Found case-insensitive match for bean '{beanType}' at index {beanIndex}");
                         break;
                     }
                 }
@@ -1537,7 +1465,6 @@ public partial class RoastPage : ContentPage
                         beanType.Contains(BeanPicker.Items[i], StringComparison.OrdinalIgnoreCase))
                     {
                         beanIndex = i;
-                        System.Diagnostics.Debug.WriteLine($"Found partial match for bean '{beanType}' at index {beanIndex}: '{BeanPicker.Items[i]}'");
                         break;
                     }
                 }
@@ -1547,23 +1474,15 @@ public partial class RoastPage : ContentPage
             if (beanIndex >= 0 && beanIndex < BeanPicker.Items.Count)
             {
                 // Update UI on main thread since we're modifying UI elements
-                await MainThread.InvokeOnMainThreadAsync(() => {
+                await MainThread.InvokeOnMainThreadAsync(() =>
+                {
                     BeanPicker.SelectedIndex = beanIndex;
 
                     if (beanIndex < availableBeans.Count)
                     {
                         selectedBean = availableBeans[beanIndex];
-                        System.Diagnostics.Debug.WriteLine($"Selected bean at index {beanIndex}: '{BeanPicker.Items[beanIndex]}' with ID: {selectedBean.Id}");
-                    }
-                    else
-                    {
-                        System.Diagnostics.Debug.WriteLine($"Bean index {beanIndex} is out of range for availableBeans (Count: {availableBeans.Count})");
                     }
                 });
-            }
-            else
-            {
-                System.Diagnostics.Debug.WriteLine($"Could not find bean '{beanType}' in the picker items");
             }
 
             // Re-enable the event handler
@@ -1595,16 +1514,12 @@ public partial class RoastPage : ContentPage
             // Only prefill if we're not in edit mode and we have previous roast data
             if (!_isEditMode && _previousRoast != null)
             {
-                System.Diagnostics.Debug.WriteLine($"Previous roast data: ID={_previousRoast.Id}, BatchWeight={_previousRoast.BatchWeight}, Temp={_previousRoast.Temperature}");
-
                 // Always prefill temperature field - bean selection happens first in workflow
                 TemperatureEntry.Text = _previousRoast.Temperature.ToString("F0");
-                System.Diagnostics.Debug.WriteLine($"Prefilled temperature: {TemperatureEntry.Text}");
-                
+
                 // Always prefill batch weight field - bean selection happens first in workflow
                 var batchWeightValue = _previousRoast.BatchWeight;
                 BatchWeightEntry.Text = batchWeightValue.ToString("F1");
-                System.Diagnostics.Debug.WriteLine($"Prefilled batch weight: {BatchWeightEntry.Text} (from value: {batchWeightValue})");
             }
         }
         catch (Exception ex)

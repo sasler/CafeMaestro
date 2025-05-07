@@ -80,7 +80,6 @@ public partial class RoastLogPage : ContentPage
         {
             // Get the data from the app directly instead of creating new services
             var appData = app.GetAppData();
-            System.Diagnostics.Debug.WriteLine($"RoastLogPage constructor - Getting data directly from App: {_appDataService.DataFilePath}");
 
             // Force the AppDataService to use the same path as the main app
             Task.Run(async () =>
@@ -93,7 +92,6 @@ public partial class RoastLogPage : ContentPage
                         string? savedPath = await _preferencesService.GetAppDataFilePathAsync();
                         if (!string.IsNullOrEmpty(savedPath))
                         {
-                            System.Diagnostics.Debug.WriteLine($"RoastLogPage - Setting path from preferences: {savedPath}");
                             await _appDataService.SetCustomFilePathAsync(savedPath);
                         }
                     }
@@ -105,19 +103,16 @@ public partial class RoastLogPage : ContentPage
             });
         }
 
-        System.Diagnostics.Debug.WriteLine($"RoastLogPage constructor - Using AppDataService at path: {_appDataService.DataFilePath}");
-
         _roastLogs = new ObservableCollection<RoastData>();
         RoastLogCollection.ItemsSource = _roastLogs;
 
         RefreshCommand = new Command(async () => await LoadRoastData());
-        
+
         // Edit command - navigate to RoastPage with the selected roast data
-        EditRoastCommand = new Command<RoastData>(async (roastData) => {
-            try {
-                // We already have the roast data from the collection view, so we can use it directly
-                System.Diagnostics.Debug.WriteLine($"Editing roast with ID: {roastData.Id}, Date: {roastData.RoastDate}");
-                
+        EditRoastCommand = new Command<RoastData>(async (roastData) =>
+        {
+            try
+            {
                 // Navigate to RoastPage with parameters - convert Guid to string
                 var navigationParameter = new Dictionary<string, object>
                 {
@@ -125,16 +120,17 @@ public partial class RoastLogPage : ContentPage
                 };
                 await Shell.Current.GoToAsync("//RoastPage", navigationParameter);
             }
-            catch (Exception ex)
+            catch
             {
-                System.Diagnostics.Debug.WriteLine($"Error preparing to edit roast: {ex.Message}");
                 await DisplayAlert("Error", "Error preparing to edit roast", "OK");
             }
         });
-        
+
         // Delete command - delete the selected roast data without confirmation
-        DeleteRoastCommand = new Command<RoastData>(async (roastData) => {
-            try {
+        DeleteRoastCommand = new Command<RoastData>(async (roastData) =>
+        {
+            try
+            {
                 // Use RoastDataService's DeleteRoastLogAsync method
                 bool success = await _roastDataService.DeleteRoastLogAsync(roastData.Id);
 
@@ -150,22 +146,23 @@ public partial class RoastLogPage : ContentPage
             }
             catch (Exception ex)
             {
-                System.Diagnostics.Debug.WriteLine($"Error deleting roast log: {ex.Message}");
                 await DisplayAlert("Error", $"Failed to delete roast log: {ex.Message}", "OK");
             }
         });
-        
+
         // Item tapped command - show action sheet for Windows users
-        ItemTappedCommand = new Command<RoastData>(async (roastData) => {
-            try {
+        ItemTappedCommand = new Command<RoastData>(async (roastData) =>
+        {
+            try
+            {
                 // Show action sheet with options
                 string action = await DisplayActionSheet(
-                    $"Roast from {roastData.RoastDate.ToString("MM/dd/yyyy")}", 
+                    $"Roast from {roastData.RoastDate.ToString("MM/dd/yyyy")}",
                     "Cancel",
                     null,
-                    "Edit", 
+                    "Edit",
                     "Delete");
-                
+
                 switch (action)
                 {
                     case "Edit":
@@ -178,7 +175,8 @@ public partial class RoastLogPage : ContentPage
                         break;
                 }
             }
-            catch (Exception ex) {
+            catch (Exception ex)
+            {
                 System.Diagnostics.Debug.WriteLine($"Error handling item tap: {ex.Message}");
             }
         });
@@ -193,7 +191,6 @@ public partial class RoastLogPage : ContentPage
 
     private void RoastLogPage_Loaded(object? sender, EventArgs e)
     {
-        System.Diagnostics.Debug.WriteLine("RoastLogPage_Loaded event triggered");
         // Refresh data when page is loaded
         MainThread.BeginInvokeOnMainThread(async () =>
         {
@@ -203,7 +200,6 @@ public partial class RoastLogPage : ContentPage
 
     private void RoastLogPage_NavigatedTo(object? sender, NavigatedToEventArgs e)
     {
-        System.Diagnostics.Debug.WriteLine("RoastLogPage_NavigatedTo event triggered");
         // Refresh data when navigated to this page
         MainThread.BeginInvokeOnMainThread(async () =>
         {
@@ -216,8 +212,6 @@ public partial class RoastLogPage : ContentPage
     {
         try
         {
-            System.Diagnostics.Debug.WriteLine("Force refreshing roast log data");
-
             // Force a reload from the data file
             await _appDataService.ReloadDataAsync();
 
@@ -225,7 +219,6 @@ public partial class RoastLogPage : ContentPage
             MainThread.BeginInvokeOnMainThread(() =>
             {
                 UpdateRoastLogsFromAppData(_appDataService.CurrentData);
-                System.Diagnostics.Debug.WriteLine($"Force refreshed roast logs with {_roastLogs.Count} logs");
             });
         }
         catch (Exception ex)
@@ -263,8 +256,6 @@ public partial class RoastLogPage : ContentPage
             _roastLogs.Add(log);
         }
 
-        System.Diagnostics.Debug.WriteLine($"Updated RoastLogPage with {_roastLogs.Count} logs from AppData");
-
         // Update the record count display
         UpdateRecordCount(_roastLogs.Count);
     }
@@ -272,21 +263,18 @@ public partial class RoastLogPage : ContentPage
     protected override void OnAppearing()
     {
         base.OnAppearing();
-        System.Diagnostics.Debug.WriteLine("RoastLogPage.OnAppearing");
 
         // Set RefreshView's command execution
         RoastLogRefreshView.Command = new Command(async () =>
         {
             try
             {
-                System.Diagnostics.Debug.WriteLine("RoastLogRefreshView.Command executing");
                 await RefreshRoastLogs();
             }
             finally
             {
                 // Always ensure IsRefreshing is set to false when complete
                 RoastLogRefreshView.IsRefreshing = false;
-                System.Diagnostics.Debug.WriteLine("RoastLogRefreshView.Command completed");
             }
         });
 
@@ -298,8 +286,6 @@ public partial class RoastLogPage : ContentPage
     {
         try
         {
-            System.Diagnostics.Debug.WriteLine("Refreshing roast logs from service...");
-
             // Get all roast logs from service
             var logs = await _roastDataService.GetAllRoastLogsAsync();
 
@@ -317,8 +303,6 @@ public partial class RoastLogPage : ContentPage
 
                 // Update the record count
                 UpdateRecordCount(logs.Count);
-
-                System.Diagnostics.Debug.WriteLine($"Refreshed roast logs: {_roastLogs.Count} loaded");
             });
         }
         catch (Exception ex)
@@ -340,8 +324,6 @@ public partial class RoastLogPage : ContentPage
             // Update UI on main thread
             await MainThread.InvokeOnMainThreadAsync(() =>
             {
-                System.Diagnostics.Debug.WriteLine($"Loaded {logs.Count} roast logs");
-
                 // Clear and repopulate the collection
                 _roastLogs.Clear();
 
@@ -358,7 +340,6 @@ public partial class RoastLogPage : ContentPage
         }
         catch (Exception ex)
         {
-            System.Diagnostics.Debug.WriteLine($"Error loading roast logs: {ex.Message}");
             await DisplayAlert("Error", $"Failed to load roast logs: {ex.Message}", "OK");
         }
         finally
@@ -407,12 +388,10 @@ public partial class RoastLogPage : ContentPage
         try
         {
             // Navigate to the roast import page
-            System.Diagnostics.Debug.WriteLine("Navigating to RoastImportPage");
             await Navigation.PushAsync(new RoastImportPage());
         }
         catch (Exception ex)
         {
-            System.Diagnostics.Debug.WriteLine($"Error navigating to RoastImportPage: {ex.Message}");
             await DisplayAlert("Error", $"Could not navigate to import page: {ex.Message}", "OK");
         }
     }
@@ -427,13 +406,11 @@ public partial class RoastLogPage : ContentPage
             {
                 { "NewRoast", "true" }  // Add parameter to signal this is a new roast
             };
-            
-            System.Diagnostics.Debug.WriteLine("Navigating to RoastPage for NEW roast");
+
             await Shell.Current.GoToAsync("//RoastPage", navigationParameter);
         }
         catch (Exception ex)
         {
-            System.Diagnostics.Debug.WriteLine($"Error navigating to RoastPage: {ex.Message}");
             await DisplayAlert("Error", $"Could not navigate to roast page: {ex.Message}", "OK");
         }
     }
@@ -451,7 +428,6 @@ public partial class RoastLogPage : ContentPage
                 MainThread.BeginInvokeOnMainThread(() =>
                 {
                     Shell.Current.CurrentItem = Shell.Current.Items[0]; // MainPage is the first item
-                    System.Diagnostics.Debug.WriteLine("Navigated back to MainPage using hardware back button");
                 });
                 return true; // Indicate we've handled the back button
             }
