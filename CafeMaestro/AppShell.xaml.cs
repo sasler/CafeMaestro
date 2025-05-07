@@ -24,8 +24,6 @@ public partial class AppShell : Shell
 				Application.Current.Resources["ServiceProvider"] = sp;
 			else
 				Application.Current.Resources.Add("ServiceProvider", sp);
-				
-			System.Diagnostics.Debug.WriteLine("AppShell initialized with service provider from Application");
 		}
 		else
 		{
@@ -54,8 +52,6 @@ public partial class AppShell : Shell
 				Application.Current.Resources["ServiceProvider"] = serviceProvider;
 			else
 				Application.Current.Resources.Add("ServiceProvider", serviceProvider);
-				
-			System.Diagnostics.Debug.WriteLine("AppShell initialized with provided service provider");
 		}
 
 		// Register routes for navigation
@@ -87,9 +83,6 @@ public partial class AppShell : Shell
 	
 	private void OnNavigated(object? sender, ShellNavigatedEventArgs e)
 	{
-		// Called after navigation is complete
-		System.Diagnostics.Debug.WriteLine($"Navigated to: {e.Current.Location}");
-		
 		// Pass app data to the current page if needed
 		if (CurrentPage != null && Application.Current is App app)
 		{

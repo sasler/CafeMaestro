@@ -13,7 +13,7 @@ public partial class App : Application
 
     // Flag to track if first run setup is needed (to avoid firing it multiple times)
     private bool _firstRunSetupNeeded = false;
-    
+
     // The initial page for the primary window
     private Page _initialPage;
 
@@ -23,71 +23,52 @@ public partial class App : Application
 
         // Initialize services with proper fallbacks
         IServiceProvider? serviceProvider = null;
-        
+
         // Try to get the service provider from different sources depending on initialization state
         if (Handler?.MauiContext?.Services is IServiceProvider provider)
         {
             serviceProvider = provider;
             Resources["ServiceProvider"] = serviceProvider;
-            System.Diagnostics.Debug.WriteLine("App.xaml.cs: Obtained service provider from Handler.MauiContext.Services");
         }
         else if (IPlatformApplication.Current?.Services is IServiceProvider platformProvider)
         {
             serviceProvider = platformProvider;
             Resources["ServiceProvider"] = serviceProvider;
-            System.Diagnostics.Debug.WriteLine("App.xaml.cs: Obtained service provider from IPlatformApplication.Current.Services");
         }
         else
         {
-            System.Diagnostics.Debug.WriteLine("App.xaml.cs: Could not get service provider from standard sources");
-            
             // Create a minimal service provider for the LoadingPage to use
             var serviceCollection = new ServiceCollection();
             serviceCollection.AddSingleton<AppDataService>();
             serviceCollection.AddSingleton<PreferencesService>();
             serviceProvider = serviceCollection.BuildServiceProvider();
             Resources["ServiceProvider"] = serviceProvider;
-            System.Diagnostics.Debug.WriteLine("App.xaml.cs: Created minimal service provider as fallback");
         }
-        
+
         // Get services using GetService with null fallbacks
         _appDataService = serviceProvider.GetService<AppDataService>() ?? new AppDataService();
         _preferencesService = serviceProvider.GetService<PreferencesService>() ?? new PreferencesService();
-        
-        // Log version tracking information
-        System.Diagnostics.Debug.WriteLine($"App Version: {AppInfo.Current.VersionString} (Build {AppInfo.Current.BuildString})");
-        System.Diagnostics.Debug.WriteLine($"First launch ever: {VersionTracking.IsFirstLaunchEver}");
-        System.Diagnostics.Debug.WriteLine($"First launch for version: {VersionTracking.IsFirstLaunchForCurrentVersion}");
-        System.Diagnostics.Debug.WriteLine($"First installed version: {VersionTracking.FirstInstalledVersion}");
-        System.Diagnostics.Debug.WriteLine($"Previous version: {VersionTracking.PreviousVersion ?? "None"}");
-        System.Diagnostics.Debug.WriteLine($"Version history: {string.Join(", ", VersionTracking.VersionHistory)}");
-        
-        System.Diagnostics.Debug.WriteLine($"App.xaml.cs: AppDataService: {_appDataService.GetHashCode()}");
-        System.Diagnostics.Debug.WriteLine($"App.xaml.cs: AppDataService created");
-        
+
         // Create the initial page
         _initialPage = new LoadingPage(serviceProvider);
-        
+
         // Subscribe to data changed events
         _appDataService.DataChanged += OnAppDataChanged;
-        
+
         // Load theme preference
         LoadThemePreference();
     }
-    
+
     // Method to set first run flag from LoadingPage
     public void SetFirstRunNeeded(bool needed)
     {
         _firstRunSetupNeeded = needed;
-        System.Diagnostics.Debug.WriteLine($"App.xaml.cs: First run needed set to {needed}");
     }
-    
+
     // Handle data changes
     private void OnAppDataChanged(object? sender, Models.AppData appData)
     {
         _appData = appData;
-        System.Diagnostics.Debug.WriteLine("App.xaml.cs: Data updated - " +
-            $"Beans: {appData.Beans?.Count ?? 0}, Roasts: {appData.RoastLogs?.Count ?? 0}");
     }
 
     protected override Window CreateWindow(IActivationState? activationState)
@@ -96,14 +77,13 @@ public partial class App : Application
         {
             // Create a window with the initial page that was prepared in the constructor
             var window = new Window(_initialPage);
-            
+
             // Subscribe to window created event to show first run dialog if needed
             window.Created += (s, e) =>
             {
                 // If current Page is AppShell and first run is needed, show dialog
                 if (_firstRunSetupNeeded && window.Page is AppShell)
                 {
-                    System.Diagnostics.Debug.WriteLine("First run setup needed, showing dialog after UI is ready");
                     // Show first run setup dialog after a short delay to ensure UI is ready
                     Task.Delay(500).ContinueWith(async _ =>
                     {
@@ -114,20 +94,18 @@ public partial class App : Application
                     });
                 }
             };
-            
+
             return window;
         }
         catch (Exception ex)
         {
-            System.Diagnostics.Debug.WriteLine($"Error in CreateWindow: {ex.Message}");
-            System.Diagnostics.Debug.WriteLine(ex.StackTrace);
-            
+            System.Diagnostics.Debug.WriteLine($"Error creating window: {ex.Message}");
             // Even in error case, show a LoadingPage with the service provider if available
             if (Handler?.MauiContext?.Services is IServiceProvider serviceProvider)
             {
                 return new Window(new LoadingPage(serviceProvider));
             }
-            
+
             // Ultimate fallback - must provide a non-null page
             return new Window(new AppShell());
         }
@@ -177,8 +155,6 @@ public partial class App : Application
             // Check if user has a saved file path preference
             string? savedFilePath = await _preferencesService.GetAppDataFilePathAsync();
 
-            System.Diagnostics.Debug.WriteLine($"InitializeAppDataAsync - isFirstRun: {isFirstRun}, savedFilePath: {savedFilePath ?? "null"}");
-
             // If it's the first run or there's no saved path, we need to prompt the user
             if (isFirstRun || string.IsNullOrEmpty(savedFilePath))
             {
@@ -189,7 +165,6 @@ public partial class App : Application
                     Beans = new List<Models.BeanData>(),
                     RoastLogs = new List<Models.RoastData>()
                 };
-                System.Diagnostics.Debug.WriteLine("First run or no saved path detected, will show file selection dialog");
                 _appDataInitialized = true;
                 return;
             }
@@ -200,13 +175,10 @@ public partial class App : Application
                 // Load data from the user-defined path
                 await _appDataService.SetCustomFilePathAsync(savedFilePath);
                 _appData = await _appDataService.LoadAppDataAsync();
-                System.Diagnostics.Debug.WriteLine($"Loaded data from user-defined path: {savedFilePath}");
-                System.Diagnostics.Debug.WriteLine($"Loaded data: Beans={_appData.Beans.Count}, Roasts={_appData.RoastLogs.Count}");
             }
             else
             {
                 // File doesn't exist anymore, need to prompt user again
-                System.Diagnostics.Debug.WriteLine($"Saved file path not found: {savedFilePath}, will prompt for new file");
                 _firstRunSetupNeeded = true;
                 // Create empty data just for UI initialization
                 _appData = new Models.AppData
@@ -217,7 +189,7 @@ public partial class App : Application
                 // Clear the invalid path
                 await _preferencesService.ClearAppDataFilePathAsync();
             }
-            
+
             _appDataInitialized = true;
         }
         catch (Exception ex)
@@ -254,7 +226,7 @@ public partial class App : Application
                     // Create a default file path in Documents folder
                     string documentsPath = Environment.GetFolderPath(Environment.SpecialFolder.MyDocuments);
                     string defaultFilePath = Path.Combine(documentsPath, "CafeMaestro", "cafemaestro_data.json");
-                    
+
                     // Ensure directory exists
                     string? directoryPath = Path.GetDirectoryName(defaultFilePath);
                     if (!string.IsNullOrEmpty(directoryPath))
@@ -265,19 +237,17 @@ public partial class App : Application
                     {
                         throw new InvalidOperationException("Could not determine directory path for default data file");
                     }
-                    
+
                     // Create the file and save
                     _appData = await _appDataService.CreateEmptyDataFileAsync(defaultFilePath);
-                    
+
                     // Save this path in preferences
                     await _preferencesService.SaveAppDataFilePathAsync(defaultFilePath);
-                    
+
                     // Mark first run as completed
                     await _preferencesService.SetFirstRunCompletedAsync();
                     _firstRunSetupNeeded = false;
-                    
-                    System.Diagnostics.Debug.WriteLine($"Created default data file at: {defaultFilePath}");
-                    
+
                     // Notify user
                     await Shell.Current.DisplayAlert(
                         "Data File Created",
@@ -365,7 +335,7 @@ public partial class App : Application
             System.Diagnostics.Debug.WriteLine($"Stack trace: {ex.StackTrace}");
         }
     }
-    
+
     // Get the current app data
     public Models.AppData GetAppData()
     {
@@ -375,12 +345,11 @@ public partial class App : Application
             RoastLogs = new List<Models.RoastData>()
         };
     }
-    
+
     // Pass data to a page when navigating
     public void PassDataToPage(Page page)
     {
         var navParams = new NavigationParameters(GetAppData());
         page.BindingContext = navParams;
-        System.Diagnostics.Debug.WriteLine($"Passed data to {page.GetType().Name}");
     }
 }

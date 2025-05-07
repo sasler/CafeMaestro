@@ -12,9 +12,9 @@ namespace CafeMaestro.Services
         private readonly SemaphoreSlim _initLock = new SemaphoreSlim(1, 1);
         private bool _isInitialized = false;
         private string _currentDataFilePath = string.Empty;
-        
-        public string DataFilePath 
-        { 
+
+        public string DataFilePath
+        {
             get => _appDataService.DataFilePath;
         }
 
@@ -22,23 +22,23 @@ namespace CafeMaestro.Services
         {
             _appDataService = appDataService;
             _currentDataFilePath = _appDataService.DataFilePath;
-            
+
             // Subscribe to path changes from AppDataService
             _appDataService.DataFilePathChanged += OnDataFilePathChanged;
         }
-        
+
         private void OnDataFilePathChanged(object? sender, string newPath)
         {
-            Task.Run(async () => {
+            Task.Run(async () =>
+            {
                 try
                 {
                     // Update stored path
                     _currentDataFilePath = newPath;
-                    System.Diagnostics.Debug.WriteLine($"RoastLevelService - Path changed to: {newPath}");
-                    
+
                     // Reset initialized flag to force reload with new path
                     _isInitialized = false;
-                    
+
                     // Reload data with new path
                     await _appDataService.ReloadDataAsync();
                 }
@@ -53,20 +53,18 @@ namespace CafeMaestro.Services
         public async Task InitializeFromPreferencesAsync(PreferencesService preferencesService)
         {
             await _initLock.WaitAsync();
-            
+
             try
             {
                 if (_isInitialized)
                 {
-                    System.Diagnostics.Debug.WriteLine("RoastLevelService already initialized, skipping");
                     return;
                 }
-                
+
                 // Force a reload of data
                 await _appDataService.ReloadDataAsync();
-                
-                System.Diagnostics.Debug.WriteLine($"RoastLevelService initialized with path: {DataFilePath}");
-                
+
+
                 _isInitialized = true;
             }
             catch (Exception ex)
@@ -78,7 +76,7 @@ namespace CafeMaestro.Services
                 _initLock.Release();
             }
         }
-        
+
         // Get roast level data using weight loss percentage
         public async Task<string> GetRoastLevelNameAsync(double weightLossPercentage)
         {
@@ -86,24 +84,24 @@ namespace CafeMaestro.Services
             {
                 // Load all roast levels
                 var roastLevels = await GetRoastLevelsAsync();
-                
+
                 // Find the appropriate level for the given weight loss percentage
                 foreach (var level in roastLevels.OrderBy(l => l.MinWeightLossPercentage))
                 {
-                    if (weightLossPercentage >= level.MinWeightLossPercentage && 
+                    if (weightLossPercentage >= level.MinWeightLossPercentage &&
                         weightLossPercentage < level.MaxWeightLossPercentage)
                     {
                         return level.Name;
                     }
                 }
-                
+
                 // If no level matches, find the highest level
                 var highestLevel = roastLevels.OrderByDescending(l => l.MaxWeightLossPercentage).FirstOrDefault();
                 if (highestLevel != null)
                 {
                     return highestLevel.Name;
                 }
-                
+
                 // Fallback to a generic name if no levels defined
                 return "Unknown";
             }
@@ -113,7 +111,7 @@ namespace CafeMaestro.Services
                 return "Unknown";
             }
         }
-        
+
         // Get all roast levels
         public async Task<List<RoastLevelData>> GetRoastLevelsAsync()
         {
@@ -121,11 +119,10 @@ namespace CafeMaestro.Services
             {
                 // Load full app data
                 var appData = await _appDataService.LoadAppDataAsync();
-                
+
                 // Check if roast levels are defined
                 if (appData.RoastLevels == null || appData.RoastLevels.Count == 0)
                 {
-                    System.Diagnostics.Debug.WriteLine("No roast levels found in app data");
                     // Return default levels (this should not happen since we initialize them in AppDataService)
                     return new List<RoastLevelData>
                     {
@@ -136,7 +133,7 @@ namespace CafeMaestro.Services
                         new RoastLevelData("Dark", 18.0, 100.0)
                     };
                 }
-                
+
                 // Return roast levels sorted by min weight loss percentage
                 return appData.RoastLevels.OrderBy(l => l.MinWeightLossPercentage).ToList();
             }
@@ -146,7 +143,7 @@ namespace CafeMaestro.Services
                 return new List<RoastLevelData>();
             }
         }
-        
+
         // Save updated roast levels
         public async Task<bool> SaveRoastLevelsAsync(List<RoastLevelData> levels)
         {
@@ -154,10 +151,10 @@ namespace CafeMaestro.Services
             {
                 // Load full app data
                 var appData = await _appDataService.LoadAppDataAsync();
-                
+
                 // Update roast levels
                 appData.RoastLevels = levels;
-                
+
                 // Save updated app data
                 return await _appDataService.SaveAppDataAsync(appData);
             }
@@ -167,7 +164,7 @@ namespace CafeMaestro.Services
                 return false;
             }
         }
-        
+
         // Add a new roast level
         public async Task<bool> AddRoastLevelAsync(RoastLevelData level)
         {
@@ -175,16 +172,16 @@ namespace CafeMaestro.Services
             {
                 // Load full app data
                 var appData = await _appDataService.LoadAppDataAsync();
-                
+
                 // Initialize if needed
                 if (appData.RoastLevels == null)
                 {
                     appData.RoastLevels = new List<RoastLevelData>();
                 }
-                
+
                 // Add the level
                 appData.RoastLevels.Add(level);
-                
+
                 // Save updated app data
                 return await _appDataService.SaveAppDataAsync(appData);
             }
@@ -194,7 +191,7 @@ namespace CafeMaestro.Services
                 return false;
             }
         }
-        
+
         // Delete a roast level
         public async Task<bool> DeleteRoastLevelAsync(Guid id)
         {
@@ -202,17 +199,17 @@ namespace CafeMaestro.Services
             {
                 // Load full app data
                 var appData = await _appDataService.LoadAppDataAsync();
-                
+
                 // Find and remove the level
                 var levelToRemove = appData.RoastLevels?.FirstOrDefault(l => l.Id == id);
                 if (levelToRemove != null && appData.RoastLevels != null)
                 {
                     appData.RoastLevels.Remove(levelToRemove);
-                    
+
                     // Save updated app data
                     return await _appDataService.SaveAppDataAsync(appData);
                 }
-                
+
                 return false;
             }
             catch (Exception ex)
@@ -221,7 +218,7 @@ namespace CafeMaestro.Services
                 return false;
             }
         }
-        
+
         // Update a roast level
         public async Task<bool> UpdateRoastLevelAsync(RoastLevelData updatedLevel)
         {
@@ -229,7 +226,7 @@ namespace CafeMaestro.Services
             {
                 // Load full app data
                 var appData = await _appDataService.LoadAppDataAsync();
-                
+
                 // Find the level to update
                 var existingLevel = appData.RoastLevels?.FirstOrDefault(l => l.Id == updatedLevel.Id);
                 if (existingLevel != null)
@@ -238,11 +235,11 @@ namespace CafeMaestro.Services
                     existingLevel.Name = updatedLevel.Name;
                     existingLevel.MinWeightLossPercentage = updatedLevel.MinWeightLossPercentage;
                     existingLevel.MaxWeightLossPercentage = updatedLevel.MaxWeightLossPercentage;
-                    
+
                     // Save updated app data
                     return await _appDataService.SaveAppDataAsync(appData);
                 }
-                
+
                 return false;
             }
             catch (Exception ex)
@@ -251,7 +248,7 @@ namespace CafeMaestro.Services
                 return false;
             }
         }
-        
+
         // Get a specific roast level by ID
         public async Task<RoastLevelData?> GetRoastLevelByIdAsync(Guid id)
         {
@@ -259,7 +256,7 @@ namespace CafeMaestro.Services
             {
                 // Load full app data
                 var appData = await _appDataService.LoadAppDataAsync();
-                
+
                 // Find the roast level with the matching ID
                 return appData.RoastLevels?.FirstOrDefault(l => l.Id == id);
             }

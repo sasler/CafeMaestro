@@ -44,25 +44,25 @@ public partial class SettingsPage : ContentPage
         InitializeComponent();
 
         // First try to get the services from the application resources (our stored service provider)
-        if (Application.Current?.Resources.TryGetValue("ServiceProvider", out var serviceProviderObj) == true && 
+        if (Application.Current?.Resources.TryGetValue("ServiceProvider", out var serviceProviderObj) == true &&
             serviceProviderObj is IServiceProvider serviceProvider)
         {
-            _preferencesService = preferencesService ?? 
+            _preferencesService = preferencesService ??
                                  serviceProvider.GetService<PreferencesService>() ??
                                  Application.Current?.Handler?.MauiContext?.Services.GetService<PreferencesService>() ??
                                  throw new InvalidOperationException("PreferencesService not available");
-                             
-            _appDataService = appDataService ?? 
+
+            _appDataService = appDataService ??
                              serviceProvider.GetService<AppDataService>() ??
                              Application.Current?.Handler?.MauiContext?.Services.GetService<AppDataService>() ??
                              throw new InvalidOperationException("AppDataService not available");
-                         
-            _beanService = beanService ?? 
+
+            _beanService = beanService ??
                           serviceProvider.GetService<BeanDataService>() ??
                           Application.Current?.Handler?.MauiContext?.Services.GetService<BeanDataService>() ??
                           throw new InvalidOperationException("BeanService not available");
-                      
-            _roastDataService = roastDataService ?? 
+
+            _roastDataService = roastDataService ??
                                serviceProvider.GetService<RoastDataService>() ??
                                Application.Current?.Handler?.MauiContext?.Services.GetService<RoastDataService>() ??
                                throw new InvalidOperationException("RoastDataService not available");
@@ -71,13 +71,13 @@ public partial class SettingsPage : ContentPage
                                 serviceProvider.GetService<RoastLevelService>() ??
                                 Application.Current?.Handler?.MauiContext?.Services.GetService<RoastLevelService>() ??
                                 throw new InvalidOperationException("RoastLevelService not available");
-                               
-            _fileSaver = fileSaver ?? 
+
+            _fileSaver = fileSaver ??
                         serviceProvider.GetService<IFileSaver>() ??
                         Application.Current?.Handler?.MauiContext?.Services.GetService<IFileSaver>() ??
                         FileSaver.Default;
-                        
-            _folderPicker = folderPicker ?? 
+
+            _folderPicker = folderPicker ??
                            serviceProvider.GetService<IFolderPicker>() ??
                            Application.Current?.Handler?.MauiContext?.Services.GetService<IFolderPicker>() ??
                            FolderPicker.Default;
@@ -85,36 +85,34 @@ public partial class SettingsPage : ContentPage
         else
         {
             // Fall back to the old way if app resources doesn't have our provider
-            _preferencesService = preferencesService ?? 
+            _preferencesService = preferencesService ??
                                  Application.Current?.Handler?.MauiContext?.Services.GetService<PreferencesService>() ??
                                  throw new InvalidOperationException("PreferencesService not available");
-                             
-            _appDataService = appDataService ?? 
+
+            _appDataService = appDataService ??
                              Application.Current?.Handler?.MauiContext?.Services.GetService<AppDataService>() ??
                              throw new InvalidOperationException("AppDataService not available");
-                         
-            _beanService = beanService ?? 
+
+            _beanService = beanService ??
                           Application.Current?.Handler?.MauiContext?.Services.GetService<BeanDataService>() ??
                           throw new InvalidOperationException("BeanService not available");
-                      
-            _roastDataService = roastDataService ?? 
+
+            _roastDataService = roastDataService ??
                                Application.Current?.Handler?.MauiContext?.Services.GetService<RoastDataService>() ??
                                throw new InvalidOperationException("RoastDataService not available");
 
             _roastLevelService = roastLevelService ??
                                 Application.Current?.Handler?.MauiContext?.Services.GetService<RoastLevelService>() ??
                                 throw new InvalidOperationException("RoastLevelService not available");
-                               
-            _fileSaver = fileSaver ?? 
+
+            _fileSaver = fileSaver ??
                         Application.Current?.Handler?.MauiContext?.Services.GetService<IFileSaver>() ??
                         FileSaver.Default;
-                        
-            _folderPicker = folderPicker ?? 
+
+            _folderPicker = folderPicker ??
                            Application.Current?.Handler?.MauiContext?.Services.GetService<IFolderPicker>() ??
                            FolderPicker.Default;
         }
-
-        System.Diagnostics.Debug.WriteLine($"SettingsPage constructor - Using AppDataService at path: {_appDataService.DataFilePath}");
 
         // Initialize UI
         LoadDataFilePath();
@@ -130,19 +128,19 @@ public partial class SettingsPage : ContentPage
     protected override async void OnAppearing()
     {
         base.OnAppearing();
-        
+
         // Reload data
         LoadDataFilePath();
-        
+
         // Reload roast levels when returning to this page
         LoadRoastLevels();
-        
+
         // Check if this is first run and first navigation to this page
         // This will highlight the data file section when coming from first-run setup
         if (_isFirstTimeNavigation)
         {
             _isFirstTimeNavigation = false;
-            
+
             bool isFirstRun = await _preferencesService.IsFirstRunAsync();
             if (isFirstRun)
             {
@@ -151,7 +149,7 @@ public partial class SettingsPage : ContentPage
             }
         }
     }
-    
+
     // Highlight the data file section to draw attention to it
     private void HighlightDataFileSection()
     {
@@ -161,20 +159,20 @@ public partial class SettingsPage : ContentPage
         {
             // Store original color to restore later
             var originalColor = dataFileSection.BackgroundColor;
-            
+
             // Highlight with animation
             dataFileSection.BackgroundColor = Colors.LightYellow;
-            
+
             // Pulse animation to draw attention
             dataFileSection.Scale = 0.97;
-            dataFileSection.FadeTo(0.8, 250).ContinueWith(_ => 
+            dataFileSection.FadeTo(0.8, 250).ContinueWith(_ =>
             {
-                MainThread.BeginInvokeOnMainThread(async () => 
+                MainThread.BeginInvokeOnMainThread(async () =>
                 {
                     await dataFileSection.FadeTo(1, 250);
                     await dataFileSection.ScaleTo(1.02, 150);
                     await dataFileSection.ScaleTo(1.0, 150);
-                    
+
                     // Restore original background after animation
                     await Task.Delay(500);
                     dataFileSection.BackgroundColor = originalColor;
@@ -193,13 +191,13 @@ public partial class SettingsPage : ContentPage
         // Get version from assembly info
         var version = AppInfo.Current.VersionString;
         var build = AppInfo.Current.BuildString;
-        
+
         // Basic version info
         VersionLabel.Text = $"{version} (Build {build})";
-        
+
         // Add version history information from VersionTracking
         var versionHistory = new StringBuilder();
-        
+
         // Check if this is the first launch for the current version
         if (Microsoft.Maui.ApplicationModel.VersionTracking.IsFirstLaunchForCurrentVersion)
         {
@@ -208,26 +206,26 @@ public partial class SettingsPage : ContentPage
 
         // Add first installed version info
         versionHistory.AppendLine($"\nFirst installed version: {Microsoft.Maui.ApplicationModel.VersionTracking.FirstInstalledVersion}");
-        
+
         // Add version history (limited to last 5 versions)
         var versions = Microsoft.Maui.ApplicationModel.VersionTracking.VersionHistory.ToList();
         if (versions.Any())
         {
             versionHistory.AppendLine("\nVersion History:");
-            
+
             // Display the most recent 5 versions
             foreach (var v in versions.Take(5))
             {
                 versionHistory.AppendLine($"- {v}");
             }
-            
+
             // Indicate if there are more versions in history
             if (versions.Count > 5)
             {
                 versionHistory.AppendLine($"(+ {versions.Count - 5} more versions)");
             }
         }
-        
+
         // Add the version history to the label
         VersionHistoryLabel.Text = versionHistory.ToString();
     }
@@ -300,8 +298,6 @@ public partial class SettingsPage : ContentPage
         }
         catch (Exception ex)
         {
-            Debug.WriteLine($"Error changing theme: {ex.Message}");
-            Debug.WriteLine($"Stack trace: {ex.StackTrace}");
             await DisplayAlert("Error", $"Failed to change the theme: {ex.Message}", "OK");
         }
     }
@@ -309,7 +305,7 @@ public partial class SettingsPage : ContentPage
     private void ApplyTheme(ThemePreference theme)
     {
         if (Application.Current == null) return;
-        
+
         // Set the app's theme
         switch (theme)
         {
@@ -351,21 +347,21 @@ public partial class SettingsPage : ContentPage
             };
 
             var result = await FilePicker.PickAsync(options);
-            
+
             if (result != null)
             {
                 // First save path to preferences
                 await _preferencesService.SaveAppDataFilePathAsync(result.FullPath);
-                
+
                 // Then update AppDataService - this now returns the loaded data
                 var appData = await _appDataService.SetCustomFilePathAsync(result.FullPath);
-                
+
                 // Reload the UI
                 LoadDataFilePath();
-                
+
                 // If this was during first run, mark setup as completed
                 await _preferencesService.SetFirstRunCompletedAsync();
-                
+
                 await DisplayAlert("Success", "Data file location has been set.", "OK");
             }
         }
@@ -382,19 +378,19 @@ public partial class SettingsPage : ContentPage
             // Create empty JSON content for the new file
             var jsonContent = "{}";
             var fileName = "NewCafeMaestroDataFile.json";
-            
+
             // Use a memory stream for the file content
             using var stream = new MemoryStream(Encoding.UTF8.GetBytes(jsonContent));
-            
+
             // Save the file using FileSaver
             var result = await _fileSaver.SaveAsync(fileName, stream, CancellationToken.None);
-            
+
             // Check if operation was canceled by the user (no exception but not successful)
             if (!result.IsSuccessful && result.Exception.Message.Contains("cancel"))
             {
                 return;
             }
-            
+
             if (result.IsSuccessful)
             {
                 await CreateNewDataFile(result.FilePath);
@@ -409,7 +405,7 @@ public partial class SettingsPage : ContentPage
             await DisplayAlert("Error", $"Failed to create file: {ex.Message}", "OK");
         }
     }
-    
+
     private async Task UseStandardFilePicker()
     {
         var customFileType = new FilePickerFileType(
@@ -431,31 +427,31 @@ public partial class SettingsPage : ContentPage
         if (result != null)
         {
             string filePath = result.FullPath;
-            
+
             // Ensure the file has the correct extension
             if (!filePath.EndsWith(".json", StringComparison.OrdinalIgnoreCase))
                 filePath += ".json";
-                
+
             await CreateNewDataFile(filePath);
         }
     }
-    
+
     private async Task CreateNewDataFile(string filePath)
     {
         try
         {
             // First save the path to preferences
             await _preferencesService.SaveAppDataFilePathAsync(filePath);
-            
+
             // Create new empty data file through AppDataService - now returns loaded data
             var appData = await _appDataService.CreateEmptyDataFileAsync(filePath);
-            
+
             // Update UI
             LoadDataFilePath();
-            
+
             // If this was during first run, mark setup as completed
             await _preferencesService.SetFirstRunCompletedAsync();
-            
+
             await DisplayAlert("Success", "Created new data file.", "OK");
         }
         catch (Exception ex)
@@ -463,28 +459,28 @@ public partial class SettingsPage : ContentPage
             await DisplayAlert("Error", $"Failed to create file: {ex.Message}", "OK");
         }
     }
-    
+
     private async void ExportButton_Clicked(object sender, EventArgs e)
     {
         try
         {
             // Create a cancellation token source with a reasonable timeout
             using var cts = new CancellationTokenSource(TimeSpan.FromMinutes(2));
-            
+
             // Open the folder picker
             var result = await _folderPicker.PickAsync(cts.Token);
-            
+
             if (result.IsSuccessful && result.Folder != null)
             {
                 // Generate a filename with current date
                 string fileName = $"CafeMaestro_RoastLog_{DateTime.Now:yyyy-MM-dd}.csv";
-                
+
                 // Combine the folder path with the filename
                 string fullPath = Path.Combine(result.Folder.Path, fileName);
-                
+
                 // Export the data to the selected folder
                 await _roastDataService.ExportRoastLogAsync(fullPath);
-                
+
                 await DisplayAlert("Success", $"Roast log exported successfully to:\n{fullPath}", "OK");
             }
             else if (!result.IsSuccessful && result.Exception != null)
@@ -495,7 +491,7 @@ public partial class SettingsPage : ContentPage
                     // Operation was canceled through the token, no need for an error message
                     return;
                 }
-                
+
                 await DisplayAlert("Error", $"Failed to select folder: {result.Exception.Message}", "OK");
             }
         }
@@ -509,14 +505,14 @@ public partial class SettingsPage : ContentPage
             await DisplayAlert("Error", $"Failed to export data: {ex.Message}", "OK");
         }
     }
-    
+
     public async void ImportButton_Clicked(object sender, EventArgs e)
     {
         try
         {
             // Show a selection dialog for what to import
             string action = await DisplayActionSheet("Select Import Type", "Cancel", null, "Coffee Beans", "Roast Logs");
-            
+
             // Handle the selection
             switch (action)
             {
@@ -524,12 +520,12 @@ public partial class SettingsPage : ContentPage
                     // Navigate to the BeanImportPage using the registered route name
                     await Shell.Current.GoToAsync(nameof(BeanImportPage));
                     break;
-                    
+
                 case "Roast Logs":
                     // Navigate to the RoastImportPage using the registered route name
                     await Shell.Current.GoToAsync(nameof(RoastImportPage));
                     break;
-                    
+
                 case "Cancel":
                 default:
                     // User canceled, do nothing
@@ -542,7 +538,7 @@ public partial class SettingsPage : ContentPage
             await DisplayAlert("Error", $"Failed to open import page: {ex.Message}", "OK");
         }
     }
-    
+
     // Override OnBackButtonPressed to handle Android back button
     protected override bool OnBackButtonPressed()
     {
@@ -553,9 +549,9 @@ public partial class SettingsPage : ContentPage
             // This works better on Android than GoToAsync
             if (Shell.Current?.Items.Count > 0)
             {
-                MainThread.BeginInvokeOnMainThread(() => {
+                MainThread.BeginInvokeOnMainThread(() =>
+                {
                     Shell.Current.CurrentItem = Shell.Current.Items[0]; // MainPage is the first item
-                    System.Diagnostics.Debug.WriteLine("Navigated back to MainPage using hardware back button in SettingsPage");
                 });
                 return true; // Indicate we've handled the back button
             }
@@ -564,7 +560,7 @@ public partial class SettingsPage : ContentPage
         {
             System.Diagnostics.Debug.WriteLine($"Error handling back button in SettingsPage: {ex.Message}");
         }
-        
+
         return base.OnBackButtonPressed(); // Let the system handle it if our code fails
     }
 
@@ -574,12 +570,12 @@ public partial class SettingsPage : ContentPage
         {
             var roastLevels = await _roastLevelService.GetRoastLevelsAsync();
             _roastLevels.Clear();
-            
+
             foreach (var roastLevel in roastLevels.OrderBy(l => l.MinWeightLossPercentage))
             {
                 _roastLevels.Add(RoastLevelViewModel.FromModel(roastLevel));
             }
-            
+
             // Set the collection as the ItemsSource for the CollectionView
             RoastLevelsCollection.ItemsSource = _roastLevels;
         }
@@ -602,22 +598,21 @@ public partial class SettingsPage : ContentPage
                 MaxWeightLossPercentage = roastLevelViewModel.MaxWeightLossPercentage
             };
             _isNewRoastLevel = false;
-            
+
             // Set title
             EditPopupTitle.Text = "Edit Roast Level";
-            
+
             // Populate the form fields
             RoastLevelNameEntry.Text = _currentEditRoastLevel.Name;
             MinWeightLossEntry.Text = _currentEditRoastLevel.MinWeightLossPercentage.ToString("F1");
             MaxWeightLossEntry.Text = _currentEditRoastLevel.MaxWeightLossPercentage.ToString("F1");
-            
+
             // Show the popup
             EditRoastLevelPopup.IsVisible = true;
             RoastLevelNameEntry.Focus();
         }
         catch (Exception ex)
         {
-            Debug.WriteLine($"Error showing edit popup: {ex.Message}");
             DisplayAlert("Error", $"Failed to edit roast level: {ex.Message}", "OK");
         }
     }
@@ -635,7 +630,6 @@ public partial class SettingsPage : ContentPage
         }
         catch (Exception ex)
         {
-            Debug.WriteLine($"Error deleting roast level: {ex.Message}");
             await DisplayAlert("Error", $"Failed to delete roast level: {ex.Message}", "OK");
         }
     }
@@ -653,26 +647,25 @@ public partial class SettingsPage : ContentPage
                 MaxWeightLossPercentage = 0
             };
             _isNewRoastLevel = true;
-            
+
             // Set title
             EditPopupTitle.Text = "Add Roast Level";
-            
+
             // Clear form fields
             RoastLevelNameEntry.Text = string.Empty;
             MinWeightLossEntry.Text = "0.0";
             MaxWeightLossEntry.Text = "0.0";
-            
+
             // Show the popup
             EditRoastLevelPopup.IsVisible = true;
             RoastLevelNameEntry.Focus();
         }
         catch (Exception ex)
         {
-            Debug.WriteLine($"Error showing add popup: {ex.Message}");
             DisplayAlert("Error", $"Failed to create new roast level: {ex.Message}", "OK");
         }
     }
-    
+
     private async void SaveRoastLevel_Clicked(object sender, EventArgs e)
     {
         if (_currentEditRoastLevel == null)
@@ -680,7 +673,7 @@ public partial class SettingsPage : ContentPage
             EditRoastLevelPopup.IsVisible = false;
             return;
         }
-        
+
         try
         {
             // Validate input
@@ -689,36 +682,36 @@ public partial class SettingsPage : ContentPage
                 await DisplayAlert("Validation Error", "Name is required.", "OK");
                 return;
             }
-            
+
             if (!double.TryParse(MinWeightLossEntry.Text, out double minWeight))
             {
                 await DisplayAlert("Validation Error", "Min weight loss must be a valid number.", "OK");
                 return;
             }
-            
+
             if (!double.TryParse(MaxWeightLossEntry.Text, out double maxWeight))
             {
                 await DisplayAlert("Validation Error", "Max weight loss must be a valid number.", "OK");
                 return;
             }
-            
+
             if (minWeight < 0)
             {
                 await DisplayAlert("Validation Error", "Minimum weight loss percentage must be at least 0.", "OK");
                 return;
             }
-            
+
             if (maxWeight <= minWeight)
             {
                 await DisplayAlert("Validation Error", "Maximum weight loss must be greater than minimum weight loss.", "OK");
                 return;
             }
-            
+
             // Update the roast level model
             _currentEditRoastLevel.Name = RoastLevelNameEntry.Text;
             _currentEditRoastLevel.MinWeightLossPercentage = minWeight;
             _currentEditRoastLevel.MaxWeightLossPercentage = maxWeight;
-            
+
             // Save changes
             bool success;
             if (_isNewRoastLevel)
@@ -746,12 +739,12 @@ public partial class SettingsPage : ContentPage
                     }
                 }
             }
-            
+
             if (success)
             {
                 // Hide the popup
                 EditRoastLevelPopup.IsVisible = false;
-                
+
                 // Refresh the display
                 LoadRoastLevels();
             }
@@ -762,11 +755,10 @@ public partial class SettingsPage : ContentPage
         }
         catch (Exception ex)
         {
-            Debug.WriteLine($"Error saving roast level: {ex.Message}");
             await DisplayAlert("Error", $"An error occurred: {ex.Message}", "OK");
         }
     }
-    
+
     private void CancelRoastLevel_Clicked(object sender, EventArgs e)
     {
         // Just hide the popup, don't save changes
