@@ -327,49 +327,129 @@ public partial class SettingsPage : ContentPage
         }
     }
 
+// ...existing code...
     private async void ExistingDataFileButton_Clicked(object sender, EventArgs e)
     {
+        string debugMessage = string.Empty;
+        bool manageStorageGranted = false;
+        bool writeStorageGranted = false;
+
         try
         {
+#if ANDROID
+            if (Android.OS.Build.VERSION.SdkInt >= Android.OS.BuildVersionCodes.R) // Android 11 (API 30) and above
+            {
+                manageStorageGranted = Android.OS.Environment.IsExternalStorageManager;
+                debugMessage += $"MANAGE_EXTERNAL_STORAGE initially: {manageStorageGranted}\n";
+
+                if (!manageStorageGranted)
+                {
+                    bool wantsToOpenSettings = await DisplayAlert(
+                        "Permission Required",
+                        "To select and save your data file directly from cloud storage or other locations, CafeMaestro needs 'All files access'. Please enable this in the next screen.",
+                        "Open Settings", "Cancel");
+
+                    if (wantsToOpenSettings)
+                    {
+                        try
+                        {
+                            var intent = new Android.Content.Intent(Android.Provider.Settings.ActionManageAppAllFilesAccessPermission);
+                            intent.SetData(Android.Net.Uri.Parse("package:" + AppInfo.PackageName));
+                            Platform.CurrentActivity?.StartActivity(intent);
+                            await DisplayAlert("Info", "After granting permission, please try selecting the file again.", "OK");
+                            return; 
+                        }
+                        catch (Exception ex)
+                        {
+                            Debug.WriteLine($"Error opening MANAGE_EXTERNAL_STORAGE settings: {ex.Message}"); // Keep Debug for IDE logs
+                            await DisplayAlert("Error", "Could not open settings to grant permission. Please grant it manually via App Info.", "OK");
+                            return;
+                        }
+                    }
+                    else
+                    {
+                        await DisplayAlert("Permission Denied", "Without 'All files access', selecting files from some locations might not work as expected or save directly.", "OK");
+                        return;
+                    }
+                }
+            }
+            else // For Android versions older than 11, check standard storage permissions
+            {
+                var status = await Permissions.CheckStatusAsync<Permissions.StorageWrite>();
+                if (status != PermissionStatus.Granted)
+                {
+                    status = await Permissions.RequestAsync<Permissions.StorageWrite>();
+                }
+                writeStorageGranted = status == PermissionStatus.Granted;
+                debugMessage += $"WRITE_EXTERNAL_STORAGE granted: {writeStorageGranted}\n";
+
+                if (!writeStorageGranted)
+                {
+                    await DisplayAlert("Permission Required", "Storage permission is required to select a data file. Please grant it via app settings.", "OK");
+                    return;
+                }
+            }
+#else
+            // Placeholder for non-Android permission checks if needed for debugging
+            // var status = await Permissions.CheckStatusAsync<Permissions.StorageWrite>();
+            // writeStorageGranted = status == PermissionStatus.Granted;
+            // debugMessage += $"StorageWrite permission (non-Android): {writeStorageGranted}\n";
+            // if (!writeStorageGranted)
+            // {
+            //     await DisplayAlert("Permission Required", "Storage permission is required.", "OK");
+            //     return;
+            // }
+#endif
+
+            // Re-check MANAGE_EXTERNAL_STORAGE status if on Android 11+ after potential settings change
+#if ANDROID
+            if (Android.OS.Build.VERSION.SdkInt >= Android.OS.BuildVersionCodes.R)
+            {
+                manageStorageGranted = Android.OS.Environment.IsExternalStorageManager;
+                debugMessage += $"MANAGE_EXTERNAL_STORAGE before PickAsync: {manageStorageGranted}\n";
+            }
+#endif
+
             var customFileType = new FilePickerFileType(
                 new Dictionary<DevicePlatform, IEnumerable<string>>
                 {
                     { DevicePlatform.WinUI, new[] { ".json" } },
                     { DevicePlatform.Android, new[] { "application/json" } },
-                    { DevicePlatform.iOS, new[] { "public.json" } },
+                    { DevicePlatform.iOS, new[] { "public.json" } }, 
                     { DevicePlatform.MacCatalyst, new[] { "public.json" } }
                 });
 
             var options = new PickOptions
             {
-                PickerTitle = "Select data file location",
+                PickerTitle = "Select CafeMaestro Data File (.json)",
                 FileTypes = customFileType
             };
 
             var result = await FilePicker.PickAsync(options);
 
+            string resultPath = result == null ? "null" : result.FullPath;
+            debugMessage += $"FilePicker Result Path: {resultPath}";
+
+            // Display all debug info in one alert
+            await DisplayAlert("Debug Info", debugMessage, "OK");
+
+
             if (result != null)
             {
-                // First save path to preferences
                 await _preferencesService.SaveAppDataFilePathAsync(result.FullPath);
-
-                // Then update AppDataService - this now returns the loaded data
                 var appData = await _appDataService.SetCustomFilePathAsync(result.FullPath);
-
-                // Reload the UI
                 LoadDataFilePath();
-
-                // If this was during first run, mark setup as completed
                 await _preferencesService.SetFirstRunCompletedAsync();
-
                 await DisplayAlert("Success", "Data file location has been set.", "OK");
             }
         }
         catch (Exception ex)
         {
+            Debug.WriteLine($"Error in ExistingDataFileButton_Clicked: {ex.Message}\n{ex.StackTrace}"); // Keep for IDE
             await DisplayAlert("Error", $"Failed to select data file: {ex.Message}", "OK");
         }
     }
+// ...existing code...
 
     private async void NewDataFileButton_Clicked(object sender, EventArgs e)
     {
