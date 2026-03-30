@@ -21,6 +21,7 @@ namespace CafeMaestro.Services
         private readonly SemaphoreSlim _initializationLock = new SemaphoreSlim(1, 1);
         private readonly SemaphoreSlim _dataAccessLock = new SemaphoreSlim(1, 1);
         private bool _pathInitializedFromPreferences = false;
+        private int _notificationsSuspended;
 
         // Event that fires when the data file path changes or data is reloaded
         public event EventHandler<AppData>? DataChanged;
@@ -65,6 +66,12 @@ namespace CafeMaestro.Services
             };
         }
 
+        public IDisposable SuspendNotifications()
+        {
+            Interlocked.Increment(ref _notificationsSuspended);
+            return new NotificationSuspension(this);
+        }
+
         // Initialize the service with the saved path - call this only once during startup
         public async Task<AppData> InitializeAsync(IPreferencesService preferencesService)
         {
@@ -102,7 +109,7 @@ namespace CafeMaestro.Services
                         // Now fire the event to notify other services about the path
                         DataFilePathChanged?.Invoke(this, _filePath);
                         // Also notify about the loaded data
-                        DataChanged?.Invoke(this, data);
+                        RaiseDataChanged(data);
 
                         return data;
                     }
@@ -161,7 +168,7 @@ namespace CafeMaestro.Services
             var data = await LoadAppDataInternalAsync(filePath);
 
             // Notify about the loaded data
-            DataChanged?.Invoke(this, data);
+            RaiseDataChanged(data);
 
             return data;
         }
@@ -201,7 +208,7 @@ namespace CafeMaestro.Services
             var data = await LoadAppDataInternalAsync(defaultFilePath);
 
             // Notify about the loaded data
-            DataChanged?.Invoke(this, data);
+            RaiseDataChanged(data);
 
             return data;
         }
@@ -420,10 +427,10 @@ namespace CafeMaestro.Services
                 _isDirty = false;
 
                 // Only fire events if requested (for normal operations, not for imports)
-                if (fireEvents)
+                if (fireEvents && !AreNotificationsSuspended)
                 {
                     // Notify about the updated data
-                    DataChanged?.Invoke(this, appData);
+                    RaiseDataChanged(appData);
                 }
 
                 return true;
@@ -539,9 +546,38 @@ namespace CafeMaestro.Services
             var data = await LoadAppDataInternalAsync(_filePath);
 
             // Notify about the reloaded data
-            DataChanged?.Invoke(this, data);
+            RaiseDataChanged(data);
 
             return data;
+        }
+
+        private bool AreNotificationsSuspended => Volatile.Read(ref _notificationsSuspended) > 0;
+
+        private void RaiseDataChanged(AppData data)
+        {
+            if (!AreNotificationsSuspended)
+            {
+                DataChanged?.Invoke(this, data);
+            }
+        }
+
+        private sealed class NotificationSuspension : IDisposable
+        {
+            private readonly AppDataService _service;
+            private int _disposed;
+
+            public NotificationSuspension(AppDataService service)
+            {
+                _service = service;
+            }
+
+            public void Dispose()
+            {
+                if (Interlocked.Exchange(ref _disposed, 1) == 0)
+                {
+                    Interlocked.Decrement(ref _service._notificationsSuspended);
+                }
+            }
         }
     }
 }

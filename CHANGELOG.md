@@ -13,6 +13,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Changed
 - Removed unnecessary Debug.WriteLine statements to improve code quality
 - Fixed potential null reference exceptions in RoastPage.xaml.cs
+- Replaced reflection-based AppDataService notification suppression with IDisposable-based suspension during roast imports
 
 ## [1.1.0] - 2025-05-07
 ### Added

@@ -380,10 +380,6 @@ namespace CafeMaestro.Services
             string filePath,
             Dictionary<string, string> columnMapping)
         {
-            // Store the current event handler to restore it later
-            EventHandler<AppData>? originalHandler = null;
-            bool eventDetached = false;
-
             try
             {
                 if (string.IsNullOrEmpty(filePath) || !File.Exists(filePath))
@@ -391,22 +387,7 @@ namespace CafeMaestro.Services
                     throw new FileNotFoundException("CSV file not found", filePath);
                 }
 
-                // IMPORTANT FIX: Temporarily detach from DataChanged event to prevent duplicate save operations
-                var eventField = _appDataService.GetType().GetField("DataChanged",
-                    System.Reflection.BindingFlags.Instance | System.Reflection.BindingFlags.NonPublic);
-
-                if (eventField != null)
-                {
-                    // Fix the nullable warning by using safe casting
-                    var eventValue = eventField.GetValue(_appDataService);
-                    originalHandler = eventValue as EventHandler<AppData>;
-                    eventField.SetValue(_appDataService, null);
-                    eventDetached = true;
-                }
-                else
-                {
-                    System.Diagnostics.Debug.WriteLine("WARNING: Could not access DataChanged event field - duplicate saves may still occur");
-                }
+                using var notificationSuspension = _appDataService.SuspendNotifications();
 
                 // Read the CSV data
                 var csvData = await ReadCsvContentAsync(filePath, int.MaxValue);
@@ -632,19 +613,6 @@ namespace CafeMaestro.Services
                 System.Diagnostics.Debug.WriteLine($"Error importing roasts from CSV: {ex.Message}");
                 System.Diagnostics.Debug.WriteLine($"Exception details: {ex}");
                 throw;
-            }
-            finally
-            {
-                // Restore the original event handler if we detached it
-                if (eventDetached && originalHandler != null)
-                {
-                    var eventField = _appDataService.GetType().GetField("DataChanged",
-                        System.Reflection.BindingFlags.Instance | System.Reflection.BindingFlags.NonPublic);
-                    if (eventField != null)
-                    {
-                        eventField.SetValue(_appDataService, originalHandler);
-                    }
-                }
             }
         }
 

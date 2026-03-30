@@ -8,6 +8,7 @@ public interface IAppDataService
     event EventHandler<string>? DataFilePathChanged;
     string DataFilePath { get; }
     AppData CurrentData { get; }
+    IDisposable SuspendNotifications();
     Task<AppData> InitializeAsync(IPreferencesService preferencesService);
     Task<AppData> SetCustomFilePathAsync(string filePath);
     Task<AppData> ResetToDefaultPathAsync();
