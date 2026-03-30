@@ -23,7 +23,7 @@ public sealed partial class CsvImportColumnMapping : ObservableObject
     public bool IsRequired { get; }
 
     [ObservableProperty]
-    private string _selectedHeader = ImportViewModelConstants.NoneOption;
+    public partial string SelectedHeader { get; set; } = ImportViewModelConstants.NoneOption;
 }
 
 public sealed class CsvPreviewRow

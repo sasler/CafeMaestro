@@ -12,7 +12,6 @@ public partial class App : Application
     private readonly INavigationService _navigationService;
     private readonly IServiceProvider _serviceProvider;
     private Models.AppData? _appData; // Make nullable to fix constructor error
-    private bool _appDataInitialized = false;
 
     // Flag to track if first run setup is needed (to avoid firing it multiple times)
     private bool _firstRunSetupNeeded = false;
@@ -143,7 +142,6 @@ public partial class App : Application
                     Beans = new List<Models.BeanData>(),
                     RoastLogs = new List<Models.RoastData>()
                 };
-                _appDataInitialized = true;
                 return;
             }
 
@@ -168,7 +166,6 @@ public partial class App : Application
                 await _preferencesService.ClearAppDataFilePathAsync();
             }
 
-            _appDataInitialized = true;
         }
         catch (Exception ex)
         {
@@ -181,7 +178,6 @@ public partial class App : Application
                 Beans = new List<Models.BeanData>(),
                 RoastLogs = new List<Models.RoastData>()
             };
-            _appDataInitialized = true;
         }
     }
 
@@ -195,7 +191,7 @@ public partial class App : Application
             {
                 Page currentPage = GetActivePage();
 
-                bool useDefault = await currentPage.DisplayAlert(
+                bool useDefault = await currentPage.DisplayAlertAsync(
                     "Welcome to CafeMaestro!",
                     "Would you like to store your coffee roasting data in the default application folder, or choose a custom location?",
                     "Use Default", "Choose Custom Location");
@@ -229,7 +225,7 @@ public partial class App : Application
                     _firstRunSetupNeeded = false;
 
                     // Notify user
-                    await currentPage.DisplayAlert(
+                    await currentPage.DisplayAlertAsync(
                         "Data File Created",
                         $"Your coffee data will be stored at:\n{defaultFilePath}",
                         "OK");
@@ -240,7 +236,7 @@ public partial class App : Application
                     await _navigationService.GoToAsync(Routes.Settings);
 
                     // Display prompt about creating a data file
-                    await currentPage.DisplayAlert(
+                    await currentPage.DisplayAlertAsync(
                         "Select Data Location",
                         "Please use the options below to select an existing data file or create a new one in your preferred location.",
                         "OK");

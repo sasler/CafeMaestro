@@ -60,22 +60,22 @@ public partial class BeanImportPageViewModel : ObservableObject
     public bool CanImport => !IsImporting && HasSelectedFile && HasRequiredMappings() && _validPreviewRowCount > 0;
 
     [ObservableProperty]
-    private string _filePath = string.Empty;
+    public partial string FilePath { get; set; } = string.Empty;
 
     [ObservableProperty]
-    private ObservableCollection<string> _headers = [];
+    public partial ObservableCollection<string> Headers { get; set; } = [];
 
     [ObservableProperty]
-    private ObservableCollection<CsvPreviewRow> _previewData = [];
+    public partial ObservableCollection<CsvPreviewRow> PreviewData { get; set; } = [];
 
     [ObservableProperty]
-    private ObservableCollection<CsvImportColumnMapping> _columnMappings = [];
+    public partial ObservableCollection<CsvImportColumnMapping> ColumnMappings { get; set; } = [];
 
     [ObservableProperty]
-    private string _importStatus = string.Empty;
+    public partial string ImportStatus { get; set; } = string.Empty;
 
     [ObservableProperty]
-    private bool _isImporting;
+    public partial bool IsImporting { get; set; }
 
     partial void OnFilePathChanged(string value)
     {
@@ -97,7 +97,7 @@ public partial class BeanImportPageViewModel : ObservableObject
         NotifyStateChanged();
     }
 
-    partial void OnColumnMappingsChanged(ObservableCollection<CsvImportColumnMapping>? oldValue, ObservableCollection<CsvImportColumnMapping> newValue)
+    partial void OnColumnMappingsChanged(ObservableCollection<CsvImportColumnMapping> oldValue, ObservableCollection<CsvImportColumnMapping> newValue)
     {
         if (oldValue is not null)
         {

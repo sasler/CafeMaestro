@@ -17,19 +17,19 @@ public partial class MainPageViewModel : ObservableObject
     private bool _isSubscribed;
 
     [ObservableProperty]
-    private string _dataFilePath = string.Empty;
+    public partial string DataFilePath { get; set; } = string.Empty;
 
     [ObservableProperty]
-    private string _dataFilePathDisplay = "File: Loading...";
+    public partial string DataFilePathDisplay { get; set; } = "File: Loading...";
 
     [ObservableProperty]
-    private int _beanCount;
+    public partial int BeanCount { get; set; }
 
     [ObservableProperty]
-    private int _roastCount;
+    public partial int RoastCount { get; set; }
 
     [ObservableProperty]
-    private string _dataStatsDisplay = "Beans: --  |  Roasts: --";
+    public partial string DataStatsDisplay { get; set; } = "Beans: --  |  Roasts: --";
 
     public MainPageViewModel(IAppDataService appDataService, IPreferencesService preferencesService)
         : this(appDataService, preferencesService, new NoOpNavigationService())

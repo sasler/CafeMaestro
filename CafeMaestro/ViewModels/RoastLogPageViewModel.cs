@@ -18,19 +18,19 @@ public partial class RoastLogPageViewModel : ObservableObject
     private bool _hasInitializedPath;
 
     [ObservableProperty]
-    private ObservableCollection<RoastData> _roasts = [];
+    public partial ObservableCollection<RoastData> Roasts { get; set; } = [];
 
     [ObservableProperty]
-    private string _searchText = string.Empty;
+    public partial string SearchText { get; set; } = string.Empty;
 
     [ObservableProperty]
-    private RoastData? _selectedRoast;
+    public partial RoastData? SelectedRoast { get; set; }
 
     [ObservableProperty]
-    private bool _isLoading;
+    public partial bool IsLoading { get; set; }
 
     [ObservableProperty]
-    private int _recordCount;
+    public partial int RecordCount { get; set; }
 
     public RoastLogPageViewModel(
         IRoastDataService roastDataService,

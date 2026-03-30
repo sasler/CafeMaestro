@@ -14,40 +14,40 @@ public partial class BeanEditPageViewModel : ObservableObject, IQueryAttributabl
     private bool _isNewBean = true;
 
     [ObservableProperty]
-    private string _coffeeName = string.Empty;
+    public partial string CoffeeName { get; set; } = string.Empty;
 
     [ObservableProperty]
-    private string _country = string.Empty;
+    public partial string Country { get; set; } = string.Empty;
 
     [ObservableProperty]
-    private string _variety = string.Empty;
+    public partial string Variety { get; set; } = string.Empty;
 
     [ObservableProperty]
-    private string _process = string.Empty;
+    public partial string Process { get; set; } = string.Empty;
 
     [ObservableProperty]
-    private string _notes = string.Empty;
+    public partial string Notes { get; set; } = string.Empty;
 
     [ObservableProperty]
-    private string _quantity = "0.00";
+    public partial string Quantity { get; set; } = "0.00";
 
     [ObservableProperty]
-    private string _price = string.Empty;
+    public partial string Price { get; set; } = string.Empty;
 
     [ObservableProperty]
-    private string _link = string.Empty;
+    public partial string Link { get; set; } = string.Empty;
 
     [ObservableProperty]
-    private DateTime _purchaseDate = DateTime.Now;
+    public partial DateTime PurchaseDate { get; set; } = DateTime.Now;
 
     [ObservableProperty]
-    private string _remainingQuantity = "0.00";
+    public partial string RemainingQuantity { get; set; } = "0.00";
 
     [ObservableProperty]
-    private string _pageTitle = "Add Bean";
+    public partial string PageTitle { get; set; } = "Add Bean";
 
     [ObservableProperty]
-    private string _pageHeading = "Add New Bean";
+    public partial string PageHeading { get; set; } = "Add New Bean";
 
     public BeanEditPageViewModel(IBeanDataService beanService, INavigationService navigationService)
     {

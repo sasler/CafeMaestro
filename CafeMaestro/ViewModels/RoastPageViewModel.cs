@@ -33,85 +33,85 @@ public partial class RoastPageViewModel : ObservableObject, IQueryAttributable
     private bool _suppressBeanSelectionChanged;
 
     [ObservableProperty]
-    private string _pageTitle = "Roast Coffee";
+    public partial string PageTitle { get; set; } = "Roast Coffee";
 
     [ObservableProperty]
-    private ObservableCollection<BeanData> _availableBeans = new();
+    public partial ObservableCollection<BeanData> AvailableBeans { get; set; } = new();
 
     [ObservableProperty]
-    private BeanData? _selectedBean;
+    public partial BeanData? SelectedBean { get; set; }
 
     [ObservableProperty]
-    private string _beanPickerTitle = "Loading beans...";
+    public partial string BeanPickerTitle { get; set; } = "Loading beans...";
 
     [ObservableProperty]
-    private string _timerDisplay = "00:00";
+    public partial string TimerDisplay { get; set; } = "00:00";
 
     [ObservableProperty]
-    private bool _canStartTimer = true;
+    public partial bool CanStartTimer { get; set; } = true;
 
     [ObservableProperty]
-    private bool _canPauseTimer;
+    public partial bool CanPauseTimer { get; set; }
 
     [ObservableProperty]
-    private bool _canStopTimer;
+    public partial bool CanStopTimer { get; set; }
 
     [ObservableProperty]
-    private bool _isTimerRunning;
+    public partial bool IsTimerRunning { get; set; }
 
     [ObservableProperty]
-    private bool _isTimeEntryEnabled = true;
+    public partial bool IsTimeEntryEnabled { get; set; } = true;
 
     [ObservableProperty]
-    private bool _canMarkFirstCrack;
+    public partial bool CanMarkFirstCrack { get; set; }
 
     [ObservableProperty]
-    private string _firstCrackLabel = "First Crack: Not marked";
+    public partial string FirstCrackLabel { get; set; } = "First Crack: Not marked";
 
     [ObservableProperty]
-    private int? _firstCrackMinutes;
+    public partial int? FirstCrackMinutes { get; set; }
 
     [ObservableProperty]
-    private int? _firstCrackSeconds;
+    public partial int? FirstCrackSeconds { get; set; }
 
     [ObservableProperty]
-    private string _batchWeightText = string.Empty;
+    public partial string BatchWeightText { get; set; } = string.Empty;
 
     [ObservableProperty]
-    private string _finalWeightText = string.Empty;
+    public partial string FinalWeightText { get; set; } = string.Empty;
 
     [ObservableProperty]
-    private string _temperatureText = string.Empty;
+    public partial string TemperatureText { get; set; } = string.Empty;
 
     [ObservableProperty]
-    private string _notes = string.Empty;
+    public partial string Notes { get; set; } = string.Empty;
 
     [ObservableProperty]
-    private string _lossPercentLabel = string.Empty;
+    public partial string LossPercentLabel { get; set; } = string.Empty;
 
     [ObservableProperty]
-    private bool _hasPreviousRoast;
+    public partial bool HasPreviousRoast { get; set; }
 
     [ObservableProperty]
-    private string _previousRoastSummary = string.Empty;
+    public partial string PreviousRoastSummary { get; set; } = string.Empty;
 
     [ObservableProperty]
-    private string _previousRoastDetails = string.Empty;
+    public partial string PreviousRoastDetails { get; set; } = string.Empty;
 
     [ObservableProperty]
-    private string _batchWeightWarningText = "Insufficient beans available!";
+    public partial string BatchWeightWarningText { get; set; } = "Insufficient beans available!";
 
     [ObservableProperty]
-    private bool _isBatchWeightWarningVisible;
+    public partial bool IsBatchWeightWarningVisible { get; set; }
 
     [ObservableProperty]
-    private bool _isEditMode;
+    public partial bool IsEditMode { get; set; }
 
     [ObservableProperty]
-    private string _editRoastId = string.Empty;
+    public partial string EditRoastId { get; set; } = string.Empty;
 
     [ObservableProperty]
-    private string _newRoast = string.Empty;
+    public partial string NewRoast { get; set; } = string.Empty;
 
     public RoastPageViewModel(
         ITimerService timerService,

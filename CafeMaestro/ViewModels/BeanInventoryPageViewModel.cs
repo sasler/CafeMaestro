@@ -18,19 +18,19 @@ public partial class BeanInventoryPageViewModel : ObservableObject
     private bool _hasInitializedPath;
 
     [ObservableProperty]
-    private ObservableCollection<BeanData> _beans = [];
+    public partial ObservableCollection<BeanData> Beans { get; set; } = [];
 
     [ObservableProperty]
-    private string _searchText = string.Empty;
+    public partial string SearchText { get; set; } = string.Empty;
 
     [ObservableProperty]
-    private BeanData? _selectedBean;
+    public partial BeanData? SelectedBean { get; set; }
 
     [ObservableProperty]
-    private bool _isLoading;
+    public partial bool IsLoading { get; set; }
 
     [ObservableProperty]
-    private int _recordCount;
+    public partial int RecordCount { get; set; }
 
     public BeanInventoryPageViewModel(
         IBeanDataService beanService,

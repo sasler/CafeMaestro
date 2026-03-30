@@ -71,34 +71,34 @@ public partial class SettingsPageViewModel : ObservableObject
     }
 
     [ObservableProperty]
-    private string _dataFilePath = "Loading...";
+    public partial string DataFilePath { get; set; } = "Loading...";
 
     [ObservableProperty]
-    private ObservableCollection<RoastLevelViewModel> _roastLevels = new();
+    public partial ObservableCollection<RoastLevelViewModel> RoastLevels { get; set; } = new();
 
     [ObservableProperty]
-    private bool _isEditRoastLevelPopupVisible;
+    public partial bool IsEditRoastLevelPopupVisible { get; set; }
 
     [ObservableProperty]
-    private string _editPopupTitle = "Edit Roast Level";
+    public partial string EditPopupTitle { get; set; } = "Edit Roast Level";
 
     [ObservableProperty]
-    private string _roastLevelName = string.Empty;
+    public partial string RoastLevelName { get; set; } = string.Empty;
 
     [ObservableProperty]
-    private string _minWeightLossText = "0.0";
+    public partial string MinWeightLossText { get; set; } = "0.0";
 
     [ObservableProperty]
-    private string _maxWeightLossText = "0.0";
+    public partial string MaxWeightLossText { get; set; } = "0.0";
 
     [ObservableProperty]
-    private int _selectedThemeIndex;
+    public partial int SelectedThemeIndex { get; set; }
 
     [ObservableProperty]
-    private string _versionDisplay = string.Empty;
+    public partial string VersionDisplay { get; set; } = string.Empty;
 
     [ObservableProperty]
-    private string _versionHistoryDisplay = string.Empty;
+    public partial string VersionHistoryDisplay { get; set; } = string.Empty;
 
     public bool ShouldHighlightDataFileSection { get; private set; }
 

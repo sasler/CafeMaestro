@@ -20,7 +20,6 @@ namespace CafeMaestro.Services
         private bool _isInitialized = false;
         private readonly SemaphoreSlim _initializationLock = new SemaphoreSlim(1, 1);
         private readonly SemaphoreSlim _dataAccessLock = new SemaphoreSlim(1, 1);
-        private bool _pathInitializedFromPreferences = false;
         private int _notificationsSuspended;
 
         // Event that fires when the data file path changes or data is reloaded
@@ -99,7 +98,6 @@ namespace CafeMaestro.Services
                         _folderPath = directory ?? string.Empty;
                         _cachedData = null;
                         _isDirty = true;
-                        _pathInitializedFromPreferences = true;
 
                         // Load data from the saved path
                         var data = await LoadAppDataInternalAsync(_filePath);
@@ -152,8 +150,6 @@ namespace CafeMaestro.Services
             if (string.IsNullOrWhiteSpace(filePath))
                 throw new ArgumentException("File path cannot be empty", nameof(filePath));
 
-            _pathInitializedFromPreferences = true;
-
             // Set path through property to trigger events
             DataFilePath = filePath;
 
@@ -187,8 +183,6 @@ namespace CafeMaestro.Services
             {
                 Directory.CreateDirectory(defaultFolder);
             }
-
-            _pathInitializedFromPreferences = true;
 
             // Use property setter to fire path change event
             DataFilePath = defaultFilePath;

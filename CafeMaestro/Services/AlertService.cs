@@ -17,7 +17,7 @@ public sealed class AlertService : IAlertService
                 return;
             }
 
-            await page.DisplayAlert(title, message, cancel);
+            await page.DisplayAlertAsync(title, message, cancel);
         });
     }
 }

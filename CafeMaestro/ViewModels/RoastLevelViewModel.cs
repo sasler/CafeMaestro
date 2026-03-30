@@ -6,16 +6,16 @@ namespace CafeMaestro.ViewModels;
 public partial class RoastLevelViewModel : ObservableObject
 {
     [ObservableProperty]
-    private Guid _id;
+    public partial Guid Id { get; set; }
 
     [ObservableProperty]
-    private string _name = string.Empty;
+    public partial string Name { get; set; } = string.Empty;
 
     [ObservableProperty]
-    private double _minWeightLossPercentage;
+    public partial double MinWeightLossPercentage { get; set; }
 
     [ObservableProperty]
-    private double _maxWeightLossPercentage;
+    public partial double MaxWeightLossPercentage { get; set; }
 
     public string DisplayRange => $"{MinWeightLossPercentage:F1}% - {MaxWeightLossPercentage:F1}% weight loss";
 

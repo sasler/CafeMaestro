@@ -42,7 +42,7 @@ public partial class SettingsPage : ContentPage,
 
     public void Receive(SettingsAlertMessage message)
     {
-        _ = DisplayAlert(message.Value.Title, message.Value.Message, message.Value.Cancel);
+        _ = DisplayAlertAsync(message.Value.Title, message.Value.Message, message.Value.Cancel);
     }
 
     public void Receive(PickDataFileRequestMessage message)
@@ -99,10 +99,10 @@ public partial class SettingsPage : ContentPage,
         var originalColor = dataFileSection.BackgroundColor;
         dataFileSection.BackgroundColor = GetResourceColor("HighlightColor", originalColor);
         dataFileSection.Scale = 0.97;
-        await dataFileSection.FadeTo(0.85, 250);
-        await dataFileSection.FadeTo(1, 250);
-        await dataFileSection.ScaleTo(1.02, 150);
-        await dataFileSection.ScaleTo(1.0, 150);
+        await dataFileSection.FadeToAsync(0.85, 250);
+        await dataFileSection.FadeToAsync(1, 250);
+        await dataFileSection.ScaleToAsync(1.02, 150);
+        await dataFileSection.ScaleToAsync(1.0, 150);
         await Task.Delay(500);
         dataFileSection.BackgroundColor = originalColor;
     }
@@ -137,13 +137,13 @@ public partial class SettingsPage : ContentPage,
 
     private async Task HandleActionSheetRequestAsync(SettingsActionSheetRequestMessage message)
     {
-        string? result = await DisplayActionSheet(message.Title, message.Cancel, null, message.Buttons.ToArray());
+        string? result = await DisplayActionSheetAsync(message.Title, message.Cancel, null, message.Buttons.ToArray());
         message.Reply(result);
     }
 
     private async Task HandleConfirmationRequestAsync(SettingsConfirmationRequestMessage message)
     {
-        bool confirm = await DisplayAlert(message.Title, message.Message, message.Accept, message.Cancel);
+        bool confirm = await DisplayAlertAsync(message.Title, message.Message, message.Accept, message.Cancel);
         message.Reply(confirm);
     }
 
