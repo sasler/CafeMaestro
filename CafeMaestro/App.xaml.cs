@@ -6,8 +6,8 @@ namespace CafeMaestro;
 
 public partial class App : Application
 {
-    private AppDataService _appDataService;
-    private PreferencesService _preferencesService;
+    private IAppDataService _appDataService;
+    private IPreferencesService _preferencesService;
     private Models.AppData? _appData; // Make nullable to fix constructor error
     private bool _appDataInitialized = false;
 
@@ -39,15 +39,15 @@ public partial class App : Application
         {
             // Create a minimal service provider for the LoadingPage to use
             var serviceCollection = new ServiceCollection();
-            serviceCollection.AddSingleton<AppDataService>();
-            serviceCollection.AddSingleton<PreferencesService>();
+            serviceCollection.AddSingleton<IAppDataService, AppDataService>();
+            serviceCollection.AddSingleton<IPreferencesService, PreferencesService>();
             serviceProvider = serviceCollection.BuildServiceProvider();
             Resources["ServiceProvider"] = serviceProvider;
         }
 
         // Get services using GetService with null fallbacks
-        _appDataService = serviceProvider.GetService<AppDataService>() ?? new AppDataService();
-        _preferencesService = serviceProvider.GetService<PreferencesService>() ?? new PreferencesService();
+        _appDataService = serviceProvider.GetService<IAppDataService>() ?? new AppDataService();
+        _preferencesService = serviceProvider.GetService<IPreferencesService>() ?? new PreferencesService();
 
         // Create the initial page
         _initialPage = new LoadingPage(serviceProvider);

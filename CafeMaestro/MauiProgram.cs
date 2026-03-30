@@ -27,12 +27,12 @@ public static class MauiProgram
 			});
 
 		// Register services
-		builder.Services.AddSingleton<AppDataService>();
-		builder.Services.AddSingleton<RoastDataService>();
-		builder.Services.AddSingleton<BeanDataService>();
-		builder.Services.AddSingleton<TimerService>();
-		builder.Services.AddSingleton<PreferencesService>();
-		builder.Services.AddSingleton<RoastLevelService>();
+		builder.Services.AddSingleton<IAppDataService, AppDataService>();
+		builder.Services.AddSingleton<IRoastDataService, RoastDataService>();
+		builder.Services.AddSingleton<IBeanDataService, BeanDataService>();
+		builder.Services.AddSingleton<ITimerService, TimerService>();
+		builder.Services.AddSingleton<IPreferencesService, PreferencesService>();
+		builder.Services.AddSingleton<IRoastLevelService, RoastLevelService>();
 		builder.Services.AddSingleton<IFileSaver>(FileSaver.Default);
 		builder.Services.AddSingleton<IFolderPicker>(FolderPicker.Default);
 

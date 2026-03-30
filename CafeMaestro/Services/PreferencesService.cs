@@ -1,4 +1,4 @@
-using System;
+﻿using System;
 using System.Threading.Tasks;
 using Microsoft.Maui.ApplicationModel;
 
@@ -12,7 +12,7 @@ namespace CafeMaestro.Services
         Dark
     }
 
-    public class PreferencesService
+    public class PreferencesService : IPreferencesService
     {        // Keys for preferences
         private const string AppDataFilePathKey = "AppDataFilePath";
         private const string FirstRunKey = "IsFirstRun";

@@ -1,4 +1,4 @@
-using System;
+﻿using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Reflection;
@@ -10,7 +10,7 @@ using CafeMaestro.Models;
 
 namespace CafeMaestro.Services
 {
-    public class AppDataService
+    public class AppDataService : IAppDataService
     {
         private string _folderPath = string.Empty;
         private string _filePath = string.Empty;
@@ -66,7 +66,7 @@ namespace CafeMaestro.Services
         }
 
         // Initialize the service with the saved path - call this only once during startup
-        public async Task<AppData> InitializeAsync(PreferencesService preferencesService)
+        public async Task<AppData> InitializeAsync(IPreferencesService preferencesService)
         {
             // Use a lock to prevent multiple simultaneous initializations
             await _initializationLock.WaitAsync();

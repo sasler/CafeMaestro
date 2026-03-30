@@ -1,4 +1,4 @@
-using System;
+﻿using System;
 using System.Collections.Generic;
 using System.Diagnostics;
 using CafeMaestro.Models;
@@ -11,7 +11,7 @@ namespace CafeMaestro
     public partial class RoastImportPage : ContentPage
     {
         // Using private field with nullable type to properly handle null case
-        private readonly RoastDataService? _roastDataService;
+        private readonly IRoastDataService? _roastDataService;
         private List<string> _csvHeaders = new List<string>();
         private string _selectedFilePath = string.Empty;
 
@@ -22,7 +22,7 @@ namespace CafeMaestro
             // Initialize service in constructor to avoid null warning
             if (App.Current?.Handler?.MauiContext != null)
             {
-                _roastDataService = App.Current.Handler.MauiContext.Services.GetService<RoastDataService>();
+                _roastDataService = App.Current.Handler.MauiContext.Services.GetService<IRoastDataService>();
                 
                 if (_roastDataService == null)
                 {

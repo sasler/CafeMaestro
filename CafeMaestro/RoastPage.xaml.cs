@@ -1,4 +1,4 @@
-using Microsoft.Maui.Controls;
+﻿using Microsoft.Maui.Controls;
 using Microsoft.Maui.ApplicationModel;
 using System;
 using System.Collections.Generic;
@@ -16,12 +16,12 @@ namespace CafeMaestro;
 [QueryProperty(nameof(NewRoast), "NewRoast")]
 public partial class RoastPage : ContentPage
 {
-    private TimerService timerService;
-    private RoastDataService roastDataService;
-    private BeanDataService beanService;
-    private AppDataService appDataService;
-    private PreferencesService preferencesService;
-    private RoastLevelService roastLevelService;
+    private ITimerService timerService;
+    private IRoastDataService roastDataService;
+    private IBeanDataService beanService;
+    private IAppDataService appDataService;
+    private IPreferencesService preferencesService;
+    private IRoastLevelService roastLevelService;
     private bool isTimerUpdating = false; // Flag to prevent recursive updates
     private string temporaryDigitsBuffer = ""; // Store digits before formatting
 
@@ -102,9 +102,9 @@ public partial class RoastPage : ContentPage
     private CancellationTokenSource? _animationCancellationTokenSource;
     private CancellationTokenSource? _cursorAnimationCancellationTokenSource;
 
-    public RoastPage(TimerService? timerService = null, RoastDataService? roastDataService = null,
-                    BeanDataService? beanService = null, AppDataService? appDataService = null,
-                    PreferencesService? preferencesService = null)
+    public RoastPage(ITimerService? timerService = null, IRoastDataService? roastDataService = null,
+                    IBeanDataService? beanService = null, IAppDataService? appDataService = null,
+                    IPreferencesService? preferencesService = null)
     {
         InitializeComponent();
 
@@ -113,59 +113,59 @@ public partial class RoastPage : ContentPage
             serviceProviderObj is IServiceProvider serviceProvider)
         {
             this.appDataService = appDataService ??
-                                 serviceProvider.GetService<AppDataService>() ??
-                                 Application.Current?.Handler?.MauiContext?.Services.GetService<AppDataService>() ??
-                                 throw new InvalidOperationException("AppDataService not available");
+                                 serviceProvider.GetService<IAppDataService>() ??
+                                 Application.Current?.Handler?.MauiContext?.Services.GetService<IAppDataService>() ??
+                                 throw new InvalidOperationException("IAppDataService not available");
 
             this.timerService = timerService ??
-                               serviceProvider.GetService<TimerService>() ??
-                               Application.Current?.Handler?.MauiContext?.Services.GetService<TimerService>() ??
-                               throw new InvalidOperationException("TimerService not available");
+                               serviceProvider.GetService<ITimerService>() ??
+                               Application.Current?.Handler?.MauiContext?.Services.GetService<ITimerService>() ??
+                               throw new InvalidOperationException("ITimerService not available");
 
             this.roastDataService = roastDataService ??
-                                   serviceProvider.GetService<RoastDataService>() ??
-                                   Application.Current?.Handler?.MauiContext?.Services.GetService<RoastDataService>() ??
-                                   throw new InvalidOperationException("RoastDataService not available");
+                                   serviceProvider.GetService<IRoastDataService>() ??
+                                   Application.Current?.Handler?.MauiContext?.Services.GetService<IRoastDataService>() ??
+                                   throw new InvalidOperationException("IRoastDataService not available");
 
             this.beanService = beanService ??
-                              serviceProvider.GetService<BeanDataService>() ??
-                              Application.Current?.Handler?.MauiContext?.Services.GetService<BeanDataService>() ??
+                              serviceProvider.GetService<IBeanDataService>() ??
+                              Application.Current?.Handler?.MauiContext?.Services.GetService<IBeanDataService>() ??
                               throw new InvalidOperationException("BeanService not available");
 
             this.preferencesService = preferencesService ??
-                                     serviceProvider.GetService<PreferencesService>() ??
-                                     Application.Current?.Handler?.MauiContext?.Services.GetService<PreferencesService>() ??
-                                     throw new InvalidOperationException("PreferencesService not available");
+                                     serviceProvider.GetService<IPreferencesService>() ??
+                                     Application.Current?.Handler?.MauiContext?.Services.GetService<IPreferencesService>() ??
+                                     throw new InvalidOperationException("IPreferencesService not available");
 
-            this.roastLevelService = serviceProvider.GetService<RoastLevelService>() ??
-                                     Application.Current?.Handler?.MauiContext?.Services.GetService<RoastLevelService>() ??
-                                     throw new InvalidOperationException("RoastLevelService not available");
+            this.roastLevelService = serviceProvider.GetService<IRoastLevelService>() ??
+                                     Application.Current?.Handler?.MauiContext?.Services.GetService<IRoastLevelService>() ??
+                                     throw new InvalidOperationException("IRoastLevelService not available");
         }
         else
         {
             // Fall back to the old way if app resources doesn't have our provider
             this.appDataService = appDataService ??
-                                 Application.Current?.Handler?.MauiContext?.Services.GetService<AppDataService>() ??
-                                 throw new InvalidOperationException("AppDataService not available");
+                                 Application.Current?.Handler?.MauiContext?.Services.GetService<IAppDataService>() ??
+                                 throw new InvalidOperationException("IAppDataService not available");
 
             this.timerService = timerService ??
-                               Application.Current?.Handler?.MauiContext?.Services.GetService<TimerService>() ??
-                               throw new InvalidOperationException("TimerService not available");
+                               Application.Current?.Handler?.MauiContext?.Services.GetService<ITimerService>() ??
+                               throw new InvalidOperationException("ITimerService not available");
 
             this.roastDataService = roastDataService ??
-                                   Application.Current?.Handler?.MauiContext?.Services.GetService<RoastDataService>() ??
-                                   throw new InvalidOperationException("RoastDataService not available");
+                                   Application.Current?.Handler?.MauiContext?.Services.GetService<IRoastDataService>() ??
+                                   throw new InvalidOperationException("IRoastDataService not available");
 
             this.beanService = beanService ??
-                              Application.Current?.Handler?.MauiContext?.Services.GetService<BeanDataService>() ??
-                              throw new InvalidOperationException("BeanDataService not available");
+                              Application.Current?.Handler?.MauiContext?.Services.GetService<IBeanDataService>() ??
+                              throw new InvalidOperationException("IBeanDataService not available");
 
             this.preferencesService = preferencesService ??
-                                     Application.Current?.Handler?.MauiContext?.Services.GetService<PreferencesService>() ??
-                                     throw new InvalidOperationException("PreferencesService not available");
+                                     Application.Current?.Handler?.MauiContext?.Services.GetService<IPreferencesService>() ??
+                                     throw new InvalidOperationException("IPreferencesService not available");
 
-            this.roastLevelService = Application.Current?.Handler?.MauiContext?.Services.GetService<RoastLevelService>() ??
-                                     throw new InvalidOperationException("RoastLevelService not available");
+            this.roastLevelService = Application.Current?.Handler?.MauiContext?.Services.GetService<IRoastLevelService>() ??
+                                     throw new InvalidOperationException("IRoastLevelService not available");
         }
 
         this.timerService.TimeUpdated += OnTimeUpdated;
@@ -1339,7 +1339,7 @@ public partial class RoastPage : ContentPage
                 return; // Not in edit mode
             }
 
-            // Use the RoastDataService to get the specific roast by ID
+            // Use the IRoastDataService to get the specific roast by ID
             _roastToEdit = await roastDataService.GetRoastLogByIdAsync(_editRoastId);
 
             if (_roastToEdit == null)

@@ -11,11 +11,11 @@ using Microsoft.Extensions.DependencyInjection;
 
 public partial class MainPage : ContentPage
 {
-    private readonly AppDataService _appDataService;
-    private readonly PreferencesService _preferencesService;
+    private readonly IAppDataService _appDataService;
+    private readonly IPreferencesService _preferencesService;
     private string _userDataFilePath = string.Empty;
 
-    public MainPage(AppDataService appDataService, PreferencesService preferencesService)
+    public MainPage(IAppDataService appDataService, IPreferencesService preferencesService)
     {
         InitializeComponent();
 

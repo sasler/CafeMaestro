@@ -1,4 +1,4 @@
-using System.Diagnostics;
+﻿using System.Diagnostics;
 using CafeMaestro.Services;
 using Microsoft.Extensions.DependencyInjection;
 using CommunityToolkit.Maui;
@@ -13,11 +13,11 @@ namespace CafeMaestro;
 
 public partial class SettingsPage : ContentPage
 {
-    private readonly PreferencesService _preferencesService;
-    private readonly AppDataService _appDataService;
-    private readonly BeanDataService _beanService;
-    private readonly RoastDataService _roastDataService;
-    private readonly RoastLevelService _roastLevelService;
+    private readonly IPreferencesService _preferencesService;
+    private readonly IAppDataService _appDataService;
+    private readonly IBeanDataService _beanService;
+    private readonly IRoastDataService _roastDataService;
+    private readonly IRoastLevelService _roastLevelService;
     private readonly IFileSaver _fileSaver;
     private readonly IFolderPicker _folderPicker;
 
@@ -37,9 +37,9 @@ public partial class SettingsPage : ContentPage
     private RoastLevelViewModel? _currentEditRoastLevel;
     private bool _isNewRoastLevel = false;
 
-    public SettingsPage(PreferencesService? preferencesService = null, AppDataService? appDataService = null,
-                        BeanDataService? beanService = null, RoastDataService? roastDataService = null,
-                        RoastLevelService? roastLevelService = null, IFileSaver? fileSaver = null, IFolderPicker? folderPicker = null)
+    public SettingsPage(IPreferencesService? preferencesService = null, IAppDataService? appDataService = null,
+                        IBeanDataService? beanService = null, IRoastDataService? roastDataService = null,
+                        IRoastLevelService? roastLevelService = null, IFileSaver? fileSaver = null, IFolderPicker? folderPicker = null)
     {
         InitializeComponent();
 
@@ -48,29 +48,29 @@ public partial class SettingsPage : ContentPage
             serviceProviderObj is IServiceProvider serviceProvider)
         {
             _preferencesService = preferencesService ??
-                                 serviceProvider.GetService<PreferencesService>() ??
-                                 Application.Current?.Handler?.MauiContext?.Services.GetService<PreferencesService>() ??
-                                 throw new InvalidOperationException("PreferencesService not available");
+                                 serviceProvider.GetService<IPreferencesService>() ??
+                                 Application.Current?.Handler?.MauiContext?.Services.GetService<IPreferencesService>() ??
+                                 throw new InvalidOperationException("IPreferencesService not available");
 
             _appDataService = appDataService ??
-                             serviceProvider.GetService<AppDataService>() ??
-                             Application.Current?.Handler?.MauiContext?.Services.GetService<AppDataService>() ??
-                             throw new InvalidOperationException("AppDataService not available");
+                             serviceProvider.GetService<IAppDataService>() ??
+                             Application.Current?.Handler?.MauiContext?.Services.GetService<IAppDataService>() ??
+                             throw new InvalidOperationException("IAppDataService not available");
 
             _beanService = beanService ??
-                          serviceProvider.GetService<BeanDataService>() ??
-                          Application.Current?.Handler?.MauiContext?.Services.GetService<BeanDataService>() ??
+                          serviceProvider.GetService<IBeanDataService>() ??
+                          Application.Current?.Handler?.MauiContext?.Services.GetService<IBeanDataService>() ??
                           throw new InvalidOperationException("BeanService not available");
 
             _roastDataService = roastDataService ??
-                               serviceProvider.GetService<RoastDataService>() ??
-                               Application.Current?.Handler?.MauiContext?.Services.GetService<RoastDataService>() ??
-                               throw new InvalidOperationException("RoastDataService not available");
+                               serviceProvider.GetService<IRoastDataService>() ??
+                               Application.Current?.Handler?.MauiContext?.Services.GetService<IRoastDataService>() ??
+                               throw new InvalidOperationException("IRoastDataService not available");
 
             _roastLevelService = roastLevelService ??
-                                serviceProvider.GetService<RoastLevelService>() ??
-                                Application.Current?.Handler?.MauiContext?.Services.GetService<RoastLevelService>() ??
-                                throw new InvalidOperationException("RoastLevelService not available");
+                                serviceProvider.GetService<IRoastLevelService>() ??
+                                Application.Current?.Handler?.MauiContext?.Services.GetService<IRoastLevelService>() ??
+                                throw new InvalidOperationException("IRoastLevelService not available");
 
             _fileSaver = fileSaver ??
                         serviceProvider.GetService<IFileSaver>() ??
@@ -86,24 +86,24 @@ public partial class SettingsPage : ContentPage
         {
             // Fall back to the old way if app resources doesn't have our provider
             _preferencesService = preferencesService ??
-                                 Application.Current?.Handler?.MauiContext?.Services.GetService<PreferencesService>() ??
-                                 throw new InvalidOperationException("PreferencesService not available");
+                                 Application.Current?.Handler?.MauiContext?.Services.GetService<IPreferencesService>() ??
+                                 throw new InvalidOperationException("IPreferencesService not available");
 
             _appDataService = appDataService ??
-                             Application.Current?.Handler?.MauiContext?.Services.GetService<AppDataService>() ??
-                             throw new InvalidOperationException("AppDataService not available");
+                             Application.Current?.Handler?.MauiContext?.Services.GetService<IAppDataService>() ??
+                             throw new InvalidOperationException("IAppDataService not available");
 
             _beanService = beanService ??
-                          Application.Current?.Handler?.MauiContext?.Services.GetService<BeanDataService>() ??
+                          Application.Current?.Handler?.MauiContext?.Services.GetService<IBeanDataService>() ??
                           throw new InvalidOperationException("BeanService not available");
 
             _roastDataService = roastDataService ??
-                               Application.Current?.Handler?.MauiContext?.Services.GetService<RoastDataService>() ??
-                               throw new InvalidOperationException("RoastDataService not available");
+                               Application.Current?.Handler?.MauiContext?.Services.GetService<IRoastDataService>() ??
+                               throw new InvalidOperationException("IRoastDataService not available");
 
             _roastLevelService = roastLevelService ??
-                                Application.Current?.Handler?.MauiContext?.Services.GetService<RoastLevelService>() ??
-                                throw new InvalidOperationException("RoastLevelService not available");
+                                Application.Current?.Handler?.MauiContext?.Services.GetService<IRoastLevelService>() ??
+                                throw new InvalidOperationException("IRoastLevelService not available");
 
             _fileSaver = fileSaver ??
                         Application.Current?.Handler?.MauiContext?.Services.GetService<IFileSaver>() ??
@@ -353,7 +353,7 @@ public partial class SettingsPage : ContentPage
                 // First save path to preferences
                 await _preferencesService.SaveAppDataFilePathAsync(result.FullPath);
 
-                // Then update AppDataService - this now returns the loaded data
+                // Then update IAppDataService - this now returns the loaded data
                 var appData = await _appDataService.SetCustomFilePathAsync(result.FullPath);
 
                 // Reload the UI
@@ -443,7 +443,7 @@ public partial class SettingsPage : ContentPage
             // First save the path to preferences
             await _preferencesService.SaveAppDataFilePathAsync(filePath);
 
-            // Create new empty data file through AppDataService - now returns loaded data
+            // Create new empty data file through IAppDataService - now returns loaded data
             var appData = await _appDataService.CreateEmptyDataFileAsync(filePath);
 
             // Update UI

@@ -1,4 +1,4 @@
-using System.Collections.ObjectModel;
+﻿using System.Collections.ObjectModel;
 using System.Windows.Input;
 using CafeMaestro.Models;
 using CafeMaestro.Services;
@@ -26,16 +26,16 @@ public partial class RoastLogPage : ContentPage
         }
     }
 
-    private readonly RoastDataService _roastDataService;
-    private readonly AppDataService _appDataService;
-    private readonly PreferencesService _preferencesService;
+    private readonly IRoastDataService _roastDataService;
+    private readonly IAppDataService _appDataService;
+    private readonly IPreferencesService _preferencesService;
     private ObservableCollection<RoastData> _roastLogs;
     public ICommand RefreshCommand { get; private set; }
     public ICommand EditRoastCommand { get; private set; }
     public ICommand DeleteRoastCommand { get; private set; }
     public ICommand ItemTappedCommand { get; private set; }
 
-    public RoastLogPage(RoastDataService? roastDataService = null, AppDataService? appDataService = null, PreferencesService? preferencesService = null)
+    public RoastLogPage(IRoastDataService? roastDataService = null, IAppDataService? appDataService = null, IPreferencesService? preferencesService = null)
     {
         InitializeComponent();
 
@@ -45,34 +45,34 @@ public partial class RoastLogPage : ContentPage
             serviceProviderObj is IServiceProvider serviceProvider)
         {
             _appDataService = appDataService ??
-                             serviceProvider.GetService<AppDataService>() ??
-                             Application.Current?.Handler?.MauiContext?.Services.GetService<AppDataService>() ??
-                             throw new InvalidOperationException("AppDataService not available");
+                             serviceProvider.GetService<IAppDataService>() ??
+                             Application.Current?.Handler?.MauiContext?.Services.GetService<IAppDataService>() ??
+                             throw new InvalidOperationException("IAppDataService not available");
 
             _roastDataService = roastDataService ??
-                               serviceProvider.GetService<RoastDataService>() ??
-                               Application.Current?.Handler?.MauiContext?.Services.GetService<RoastDataService>() ??
-                               throw new InvalidOperationException("RoastDataService not available");
+                               serviceProvider.GetService<IRoastDataService>() ??
+                               Application.Current?.Handler?.MauiContext?.Services.GetService<IRoastDataService>() ??
+                               throw new InvalidOperationException("IRoastDataService not available");
 
             _preferencesService = preferencesService ??
-                                 serviceProvider.GetService<PreferencesService>() ??
-                                 Application.Current?.Handler?.MauiContext?.Services.GetService<PreferencesService>() ??
-                                 throw new InvalidOperationException("PreferencesService not available");
+                                 serviceProvider.GetService<IPreferencesService>() ??
+                                 Application.Current?.Handler?.MauiContext?.Services.GetService<IPreferencesService>() ??
+                                 throw new InvalidOperationException("IPreferencesService not available");
         }
         else
         {
             // Fall back to the old way if app resources doesn't have our provider
             _appDataService = appDataService ??
-                            Application.Current?.Handler?.MauiContext?.Services.GetService<AppDataService>() ??
-                            throw new InvalidOperationException("AppDataService not available");
+                            Application.Current?.Handler?.MauiContext?.Services.GetService<IAppDataService>() ??
+                            throw new InvalidOperationException("IAppDataService not available");
 
             _roastDataService = roastDataService ??
-                              Application.Current?.Handler?.MauiContext?.Services.GetService<RoastDataService>() ??
-                              throw new InvalidOperationException("RoastDataService not available");
+                              Application.Current?.Handler?.MauiContext?.Services.GetService<IRoastDataService>() ??
+                              throw new InvalidOperationException("IRoastDataService not available");
 
             _preferencesService = preferencesService ??
-                                 Application.Current?.Handler?.MauiContext?.Services.GetService<PreferencesService>() ??
-                                 throw new InvalidOperationException("PreferencesService not available");
+                                 Application.Current?.Handler?.MauiContext?.Services.GetService<IPreferencesService>() ??
+                                 throw new InvalidOperationException("IPreferencesService not available");
         }
 
         // IMPORTANT: Ensure we're using the latest path from preferences
@@ -81,7 +81,7 @@ public partial class RoastLogPage : ContentPage
             // Get the data from the app directly instead of creating new services
             var appData = app.GetAppData();
 
-            // Force the AppDataService to use the same path as the main app
+            // Force the IAppDataService to use the same path as the main app
             Task.Run(async () =>
             {
                 try
@@ -131,7 +131,7 @@ public partial class RoastLogPage : ContentPage
         {
             try
             {
-                // Use RoastDataService's DeleteRoastLogAsync method
+                // Use IRoastDataService's DeleteRoastLogAsync method
                 bool success = await _roastDataService.DeleteRoastLogAsync(roastData.Id);
 
                 if (success)
@@ -359,7 +359,7 @@ public partial class RoastLogPage : ContentPage
         {
             RoastLogRefreshView.IsRefreshing = true;
 
-            // Use the current data from AppDataService directly
+            // Use the current data from IAppDataService directly
             var appData = _appDataService.CurrentData;
             UpdateRoastLogsFromAppData(appData);
         }

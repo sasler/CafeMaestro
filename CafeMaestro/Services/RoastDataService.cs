@@ -1,4 +1,4 @@
-using System;
+﻿using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
@@ -9,10 +9,10 @@ using CafeMaestro.Models;
 
 namespace CafeMaestro.Services
 {
-    public class RoastDataService
+    public class RoastDataService : IRoastDataService
     {
-        private readonly AppDataService _appDataService;
-        private readonly RoastLevelService _roastLevelService;
+        private readonly IAppDataService _appDataService;
+        private readonly IRoastLevelService _roastLevelService;
         private readonly JsonSerializerOptions _jsonOptions;
         private readonly SemaphoreSlim _initLock = new SemaphoreSlim(1, 1);
         private bool _isInitialized = false;
@@ -24,7 +24,7 @@ namespace CafeMaestro.Services
             get => _appDataService.DataFilePath;
         }
 
-        public RoastDataService(AppDataService appDataService, RoastLevelService roastLevelService)
+        public RoastDataService(IAppDataService appDataService, IRoastLevelService roastLevelService)
         {
             _appDataService = appDataService;
             _roastLevelService = roastLevelService;
@@ -67,7 +67,7 @@ namespace CafeMaestro.Services
         }
 
         // Initialize from preferences - ensure this is called at startup
-        public async Task InitializeFromPreferencesAsync(PreferencesService preferencesService)
+        public async Task InitializeFromPreferencesAsync(IPreferencesService preferencesService)
         {
             await _initLock.WaitAsync();
 
@@ -392,7 +392,7 @@ namespace CafeMaestro.Services
                 }
 
                 // IMPORTANT FIX: Temporarily detach from DataChanged event to prevent duplicate save operations
-                var eventField = typeof(AppDataService).GetField("DataChanged",
+                var eventField = _appDataService.GetType().GetField("DataChanged",
                     System.Reflection.BindingFlags.Instance | System.Reflection.BindingFlags.NonPublic);
 
                 if (eventField != null)
@@ -638,7 +638,7 @@ namespace CafeMaestro.Services
                 // Restore the original event handler if we detached it
                 if (eventDetached && originalHandler != null)
                 {
-                    var eventField = typeof(AppDataService).GetField("DataChanged",
+                    var eventField = _appDataService.GetType().GetField("DataChanged",
                         System.Reflection.BindingFlags.Instance | System.Reflection.BindingFlags.NonPublic);
                     if (eventField != null)
                     {

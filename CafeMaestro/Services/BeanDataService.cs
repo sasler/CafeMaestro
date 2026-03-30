@@ -1,4 +1,4 @@
-using System;
+﻿using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
@@ -10,9 +10,9 @@ using CafeMaestro.Models;
 
 namespace CafeMaestro.Services
 {
-    public class BeanDataService
+    public class BeanDataService : IBeanDataService
     {
-        private readonly AppDataService _appDataService;
+        private readonly IAppDataService _appDataService;
         private readonly SemaphoreSlim _initLock = new SemaphoreSlim(1, 1);
         private bool _isInitialized = false;
         private string _currentDataFilePath;
@@ -23,7 +23,7 @@ namespace CafeMaestro.Services
             get => _appDataService.DataFilePath;
         }
 
-        public BeanDataService(AppDataService appDataService)
+        public BeanDataService(IAppDataService appDataService)
         {
             _appDataService = appDataService;
             _currentDataFilePath = _appDataService.DataFilePath;
@@ -55,7 +55,7 @@ namespace CafeMaestro.Services
         }
 
         // Initialize from preferences - ensure this is called at startup
-        public async Task InitializeFromPreferencesAsync(PreferencesService preferencesService)
+        public async Task InitializeFromPreferencesAsync(IPreferencesService preferencesService)
         {
             await _initLock.WaitAsync();
 

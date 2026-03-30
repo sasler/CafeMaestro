@@ -1,4 +1,4 @@
-using System.Collections.ObjectModel;
+﻿using System.Collections.ObjectModel;
 using System.Windows.Input;
 using CafeMaestro.Models;
 using CafeMaestro.Services;
@@ -24,15 +24,15 @@ public partial class BeanInventoryPage : ContentPage
         }
     }
 
-    private readonly BeanDataService _beanService;
-    private readonly AppDataService _appDataService;
+    private readonly IBeanDataService _beanService;
+    private readonly IAppDataService _appDataService;
     private ObservableCollection<BeanData> _beans;
     public ICommand RefreshCommand { get; private set; }
     public ICommand EditBeanCommand { get; private set; }
     public ICommand DeleteBeanCommand { get; private set; }
     public ICommand ItemTappedCommand { get; private set; }
 
-    public BeanInventoryPage(BeanDataService? beanService = null, AppDataService? appDataService = null)
+    public BeanInventoryPage(IBeanDataService? beanService = null, IAppDataService? appDataService = null)
     {
         InitializeComponent();
 
@@ -43,24 +43,24 @@ public partial class BeanInventoryPage : ContentPage
             serviceProviderObj is IServiceProvider serviceProvider)
         {
             _appDataService = appDataService ??
-                             serviceProvider.GetService<AppDataService>() ??
-                             Application.Current?.Handler?.MauiContext?.Services.GetService<AppDataService>() ??
-                             throw new InvalidOperationException("AppDataService not available");
+                             serviceProvider.GetService<IAppDataService>() ??
+                             Application.Current?.Handler?.MauiContext?.Services.GetService<IAppDataService>() ??
+                             throw new InvalidOperationException("IAppDataService not available");
 
             _beanService = beanService ??
-                          serviceProvider.GetService<BeanDataService>() ??
-                          Application.Current?.Handler?.MauiContext?.Services.GetService<BeanDataService>() ??
+                          serviceProvider.GetService<IBeanDataService>() ??
+                          Application.Current?.Handler?.MauiContext?.Services.GetService<IBeanDataService>() ??
                           throw new InvalidOperationException("BeanService not available");
         }
         else
         {
             // Fall back to the old way if app resources doesn't have our provider
             _appDataService = appDataService ??
-                            Application.Current?.Handler?.MauiContext?.Services.GetService<AppDataService>() ??
-                            throw new InvalidOperationException("AppDataService not available");
+                            Application.Current?.Handler?.MauiContext?.Services.GetService<IAppDataService>() ??
+                            throw new InvalidOperationException("IAppDataService not available");
 
             _beanService = beanService ??
-                          Application.Current?.Handler?.MauiContext?.Services.GetService<BeanDataService>() ??
+                          Application.Current?.Handler?.MauiContext?.Services.GetService<IBeanDataService>() ??
                           throw new InvalidOperationException("BeanService not available");
         }
 
@@ -70,15 +70,15 @@ public partial class BeanInventoryPage : ContentPage
             // Get the data from the app directly instead of creating new services
             var appData = app.GetAppData();
 
-            // Force the AppDataService to use the same path as the main app
+            // Force the IAppDataService to use the same path as the main app
             Task.Run(async () =>
             {
                 try
                 {
                     // Get the path from preferences to ensure it's the user-defined one
                     var preferencesService = serviceProviderObj is IServiceProvider sp ?
-                        sp.GetService<PreferencesService>() :
-                        Application.Current?.Handler?.MauiContext?.Services.GetService<PreferencesService>();
+                        sp.GetService<IPreferencesService>() :
+                        Application.Current?.Handler?.MauiContext?.Services.GetService<IPreferencesService>();
 
                     if (preferencesService != null)
                     {

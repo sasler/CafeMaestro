@@ -1,4 +1,4 @@
-using System.Diagnostics;
+﻿using System.Diagnostics;
 using CafeMaestro.Services;
 using Microsoft.Extensions.DependencyInjection;
 
@@ -6,8 +6,8 @@ namespace CafeMaestro;
 
 public partial class LoadingPage : ContentPage
 {
-    private readonly AppDataService? _appDataService;
-    private readonly PreferencesService? _preferencesService;
+    private readonly IAppDataService? _appDataService;
+    private readonly IPreferencesService? _preferencesService;
     private readonly IServiceProvider _serviceProvider;
 
     public LoadingPage(IServiceProvider serviceProvider)
@@ -20,8 +20,8 @@ public partial class LoadingPage : ContentPage
         try
         {
             // Try to get services from dependency injection
-            _appDataService = _serviceProvider.GetService<AppDataService>();
-            _preferencesService = _serviceProvider.GetService<PreferencesService>();
+            _appDataService = _serviceProvider.GetService<IAppDataService>();
+            _preferencesService = _serviceProvider.GetService<IPreferencesService>();
         }
         catch (Exception ex)
         {

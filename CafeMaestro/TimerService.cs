@@ -1,10 +1,11 @@
-using System;
+﻿using System;
 using System.Timers;
 using Microsoft.Maui.ApplicationModel;
+using CafeMaestro.Services;
 
 namespace CafeMaestro
 {
-    public class TimerService
+    public class TimerService : ITimerService
     {
         private System.Timers.Timer timer; // Explicitly specify System.Timers.Timer
         private DateTime startTime;

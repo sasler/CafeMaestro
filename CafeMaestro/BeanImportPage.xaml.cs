@@ -1,4 +1,4 @@
-using CafeMaestro.Models;
+﻿using CafeMaestro.Models;
 using CafeMaestro.Services;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Maui.ApplicationModel;
@@ -10,14 +10,14 @@ namespace CafeMaestro;
 
 public partial class BeanImportPage : ContentPage
 {
-    private readonly BeanDataService _beanService;
-    private readonly AppDataService _appDataService;
+    private readonly IBeanDataService _beanService;
+    private readonly IAppDataService _appDataService;
     private string? _selectedFilePath;
     private List<string> _csvHeaders = new List<string>();
     private Dictionary<string, string> _columnMapping = new Dictionary<string, string>();
     private List<Dictionary<string, string>> _previewData = new List<Dictionary<string, string>>();
 
-    public BeanImportPage(BeanDataService? beanService = null, AppDataService? appDataService = null)
+    public BeanImportPage(IBeanDataService? beanService = null, IAppDataService? appDataService = null)
     {
         InitializeComponent();
 
@@ -27,24 +27,24 @@ public partial class BeanImportPage : ContentPage
             serviceProviderObj is IServiceProvider serviceProvider)
         {
             _appDataService = appDataService ??
-                             serviceProvider.GetService<AppDataService>() ??
-                             Application.Current?.Handler?.MauiContext?.Services.GetService<AppDataService>() ??
-                             throw new InvalidOperationException("AppDataService not available");
+                             serviceProvider.GetService<IAppDataService>() ??
+                             Application.Current?.Handler?.MauiContext?.Services.GetService<IAppDataService>() ??
+                             throw new InvalidOperationException("IAppDataService not available");
 
             _beanService = beanService ??
-                          serviceProvider.GetService<BeanDataService>() ??
-                          Application.Current?.Handler?.MauiContext?.Services.GetService<BeanDataService>() ??
+                          serviceProvider.GetService<IBeanDataService>() ??
+                          Application.Current?.Handler?.MauiContext?.Services.GetService<IBeanDataService>() ??
                           throw new InvalidOperationException("BeanService not available");
         }
         else
         {
             // Fall back to the old way if app resources doesn't have our provider
             _appDataService = appDataService ??
-                            Application.Current?.Handler?.MauiContext?.Services.GetService<AppDataService>() ??
-                            throw new InvalidOperationException("AppDataService not available");
+                            Application.Current?.Handler?.MauiContext?.Services.GetService<IAppDataService>() ??
+                            throw new InvalidOperationException("IAppDataService not available");
 
             _beanService = beanService ??
-                          Application.Current?.Handler?.MauiContext?.Services.GetService<BeanDataService>() ??
+                          Application.Current?.Handler?.MauiContext?.Services.GetService<IBeanDataService>() ??
                           throw new InvalidOperationException("BeanService not available");
         }
 
