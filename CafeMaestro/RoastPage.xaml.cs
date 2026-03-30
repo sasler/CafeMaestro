@@ -1,4 +1,5 @@
 using System.ComponentModel;
+using System.Diagnostics;
 using CafeMaestro.ViewModels;
 using Microsoft.Maui.Controls;
 using Microsoft.Maui.Graphics;
@@ -215,8 +216,9 @@ public partial class RoastPage : ContentPage, IQueryAttributable
                     await Task.Delay(500, token);
                 }
             }
-            catch (TaskCanceledException)
+            catch (TaskCanceledException ex)
             {
+                Debug.WriteLine($"Timer pulse animation canceled: {ex.Message}");
             }
         });
     }
@@ -255,8 +257,9 @@ public partial class RoastPage : ContentPage, IQueryAttributable
                     await Task.Delay(500, token);
                 }
             }
-            catch (TaskCanceledException)
+            catch (TaskCanceledException ex)
             {
+                Debug.WriteLine($"Timer edit animation canceled: {ex.Message}");
             }
             finally
             {
@@ -286,8 +289,9 @@ public partial class RoastPage : ContentPage, IQueryAttributable
                 TimeDisplayLabel.Opacity = 1.0;
             });
         }
-        catch
+        catch (Exception ex)
         {
+            Debug.WriteLine($"Failed to stop timer edit animation cleanly: {ex.Message}");
             TimeDisplayLabel.Opacity = 1.0;
         }
     }

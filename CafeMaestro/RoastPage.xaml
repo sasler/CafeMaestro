@@ -65,7 +65,7 @@
                             HorizontalOptions="Fill"
                             HeightRequest="110">
                         <Border.Shadow>
-                            <Shadow Brush="#20000000"
+                            <Shadow Brush="{DynamicResource CardShadowColor}"
                                     Offset="0,3"
                                     Radius="6"
                                     Opacity="0.2"/>
@@ -83,8 +83,8 @@
                             <Border x:Name="TimerRunningIndicator"
                                     WidthRequest="20"
                                     HeightRequest="20"
-                                    BackgroundColor="Red"
-                                    Stroke="Transparent"
+                                    BackgroundColor="{DynamicResource TimerRunningIndicatorColor}"
+                                    Stroke="{DynamicResource TransparentColor}"
                                     StrokeShape="RoundRectangle 10"
                                     HorizontalOptions="End"
                                     VerticalOptions="Start"
@@ -172,8 +172,8 @@
                         IsVisible="{Binding HasPreviousRoast}"
                         Margin="0,5,0,10"
                         Padding="10"
-                        BackgroundColor="{AppThemeBinding Light=#f0f0f0, Dark=#303030}"
-                        Stroke="{AppThemeBinding Light=#dddddd, Dark=#444444}"
+                        BackgroundColor="{DynamicResource PreviousRoastBackgroundColor}"
+                        Stroke="{DynamicResource PreviousRoastBorderColor}"
                         StrokeShape="RoundRectangle 8">
                     <VerticalStackLayout>
                         <Label Text="Previous Roast"

@@ -18,12 +18,10 @@ namespace CafeMaestro.Models
         [JsonIgnore]
         public bool IsValid => !Validate().Any();
 
-        // Default constructor
         public RoastLevelData()
         {
         }
 
-        // Constructor with parameters
         public RoastLevelData(string name, double minWeightLoss, double maxWeightLoss)
         {
             Name = name;

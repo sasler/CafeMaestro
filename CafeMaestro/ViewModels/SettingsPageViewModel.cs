@@ -315,8 +315,9 @@ public partial class SettingsPageViewModel : ObservableObject
                 SendAlert("Error", $"Failed to select folder: {result.Exception.Message}");
             }
         }
-        catch (OperationCanceledException)
+        catch (OperationCanceledException ex)
         {
+            Debug.WriteLine($"Export canceled: {ex.Message}");
         }
         catch (Exception ex)
         {

@@ -65,7 +65,7 @@
                            Text="{Binding RecordCount}"
                            FontSize="20"
                            FontAttributes="Bold"
-                           TextColor="White"
+                           TextColor="{DynamicResource ButtonTextColor}"
                            HorizontalOptions="Center"
                            VerticalOptions="Center"/>
                 </Border>
@@ -130,7 +130,7 @@
                                     BackgroundColor="{DynamicResource NeutralColor}"
                                     Style="{StaticResource ItemCardStyle}">
                                 <Border.Shadow>
-                                    <Shadow Brush="#20000000"
+                                    <Shadow Brush="{DynamicResource CardShadowColor}"
                                             Offset="0,3"
                                             Radius="6"
                                             Opacity="0.2"/>
@@ -152,7 +152,7 @@
                                            Grid.Column="1"
                                            Text="{Binding PurchaseDate, StringFormat='{0:MM/dd/yyyy}'}"
                                            FontSize="14"
-                                           TextColor="{AppThemeBinding Light=Gray, Dark=#BBBBBB}"/>
+                                           TextColor="{DynamicResource ItemTimestampTextColor}"/>
 
                                     <Label Grid.Row="1"
                                            Grid.Column="0"
@@ -168,10 +168,10 @@
                                                            Margin="0,5,0,0">
                                         <Label Text="{Binding QuantityDisplay}"
                                                FontSize="14"
-                                               TextColor="{AppThemeBinding Light=#808080, Dark=#AAAAAA}"/>
+                                               TextColor="{DynamicResource ItemDetailTextColor}"/>
                                         <Label Text="{Binding PriceDisplay}"
                                                FontSize="14"
-                                               TextColor="{AppThemeBinding Light=#808080, Dark=#AAAAAA}"/>
+                                               TextColor="{DynamicResource ItemDetailTextColor}"/>
                                     </HorizontalStackLayout>
                                 </Grid>
                             </Border>

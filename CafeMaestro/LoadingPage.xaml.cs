@@ -16,13 +16,11 @@ public partial class LoadingPage : ContentPage
         _preferencesService = preferencesService ?? throw new ArgumentNullException(nameof(preferencesService));
         _appShell = appShell ?? throw new ArgumentNullException(nameof(appShell));
 
-        // Start the loading sequence after page appears
         Loaded += OnPageLoaded;
     }
 
     private void OnPageLoaded(object? sender, EventArgs e)
     {
-        // Start the loading sequence
         Task.Run(async () => await LoadDataAndNavigateAsync());
     }
 
@@ -30,7 +28,6 @@ public partial class LoadingPage : ContentPage
     {
         try
         {
-            // Update UI with progress
             await UpdateStatusAsync("Initializing services...");
 
             string? savedFilePath = null;
@@ -41,46 +38,35 @@ public partial class LoadingPage : ContentPage
 
             if (!string.IsNullOrEmpty(savedFilePath) && File.Exists(savedFilePath))
             {
-                // We have a valid file path and app data service, load the data
                 await UpdateStatusAsync($"Loading data from {Path.GetFileName(savedFilePath)}...");
 
-                // Set the file path and load data
                 await _appDataService.SetCustomFilePathAsync(savedFilePath);
-                var data = await _appDataService.LoadAppDataAsync();
+                await _appDataService.LoadAppDataAsync();
 
-                // Short delay for visual consistency
                 await Task.Delay(500);
 
-                // Navigate to the main shell
                 await NavigateToAppShell(false);
             }
             else
             {
-                // No valid file path or missing services, show first run experience
                 await UpdateStatusAsync("Preparing first run experience...");
 
-                // Short delay for visual consistency
                 await Task.Delay(500);
 
-                // Navigate to the app shell and trigger first run flow
                 await NavigateToAppShell(true);
             }
         }
         catch (Exception ex)
         {
-            // If anything goes wrong, log the error and still navigate to app shell
             Debug.WriteLine($"LoadingPage: Error loading data - {ex.Message}");
             await UpdateStatusAsync("Error loading data. Starting app anyway...");
 
-            // Short delay to show error
             await Task.Delay(1000);
 
-            // Navigate to the main shell as fallback
             await NavigateToAppShell(true);
         }
     }
 
-    // Helper method to navigate to AppShell and optionally trigger first run
     private async Task NavigateToAppShell(bool setFirstRunNeeded)
     {
         await MainThread.InvokeOnMainThreadAsync(() =>
@@ -104,7 +90,6 @@ public partial class LoadingPage : ContentPage
 
     private async Task UpdateStatusAsync(string message)
     {
-        // Update the status label on the UI thread
         await MainThread.InvokeOnMainThreadAsync(() =>
         {
             StatusLabel.Text = message;

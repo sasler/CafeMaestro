@@ -87,10 +87,10 @@
                                                  HeightRequest="36"
                                                  WidthRequest="36"
                                                  VerticalOptions="Center"/>
-                                          <Label Grid.Column="1"
-                                                 Text="Start Roasting"
-                                                 TextColor="White"
-                                                 FontSize="20"
+                                                 <Label Grid.Column="1"
+                                                         Text="Start Roasting"
+                                                         TextColor="{DynamicResource ButtonTextColor}"
+                                                         FontSize="20"
                                                  FontAttributes="Bold"
                                                  VerticalOptions="Center"
                                                  Margin="10,0,0,0"/>
@@ -122,10 +122,10 @@
                                                         HeightRequest="32"
                                                         WidthRequest="32"
                                                         HorizontalOptions="Center"/>
-                                                 <Label Grid.Row="1"
-                                                        Text="Beans"
-                                                        TextColor="White"
-                                                        FontSize="16"
+                                                  <Label Grid.Row="1"
+                                                         Text="Beans"
+                                                         TextColor="{DynamicResource ButtonTextColor}"
+                                                         FontSize="16"
                                                         FontAttributes="Bold"
                                                         HorizontalOptions="Center"/>
                                           </Grid>
@@ -155,10 +155,10 @@
                                                         HeightRequest="32"
                                                         WidthRequest="32"
                                                         HorizontalOptions="Center"/>
-                                                 <Label Grid.Row="1"
-                                                        Text="Roast Log"
-                                                        TextColor="White"
-                                                        FontSize="16"
+                                                  <Label Grid.Row="1"
+                                                         Text="Roast Log"
+                                                         TextColor="{DynamicResource ButtonTextColor}"
+                                                         FontSize="16"
                                                         FontAttributes="Bold"
                                                         HorizontalOptions="Center"/>
                                           </Grid>
@@ -187,10 +187,10 @@
                                                  HeightRequest="30"
                                                  WidthRequest="30"
                                                  VerticalOptions="Center"/>
-                                          <Label Grid.Column="1"
-                                                 Text="Settings"
-                                                 TextColor="White"
-                                                 FontSize="18"
+                                           <Label Grid.Column="1"
+                                                  Text="Settings"
+                                                  TextColor="{DynamicResource ButtonTextColor}"
+                                                  FontSize="18"
                                                  FontAttributes="Bold"
                                                  HorizontalOptions="Start"
                                                  VerticalOptions="Center"

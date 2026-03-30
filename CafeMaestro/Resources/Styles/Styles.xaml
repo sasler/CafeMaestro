@@ -243,7 +243,7 @@
                     <VisualState Name="PointerOver">
                         <VisualState.Setters>
                             <Setter Property="BackgroundColor"
-                                    Value="{AppThemeBinding Light=#E8E8E8, Dark=#383838}"/>
+                                    Value="{DynamicResource ItemCardHoverBackgroundColor}"/>
                             <Setter Property="Scale"
                                     Value="1.005"/>
                         </VisualState.Setters>
@@ -257,7 +257,7 @@
     <Style x:Key="ImageButtonStyle"
            TargetType="ImageButton">
         <Setter Property="BackgroundColor"
-                Value="Transparent"/>
+                Value="{DynamicResource TransparentColor}"/>
         <Setter Property="BorderWidth"
                 Value="0"/>
         <Setter Property="CornerRadius"
