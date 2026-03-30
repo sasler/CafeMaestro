@@ -6,7 +6,7 @@ using CommunityToolkit.Maui.Storage;
 using System.Text;
 using System.Windows.Input;
 using System.Collections.ObjectModel;
-using CafeMaestro.Models;
+using CafeMaestro.ViewModels;
 
 namespace CafeMaestro;
 

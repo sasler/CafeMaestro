@@ -24,6 +24,7 @@ public partial class BeanInventoryPage : ContentPage
 
     private readonly IBeanDataService _beanService;
     private readonly IAppDataService _appDataService;
+    private readonly ICsvParserService _csvParserService;
     private readonly IPreferencesService _preferencesService;
     private ObservableCollection<BeanData> _beans;
     public ICommand RefreshCommand { get; private set; }
@@ -31,11 +32,12 @@ public partial class BeanInventoryPage : ContentPage
     public ICommand DeleteBeanCommand { get; private set; }
     public ICommand ItemTappedCommand { get; private set; }
 
-    public BeanInventoryPage(IBeanDataService beanService, IAppDataService appDataService, IPreferencesService preferencesService)
+    public BeanInventoryPage(IBeanDataService beanService, IAppDataService appDataService, ICsvParserService csvParserService, IPreferencesService preferencesService)
     {
         InitializeComponent();
         _beanService = beanService ?? throw new ArgumentNullException(nameof(beanService));
         _appDataService = appDataService ?? throw new ArgumentNullException(nameof(appDataService));
+        _csvParserService = csvParserService ?? throw new ArgumentNullException(nameof(csvParserService));
         _preferencesService = preferencesService ?? throw new ArgumentNullException(nameof(preferencesService));
 
         // IMPORTANT: Ensure we're using the latest path from preferences
@@ -406,7 +408,7 @@ public partial class BeanInventoryPage : ContentPage
         try
         {
             // Create BeanImportPage and pass in our services
-            var beanImportPage = new BeanImportPage(_beanService, _appDataService);
+            var beanImportPage = new BeanImportPage(_beanService, _appDataService, _csvParserService);
             await Navigation.PushAsync(beanImportPage);
         }
         catch

@@ -27,6 +27,7 @@ public partial class RoastLogPage : ContentPage
 
     private readonly IRoastDataService _roastDataService;
     private readonly IAppDataService _appDataService;
+    private readonly ICsvParserService _csvParserService;
     private readonly IPreferencesService _preferencesService;
     private ObservableCollection<RoastData> _roastLogs;
     public ICommand RefreshCommand { get; private set; }
@@ -34,11 +35,12 @@ public partial class RoastLogPage : ContentPage
     public ICommand DeleteRoastCommand { get; private set; }
     public ICommand ItemTappedCommand { get; private set; }
 
-    public RoastLogPage(IRoastDataService roastDataService, IAppDataService appDataService, IPreferencesService preferencesService)
+    public RoastLogPage(IRoastDataService roastDataService, IAppDataService appDataService, ICsvParserService csvParserService, IPreferencesService preferencesService)
     {
         InitializeComponent();
         _roastDataService = roastDataService ?? throw new ArgumentNullException(nameof(roastDataService));
         _appDataService = appDataService ?? throw new ArgumentNullException(nameof(appDataService));
+        _csvParserService = csvParserService ?? throw new ArgumentNullException(nameof(csvParserService));
         _preferencesService = preferencesService ?? throw new ArgumentNullException(nameof(preferencesService));
 
         // IMPORTANT: Ensure we're using the latest path from preferences
@@ -354,7 +356,7 @@ public partial class RoastLogPage : ContentPage
         try
         {
             // Navigate to the roast import page
-            await Navigation.PushAsync(new RoastImportPage(_roastDataService));
+            await Navigation.PushAsync(new RoastImportPage(_roastDataService, _csvParserService));
         }
         catch (Exception ex)
         {
