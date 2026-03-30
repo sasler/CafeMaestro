@@ -2,7 +2,6 @@
 using System.Windows.Input;
 using CafeMaestro.Models;
 using CafeMaestro.Services;
-using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Maui.ApplicationModel;
 using Microsoft.Maui.Storage;
 
@@ -35,45 +34,12 @@ public partial class RoastLogPage : ContentPage
     public ICommand DeleteRoastCommand { get; private set; }
     public ICommand ItemTappedCommand { get; private set; }
 
-    public RoastLogPage(IRoastDataService? roastDataService = null, IAppDataService? appDataService = null, IPreferencesService? preferencesService = null)
+    public RoastLogPage(IRoastDataService roastDataService, IAppDataService appDataService, IPreferencesService preferencesService)
     {
         InitializeComponent();
-
-        // First try to get the services from the application resources (our stored service provider)
-        if (Application.Current?.Resources != null &&
-            Application.Current.Resources.TryGetValue("ServiceProvider", out var serviceProviderObj) == true &&
-            serviceProviderObj is IServiceProvider serviceProvider)
-        {
-            _appDataService = appDataService ??
-                             serviceProvider.GetService<IAppDataService>() ??
-                             Application.Current?.Handler?.MauiContext?.Services.GetService<IAppDataService>() ??
-                             throw new InvalidOperationException("IAppDataService not available");
-
-            _roastDataService = roastDataService ??
-                               serviceProvider.GetService<IRoastDataService>() ??
-                               Application.Current?.Handler?.MauiContext?.Services.GetService<IRoastDataService>() ??
-                               throw new InvalidOperationException("IRoastDataService not available");
-
-            _preferencesService = preferencesService ??
-                                 serviceProvider.GetService<IPreferencesService>() ??
-                                 Application.Current?.Handler?.MauiContext?.Services.GetService<IPreferencesService>() ??
-                                 throw new InvalidOperationException("IPreferencesService not available");
-        }
-        else
-        {
-            // Fall back to the old way if app resources doesn't have our provider
-            _appDataService = appDataService ??
-                            Application.Current?.Handler?.MauiContext?.Services.GetService<IAppDataService>() ??
-                            throw new InvalidOperationException("IAppDataService not available");
-
-            _roastDataService = roastDataService ??
-                              Application.Current?.Handler?.MauiContext?.Services.GetService<IRoastDataService>() ??
-                              throw new InvalidOperationException("IRoastDataService not available");
-
-            _preferencesService = preferencesService ??
-                                 Application.Current?.Handler?.MauiContext?.Services.GetService<IPreferencesService>() ??
-                                 throw new InvalidOperationException("IPreferencesService not available");
-        }
+        _roastDataService = roastDataService ?? throw new ArgumentNullException(nameof(roastDataService));
+        _appDataService = appDataService ?? throw new ArgumentNullException(nameof(appDataService));
+        _preferencesService = preferencesService ?? throw new ArgumentNullException(nameof(preferencesService));
 
         // IMPORTANT: Ensure we're using the latest path from preferences
         if (Application.Current is App app)
@@ -388,7 +354,7 @@ public partial class RoastLogPage : ContentPage
         try
         {
             // Navigate to the roast import page
-            await Navigation.PushAsync(new RoastImportPage());
+            await Navigation.PushAsync(new RoastImportPage(_roastDataService));
         }
         catch (Exception ex)
         {

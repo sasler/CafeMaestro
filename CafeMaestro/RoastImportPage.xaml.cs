@@ -3,7 +3,6 @@ using System.Collections.Generic;
 using System.Diagnostics;
 using CafeMaestro.Models;
 using CafeMaestro.Services;
-using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Maui.Storage;
 
 namespace CafeMaestro
@@ -11,24 +10,14 @@ namespace CafeMaestro
     public partial class RoastImportPage : ContentPage
     {
         // Using private field with nullable type to properly handle null case
-        private readonly IRoastDataService? _roastDataService;
+        private readonly IRoastDataService _roastDataService;
         private List<string> _csvHeaders = new List<string>();
         private string _selectedFilePath = string.Empty;
 
-        public RoastImportPage()
+        public RoastImportPage(IRoastDataService roastDataService)
         {
             InitializeComponent();
-            
-            // Initialize service in constructor to avoid null warning
-            if (App.Current?.Handler?.MauiContext != null)
-            {
-                _roastDataService = App.Current.Handler.MauiContext.Services.GetService<IRoastDataService>();
-                
-                if (_roastDataService == null)
-                {
-                    DisplayAlert("Error", "Could not initialize required services", "OK");
-                }
-            }
+            _roastDataService = roastDataService ?? throw new ArgumentNullException(nameof(roastDataService));
         }
 
         private async void BrowseButton_Clicked(object sender, EventArgs e)
@@ -227,30 +216,27 @@ namespace CafeMaestro
                 var mappings = GetMappings();
 
                 // Import the roasts
-                if (_roastDataService != null)
+                // Import the data - the ImportRoastsFromCsvAsync method already handles duplicates
+                var result = await _roastDataService.ImportRoastsFromCsvAsync(_selectedFilePath, mappings);
+
+                // Show result
+                if (result.Failed > 0)
                 {
-                    // Import the data - the ImportRoastsFromCsvAsync method already handles duplicates
-                    var result = await _roastDataService.ImportRoastsFromCsvAsync(_selectedFilePath, mappings);
-
-                    // Show result
-                    if (result.Failed > 0)
+                    // Show detailed error message with the first few errors
+                    string errorDetails = string.Join("\n", result.Errors.Take(5));
+                    if (result.Errors.Count > 5)
                     {
-                        // Show detailed error message with the first few errors
-                        string errorDetails = string.Join("\n", result.Errors.Take(5));
-                        if (result.Errors.Count > 5)
-                        {
-                            errorDetails += $"\n...and {result.Errors.Count - 5} more errors.";
-                        }
+                        errorDetails += $"\n...and {result.Errors.Count - 5} more errors.";
+                    }
 
-                        await DisplayAlert("Import Results", 
-                            $"Successfully imported {result.Success} roast logs.\n" +
-                            $"Failed to import {result.Failed} roast logs.\n\n" +
-                            $"Error details:\n{errorDetails}", "OK");
-                    }
-                    else
-                    {
-                        await DisplayAlert("Import Successful", $"Successfully imported {result.Success} roast logs!", "OK");
-                    }
+                    await DisplayAlert("Import Results", 
+                        $"Successfully imported {result.Success} roast logs.\n" +
+                        $"Failed to import {result.Failed} roast logs.\n\n" +
+                        $"Error details:\n{errorDetails}", "OK");
+                }
+                else
+                {
+                    await DisplayAlert("Import Successful", $"Successfully imported {result.Success} roast logs!", "OK");
                 }
 
                 // Navigate back to RoastLogPage after import

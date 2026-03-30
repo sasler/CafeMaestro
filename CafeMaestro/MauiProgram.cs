@@ -37,12 +37,15 @@ public static class MauiProgram
 		builder.Services.AddSingleton<IFolderPicker>(FolderPicker.Default);
 
         // Register Pages for DI - changing to transient to avoid state retention
+        builder.Services.AddTransient<AppShell>();
         builder.Services.AddTransient<LoadingPage>();
         builder.Services.AddTransient<MainPage>();
         builder.Services.AddTransient<RoastPage>();
         builder.Services.AddTransient<BeanInventoryPage>();
         builder.Services.AddTransient<BeanEditPage>();
         builder.Services.AddTransient<RoastLogPage>();
+        builder.Services.AddTransient<BeanImportPage>();
+        builder.Services.AddTransient<RoastImportPage>();
         builder.Services.AddTransient<SettingsPage>();
 
 #if DEBUG

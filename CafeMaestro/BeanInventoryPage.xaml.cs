@@ -2,8 +2,6 @@
 using System.Windows.Input;
 using CafeMaestro.Models;
 using CafeMaestro.Services;
-using Microsoft.Extensions.DependencyInjection;
-
 namespace CafeMaestro;
 
 [QueryProperty(nameof(NavParams), "NavParams")]
@@ -26,43 +24,19 @@ public partial class BeanInventoryPage : ContentPage
 
     private readonly IBeanDataService _beanService;
     private readonly IAppDataService _appDataService;
+    private readonly IPreferencesService _preferencesService;
     private ObservableCollection<BeanData> _beans;
     public ICommand RefreshCommand { get; private set; }
     public ICommand EditBeanCommand { get; private set; }
     public ICommand DeleteBeanCommand { get; private set; }
     public ICommand ItemTappedCommand { get; private set; }
 
-    public BeanInventoryPage(IBeanDataService? beanService = null, IAppDataService? appDataService = null)
+    public BeanInventoryPage(IBeanDataService beanService, IAppDataService appDataService, IPreferencesService preferencesService)
     {
         InitializeComponent();
-
-        // First try to get the services from the application resources (our stored service provider)
-        object? serviceProviderObj = null;
-        if (Application.Current?.Resources != null &&
-            Application.Current.Resources.TryGetValue("ServiceProvider", out serviceProviderObj) &&
-            serviceProviderObj is IServiceProvider serviceProvider)
-        {
-            _appDataService = appDataService ??
-                             serviceProvider.GetService<IAppDataService>() ??
-                             Application.Current?.Handler?.MauiContext?.Services.GetService<IAppDataService>() ??
-                             throw new InvalidOperationException("IAppDataService not available");
-
-            _beanService = beanService ??
-                          serviceProvider.GetService<IBeanDataService>() ??
-                          Application.Current?.Handler?.MauiContext?.Services.GetService<IBeanDataService>() ??
-                          throw new InvalidOperationException("BeanService not available");
-        }
-        else
-        {
-            // Fall back to the old way if app resources doesn't have our provider
-            _appDataService = appDataService ??
-                            Application.Current?.Handler?.MauiContext?.Services.GetService<IAppDataService>() ??
-                            throw new InvalidOperationException("IAppDataService not available");
-
-            _beanService = beanService ??
-                          Application.Current?.Handler?.MauiContext?.Services.GetService<IBeanDataService>() ??
-                          throw new InvalidOperationException("BeanService not available");
-        }
+        _beanService = beanService ?? throw new ArgumentNullException(nameof(beanService));
+        _appDataService = appDataService ?? throw new ArgumentNullException(nameof(appDataService));
+        _preferencesService = preferencesService ?? throw new ArgumentNullException(nameof(preferencesService));
 
         // IMPORTANT: Ensure we're using the latest path from preferences
         if (Application.Current is App app)
@@ -76,17 +50,10 @@ public partial class BeanInventoryPage : ContentPage
                 try
                 {
                     // Get the path from preferences to ensure it's the user-defined one
-                    var preferencesService = serviceProviderObj is IServiceProvider sp ?
-                        sp.GetService<IPreferencesService>() :
-                        Application.Current?.Handler?.MauiContext?.Services.GetService<IPreferencesService>();
-
-                    if (preferencesService != null)
+                    string? savedPath = await _preferencesService.GetAppDataFilePathAsync();
+                    if (!string.IsNullOrEmpty(savedPath))
                     {
-                        string? savedPath = await preferencesService.GetAppDataFilePathAsync();
-                        if (!string.IsNullOrEmpty(savedPath))
-                        {
-                            await _appDataService.SetCustomFilePathAsync(savedPath);
-                        }
+                        await _appDataService.SetCustomFilePathAsync(savedPath);
                     }
                 }
                 catch (Exception ex)

@@ -6,8 +6,9 @@ namespace CafeMaestro;
 
 public partial class App : Application
 {
-    private IAppDataService _appDataService;
-    private IPreferencesService _preferencesService;
+    private readonly IAppDataService _appDataService;
+    private readonly IPreferencesService _preferencesService;
+    private readonly IServiceProvider _serviceProvider;
     private Models.AppData? _appData; // Make nullable to fix constructor error
     private bool _appDataInitialized = false;
 
@@ -15,42 +16,18 @@ public partial class App : Application
     private bool _firstRunSetupNeeded = false;
 
     // The initial page for the primary window
-    private Page _initialPage;
+    private readonly Page _initialPage;
 
-    public App()
+    public App(IAppDataService appDataService, IPreferencesService preferencesService, IServiceProvider serviceProvider)
     {
         InitializeComponent();
-
-        // Initialize services with proper fallbacks
-        IServiceProvider? serviceProvider = null;
-
-        // Try to get the service provider from different sources depending on initialization state
-        if (Handler?.MauiContext?.Services is IServiceProvider provider)
-        {
-            serviceProvider = provider;
-            Resources["ServiceProvider"] = serviceProvider;
-        }
-        else if (IPlatformApplication.Current?.Services is IServiceProvider platformProvider)
-        {
-            serviceProvider = platformProvider;
-            Resources["ServiceProvider"] = serviceProvider;
-        }
-        else
-        {
-            // Create a minimal service provider for the LoadingPage to use
-            var serviceCollection = new ServiceCollection();
-            serviceCollection.AddSingleton<IAppDataService, AppDataService>();
-            serviceCollection.AddSingleton<IPreferencesService, PreferencesService>();
-            serviceProvider = serviceCollection.BuildServiceProvider();
-            Resources["ServiceProvider"] = serviceProvider;
-        }
-
-        // Get services using GetService with null fallbacks
-        _appDataService = serviceProvider.GetService<IAppDataService>() ?? new AppDataService();
-        _preferencesService = serviceProvider.GetService<IPreferencesService>() ?? new PreferencesService();
+        _appDataService = appDataService ?? throw new ArgumentNullException(nameof(appDataService));
+        _preferencesService = preferencesService ?? throw new ArgumentNullException(nameof(preferencesService));
+        _serviceProvider = serviceProvider ?? throw new ArgumentNullException(nameof(serviceProvider));
+        Resources["ServiceProvider"] = _serviceProvider;
 
         // Create the initial page
-        _initialPage = new LoadingPage(serviceProvider);
+        _initialPage = CreateLoadingPage();
 
         // Subscribe to data changed events
         _appDataService.DataChanged += OnAppDataChanged;
@@ -100,15 +77,13 @@ public partial class App : Application
         catch (Exception ex)
         {
             System.Diagnostics.Debug.WriteLine($"Error creating window: {ex.Message}");
-            // Even in error case, show a LoadingPage with the service provider if available
-            if (Handler?.MauiContext?.Services is IServiceProvider serviceProvider)
-            {
-                return new Window(new LoadingPage(serviceProvider));
-            }
-
-            // Ultimate fallback - must provide a non-null page
-            return new Window(new AppShell());
+            return new Window(CreateLoadingPage());
         }
+    }
+
+    private LoadingPage CreateLoadingPage()
+    {
+        return new LoadingPage(_appDataService, _preferencesService, _serviceProvider.GetRequiredService<AppShell>());
     }
 
     // Load and apply the saved theme preference

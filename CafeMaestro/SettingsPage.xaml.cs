@@ -1,6 +1,5 @@
 ﻿using System.Diagnostics;
 using CafeMaestro.Services;
-using Microsoft.Extensions.DependencyInjection;
 using CommunityToolkit.Maui;
 using MauiAppTheme = Microsoft.Maui.ApplicationModel.AppTheme;
 using CommunityToolkit.Maui.Storage;
@@ -37,82 +36,18 @@ public partial class SettingsPage : ContentPage
     private RoastLevelViewModel? _currentEditRoastLevel;
     private bool _isNewRoastLevel = false;
 
-    public SettingsPage(IPreferencesService? preferencesService = null, IAppDataService? appDataService = null,
-                        IBeanDataService? beanService = null, IRoastDataService? roastDataService = null,
-                        IRoastLevelService? roastLevelService = null, IFileSaver? fileSaver = null, IFolderPicker? folderPicker = null)
+    public SettingsPage(IPreferencesService preferencesService, IAppDataService appDataService,
+                        IBeanDataService beanService, IRoastDataService roastDataService,
+                        IRoastLevelService roastLevelService, IFileSaver fileSaver, IFolderPicker folderPicker)
     {
         InitializeComponent();
-
-        // First try to get the services from the application resources (our stored service provider)
-        if (Application.Current?.Resources.TryGetValue("ServiceProvider", out var serviceProviderObj) == true &&
-            serviceProviderObj is IServiceProvider serviceProvider)
-        {
-            _preferencesService = preferencesService ??
-                                 serviceProvider.GetService<IPreferencesService>() ??
-                                 Application.Current?.Handler?.MauiContext?.Services.GetService<IPreferencesService>() ??
-                                 throw new InvalidOperationException("IPreferencesService not available");
-
-            _appDataService = appDataService ??
-                             serviceProvider.GetService<IAppDataService>() ??
-                             Application.Current?.Handler?.MauiContext?.Services.GetService<IAppDataService>() ??
-                             throw new InvalidOperationException("IAppDataService not available");
-
-            _beanService = beanService ??
-                          serviceProvider.GetService<IBeanDataService>() ??
-                          Application.Current?.Handler?.MauiContext?.Services.GetService<IBeanDataService>() ??
-                          throw new InvalidOperationException("BeanService not available");
-
-            _roastDataService = roastDataService ??
-                               serviceProvider.GetService<IRoastDataService>() ??
-                               Application.Current?.Handler?.MauiContext?.Services.GetService<IRoastDataService>() ??
-                               throw new InvalidOperationException("IRoastDataService not available");
-
-            _roastLevelService = roastLevelService ??
-                                serviceProvider.GetService<IRoastLevelService>() ??
-                                Application.Current?.Handler?.MauiContext?.Services.GetService<IRoastLevelService>() ??
-                                throw new InvalidOperationException("IRoastLevelService not available");
-
-            _fileSaver = fileSaver ??
-                        serviceProvider.GetService<IFileSaver>() ??
-                        Application.Current?.Handler?.MauiContext?.Services.GetService<IFileSaver>() ??
-                        FileSaver.Default;
-
-            _folderPicker = folderPicker ??
-                           serviceProvider.GetService<IFolderPicker>() ??
-                           Application.Current?.Handler?.MauiContext?.Services.GetService<IFolderPicker>() ??
-                           FolderPicker.Default;
-        }
-        else
-        {
-            // Fall back to the old way if app resources doesn't have our provider
-            _preferencesService = preferencesService ??
-                                 Application.Current?.Handler?.MauiContext?.Services.GetService<IPreferencesService>() ??
-                                 throw new InvalidOperationException("IPreferencesService not available");
-
-            _appDataService = appDataService ??
-                             Application.Current?.Handler?.MauiContext?.Services.GetService<IAppDataService>() ??
-                             throw new InvalidOperationException("IAppDataService not available");
-
-            _beanService = beanService ??
-                          Application.Current?.Handler?.MauiContext?.Services.GetService<IBeanDataService>() ??
-                          throw new InvalidOperationException("BeanService not available");
-
-            _roastDataService = roastDataService ??
-                               Application.Current?.Handler?.MauiContext?.Services.GetService<IRoastDataService>() ??
-                               throw new InvalidOperationException("IRoastDataService not available");
-
-            _roastLevelService = roastLevelService ??
-                                Application.Current?.Handler?.MauiContext?.Services.GetService<IRoastLevelService>() ??
-                                throw new InvalidOperationException("IRoastLevelService not available");
-
-            _fileSaver = fileSaver ??
-                        Application.Current?.Handler?.MauiContext?.Services.GetService<IFileSaver>() ??
-                        FileSaver.Default;
-
-            _folderPicker = folderPicker ??
-                           Application.Current?.Handler?.MauiContext?.Services.GetService<IFolderPicker>() ??
-                           FolderPicker.Default;
-        }
+        _preferencesService = preferencesService ?? throw new ArgumentNullException(nameof(preferencesService));
+        _appDataService = appDataService ?? throw new ArgumentNullException(nameof(appDataService));
+        _beanService = beanService ?? throw new ArgumentNullException(nameof(beanService));
+        _roastDataService = roastDataService ?? throw new ArgumentNullException(nameof(roastDataService));
+        _roastLevelService = roastLevelService ?? throw new ArgumentNullException(nameof(roastLevelService));
+        _fileSaver = fileSaver ?? throw new ArgumentNullException(nameof(fileSaver));
+        _folderPicker = folderPicker ?? throw new ArgumentNullException(nameof(folderPicker));
 
         // Initialize UI
         LoadDataFilePath();

@@ -8,7 +8,6 @@ using System.Threading.Tasks;
 using CafeMaestro.Models;
 using CafeMaestro.Services;
 using System.IO; // Added for File.Exists
-using Microsoft.Extensions.DependencyInjection;
 
 namespace CafeMaestro;
 
@@ -16,12 +15,12 @@ namespace CafeMaestro;
 [QueryProperty(nameof(NewRoast), "NewRoast")]
 public partial class RoastPage : ContentPage
 {
-    private ITimerService timerService;
-    private IRoastDataService roastDataService;
-    private IBeanDataService beanService;
-    private IAppDataService appDataService;
-    private IPreferencesService preferencesService;
-    private IRoastLevelService roastLevelService;
+    private readonly ITimerService _timerService;
+    private readonly IRoastDataService _roastDataService;
+    private readonly IBeanDataService _beanService;
+    private readonly IAppDataService _appDataService;
+    private readonly IPreferencesService _preferencesService;
+    private readonly IRoastLevelService _roastLevelService;
     private bool isTimerUpdating = false; // Flag to prevent recursive updates
     private string temporaryDigitsBuffer = ""; // Store digits before formatting
 
@@ -102,82 +101,26 @@ public partial class RoastPage : ContentPage
     private CancellationTokenSource? _animationCancellationTokenSource;
     private CancellationTokenSource? _cursorAnimationCancellationTokenSource;
 
-    public RoastPage(ITimerService? timerService = null, IRoastDataService? roastDataService = null,
-                    IBeanDataService? beanService = null, IAppDataService? appDataService = null,
-                    IPreferencesService? preferencesService = null)
+    public RoastPage(ITimerService timerServiceValue, IRoastDataService roastDataServiceValue,
+                     IBeanDataService beanServiceValue, IAppDataService appDataServiceValue,
+                     IPreferencesService preferencesServiceValue, IRoastLevelService roastLevelServiceValue)
     {
         InitializeComponent();
 
-        // First try to get the services from the application resources (our stored service provider)
-        if (Application.Current?.Resources.TryGetValue("ServiceProvider", out var serviceProviderObj) == true &&
-            serviceProviderObj is IServiceProvider serviceProvider)
-        {
-            this.appDataService = appDataService ??
-                                 serviceProvider.GetService<IAppDataService>() ??
-                                 Application.Current?.Handler?.MauiContext?.Services.GetService<IAppDataService>() ??
-                                 throw new InvalidOperationException("IAppDataService not available");
+        _timerService = timerServiceValue ?? throw new ArgumentNullException(nameof(timerServiceValue));
+        _roastDataService = roastDataServiceValue ?? throw new ArgumentNullException(nameof(roastDataServiceValue));
+        _beanService = beanServiceValue ?? throw new ArgumentNullException(nameof(beanServiceValue));
+        _appDataService = appDataServiceValue ?? throw new ArgumentNullException(nameof(appDataServiceValue));
+        _preferencesService = preferencesServiceValue ?? throw new ArgumentNullException(nameof(preferencesServiceValue));
+        _roastLevelService = roastLevelServiceValue ?? throw new ArgumentNullException(nameof(roastLevelServiceValue));
 
-            this.timerService = timerService ??
-                               serviceProvider.GetService<ITimerService>() ??
-                               Application.Current?.Handler?.MauiContext?.Services.GetService<ITimerService>() ??
-                               throw new InvalidOperationException("ITimerService not available");
+        _timerService.TimeUpdated += OnTimeUpdated;
 
-            this.roastDataService = roastDataService ??
-                                   serviceProvider.GetService<IRoastDataService>() ??
-                                   Application.Current?.Handler?.MauiContext?.Services.GetService<IRoastDataService>() ??
-                                   throw new InvalidOperationException("IRoastDataService not available");
-
-            this.beanService = beanService ??
-                              serviceProvider.GetService<IBeanDataService>() ??
-                              Application.Current?.Handler?.MauiContext?.Services.GetService<IBeanDataService>() ??
-                              throw new InvalidOperationException("BeanService not available");
-
-            this.preferencesService = preferencesService ??
-                                     serviceProvider.GetService<IPreferencesService>() ??
-                                     Application.Current?.Handler?.MauiContext?.Services.GetService<IPreferencesService>() ??
-                                     throw new InvalidOperationException("IPreferencesService not available");
-
-            this.roastLevelService = serviceProvider.GetService<IRoastLevelService>() ??
-                                     Application.Current?.Handler?.MauiContext?.Services.GetService<IRoastLevelService>() ??
-                                     throw new InvalidOperationException("IRoastLevelService not available");
-        }
-        else
-        {
-            // Fall back to the old way if app resources doesn't have our provider
-            this.appDataService = appDataService ??
-                                 Application.Current?.Handler?.MauiContext?.Services.GetService<IAppDataService>() ??
-                                 throw new InvalidOperationException("IAppDataService not available");
-
-            this.timerService = timerService ??
-                               Application.Current?.Handler?.MauiContext?.Services.GetService<ITimerService>() ??
-                               throw new InvalidOperationException("ITimerService not available");
-
-            this.roastDataService = roastDataService ??
-                                   Application.Current?.Handler?.MauiContext?.Services.GetService<IRoastDataService>() ??
-                                   throw new InvalidOperationException("IRoastDataService not available");
-
-            this.beanService = beanService ??
-                              Application.Current?.Handler?.MauiContext?.Services.GetService<IBeanDataService>() ??
-                              throw new InvalidOperationException("IBeanDataService not available");
-
-            this.preferencesService = preferencesService ??
-                                     Application.Current?.Handler?.MauiContext?.Services.GetService<IPreferencesService>() ??
-                                     throw new InvalidOperationException("IPreferencesService not available");
-
-            this.roastLevelService = Application.Current?.Handler?.MauiContext?.Services.GetService<IRoastLevelService>() ??
-                                     throw new InvalidOperationException("IRoastLevelService not available");
-        }
-
-        this.timerService.TimeUpdated += OnTimeUpdated;
-
-        // Attach event handlers for weight entry text changes
         BatchWeightEntry.TextChanged += OnWeightEntryTextChanged;
         FinalWeightEntry.TextChanged += OnWeightEntryTextChanged;
 
-        // Attach event handler for batch weight validation
         BatchWeightEntry.TextChanged += BatchWeightEntry_TextChanged;
 
-        // Handle bean selection changes
         BeanPicker.SelectedIndexChanged += BeanPicker_SelectedIndexChanged;
     }
 
@@ -186,10 +129,10 @@ public partial class RoastPage : ContentPage
         try
         {
             // Check if this is the first run
-            bool isFirstRun = await preferencesService.IsFirstRunAsync();
+            bool isFirstRun = await _preferencesService.IsFirstRunAsync();
 
             // Check if user has a saved file path preference
-            string? savedFilePath = await preferencesService.GetAppDataFilePathAsync();
+            string? savedFilePath = await _preferencesService.GetAppDataFilePathAsync();
 
             if (!string.IsNullOrEmpty(savedFilePath))
             {
@@ -197,11 +140,11 @@ public partial class RoastPage : ContentPage
                 if (File.Exists(savedFilePath))
                 {
                     // Use the async version of SetCustomFilePath
-                    await appDataService.SetCustomFilePathAsync(savedFilePath);
+                    await _appDataService.SetCustomFilePathAsync(savedFilePath);
 
                     // Also initialize related services with the same path
-                    await roastDataService.InitializeFromPreferencesAsync(preferencesService);
-                    await beanService.InitializeFromPreferencesAsync(preferencesService);
+                    await _roastDataService.InitializeFromPreferencesAsync(_preferencesService);
+                    await _beanService.InitializeFromPreferencesAsync(_preferencesService);
                 }
                 else
                 {
@@ -211,8 +154,8 @@ public partial class RoastPage : ContentPage
                         "OK");
 
                     // Reset to default path - use the async version
-                    await appDataService.ResetToDefaultPathAsync();
-                    await preferencesService.ClearAppDataFilePathAsync();
+                    await _appDataService.ResetToDefaultPathAsync();
+                    await _preferencesService.ClearAppDataFilePathAsync();
                 }
             }
             else if (isFirstRun)
@@ -326,7 +269,7 @@ public partial class RoastPage : ContentPage
                 // Get available beans from service - use the sorted version which:
                 // 1. Filters out beans with RemainingQuantity <= 0 
                 // 2. Orders by purchase date (newest first) then by display name
-                availableBeans = await beanService.GetSortedAvailableBeansAsync();
+                availableBeans = await _beanService.GetSortedAvailableBeansAsync();
 
                 if (availableBeans.Count > 0)
                 {
@@ -404,7 +347,7 @@ public partial class RoastPage : ContentPage
     {
         try
         {
-            _previousRoast = await roastDataService.GetLastRoastForBeanTypeAsync(beanType);
+            _previousRoast = await _roastDataService.GetLastRoastForBeanTypeAsync(beanType);
 
             // Update the UI to show/hide previous roast info
             UpdatePreviousRoastDisplay();
@@ -631,7 +574,7 @@ public partial class RoastPage : ContentPage
     {
         try
         {
-            return await roastLevelService.GetRoastLevelNameAsync(lossPercentage);
+            return await _roastLevelService.GetRoastLevelNameAsync(lossPercentage);
         }
         catch (Exception ex)
         {
@@ -834,7 +777,7 @@ public partial class RoastPage : ContentPage
 
     private void StartTimer_Clicked(object sender, EventArgs e)
     {
-        timerService.Start();
+        _timerService.Start();
         StartTimerButton.IsEnabled = false;
         PauseTimerButton.IsEnabled = true;
         StopTimerButton.IsEnabled = true;
@@ -852,7 +795,7 @@ public partial class RoastPage : ContentPage
 
     private void PauseTimer_Clicked(object sender, EventArgs e)
     {
-        timerService.Stop();
+        _timerService.Stop();
         StartTimerButton.IsEnabled = true;
         PauseTimerButton.IsEnabled = false;
 
@@ -868,7 +811,7 @@ public partial class RoastPage : ContentPage
 
     private void StopTimer_Clicked(object sender, EventArgs e)
     {
-        timerService.Stop();
+        _timerService.Stop();
 
         // Reset button states
         StartTimerButton.IsEnabled = true;
@@ -887,7 +830,7 @@ public partial class RoastPage : ContentPage
 
     private void ResetTimer_Clicked(object sender, EventArgs e)
     {
-        timerService.Reset();
+        _timerService.Reset();
 
         isTimerUpdating = true;
         TimeEntry.Text = "00:00";
@@ -1061,7 +1004,7 @@ public partial class RoastPage : ContentPage
         base.OnDisappearing();
 
         // Stop the timer when leaving the page
-        timerService.Stop();
+        _timerService.Stop();
 
         // Store whether we were in edit mode before completing
         bool wasInEditMode = _isEditMode;
@@ -1094,7 +1037,7 @@ public partial class RoastPage : ContentPage
         try
         {
             // Get current time from timer service
-            TimeSpan currentTime = timerService.GetElapsedTime();
+            TimeSpan currentTime = _timerService.GetElapsedTime();
 
             // Store first crack time
             firstCrackMinutes = currentTime.Minutes;
@@ -1181,7 +1124,7 @@ public partial class RoastPage : ContentPage
                 };
 
                 // Use the service to update the roast
-                success = await roastDataService.UpdateRoastLogAsync(updatedRoast);
+                success = await _roastDataService.UpdateRoastLogAsync(updatedRoast);
 
                 if (success)
                 {
@@ -1218,11 +1161,11 @@ public partial class RoastPage : ContentPage
                 if (selectedBean != null)
                 {
                     double batchWeightKg = batchWeight / 1000.0; // Convert g to kg
-                    await beanService.UpdateBeanQuantityAsync(selectedBean.Id, batchWeightKg);
+                    await _beanService.UpdateBeanQuantityAsync(selectedBean.Id, batchWeightKg);
                 }
 
                 // Save new data using service
-                success = await roastDataService.SaveRoastDataAsync(roastData);
+                success = await _roastDataService.SaveRoastDataAsync(roastData);
 
                 if (success)
                 {
@@ -1294,7 +1237,7 @@ public partial class RoastPage : ContentPage
             var result = await FilePicker.PickAsync(options);
             if (result != null)
             {
-                await roastDataService.ExportRoastLogAsync(result.FullPath);
+                await _roastDataService.ExportRoastLogAsync(result.FullPath);
                 await DisplayAlert("Success", "Roast log exported successfully!", "OK");
             }
         }
@@ -1340,7 +1283,7 @@ public partial class RoastPage : ContentPage
             }
 
             // Use the IRoastDataService to get the specific roast by ID
-            _roastToEdit = await roastDataService.GetRoastLogByIdAsync(_editRoastId);
+            _roastToEdit = await _roastDataService.GetRoastLogByIdAsync(_editRoastId);
 
             if (_roastToEdit == null)
             {

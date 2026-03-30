@@ -1,33 +1,20 @@
-﻿using System.Diagnostics;
+using System.Diagnostics;
 using CafeMaestro.Services;
-using Microsoft.Extensions.DependencyInjection;
 
 namespace CafeMaestro;
 
 public partial class LoadingPage : ContentPage
 {
-    private readonly IAppDataService? _appDataService;
-    private readonly IPreferencesService? _preferencesService;
-    private readonly IServiceProvider _serviceProvider;
+    private readonly IAppDataService _appDataService;
+    private readonly IPreferencesService _preferencesService;
+    private readonly AppShell _appShell;
 
-    public LoadingPage(IServiceProvider serviceProvider)
+    public LoadingPage(IAppDataService appDataService, IPreferencesService preferencesService, AppShell appShell)
     {
         InitializeComponent();
-
-        // Store the service provider
-        _serviceProvider = serviceProvider ?? throw new ArgumentNullException(nameof(serviceProvider));
-
-        try
-        {
-            // Try to get services from dependency injection
-            _appDataService = _serviceProvider.GetService<IAppDataService>();
-            _preferencesService = _serviceProvider.GetService<IPreferencesService>();
-        }
-        catch (Exception ex)
-        {
-            System.Diagnostics.Debug.WriteLine($"LoadingPage: Error getting services: {ex.Message}");
-            // Continue without services - we'll handle this case in the loading sequence
-        }
+        _appDataService = appDataService ?? throw new ArgumentNullException(nameof(appDataService));
+        _preferencesService = preferencesService ?? throw new ArgumentNullException(nameof(preferencesService));
+        _appShell = appShell ?? throw new ArgumentNullException(nameof(appShell));
 
         // Start the loading sequence after page appears
         Loaded += OnPageLoaded;
@@ -49,15 +36,10 @@ public partial class LoadingPage : ContentPage
             string? savedFilePath = null;
             bool isFirstRun = true;
 
-            // Only try to access preferences if the service is available
-            if (_preferencesService != null)
-            {
-                // Check if we have a saved file path
-                savedFilePath = await _preferencesService.GetAppDataFilePathAsync();
-                isFirstRun = await _preferencesService.IsFirstRunAsync();
-            }
+            savedFilePath = await _preferencesService.GetAppDataFilePathAsync();
+            isFirstRun = await _preferencesService.IsFirstRunAsync();
 
-            if (!string.IsNullOrEmpty(savedFilePath) && File.Exists(savedFilePath) && _appDataService != null)
+            if (!string.IsNullOrEmpty(savedFilePath) && File.Exists(savedFilePath))
             {
                 // We have a valid file path and app data service, load the data
                 await UpdateStatusAsync($"Loading data from {Path.GetFileName(savedFilePath)}...");
@@ -114,7 +96,7 @@ public partial class LoadingPage : ContentPage
                 var window = Application.Current.Windows[0];
                 if (window != null)
                 {
-                    window.Page = new AppShell();
+                    window.Page = _appShell;
                 }
             }
         });
