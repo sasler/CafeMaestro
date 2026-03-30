@@ -1,268 +1,54 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Diagnostics;
-using CafeMaestro.Models;
-using CafeMaestro.Navigation;
-using CafeMaestro.Services;
+using CafeMaestro.ViewModels;
 using Microsoft.Maui.Storage;
 
-namespace CafeMaestro
+namespace CafeMaestro;
+
+public partial class RoastImportPage : ContentPage
 {
-    public partial class RoastImportPage : ContentPage
+    private readonly RoastImportPageViewModel _viewModel;
+
+    public RoastImportPage(RoastImportPageViewModel viewModel)
     {
-        // Using private field with nullable type to properly handle null case
-        private readonly IRoastDataService _roastDataService;
-        private readonly ICsvParserService _csvParserService;
-        private readonly INavigationService _navigationService;
-        private List<string> _csvHeaders = new List<string>();
-        private string _selectedFilePath = string.Empty;
+        InitializeComponent();
+        BindingContext = _viewModel = viewModel ?? throw new ArgumentNullException(nameof(viewModel));
+    }
 
-        public RoastImportPage(IRoastDataService roastDataService, ICsvParserService csvParserService, INavigationService navigationService)
+    protected override void OnAppearing()
+    {
+        base.OnAppearing();
+        _viewModel.PickFileAsync = PickFileAsync;
+    }
+
+    protected override void OnDisappearing()
+    {
+        _viewModel.PickFileAsync = null;
+        base.OnDisappearing();
+    }
+
+    protected override bool OnBackButtonPressed()
+    {
+        _ = _viewModel.CancelCommand.ExecuteAsync(null);
+        return true;
+    }
+
+    private static async Task<string?> PickFileAsync()
+    {
+        var customFileType = new FilePickerFileType(
+            new Dictionary<DevicePlatform, IEnumerable<string>>
+            {
+                { DevicePlatform.WinUI, [".csv"] },
+                { DevicePlatform.Android, ["text/csv", "text/comma-separated-values", "application/csv", "*/*"] },
+                { DevicePlatform.iOS, ["public.comma-separated-values-text"] },
+                { DevicePlatform.MacCatalyst, ["public.comma-separated-values-text"] }
+            });
+
+        var options = new PickOptions
         {
-            InitializeComponent();
-            _roastDataService = roastDataService ?? throw new ArgumentNullException(nameof(roastDataService));
-            _csvParserService = csvParserService ?? throw new ArgumentNullException(nameof(csvParserService));
-            _navigationService = navigationService ?? throw new ArgumentNullException(nameof(navigationService));
-        }
+            PickerTitle = "Select CSV file with roast data",
+            FileTypes = customFileType
+        };
 
-        private async void BrowseButton_Clicked(object sender, EventArgs e)
-        {
-            try
-            {
-                // Show loading state
-                LoadingIndicator.IsVisible = true;
-                LoadingIndicator.IsRunning = true;
-                ImportButton.IsEnabled = false;
-                FileStatusLabel.Text = "Opening file picker...";
-
-                // Configure file picker with improved MIME type handling for Android
-                var customFileType = new FilePickerFileType(
-                    new Dictionary<DevicePlatform, IEnumerable<string>>
-                    {
-                        { DevicePlatform.WinUI, new[] { ".csv" } },
-                        { DevicePlatform.macOS, new[] { "csv" } },
-                        { DevicePlatform.iOS, new[] { "public.comma-separated-values-text" } },
-                        { DevicePlatform.Android, new[] { "text/csv", "text/comma-separated-values", "application/csv", "*/*" } }
-                    });
-
-                var options = new PickOptions
-                {
-                    PickerTitle = "Select a CSV file with roast data",
-                    FileTypes = customFileType
-                };
-
-                // Show file picker with FilePicker.Default for reliability
-                var fileResult = await FilePicker.Default.PickAsync(options);
-
-                if (fileResult == null)
-                {
-                    // User canceled
-                    FileStatusLabel.Text = "No file selected";
-                    MapFieldsSection.IsVisible = false;
-                    PreviewSection.IsVisible = false;
-                    ImportButton.IsEnabled = false;
-                    return;
-                }
-
-                _selectedFilePath = fileResult.FullPath;
-                FilePathEntry.Text = _selectedFilePath;
-                FileStatusLabel.Text = "Reading headers from file...";
-
-                _csvHeaders = await _csvParserService.GetCsvHeadersAsync(_selectedFilePath);
-
-                if (_csvHeaders.Count == 0)
-                {
-                    FileStatusLabel.Text = "Error: Could not find CSV headers in the file.";
-                    MapFieldsSection.IsVisible = false;
-                    PreviewSection.IsVisible = false;
-                    return;
-                }
-
-                // Setup field mapping
-                SetupFieldMappings();
-                FileStatusLabel.Text = $"Found {_csvHeaders.Count} columns in CSV file.";
-                MapFieldsSection.IsVisible = true;
-                PreviewSection.IsVisible = true;
-                ImportButton.IsEnabled = true;
-
-                // Try to auto-map columns based on header names
-                AutoMapColumns();
-            }
-            catch (Exception ex)
-            {
-                await DisplayAlert("Error", $"Error reading file: {ex.Message}", "OK");
-                FileStatusLabel.Text = $"Error: {ex.Message}";
-            }
-            finally
-            {
-                LoadingIndicator.IsVisible = false;
-                LoadingIndicator.IsRunning = false;
-            }
-        }
-
-        private void SetupFieldMappings()
-        {
-            var pickers = new[] { DatePicker, CoffeePicker, TempPicker, TimePicker, BatchWeightPicker, FinalWeightPicker, LossPicker, NotesPicker };
-
-            foreach (var picker in pickers)
-            {
-                picker.Items.Clear();
-                picker.Items.Add("(None)");
-                
-                foreach (var header in _csvHeaders)
-                {
-                    picker.Items.Add(header);
-                }
-                
-                picker.SelectedIndex = 0;
-            }
-        }
-
-        private void AutoMapColumns()
-        {
-            // Map common header names to appropriate pickers
-            foreach (var header in _csvHeaders)
-            {
-                string lowerHeader = header.ToLower();
-                
-                if (lowerHeader.Contains("date"))
-                {
-                    DatePicker.SelectedItem = header;
-                }
-                else if (lowerHeader.Contains("coffee") || lowerHeader.Contains("bean") || lowerHeader == "type")
-                {
-                    CoffeePicker.SelectedItem = header;
-                }
-                else if (lowerHeader.Contains("temp"))
-                {
-                    TempPicker.SelectedItem = header;
-                }
-                else if (lowerHeader.Contains("time"))
-                {
-                    TimePicker.SelectedItem = header;
-                }
-                else if (lowerHeader.Contains("batch") || lowerHeader == "weight (g)")
-                {
-                    BatchWeightPicker.SelectedItem = header;
-                }
-                else if (lowerHeader.Contains("final"))
-                {
-                    FinalWeightPicker.SelectedItem = header;
-                }
-                else if (lowerHeader.Contains("loss") || lowerHeader.Contains("%"))
-                {
-                    LossPicker.SelectedItem = header;
-                }
-                else if (lowerHeader.Contains("note"))
-                {
-                    NotesPicker.SelectedItem = header;
-                }
-            }
-
-            UpdatePreview();
-        }
-
-        private void UpdatePreview()
-        {
-            // Show the mapping selections
-            int mappedFields = 0;
-            var mappings = GetMappings();
-            
-            foreach (var map in mappings)
-            {
-                if (!string.IsNullOrEmpty(map.Value))
-                {
-                    mappedFields++;
-                }
-            }
-            
-            PreviewStatusLabel.Text = $"Mapped {mappedFields} out of 8 fields. Ready to import.";
-        }
-
-        private Dictionary<string, string> GetMappings()
-        {
-            var mappings = new Dictionary<string, string>();
-            
-            // Get the selected column for each property
-            string GetSelectedColumn(Picker picker) => picker.SelectedIndex > 0 ? picker.Items[picker.SelectedIndex] : "";
-            
-            mappings["RoastDate"] = GetSelectedColumn(DatePicker);
-            mappings["BeanType"] = GetSelectedColumn(CoffeePicker);
-            mappings["Temperature"] = GetSelectedColumn(TempPicker);
-            mappings["RoastTime"] = GetSelectedColumn(TimePicker);
-            mappings["BatchWeight"] = GetSelectedColumn(BatchWeightPicker);
-            mappings["FinalWeight"] = GetSelectedColumn(FinalWeightPicker);
-            mappings["WeightLoss"] = GetSelectedColumn(LossPicker);
-            mappings["Notes"] = GetSelectedColumn(NotesPicker);
-            
-            return mappings;
-        }
-
-        private async void ImportButton_Clicked(object sender, EventArgs e)
-        {
-            try
-            {
-                // Validate required fields
-                if (DatePicker.SelectedIndex <= 0 || CoffeePicker.SelectedIndex <= 0)
-                {
-                    await DisplayAlert("Required Fields Missing", "Date and Coffee Bean fields are required for import.", "OK");
-                    return;
-                }
-
-                // Show loading indicator
-                LoadingIndicator.IsVisible = true;
-                LoadingIndicator.IsRunning = true;
-                ImportButton.IsEnabled = false;
-                CancelButton.IsEnabled = false;
-                PreviewStatusLabel.Text = "Importing data...";
-
-                // Get all the mappings
-                var mappings = GetMappings();
-
-                // Import the roasts
-                // Import the data - the ImportRoastsFromCsvAsync method already handles duplicates
-                var result = await _roastDataService.ImportRoastsFromCsvAsync(_selectedFilePath, mappings);
-
-                // Show result
-                if (result.Failed > 0)
-                {
-                    // Show detailed error message with the first few errors
-                    string errorDetails = string.Join("\n", result.Errors.Take(5));
-                    if (result.Errors.Count > 5)
-                    {
-                        errorDetails += $"\n...and {result.Errors.Count - 5} more errors.";
-                    }
-
-                    await DisplayAlert("Import Results", 
-                        $"Successfully imported {result.Success} roast logs.\n" +
-                        $"Failed to import {result.Failed} roast logs.\n\n" +
-                        $"Error details:\n{errorDetails}", "OK");
-                }
-                else
-                {
-                    await DisplayAlert("Import Successful", $"Successfully imported {result.Success} roast logs!", "OK");
-                }
-
-                // Navigate back to RoastLogPage after import
-                await _navigationService.GoBackAsync();
-            }
-            catch (Exception ex)
-            {
-                await DisplayAlert("Import Error", $"Error during import: {ex.Message}", "OK");
-                Debug.WriteLine($"Import error: {ex}");
-            }
-            finally
-            {
-                LoadingIndicator.IsVisible = false;
-                LoadingIndicator.IsRunning = false;
-                ImportButton.IsEnabled = true;
-                CancelButton.IsEnabled = true;
-            }
-        }
-
-        private async void CancelButton_Clicked(object sender, EventArgs e)
-        {
-            await _navigationService.GoBackAsync();
-        }
+        FileResult? result = await FilePicker.Default.PickAsync(options);
+        return result?.FullPath;
     }
 }

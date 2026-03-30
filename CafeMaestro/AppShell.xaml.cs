@@ -1,5 +1,5 @@
-using CafeMaestro.Models;
 using CafeMaestro.Navigation;
+using System.Diagnostics;
 
 namespace CafeMaestro;
 
@@ -29,7 +29,7 @@ public partial class AppShell : Shell
 
 	private void OnNavigating(object? sender, ShellNavigatingEventArgs e)
 	{
-		System.Diagnostics.Debug.WriteLine($"Navigating to: {e.Target.Location}");
+		Debug.WriteLine($"Navigating to: {e.Target.Location}");
 	}
 
 	private void OnNavigated(object? sender, ShellNavigatedEventArgs e)
@@ -51,7 +51,7 @@ public partial class AppShell : Shell
 			args.Target.Location.ToString().Contains(Routes.BeanInventoryPage) ||
 			args.Target.Location.ToString().Contains(Routes.SettingsPage))
 		{
-			System.Diagnostics.Debug.WriteLine($"Preparing to navigate to a page that needs fresh data: {args.Target.Location}");
+			Debug.WriteLine($"Preparing to navigate to a page that needs fresh data: {args.Target.Location}");
 		}
 	}
 }
