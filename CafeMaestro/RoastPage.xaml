@@ -1,22 +1,21 @@
 <?xml version="1.0" encoding="UTF-8" ?>
 <ContentPage xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
              xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
+             xmlns:vm="clr-namespace:CafeMaestro.ViewModels"
              x:Class="CafeMaestro.RoastPage"
              BackgroundColor="{DynamicResource PageBackgroundColor}"
-             Title="Roast Coffee">
+             Title="{Binding PageTitle}">
     <ScrollView Padding="0"
                 Margin="0">
         <Grid RowDefinitions="Auto, *"
               Padding="0"
               Margin="0">
-            <!-- Header Area - Clean Design -->
             <Grid Grid.Row="0"
                   ColumnDefinitions="Auto,*,Auto"
                   Padding="20,20"
                   HeightRequest="100"
                   HorizontalOptions="Fill"
                   Margin="0">
-                <!-- Logo and Title within Header -->
                 <Image Grid.Column="0"
                        Source="roast_icon.png"
                        HeightRequest="60"
@@ -24,48 +23,42 @@
                        Aspect="AspectFit"
                        VerticalOptions="Center"/>
                 <Label Grid.Column="1"
-                       Text="Roast Coffee"
+                       Text="{Binding PageTitle}"
                        FontSize="28"
                        FontAttributes="Bold"
                        HorizontalOptions="Start"
                        VerticalOptions="Center"
                        TextColor="{DynamicResource PrimaryColor}"
                        Margin="16,0,0,0"/>
-                <!-- Action buttons -->
                 <HorizontalStackLayout Grid.Column="2"
                                        Spacing="10"
                                        VerticalOptions="Center">
                     <ImageButton x:Name="CancelButton"
                                  Source="cancel_icon.png"
-                                 Clicked="CancelButton_Clicked"
+                                 Command="{Binding CancelCommand}"
                                  BackgroundColor="{DynamicResource SwipeDeleteColor}"
                                  WidthRequest="50"
                                  HeightRequest="50"
                                  Padding="5"
-                                 CornerRadius="25">
-                    </ImageButton>
+                                 CornerRadius="25" />
                     <ImageButton x:Name="SaveRoastButton"
                                  Source="save_icon.png"
-                                 Clicked="SaveRoast_Clicked"
+                                 Command="{Binding SaveCommand}"
                                  BackgroundColor="{DynamicResource PrimaryColor}"
                                  WidthRequest="50"
                                  HeightRequest="50"
                                  Padding="5"
-                                 CornerRadius="25">
-                    </ImageButton>
+                                 CornerRadius="25" />
                 </HorizontalStackLayout>
             </Grid>
 
-            <!-- Main Content Area -->
             <VerticalStackLayout Grid.Row="1"
                                  Padding="24,0,24,24"
                                  Spacing="15"
                                  BackgroundColor="{DynamicResource PageBackgroundColor}"
                                  Margin="0,10,0,0">
 
-                <!-- Timer UI with improved styling -->
                 <VerticalStackLayout Spacing="15">
-                    <!-- The digital timer display with improved styling -->
                     <Border Stroke="{DynamicResource BorderColor}"
                             BackgroundColor="{DynamicResource NeutralColor}"
                             StrokeShape="RoundRectangle 12"
@@ -78,9 +71,8 @@
                                     Opacity="0.2"/>
                         </Border.Shadow>
                         <Grid>
-                            <!-- Digital display label for the timer -->
                             <Label x:Name="TimeDisplayLabel"
-                                   Text="00:00"
+                                   Text="{Binding TimerDisplay}"
                                    FontSize="80"
                                    HorizontalOptions="Center"
                                    VerticalOptions="Center"
@@ -88,7 +80,6 @@
                                    VerticalTextAlignment="Center"
                                    TextColor="{DynamicResource PrimaryColor}"/>
 
-                            <!-- Pulsating indicator for when timer is running -->
                             <Border x:Name="TimerRunningIndicator"
                                     WidthRequest="20"
                                     HeightRequest="20"
@@ -101,13 +92,13 @@
                                     Padding="0"
                                     IsVisible="False"/>
 
-                            <!-- Invisible entry for user input - same size as the label but transparent -->
                             <Entry x:Name="TimeEntry"
-                                   Text=""
+                                   Text="00:00"
                                    FontSize="1"
                                    Opacity="0"
                                    Keyboard="Numeric"
                                    MaxLength="5"
+                                   IsEnabled="{Binding IsTimeEntryEnabled}"
                                    Focused="TimeEntry_Focused"
                                    Unfocused="TimeEntry_Unfocused"
                                    TextChanged="TimeEntry_TextChanged"/>
@@ -117,78 +108,68 @@
                                            Spacing="10">
                         <ImageButton x:Name="StartTimerButton"
                                      Source="timer_play_icon.png"
-                                     Clicked="StartTimer_Clicked"
+                                     Command="{Binding StartTimerCommand}"
+                                     IsEnabled="{Binding CanStartTimer}"
                                      BackgroundColor="{DynamicResource PrimaryColor}"
                                      WidthRequest="50"
                                      HeightRequest="50"
                                      Padding="5"
-                                     CornerRadius="25">
-                        </ImageButton>
+                                     CornerRadius="25" />
                         <ImageButton x:Name="PauseTimerButton"
                                      Source="timer_pause_icon.png"
-                                     Clicked="PauseTimer_Clicked"
+                                     Command="{Binding PauseTimerCommand}"
+                                     IsEnabled="{Binding CanPauseTimer}"
                                      BackgroundColor="{DynamicResource TertiaryColor}"
                                      WidthRequest="50"
                                      HeightRequest="50"
                                      Padding="5"
-                                     CornerRadius="25"
-                                     IsEnabled="False">
-                        </ImageButton>
+                                     CornerRadius="25" />
                         <ImageButton x:Name="StopTimerButton"
                                      Source="timer_stop_icon.png"
-                                     Clicked="StopTimer_Clicked"
+                                     Command="{Binding StopTimerCommand}"
+                                     IsEnabled="{Binding CanStopTimer}"
                                      BackgroundColor="{DynamicResource TertiaryColor}"
                                      WidthRequest="50"
                                      HeightRequest="50"
                                      Padding="5"
-                                     CornerRadius="25"
-                                     IsEnabled="False">
-                        </ImageButton>
+                                     CornerRadius="25" />
                         <ImageButton x:Name="ResetTimerButton"
                                      Source="timer_reset_icon.png"
-                                     Clicked="ResetTimer_Clicked"
+                                     Command="{Binding ResetTimerCommand}"
                                      BackgroundColor="{DynamicResource TertiaryColor}"
                                      WidthRequest="50"
                                      HeightRequest="50"
                                      Padding="5"
-                                     CornerRadius="25">
-                        </ImageButton>
-                        <!-- New First Crack button with matching style -->
+                                     CornerRadius="25" />
                         <ImageButton x:Name="FirstCrackButton"
                                      Source="first_crack_icon.png"
-                                     Clicked="FirstCrackButton_Clicked"
+                                     Command="{Binding MarkFirstCrackCommand}"
+                                     IsEnabled="{Binding CanMarkFirstCrack}"
                                      BackgroundColor="{DynamicResource AccentColor}"
                                      WidthRequest="50"
                                      HeightRequest="50"
                                      Padding="5"
-                                     CornerRadius="25"
-                                     IsEnabled="False">
-                        </ImageButton>
+                                     CornerRadius="25" />
                     </HorizontalStackLayout>
 
-                    <!-- First Crack info label -->
                     <Label x:Name="FirstCrackLabel"
-                           Text="First Crack: Not marked"
+                           Text="{Binding FirstCrackLabel}"
                            FontSize="16"
                            HorizontalOptions="Center"
                            TextColor="{DynamicResource AccentColor}"
                            Margin="0,10,0,0"/>
                 </VerticalStackLayout>
 
-                <!-- Coffee Bean Selection -->
                 <Picker x:Name="BeanPicker"
-                        Title="Coffee:"
+                        Title="{Binding BeanPickerTitle}"
+                        ItemsSource="{Binding AvailableBeans}"
+                        SelectedItem="{Binding SelectedBean, Mode=TwoWay}"
+                        ItemDisplayBinding="{Binding DisplayName}"
                         TextColor="{DynamicResource PrimaryTextColor}"
-                        BackgroundColor="{DynamicResource PickerBackgroundColor}"
-                        SelectedIndexChanged="BeanPicker_SelectedIndexChanged">
-                    <Picker.Items>
-                        <x:String>Loading beans...</x:String>
-                    </Picker.Items>
-                </Picker>
+                        BackgroundColor="{DynamicResource PickerBackgroundColor}" />
 
-                <!-- Previous Roast Info Section -->
                 <Border x:Name="PreviousRoastInfoSection"
-                        IsVisible="false"
+                        IsVisible="{Binding HasPreviousRoast}"
                         Margin="0,5,0,10"
                         Padding="10"
                         BackgroundColor="{AppThemeBinding Light=#f0f0f0, Dark=#303030}"
@@ -200,23 +181,23 @@
                                TextColor="{StaticResource PrimaryColor}"
                                Margin="0,0,0,5"/>
                         <Label x:Name="PreviousRoastSummaryLabel"
-                               Text=""
+                               Text="{Binding PreviousRoastSummary}"
                                FontSize="14"
                                LineBreakMode="WordWrap"/>
                         <Label x:Name="PreviousRoastDetailsLabel"
-                               Text=""
+                               Text="{Binding PreviousRoastDetails}"
                                FontSize="14"
                                LineBreakMode="WordWrap"/>
                     </VerticalStackLayout>
                 </Border>
 
-                <!-- Temperature -->
                 <Label Text="Roasting Temperature (°C):"
                        TextColor="{DynamicResource PrimaryTextColor}"/>
                 <Border Stroke="{DynamicResource EntryBorderColor}"
                         StrokeThickness="1"
                         StrokeShape="RoundRectangle 5">
                     <Entry x:Name="TemperatureEntry"
+                           Text="{Binding TemperatureText, Mode=TwoWay}"
                            Keyboard="Numeric"
                            Placeholder="Enter temperature"
                            TextColor="{DynamicResource PrimaryTextColor}"
@@ -224,35 +205,33 @@
                            PlaceholderColor="{DynamicResource PlaceholderColor}"/>
                 </Border>
 
-                <!-- Weight Entry -->
                 <Label Text="Batch Weight (g):"
                        TextColor="{DynamicResource PrimaryTextColor}"/>
                 <Border Stroke="{DynamicResource EntryBorderColor}"
                         StrokeThickness="1"
                         StrokeShape="RoundRectangle 5">
                     <Entry x:Name="BatchWeightEntry"
+                           Text="{Binding BatchWeightText, Mode=TwoWay}"
                            Keyboard="Numeric"
                            Placeholder="Enter batch weight"
                            TextColor="{DynamicResource PrimaryTextColor}"
                            BackgroundColor="{DynamicResource EntryBackgroundColor}"
-                           PlaceholderColor="{DynamicResource PlaceholderColor}"
-                           TextChanged="BatchWeightEntry_TextChanged"/>
+                           PlaceholderColor="{DynamicResource PlaceholderColor}"/>
                 </Border>
 
-                <!-- Warning label for batch weight validation -->
                 <Label x:Name="BatchWeightWarningLabel"
-                       IsVisible="false"
-                       Text="Insufficient beans available!"
+                       IsVisible="{Binding IsBatchWeightWarningVisible}"
+                       Text="{Binding BatchWeightWarningText}"
                        TextColor="{StaticResource SwipeDeleteColor}"
                        FontAttributes="Bold"/>
 
-                <!-- Final Weight Entry -->
                 <Label Text="Final Weight (g):"
                        TextColor="{DynamicResource PrimaryTextColor}"/>
                 <Border Stroke="{DynamicResource EntryBorderColor}"
                         StrokeThickness="1"
                         StrokeShape="RoundRectangle 5">
                     <Entry x:Name="FinalWeightEntry"
+                           Text="{Binding FinalWeightText, Mode=TwoWay}"
                            Keyboard="Numeric"
                            Placeholder="Enter final weight"
                            TextColor="{DynamicResource PrimaryTextColor}"
@@ -260,14 +239,13 @@
                            PlaceholderColor="{DynamicResource PlaceholderColor}"/>
                 </Border>
 
-                <!-- Final Weight Loss Percentage -->
                 <Label x:Name="LossPercentLabel"
-                       Text=""
+                       Text="{Binding LossPercentLabel}"
                        FontSize="18"
                        TextColor="{DynamicResource PrimaryColor}"/>
 
-                <!-- Notes field -->
                 <Editor x:Name="NotesEditor"
+                        Text="{Binding Notes, Mode=TwoWay}"
                         Placeholder="Add notes about this roast..."
                         HeightRequest="100"
                         AutoSize="TextChanges"
