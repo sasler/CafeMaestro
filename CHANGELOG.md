@@ -7,6 +7,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased] - Complete Architecture Refactor
 ### Added
+- GitHub Actions CI workflow for automated build and test on PRs
+- Comprehensive README.md with architecture docs, build commands, and CI badge
+- Rewritten copilot-instructions.md reflecting new MVVM architecture and conventions
 - xUnit test project with 87+ unit tests covering models, services, and ViewModels
 - Service interfaces for all services (IAppDataService, IBeanDataService, IRoastDataService, etc.)
 - Model validation with `Validate()` and `IsValid` on BeanData, RoastData, RoastLevelData
