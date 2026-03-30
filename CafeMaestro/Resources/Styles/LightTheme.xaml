@@ -37,4 +37,6 @@
     <Color x:Key="TransparentColor">Transparent</Color>
     <Color x:Key="ErrorColor">#B00020</Color>
     <Color x:Key="SuccessColor">#00A36C</Color>
+    <Color x:Key="HighlightColor">#FFF6C2</Color>
+    <Color x:Key="ModalOverlayColor">#66000000</Color>
 </ResourceDictionary>

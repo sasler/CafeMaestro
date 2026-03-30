@@ -1,698 +1,160 @@
-using System.Diagnostics;
-using CafeMaestro.Services;
-using CafeMaestro.Navigation;
-using CommunityToolkit.Maui;
-using MauiAppTheme = Microsoft.Maui.ApplicationModel.AppTheme;
-using CommunityToolkit.Maui.Storage;
-using System.Text;
-using System.Windows.Input;
-using System.Collections.ObjectModel;
 using CafeMaestro.ViewModels;
+using CommunityToolkit.Mvvm.Messaging;
+using CommunityToolkit.Mvvm.Messaging.Messages;
 
 namespace CafeMaestro;
 
-public partial class SettingsPage : ContentPage
+public partial class SettingsPage : ContentPage,
+    IRecipient<SettingsAlertMessage>,
+    IRecipient<PickDataFileRequestMessage>,
+    IRecipient<SettingsActionSheetRequestMessage>,
+    IRecipient<SettingsConfirmationRequestMessage>
 {
-    private readonly IPreferencesService _preferencesService;
-    private readonly IAppDataService _appDataService;
-    private readonly IBeanDataService _beanService;
-    private readonly IRoastDataService _roastDataService;
-    private readonly IRoastLevelService _roastLevelService;
-    private readonly IFileSaver _fileSaver;
-    private readonly IFolderPicker _folderPicker;
-    private readonly INavigationService _navigationService;
+    private readonly SettingsPageViewModel _viewModel;
+    private bool _isMessengerRegistered;
 
-    // Collection for roast levels
-    private ObservableCollection<RoastLevelViewModel> _roastLevels = new ObservableCollection<RoastLevelViewModel>();
-
-    // Commands for roast level management
-    public ICommand EditRoastLevelCommand { get; private set; }
-    public ICommand DeleteRoastLevelCommand { get; private set; }
-
-    private string _currentFilePath = string.Empty;
-    private bool _isLoadingThemeSettings = false; // Flag to suppress events during initialization
-    private bool _isThemeInitialized = false; // Additional safeguard for theme initialization
-    private bool _isFirstTimeNavigation = true; // Track if this is the first time appearing
-
-    // Current roast level being edited
-    private RoastLevelViewModel? _currentEditRoastLevel;
-    private bool _isNewRoastLevel = false;
-
-    public SettingsPage(IPreferencesService preferencesService, IAppDataService appDataService,
-                        IBeanDataService beanService, IRoastDataService roastDataService,
-                        IRoastLevelService roastLevelService, IFileSaver fileSaver, IFolderPicker folderPicker,
-                        INavigationService navigationService)
+    public SettingsPage(SettingsPageViewModel viewModel)
     {
         InitializeComponent();
-        _preferencesService = preferencesService ?? throw new ArgumentNullException(nameof(preferencesService));
-        _appDataService = appDataService ?? throw new ArgumentNullException(nameof(appDataService));
-        _beanService = beanService ?? throw new ArgumentNullException(nameof(beanService));
-        _roastDataService = roastDataService ?? throw new ArgumentNullException(nameof(roastDataService));
-        _roastLevelService = roastLevelService ?? throw new ArgumentNullException(nameof(roastLevelService));
-        _fileSaver = fileSaver ?? throw new ArgumentNullException(nameof(fileSaver));
-        _folderPicker = folderPicker ?? throw new ArgumentNullException(nameof(folderPicker));
-        _navigationService = navigationService ?? throw new ArgumentNullException(nameof(navigationService));
-
-        // Initialize UI
-        LoadDataFilePath();
-        LoadVersionInfo();
-        LoadThemeSettings();
-        LoadRoastLevels();
-
-        // Initialize commands
-        EditRoastLevelCommand = new Command<RoastLevelViewModel>(EditRoastLevel);
-        DeleteRoastLevelCommand = new Command<RoastLevelViewModel>(DeleteRoastLevel);
+        _viewModel = viewModel ?? throw new ArgumentNullException(nameof(viewModel));
+        BindingContext = _viewModel;
     }
 
     protected override async void OnAppearing()
     {
         base.OnAppearing();
+        RegisterMessenger();
+        await _viewModel.OnAppearingAsync();
 
-        // Reload data
-        LoadDataFilePath();
-
-        // Reload roast levels when returning to this page
-        LoadRoastLevels();
-
-        // Check if this is first run and first navigation to this page
-        // This will highlight the data file section when coming from first-run setup
-        if (_isFirstTimeNavigation)
+        if (_viewModel.ShouldHighlightDataFileSection)
         {
-            _isFirstTimeNavigation = false;
-
-            bool isFirstRun = await _preferencesService.IsFirstRunAsync();
-            if (isFirstRun)
-            {
-                // Highlight the data file section visually
-                HighlightDataFileSection();
-            }
+            await HighlightDataFileSectionAsync();
+            _viewModel.MarkDataFileSectionHighlighted();
         }
     }
 
-    // Highlight the data file section to draw attention to it
-    private void HighlightDataFileSection()
+    protected override void OnDisappearing()
     {
-        // Apply a visual highlight to draw attention (pulse animation)
-        var dataFileSection = DataFileSection;
-        if (dataFileSection != null)
-        {
-            // Store original color to restore later
-            var originalColor = dataFileSection.BackgroundColor;
-
-            // Highlight with animation
-            dataFileSection.BackgroundColor = Colors.LightYellow;
-
-            // Pulse animation to draw attention
-            dataFileSection.Scale = 0.97;
-            dataFileSection.FadeTo(0.8, 250).ContinueWith(_ =>
-            {
-                MainThread.BeginInvokeOnMainThread(async () =>
-                {
-                    await dataFileSection.FadeTo(1, 250);
-                    await dataFileSection.ScaleTo(1.02, 150);
-                    await dataFileSection.ScaleTo(1.0, 150);
-
-                    // Restore original background after animation
-                    await Task.Delay(500);
-                    dataFileSection.BackgroundColor = originalColor;
-                });
-            });
-        }
+        UnregisterMessenger();
+        _viewModel.OnDisappearing();
+        base.OnDisappearing();
     }
 
-    private void LoadDataFilePath()
+    public void Receive(SettingsAlertMessage message)
     {
-        DataFilePath.Text = _appDataService.DataFilePath;
+        _ = DisplayAlert(message.Value.Title, message.Value.Message, message.Value.Cancel);
     }
 
-    private void LoadVersionInfo()
+    public void Receive(PickDataFileRequestMessage message)
     {
-        // Get version from assembly info
-        var version = AppInfo.Current.VersionString;
-        var build = AppInfo.Current.BuildString;
-
-        // Basic version info
-        VersionLabel.Text = $"{version} (Build {build})";
-
-        // Add version history information from VersionTracking
-        var versionHistory = new StringBuilder();
-
-        // Check if this is the first launch for the current version
-        if (Microsoft.Maui.ApplicationModel.VersionTracking.IsFirstLaunchForCurrentVersion)
-        {
-            versionHistory.AppendLine("\nThis is the first time running this version.");
-        }
-
-        // Add first installed version info
-        versionHistory.AppendLine($"\nFirst installed version: {Microsoft.Maui.ApplicationModel.VersionTracking.FirstInstalledVersion}");
-
-        // Add version history (limited to last 5 versions)
-        var versions = Microsoft.Maui.ApplicationModel.VersionTracking.VersionHistory.ToList();
-        if (versions.Any())
-        {
-            versionHistory.AppendLine("\nVersion History:");
-
-            // Display the most recent 5 versions
-            foreach (var v in versions.Take(5))
-            {
-                versionHistory.AppendLine($"- {v}");
-            }
-
-            // Indicate if there are more versions in history
-            if (versions.Count > 5)
-            {
-                versionHistory.AppendLine($"(+ {versions.Count - 5} more versions)");
-            }
-        }
-
-        // Add the version history to the label
-        VersionHistoryLabel.Text = versionHistory.ToString();
+        _ = HandlePickDataFileRequestAsync(message);
     }
 
-    private async void LoadThemeSettings()
+    public void Receive(SettingsActionSheetRequestMessage message)
     {
-        try
-        {
-            _isLoadingThemeSettings = true; // Suppress events
-
-            var theme = await _preferencesService.GetThemePreferenceAsync();
-
-            // Set the selected index of the ThemePicker
-            switch (theme)
-            {
-                case ThemePreference.Light:
-                    ThemePicker.SelectedIndex = 1; // Light Theme
-                    break;
-                case ThemePreference.Dark:
-                    ThemePicker.SelectedIndex = 2; // Dark Theme
-                    break;
-                case ThemePreference.System:
-                default:
-                    ThemePicker.SelectedIndex = 0; // System Theme
-                    break;
-            }
-
-            _isThemeInitialized = true; // Mark theme as initialized
-        }
-        catch (Exception ex)
-        {
-            Debug.WriteLine($"Error loading theme settings: {ex.Message}");
-            ThemePicker.SelectedIndex = 0; // Default to system theme
-        }
-        finally
-        {
-            _isLoadingThemeSettings = false; // Re-enable events
-        }
+        _ = HandleActionSheetRequestAsync(message);
     }
 
-    private async void ThemePicker_SelectedIndexChanged(object sender, EventArgs e)
+    public void Receive(SettingsConfirmationRequestMessage message)
     {
-        if (_isLoadingThemeSettings || !_isThemeInitialized) // Ignore events during initialization
+        _ = HandleConfirmationRequestAsync(message);
+    }
+
+    protected override bool OnBackButtonPressed()
+    {
+        _ = _viewModel.GoBackAsync();
+        return true;
+    }
+
+    private void RegisterMessenger()
+    {
+        if (_isMessengerRegistered)
+        {
             return;
-
-        try
-        {
-            ThemePreference selectedTheme = ThemePreference.System; // Default
-
-            // Determine which theme was selected based on the picker index
-            switch (ThemePicker.SelectedIndex)
-            {
-                case 1: // Light Theme
-                    selectedTheme = ThemePreference.Light;
-                    break;
-                case 2: // Dark Theme
-                    selectedTheme = ThemePreference.Dark;
-                    break;
-                case 0: // System Theme
-                default:
-                    selectedTheme = ThemePreference.System;
-                    break;
-            }
-
-            // Save the preference
-            await _preferencesService.SaveThemePreferenceAsync(selectedTheme);
-
-            // Apply the theme immediately
-            ApplyTheme(selectedTheme);
         }
-        catch (Exception ex)
-        {
-            await DisplayAlert("Error", $"Failed to change the theme: {ex.Message}", "OK");
-        }
+
+        WeakReferenceMessenger.Default.RegisterAll(this);
+        _isMessengerRegistered = true;
     }
 
-    private void ApplyTheme(ThemePreference theme)
+    private void UnregisterMessenger()
     {
-        if (Application.Current == null) return;
-
-        // Set the app's theme
-        switch (theme)
+        if (!_isMessengerRegistered)
         {
-            case ThemePreference.Light:
-                Application.Current.UserAppTheme = MauiAppTheme.Light;
-                // Also apply theme resources
-                (Application.Current as App)?.SetTheme("Light");
-                break;
-            case ThemePreference.Dark:
-                Application.Current.UserAppTheme = MauiAppTheme.Dark;
-                // Also apply theme resources
-                (Application.Current as App)?.SetTheme("Dark");
-                break;
-            case ThemePreference.System:
-                Application.Current.UserAppTheme = MauiAppTheme.Unspecified;
-                // Also apply theme resources based on system setting
-                (Application.Current as App)?.SetTheme("System");
-                break;
+            return;
         }
+
+        WeakReferenceMessenger.Default.UnregisterAll(this);
+        _isMessengerRegistered = false;
     }
 
-    private async void ExistingDataFileButton_Clicked(object sender, EventArgs e)
+    private async Task HighlightDataFileSectionAsync()
+    {
+        if (DataFileSection == null)
+        {
+            return;
+        }
+
+        var dataFileSection = DataFileSection;
+        var originalColor = dataFileSection.BackgroundColor;
+        dataFileSection.BackgroundColor = GetResourceColor("HighlightColor", originalColor);
+        dataFileSection.Scale = 0.97;
+        await dataFileSection.FadeTo(0.85, 250);
+        await dataFileSection.FadeTo(1, 250);
+        await dataFileSection.ScaleTo(1.02, 150);
+        await dataFileSection.ScaleTo(1.0, 150);
+        await Task.Delay(500);
+        dataFileSection.BackgroundColor = originalColor;
+    }
+
+    private async Task HandlePickDataFileRequestAsync(PickDataFileRequestMessage message)
     {
         try
         {
             var customFileType = new FilePickerFileType(
                 new Dictionary<DevicePlatform, IEnumerable<string>>
                 {
-                    { DevicePlatform.WinUI, new[] { ".json" } },
-                    { DevicePlatform.Android, new[] { "application/json" } },
-                    { DevicePlatform.iOS, new[] { "public.json" } },
-                    { DevicePlatform.MacCatalyst, new[] { "public.json" } }
+                    { DevicePlatform.WinUI, [".json"] },
+                    { DevicePlatform.Android, ["application/json"] },
+                    { DevicePlatform.iOS, ["public.json"] },
+                    { DevicePlatform.MacCatalyst, ["public.json"] }
                 });
 
             var options = new PickOptions
             {
-                PickerTitle = "Select data file location",
+                PickerTitle = message.PickerTitle,
                 FileTypes = customFileType
             };
 
             var result = await FilePicker.PickAsync(options);
-
-            if (result != null)
-            {
-                // First save path to preferences
-                await _preferencesService.SaveAppDataFilePathAsync(result.FullPath);
-
-                // Then update IAppDataService - this now returns the loaded data
-                var appData = await _appDataService.SetCustomFilePathAsync(result.FullPath);
-
-                // Reload the UI
-                LoadDataFilePath();
-
-                // If this was during first run, mark setup as completed
-                await _preferencesService.SetFirstRunCompletedAsync();
-
-                await DisplayAlert("Success", "Data file location has been set.", "OK");
-            }
+            message.Reply(result?.FullPath);
         }
-        catch (Exception ex)
+        catch
         {
-            await DisplayAlert("Error", $"Failed to select data file: {ex.Message}", "OK");
+            message.Reply((string?)null);
         }
     }
 
-    private async void NewDataFileButton_Clicked(object sender, EventArgs e)
+    private async Task HandleActionSheetRequestAsync(SettingsActionSheetRequestMessage message)
     {
-        try
-        {
-            // Create empty JSON content for the new file
-            var jsonContent = "{}";
-            var fileName = "NewCafeMaestroDataFile.json";
-
-            // Use a memory stream for the file content
-            using var stream = new MemoryStream(Encoding.UTF8.GetBytes(jsonContent));
-
-            // Save the file using FileSaver
-            var result = await _fileSaver.SaveAsync(fileName, stream, CancellationToken.None);
-
-            // Check if operation was canceled by the user (no exception but not successful)
-            if (!result.IsSuccessful && result.Exception.Message.Contains("cancel"))
-            {
-                return;
-            }
-
-            if (result.IsSuccessful)
-            {
-                await CreateNewDataFile(result.FilePath);
-            }
-            else if (result.Exception != null)
-            {
-                await DisplayAlert("Error", $"Failed to create file: {result.Exception.Message}", "OK");
-            }
-        }
-        catch (Exception ex)
-        {
-            await DisplayAlert("Error", $"Failed to create file: {ex.Message}", "OK");
-        }
+        string? result = await DisplayActionSheet(message.Title, message.Cancel, null, message.Buttons.ToArray());
+        message.Reply(result);
     }
 
-    private async Task UseStandardFilePicker()
+    private async Task HandleConfirmationRequestAsync(SettingsConfirmationRequestMessage message)
     {
-        var customFileType = new FilePickerFileType(
-            new Dictionary<DevicePlatform, IEnumerable<string>>
-            {
-                { DevicePlatform.WinUI, new[] { ".json" } },
-                { DevicePlatform.Android, new[] { "application/json" } },
-                { DevicePlatform.iOS, new[] { "public.json" } },
-                { DevicePlatform.MacCatalyst, new[] { "public.json" } }
-            });
-
-        var options = new PickOptions
-        {
-            PickerTitle = "Choose location for new data file",
-            FileTypes = customFileType
-        };
-
-        var result = await FilePicker.PickAsync(options);
-        if (result != null)
-        {
-            string filePath = result.FullPath;
-
-            // Ensure the file has the correct extension
-            if (!filePath.EndsWith(".json", StringComparison.OrdinalIgnoreCase))
-                filePath += ".json";
-
-            await CreateNewDataFile(filePath);
-        }
+        bool confirm = await DisplayAlert(message.Title, message.Message, message.Accept, message.Cancel);
+        message.Reply(confirm);
     }
 
-    private async Task CreateNewDataFile(string filePath)
+    private static Color GetResourceColor(string key, Color fallback)
     {
-        try
+        if (Application.Current?.Resources.TryGetValue(key, out object? value) == true &&
+            value is Color color)
         {
-            // First save the path to preferences
-            await _preferencesService.SaveAppDataFilePathAsync(filePath);
-
-            // Create new empty data file through IAppDataService - now returns loaded data
-            var appData = await _appDataService.CreateEmptyDataFileAsync(filePath);
-
-            // Update UI
-            LoadDataFilePath();
-
-            // If this was during first run, mark setup as completed
-            await _preferencesService.SetFirstRunCompletedAsync();
-
-            await DisplayAlert("Success", "Created new data file.", "OK");
-        }
-        catch (Exception ex)
-        {
-            await DisplayAlert("Error", $"Failed to create file: {ex.Message}", "OK");
-        }
-    }
-
-    private async void ExportButton_Clicked(object sender, EventArgs e)
-    {
-        try
-        {
-            // Create a cancellation token source with a reasonable timeout
-            using var cts = new CancellationTokenSource(TimeSpan.FromMinutes(2));
-
-            // Open the folder picker
-            var result = await _folderPicker.PickAsync(cts.Token);
-
-            if (result.IsSuccessful && result.Folder != null)
-            {
-                // Generate a filename with current date
-                string fileName = $"CafeMaestro_RoastLog_{DateTime.Now:yyyy-MM-dd}.csv";
-
-                // Combine the folder path with the filename
-                string fullPath = Path.Combine(result.Folder.Path, fileName);
-
-                // Export the data to the selected folder
-                await _roastDataService.ExportRoastLogAsync(fullPath);
-
-                await DisplayAlert("Success", $"Roast log exported successfully to:\n{fullPath}", "OK");
-            }
-            else if (!result.IsSuccessful && result.Exception != null)
-            {
-                // Check if the operation was canceled through the token
-                if (result.Exception is OperationCanceledException)
-                {
-                    // Operation was canceled through the token, no need for an error message
-                    return;
-                }
-
-                await DisplayAlert("Error", $"Failed to select folder: {result.Exception.Message}", "OK");
-            }
-        }
-        catch (OperationCanceledException)
-        {
-            // Silently handle cancellation
-            return;
-        }
-        catch (Exception ex)
-        {
-            await DisplayAlert("Error", $"Failed to export data: {ex.Message}", "OK");
-        }
-    }
-
-    public async void ImportButton_Clicked(object sender, EventArgs e)
-    {
-        try
-        {
-            // Show a selection dialog for what to import
-            string action = await DisplayActionSheet("Select Import Type", "Cancel", null, "Coffee Beans", "Roast Logs");
-
-            // Handle the selection
-            switch (action)
-            {
-                case "Coffee Beans":
-                    await _navigationService.GoToAsync(Routes.BeanImport);
-                    break;
-
-                case "Roast Logs":
-                    await _navigationService.GoToAsync(Routes.RoastImport);
-                    break;
-
-                case "Cancel":
-                default:
-                    // User canceled, do nothing
-                    break;
-            }
-        }
-        catch (Exception ex)
-        {
-            Debug.WriteLine($"Error in import selection: {ex.Message}");
-            await DisplayAlert("Error", $"Failed to open import page: {ex.Message}", "OK");
-        }
-    }
-
-    // Override OnBackButtonPressed to handle Android back button
-    protected override bool OnBackButtonPressed()
-    {
-        try
-        {
-            MainThread.BeginInvokeOnMainThread(async () =>
-            {
-                await _navigationService.GoToAsync(Routes.Main);
-            });
-            return true;
-        }
-        catch (Exception ex)
-        {
-            System.Diagnostics.Debug.WriteLine($"Error handling back button in SettingsPage: {ex.Message}");
+            return color;
         }
 
-        return base.OnBackButtonPressed(); // Let the system handle it if our code fails
-    }
-
-    private async void LoadRoastLevels()
-    {
-        try
-        {
-            var roastLevels = await _roastLevelService.GetRoastLevelsAsync();
-            _roastLevels.Clear();
-
-            foreach (var roastLevel in roastLevels.OrderBy(l => l.MinWeightLossPercentage))
-            {
-                _roastLevels.Add(RoastLevelViewModel.FromModel(roastLevel));
-            }
-
-            // Set the collection as the ItemsSource for the CollectionView
-            RoastLevelsCollection.ItemsSource = _roastLevels;
-        }
-        catch (Exception ex)
-        {
-            Debug.WriteLine($"Error loading roast levels: {ex.Message}");
-        }
-    }
-
-    private void EditRoastLevel(RoastLevelViewModel roastLevelViewModel)
-    {
-        try
-        {
-            // Store the roast level being edited
-            _currentEditRoastLevel = new RoastLevelViewModel
-            {
-                Id = roastLevelViewModel.Id,
-                Name = roastLevelViewModel.Name,
-                MinWeightLossPercentage = roastLevelViewModel.MinWeightLossPercentage,
-                MaxWeightLossPercentage = roastLevelViewModel.MaxWeightLossPercentage
-            };
-            _isNewRoastLevel = false;
-
-            // Set title
-            EditPopupTitle.Text = "Edit Roast Level";
-
-            // Populate the form fields
-            RoastLevelNameEntry.Text = _currentEditRoastLevel.Name;
-            MinWeightLossEntry.Text = _currentEditRoastLevel.MinWeightLossPercentage.ToString("F1");
-            MaxWeightLossEntry.Text = _currentEditRoastLevel.MaxWeightLossPercentage.ToString("F1");
-
-            // Show the popup
-            EditRoastLevelPopup.IsVisible = true;
-            RoastLevelNameEntry.Focus();
-        }
-        catch (Exception ex)
-        {
-            DisplayAlert("Error", $"Failed to edit roast level: {ex.Message}", "OK");
-        }
-    }
-
-    private async void DeleteRoastLevel(RoastLevelViewModel roastLevelViewModel)
-    {
-        try
-        {
-            bool confirm = await DisplayAlert("Confirm Delete", $"Are you sure you want to delete the roast level '{roastLevelViewModel.Name}'?", "Yes", "No");
-            if (confirm)
-            {
-                await _roastLevelService.DeleteRoastLevelAsync(roastLevelViewModel.Id);
-                _roastLevels.Remove(roastLevelViewModel);
-            }
-        }
-        catch (Exception ex)
-        {
-            await DisplayAlert("Error", $"Failed to delete roast level: {ex.Message}", "OK");
-        }
-    }
-
-    private void AddRoastLevel_Clicked(object sender, EventArgs e)
-    {
-        try
-        {
-            // Create a new roast level
-            _currentEditRoastLevel = new RoastLevelViewModel
-            {
-                Id = Guid.NewGuid(),
-                Name = "",
-                MinWeightLossPercentage = 0,
-                MaxWeightLossPercentage = 0
-            };
-            _isNewRoastLevel = true;
-
-            // Set title
-            EditPopupTitle.Text = "Add Roast Level";
-
-            // Clear form fields
-            RoastLevelNameEntry.Text = string.Empty;
-            MinWeightLossEntry.Text = "0.0";
-            MaxWeightLossEntry.Text = "0.0";
-
-            // Show the popup
-            EditRoastLevelPopup.IsVisible = true;
-            RoastLevelNameEntry.Focus();
-        }
-        catch (Exception ex)
-        {
-            DisplayAlert("Error", $"Failed to create new roast level: {ex.Message}", "OK");
-        }
-    }
-
-    private async void SaveRoastLevel_Clicked(object sender, EventArgs e)
-    {
-        if (_currentEditRoastLevel == null)
-        {
-            EditRoastLevelPopup.IsVisible = false;
-            return;
-        }
-
-        try
-        {
-            // Validate input
-            if (string.IsNullOrWhiteSpace(RoastLevelNameEntry.Text))
-            {
-                await DisplayAlert("Validation Error", "Name is required.", "OK");
-                return;
-            }
-
-            if (!double.TryParse(MinWeightLossEntry.Text, out double minWeight))
-            {
-                await DisplayAlert("Validation Error", "Min weight loss must be a valid number.", "OK");
-                return;
-            }
-
-            if (!double.TryParse(MaxWeightLossEntry.Text, out double maxWeight))
-            {
-                await DisplayAlert("Validation Error", "Max weight loss must be a valid number.", "OK");
-                return;
-            }
-
-            if (minWeight < 0)
-            {
-                await DisplayAlert("Validation Error", "Minimum weight loss percentage must be at least 0.", "OK");
-                return;
-            }
-
-            if (maxWeight <= minWeight)
-            {
-                await DisplayAlert("Validation Error", "Maximum weight loss must be greater than minimum weight loss.", "OK");
-                return;
-            }
-
-            // Update the roast level model
-            _currentEditRoastLevel.Name = RoastLevelNameEntry.Text;
-            _currentEditRoastLevel.MinWeightLossPercentage = minWeight;
-            _currentEditRoastLevel.MaxWeightLossPercentage = maxWeight;
-
-            // Save changes
-            bool success;
-            if (_isNewRoastLevel)
-            {
-                // Add new roast level
-                success = await _roastLevelService.AddRoastLevelAsync(_currentEditRoastLevel.ToModel());
-                if (success)
-                {
-                    // Add to the collection view
-                    _roastLevels.Add(_currentEditRoastLevel);
-                }
-            }
-            else
-            {
-                // Update existing roast level
-                success = await _roastLevelService.UpdateRoastLevelAsync(_currentEditRoastLevel.ToModel());
-                if (success)
-                {
-                    // Update in the collection view
-                    var existingItem = _roastLevels.FirstOrDefault(r => r.Id == _currentEditRoastLevel.Id);
-                    if (existingItem != null)
-                    {
-                        var index = _roastLevels.IndexOf(existingItem);
-                        _roastLevels[index] = _currentEditRoastLevel;
-                    }
-                }
-            }
-
-            if (success)
-            {
-                // Hide the popup
-                EditRoastLevelPopup.IsVisible = false;
-
-                // Refresh the display
-                LoadRoastLevels();
-            }
-            else
-            {
-                await DisplayAlert("Error", "Failed to save roast level. Please try again.", "OK");
-            }
-        }
-        catch (Exception ex)
-        {
-            await DisplayAlert("Error", $"An error occurred: {ex.Message}", "OK");
-        }
-    }
-
-    private void CancelRoastLevel_Clicked(object sender, EventArgs e)
-    {
-        // Just hide the popup, don't save changes
-        EditRoastLevelPopup.IsVisible = false;
+        return fallback;
     }
 }
