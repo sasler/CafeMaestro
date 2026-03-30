@@ -1,5 +1,6 @@
-﻿using System.Diagnostics;
+using System.Diagnostics;
 using CafeMaestro.Services;
+using CafeMaestro.Navigation;
 using CommunityToolkit.Maui;
 using MauiAppTheme = Microsoft.Maui.ApplicationModel.AppTheme;
 using CommunityToolkit.Maui.Storage;
@@ -19,6 +20,7 @@ public partial class SettingsPage : ContentPage
     private readonly IRoastLevelService _roastLevelService;
     private readonly IFileSaver _fileSaver;
     private readonly IFolderPicker _folderPicker;
+    private readonly INavigationService _navigationService;
 
     // Collection for roast levels
     private ObservableCollection<RoastLevelViewModel> _roastLevels = new ObservableCollection<RoastLevelViewModel>();
@@ -38,7 +40,8 @@ public partial class SettingsPage : ContentPage
 
     public SettingsPage(IPreferencesService preferencesService, IAppDataService appDataService,
                         IBeanDataService beanService, IRoastDataService roastDataService,
-                        IRoastLevelService roastLevelService, IFileSaver fileSaver, IFolderPicker folderPicker)
+                        IRoastLevelService roastLevelService, IFileSaver fileSaver, IFolderPicker folderPicker,
+                        INavigationService navigationService)
     {
         InitializeComponent();
         _preferencesService = preferencesService ?? throw new ArgumentNullException(nameof(preferencesService));
@@ -48,6 +51,7 @@ public partial class SettingsPage : ContentPage
         _roastLevelService = roastLevelService ?? throw new ArgumentNullException(nameof(roastLevelService));
         _fileSaver = fileSaver ?? throw new ArgumentNullException(nameof(fileSaver));
         _folderPicker = folderPicker ?? throw new ArgumentNullException(nameof(folderPicker));
+        _navigationService = navigationService ?? throw new ArgumentNullException(nameof(navigationService));
 
         // Initialize UI
         LoadDataFilePath();
@@ -452,13 +456,11 @@ public partial class SettingsPage : ContentPage
             switch (action)
             {
                 case "Coffee Beans":
-                    // Navigate to the BeanImportPage using the registered route name
-                    await Shell.Current.GoToAsync(nameof(BeanImportPage));
+                    await _navigationService.GoToAsync(Routes.BeanImport);
                     break;
 
                 case "Roast Logs":
-                    // Navigate to the RoastImportPage using the registered route name
-                    await Shell.Current.GoToAsync(nameof(RoastImportPage));
+                    await _navigationService.GoToAsync(Routes.RoastImport);
                     break;
 
                 case "Cancel":
@@ -477,19 +479,13 @@ public partial class SettingsPage : ContentPage
     // Override OnBackButtonPressed to handle Android back button
     protected override bool OnBackButtonPressed()
     {
-        // When back button is pressed, navigate to MainPage
         try
         {
-            // Navigate back to MainPage using direct Shell.CurrentItem assignment
-            // This works better on Android than GoToAsync
-            if (Shell.Current?.Items.Count > 0)
+            MainThread.BeginInvokeOnMainThread(async () =>
             {
-                MainThread.BeginInvokeOnMainThread(() =>
-                {
-                    Shell.Current.CurrentItem = Shell.Current.Items[0]; // MainPage is the first item
-                });
-                return true; // Indicate we've handled the back button
-            }
+                await _navigationService.GoToAsync(Routes.Main);
+            });
+            return true;
         }
         catch (Exception ex)
         {

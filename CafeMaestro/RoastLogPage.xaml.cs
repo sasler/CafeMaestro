@@ -1,6 +1,7 @@
 ﻿using System.Collections.ObjectModel;
 using System.Windows.Input;
 using CafeMaestro.Models;
+using CafeMaestro.Navigation;
 using CafeMaestro.Services;
 using Microsoft.Maui.ApplicationModel;
 using Microsoft.Maui.Storage;
@@ -29,19 +30,21 @@ public partial class RoastLogPage : ContentPage
     private readonly IAppDataService _appDataService;
     private readonly ICsvParserService _csvParserService;
     private readonly IPreferencesService _preferencesService;
+    private readonly INavigationService _navigationService;
     private ObservableCollection<RoastData> _roastLogs;
     public ICommand RefreshCommand { get; private set; }
     public ICommand EditRoastCommand { get; private set; }
     public ICommand DeleteRoastCommand { get; private set; }
     public ICommand ItemTappedCommand { get; private set; }
 
-    public RoastLogPage(IRoastDataService roastDataService, IAppDataService appDataService, ICsvParserService csvParserService, IPreferencesService preferencesService)
+    public RoastLogPage(IRoastDataService roastDataService, IAppDataService appDataService, ICsvParserService csvParserService, IPreferencesService preferencesService, INavigationService navigationService)
     {
         InitializeComponent();
         _roastDataService = roastDataService ?? throw new ArgumentNullException(nameof(roastDataService));
         _appDataService = appDataService ?? throw new ArgumentNullException(nameof(appDataService));
         _csvParserService = csvParserService ?? throw new ArgumentNullException(nameof(csvParserService));
         _preferencesService = preferencesService ?? throw new ArgumentNullException(nameof(preferencesService));
+        _navigationService = navigationService ?? throw new ArgumentNullException(nameof(navigationService));
 
         // IMPORTANT: Ensure we're using the latest path from preferences
         if (Application.Current is App app)
@@ -86,7 +89,7 @@ public partial class RoastLogPage : ContentPage
                 {
                     { "EditRoastId", roastData.Id.ToString() }
                 };
-                await Shell.Current.GoToAsync("//RoastPage", navigationParameter);
+                await _navigationService.GoToAsync(Routes.Roast, navigationParameter);
             }
             catch
             {
@@ -355,8 +358,7 @@ public partial class RoastLogPage : ContentPage
     {
         try
         {
-            // Navigate to the roast import page
-            await Navigation.PushAsync(new RoastImportPage(_roastDataService, _csvParserService));
+            await _navigationService.GoToAsync(Routes.RoastImport);
         }
         catch (Exception ex)
         {
@@ -375,7 +377,7 @@ public partial class RoastLogPage : ContentPage
                 { "NewRoast", "true" }  // Add parameter to signal this is a new roast
             };
 
-            await Shell.Current.GoToAsync("//RoastPage", navigationParameter);
+            await _navigationService.GoToAsync(Routes.Roast, navigationParameter);
         }
         catch (Exception ex)
         {
@@ -386,19 +388,13 @@ public partial class RoastLogPage : ContentPage
     // We'll keep OnBackButtonPressed for hardware back button support
     protected override bool OnBackButtonPressed()
     {
-        // Use the same logic as before but in a synchronous way
         try
         {
-            // Navigate back to MainPage using direct Shell.CurrentItem assignment
-            // This works better on Android than GoToAsync
-            if (Shell.Current?.Items.Count > 0)
+            MainThread.BeginInvokeOnMainThread(async () =>
             {
-                MainThread.BeginInvokeOnMainThread(() =>
-                {
-                    Shell.Current.CurrentItem = Shell.Current.Items[0]; // MainPage is the first item
-                });
-                return true; // Indicate we've handled the back button
-            }
+                await _navigationService.GoToAsync(Routes.Main);
+            });
+            return true;
         }
         catch (Exception ex)
         {

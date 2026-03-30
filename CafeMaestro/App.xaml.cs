@@ -1,4 +1,5 @@
-﻿using CafeMaestro.Services;
+﻿using CafeMaestro.Navigation;
+using CafeMaestro.Services;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Maui.ApplicationModel;
 
@@ -8,6 +9,7 @@ public partial class App : Application
 {
     private readonly IAppDataService _appDataService;
     private readonly IPreferencesService _preferencesService;
+    private readonly INavigationService _navigationService;
     private readonly IServiceProvider _serviceProvider;
     private Models.AppData? _appData; // Make nullable to fix constructor error
     private bool _appDataInitialized = false;
@@ -18,11 +20,12 @@ public partial class App : Application
     // The initial page for the primary window
     private readonly Page _initialPage;
 
-    public App(IAppDataService appDataService, IPreferencesService preferencesService, IServiceProvider serviceProvider)
+    public App(IAppDataService appDataService, IPreferencesService preferencesService, INavigationService navigationService, IServiceProvider serviceProvider)
     {
         InitializeComponent();
         _appDataService = appDataService ?? throw new ArgumentNullException(nameof(appDataService));
         _preferencesService = preferencesService ?? throw new ArgumentNullException(nameof(preferencesService));
+        _navigationService = navigationService ?? throw new ArgumentNullException(nameof(navigationService));
         _serviceProvider = serviceProvider ?? throw new ArgumentNullException(nameof(serviceProvider));
         Resources["ServiceProvider"] = _serviceProvider;
 
@@ -190,7 +193,9 @@ public partial class App : Application
             // Execute on main thread because it's a UI operation
             await MainThread.InvokeOnMainThreadAsync(async () =>
             {
-                bool useDefault = await Shell.Current.DisplayAlert(
+                Page currentPage = GetActivePage();
+
+                bool useDefault = await currentPage.DisplayAlert(
                     "Welcome to CafeMaestro!",
                     "Would you like to store your coffee roasting data in the default application folder, or choose a custom location?",
                     "Use Default", "Choose Custom Location");
@@ -224,7 +229,7 @@ public partial class App : Application
                     _firstRunSetupNeeded = false;
 
                     // Notify user
-                    await Shell.Current.DisplayAlert(
+                    await currentPage.DisplayAlert(
                         "Data File Created",
                         $"Your coffee data will be stored at:\n{defaultFilePath}",
                         "OK");
@@ -232,10 +237,10 @@ public partial class App : Application
                 else
                 {
                     // Navigate to settings page to choose location
-                    await Shell.Current.GoToAsync("//settings");
+                    await _navigationService.GoToAsync(Routes.Settings);
 
                     // Display prompt about creating a data file
-                    await Shell.Current.DisplayAlert(
+                    await currentPage.DisplayAlert(
                         "Select Data Location",
                         "Please use the options below to select an existing data file or create a new one in your preferred location.",
                         "OK");
@@ -248,6 +253,17 @@ public partial class App : Application
             // If there's an error, try again on next app launch
             await _preferencesService.ClearAppDataFilePathAsync();
         }
+    }
+
+    private Page GetActivePage()
+    {
+        Page page = Windows.FirstOrDefault()?.Page ?? _initialPage;
+
+        return page switch
+        {
+            NavigationPage navigationPage when navigationPage.CurrentPage != null => navigationPage.CurrentPage,
+            _ => page
+        };
     }
 
     public void SetTheme(string theme)

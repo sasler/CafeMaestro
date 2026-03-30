@@ -2,6 +2,7 @@
 using System.Collections.Generic;
 using System.Diagnostics;
 using CafeMaestro.Models;
+using CafeMaestro.Navigation;
 using CafeMaestro.Services;
 using Microsoft.Maui.Storage;
 
@@ -12,14 +13,16 @@ namespace CafeMaestro
         // Using private field with nullable type to properly handle null case
         private readonly IRoastDataService _roastDataService;
         private readonly ICsvParserService _csvParserService;
+        private readonly INavigationService _navigationService;
         private List<string> _csvHeaders = new List<string>();
         private string _selectedFilePath = string.Empty;
 
-        public RoastImportPage(IRoastDataService roastDataService, ICsvParserService csvParserService)
+        public RoastImportPage(IRoastDataService roastDataService, ICsvParserService csvParserService, INavigationService navigationService)
         {
             InitializeComponent();
             _roastDataService = roastDataService ?? throw new ArgumentNullException(nameof(roastDataService));
             _csvParserService = csvParserService ?? throw new ArgumentNullException(nameof(csvParserService));
+            _navigationService = navigationService ?? throw new ArgumentNullException(nameof(navigationService));
         }
 
         private async void BrowseButton_Clicked(object sender, EventArgs e)
@@ -241,7 +244,7 @@ namespace CafeMaestro
                 }
 
                 // Navigate back to RoastLogPage after import
-                await Shell.Current.GoToAsync("..");
+                await _navigationService.GoBackAsync();
             }
             catch (Exception ex)
             {
@@ -259,7 +262,7 @@ namespace CafeMaestro
 
         private async void CancelButton_Clicked(object sender, EventArgs e)
         {
-            await Shell.Current.GoToAsync("..");
+            await _navigationService.GoBackAsync();
         }
     }
 }

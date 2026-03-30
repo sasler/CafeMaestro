@@ -5,6 +5,7 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Text; // Add System.Text namespace for StringBuilder
 using System.Threading.Tasks;
+using CafeMaestro.Navigation;
 using CafeMaestro.Models;
 using CafeMaestro.Services;
 using System.IO; // Added for File.Exists
@@ -21,6 +22,7 @@ public partial class RoastPage : ContentPage
     private readonly IAppDataService _appDataService;
     private readonly IPreferencesService _preferencesService;
     private readonly IRoastLevelService _roastLevelService;
+    private readonly INavigationService _navigationService;
     private bool isTimerUpdating = false; // Flag to prevent recursive updates
     private string temporaryDigitsBuffer = ""; // Store digits before formatting
 
@@ -103,7 +105,8 @@ public partial class RoastPage : ContentPage
 
     public RoastPage(ITimerService timerServiceValue, IRoastDataService roastDataServiceValue,
                      IBeanDataService beanServiceValue, IAppDataService appDataServiceValue,
-                     IPreferencesService preferencesServiceValue, IRoastLevelService roastLevelServiceValue)
+                     IPreferencesService preferencesServiceValue, IRoastLevelService roastLevelServiceValue,
+                     INavigationService navigationService)
     {
         InitializeComponent();
 
@@ -113,6 +116,7 @@ public partial class RoastPage : ContentPage
         _appDataService = appDataServiceValue ?? throw new ArgumentNullException(nameof(appDataServiceValue));
         _preferencesService = preferencesServiceValue ?? throw new ArgumentNullException(nameof(preferencesServiceValue));
         _roastLevelService = roastLevelServiceValue ?? throw new ArgumentNullException(nameof(roastLevelServiceValue));
+        _navigationService = navigationService ?? throw new ArgumentNullException(nameof(navigationService));
 
         _timerService.TimeUpdated += OnTimeUpdated;
 
@@ -163,7 +167,7 @@ public partial class RoastPage : ContentPage
                 // First run with no saved path - prompt user to set up data file
                 // This shouldn't normally happen as App.xaml.cs should handle first run,
                 // but handle it as a fallback
-                await Shell.Current.GoToAsync(nameof(SettingsPage));
+                await _navigationService.GoToAsync(Routes.Settings);
 
                 await DisplayAlert("Welcome to CafeMaestro",
                     "Please select or create a data file location to store your coffee roasting data.",
@@ -180,29 +184,9 @@ public partial class RoastPage : ContentPage
     {
         base.OnAppearing();
 
-        // Track the current edit ID before potentially making changes that affect state
-        Guid currentEditId = _editRoastId;
-
-        // Check if we're being navigated to from the tab bar
-        bool isFromTabBar = CheckIfNavigationFromTabBar();
-
-        // If we're coming from the tab bar or the force new flag is set, and we're not in edit mode, reset the form
-        if ((isFromTabBar || _isForceNewRoast) && currentEditId == Guid.Empty)
+        if (_isForceNewRoast || !_isEditMode)
         {
             ResetPageForNewRoast();
-            ClearForm(); // Make sure we call ClearForm explicitly
-
-            // Reset First Crack tracking
-            ResetFirstCrackTracking();
-        }
-        else if (!_isEditMode)
-        {
-            // Always reset the form if we're not in edit mode, regardless of the navigation source
-            ResetPageForNewRoast();
-            ClearForm(); // Make sure we call ClearForm explicitly
-
-            // Reset First Crack tracking
-            ResetFirstCrackTracking();
         }
 
         // Reset the force new flag
@@ -213,28 +197,6 @@ public partial class RoastPage : ContentPage
 
         // Run validation on the batch weight (if any)
         ValidateBatchWeight();
-    }
-
-    // Method to determine if navigation is from tab bar
-    private bool CheckIfNavigationFromTabBar()
-    {
-        try
-        {
-            // Get the current shell item
-            if (Shell.Current?.CurrentItem != null)
-            {
-                var currentRoute = Shell.Current.CurrentItem.Route;
-
-                // If the current route is "RoastPage", it's likely coming from the tab bar
-                return currentRoute == "RoastPage";
-            }
-        }
-        catch (Exception ex)
-        {
-            System.Diagnostics.Debug.WriteLine($"Error checking navigation source: {ex.Message}");
-        }
-
-        return false;
     }
 
     // Method to reset the page for a new roast
@@ -459,8 +421,7 @@ public partial class RoastPage : ContentPage
 
     private async void ManageBeans_Clicked(object sender, EventArgs e)
     {
-        // Navigate to the BeanInventoryPage using Shell navigation
-        await Shell.Current.GoToAsync(nameof(BeanInventoryPage));
+        await _navigationService.GoToAsync(Routes.BeanInventory);
     }
 
     private bool ValidateInputs(out double batchWeight, out double finalWeight, out double temperature,
@@ -1131,7 +1092,7 @@ public partial class RoastPage : ContentPage
                     await DisplayAlert("Success", "Roast data updated successfully!", "OK");
 
                     // Navigate back to RoastLogPage when done with edit
-                    await Shell.Current.GoToAsync("//RoastLogPage");
+                    await _navigationService.GoToAsync(Routes.RoastLog);
                 }
                 else
                 {
@@ -1191,8 +1152,7 @@ public partial class RoastPage : ContentPage
 
     private async void ViewLogs_Clicked(object sender, EventArgs e)
     {
-        // Navigate to the RoastLogPage using Shell navigation
-        await Shell.Current.GoToAsync(nameof(RoastLogPage));
+        await _navigationService.GoToAsync(Routes.RoastLog);
     }
 
     private void ClearForm()
@@ -1250,19 +1210,13 @@ public partial class RoastPage : ContentPage
     // Override OnBackButtonPressed to handle Android back button
     protected override bool OnBackButtonPressed()
     {
-        // When back button is pressed, navigate to MainPage
         try
         {
-            // Navigate back to MainPage using direct Shell.CurrentItem assignment
-            // This works better on Android than GoToAsync
-            if (Shell.Current?.Items.Count > 0)
+            MainThread.BeginInvokeOnMainThread(async () =>
             {
-                MainThread.BeginInvokeOnMainThread(() =>
-                {
-                    Shell.Current.CurrentItem = Shell.Current.Items[0]; // MainPage is the first item
-                });
-                return true; // Indicate we've handled the back button
-            }
+                await _navigationService.GoToAsync(Routes.Main);
+            });
+            return true;
         }
         catch (Exception ex)
         {
@@ -1444,9 +1398,9 @@ public partial class RoastPage : ContentPage
     private async void CancelButton_Clicked(object sender, EventArgs e)
     {
         if (_isEditMode)
-            await Shell.Current.GoToAsync("//RoastLogPage");
+            await _navigationService.GoToAsync(Routes.RoastLog);
         else
-            await Shell.Current.GoToAsync("//MainPage");
+            await _navigationService.GoToAsync(Routes.Main);
     }
 
     // Method to prefill form fields from the previous roast data

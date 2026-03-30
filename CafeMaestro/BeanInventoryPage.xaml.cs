@@ -1,6 +1,7 @@
 ﻿using System.Collections.ObjectModel;
 using System.Windows.Input;
 using CafeMaestro.Models;
+using CafeMaestro.Navigation;
 using CafeMaestro.Services;
 namespace CafeMaestro;
 
@@ -26,19 +27,21 @@ public partial class BeanInventoryPage : ContentPage
     private readonly IAppDataService _appDataService;
     private readonly ICsvParserService _csvParserService;
     private readonly IPreferencesService _preferencesService;
+    private readonly INavigationService _navigationService;
     private ObservableCollection<BeanData> _beans;
     public ICommand RefreshCommand { get; private set; }
     public ICommand EditBeanCommand { get; private set; }
     public ICommand DeleteBeanCommand { get; private set; }
     public ICommand ItemTappedCommand { get; private set; }
 
-    public BeanInventoryPage(IBeanDataService beanService, IAppDataService appDataService, ICsvParserService csvParserService, IPreferencesService preferencesService)
+    public BeanInventoryPage(IBeanDataService beanService, IAppDataService appDataService, ICsvParserService csvParserService, IPreferencesService preferencesService, INavigationService navigationService)
     {
         InitializeComponent();
         _beanService = beanService ?? throw new ArgumentNullException(nameof(beanService));
         _appDataService = appDataService ?? throw new ArgumentNullException(nameof(appDataService));
         _csvParserService = csvParserService ?? throw new ArgumentNullException(nameof(csvParserService));
         _preferencesService = preferencesService ?? throw new ArgumentNullException(nameof(preferencesService));
+        _navigationService = navigationService ?? throw new ArgumentNullException(nameof(navigationService));
 
         // IMPORTANT: Ensure we're using the latest path from preferences
         if (Application.Current is App app)
@@ -390,16 +393,11 @@ public partial class BeanInventoryPage : ContentPage
     {
         try
         {
-            // Use Shell.Current.GoToAsync to navigate back to the MainPage
-            await Shell.Current.GoToAsync("//MainPage");
+            await _navigationService.GoToAsync(Routes.Main);
         }
         catch
         {
-            // Fallback to direct Shell navigation if GoToAsync fails
-            if (Shell.Current?.Items.Count > 0)
-            {
-                Shell.Current.CurrentItem = Shell.Current.Items[0]; // MainPage is the first item
-            }
+            await DisplayAlert("Error", "Unable to return to the home page.", "OK");
         }
     }
 
@@ -407,9 +405,7 @@ public partial class BeanInventoryPage : ContentPage
     {
         try
         {
-            // Create BeanImportPage and pass in our services
-            var beanImportPage = new BeanImportPage(_beanService, _appDataService, _csvParserService);
-            await Navigation.PushAsync(beanImportPage);
+            await _navigationService.GoToAsync(Routes.BeanImport);
         }
         catch
         {
@@ -458,19 +454,13 @@ public partial class BeanInventoryPage : ContentPage
     // Override OnBackButtonPressed to handle Android back button
     protected override bool OnBackButtonPressed()
     {
-        // Use the same logic as BackButton_Clicked but in a synchronous way
         try
         {
-            // Navigate back to MainPage using direct Shell.CurrentItem assignment
-            // This works better on Android than GoToAsync
-            if (Shell.Current?.Items.Count > 0)
+            MainThread.BeginInvokeOnMainThread(async () =>
             {
-                MainThread.BeginInvokeOnMainThread(() =>
-                {
-                    Shell.Current.CurrentItem = Shell.Current.Items[0]; // MainPage is the first item
-                });
-                return true; // Indicate we've handled the back button
-            }
+                await _navigationService.GoToAsync(Routes.Main);
+            });
+            return true;
         }
         catch (Exception ex)
         {
