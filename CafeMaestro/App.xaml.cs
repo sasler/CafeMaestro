@@ -340,7 +340,11 @@ public partial class App : Application
     // Pass data to a page when navigating
     public void PassDataToPage(Page page)
     {
-        var navParams = new NavigationParameters(GetAppData());
-        page.BindingContext = navParams;
+        if (page.BindingContext is not null)
+        {
+            return;
+        }
+
+        page.BindingContext = new NavigationParameters(GetAppData());
     }
 }

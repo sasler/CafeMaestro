@@ -36,6 +36,7 @@ public static class MauiProgram
 		builder.Services.AddSingleton<IPreferencesService, PreferencesService>();
 		builder.Services.AddSingleton<IRoastLevelService, RoastLevelService>();
 		builder.Services.AddSingleton<INavigationService, NavigationService>();
+		builder.Services.AddSingleton<IAlertService, AlertService>();
 		builder.Services.AddSingleton<IFileSaver>(FileSaver.Default);
 		builder.Services.AddSingleton<IFolderPicker>(FolderPicker.Default);
 
@@ -43,6 +44,11 @@ public static class MauiProgram
         builder.Services.AddTransient<AppShell>();
         builder.Services.AddTransient<LoadingPage>();
         builder.Services.AddTransient<MainPageViewModel>();
+        builder.Services.AddTransient<SettingsPageViewModel>();
+        builder.Services.AddTransient<RoastPageViewModel>();
+        builder.Services.AddTransient<BeanInventoryPageViewModel>();
+        builder.Services.AddTransient<BeanEditPageViewModel>();
+        builder.Services.AddTransient<RoastLogPageViewModel>();
         builder.Services.AddTransient<MainPage>();
         builder.Services.AddTransient<RoastPage>();
         builder.Services.AddTransient<BeanInventoryPage>();

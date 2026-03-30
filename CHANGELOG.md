@@ -19,6 +19,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Extracted shared CSV parsing into CsvParserService and updated import flows to use DI
 - Centralized Shell navigation through NavigationService and shared route constants
 - Converted MainPage to a CommunityToolkit.Mvvm view model with command bindings and unit tests
+- Converted BeanInventoryPage, BeanEditPage, and RoastLogPage to CommunityToolkit.Mvvm view models with command bindings and unit tests
+- Converted SettingsPage to a CommunityToolkit.Mvvm view model with command bindings, messenger-backed prompts, and unit tests
+- Converted RoastPage to a CommunityToolkit.Mvvm RoastPageViewModel with timer, roast editing, bean selection, save workflows, and unit tests
 
 ## [1.1.0] - 2025-05-07
 ### Added

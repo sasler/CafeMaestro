@@ -1,11 +1,14 @@
 <?xml version="1.0" encoding="utf-8" ?>
 <ContentPage xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
              xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
+             xmlns:models="clr-namespace:CafeMaestro.Models"
+             xmlns:vm="clr-namespace:CafeMaestro.ViewModels"
              x:Class="CafeMaestro.RoastLogPage"
+             x:DataType="vm:RoastLogPageViewModel"
              BackgroundColor="{DynamicResource PageBackgroundColor}"
              Title="Roast Log">
 
-    <Grid RowDefinitions="Auto,*"
+    <Grid RowDefinitions="Auto,Auto,*"
           Padding="0"
           Margin="0">
         <!-- Header Area -->
@@ -36,7 +39,7 @@
                                    VerticalOptions="Center">
                 <ImageButton x:Name="AddRoastButton"
                              Source="add_icon.png"
-                             Clicked="AddRoast_Clicked"
+                             Command="{Binding AddRoastCommand}"
                              BackgroundColor="{DynamicResource PrimaryColor}"
                              WidthRequest="50"
                              HeightRequest="50"
@@ -45,7 +48,7 @@
 
                 <ImageButton x:Name="ImportButton"
                              Source="import_icon.png"
-                             Clicked="ImportButton_Clicked"
+                             Command="{Binding NavigateToImportCommand}"
                              BackgroundColor="{DynamicResource TertiaryColor}"
                              WidthRequest="50"
                              HeightRequest="50"
@@ -60,7 +63,7 @@
                         StrokeThickness="0"
                         StrokeShape="RoundRectangle 25">
                     <Label x:Name="RecordCountLabel"
-                           Text="0"
+                           Text="{Binding RecordCount}"
                            FontSize="20"
                            FontAttributes="Bold"
                            TextColor="White"
@@ -70,13 +73,20 @@
             </HorizontalStackLayout>
         </Grid>
 
+        <SearchBar Grid.Row="1"
+                   Margin="20,0,20,0"
+                   Placeholder="Search roast logs"
+                   Text="{Binding SearchText}"
+                   SearchCommand="{Binding SearchCommand}" />
+
         <!-- Content Area with CollectionView -->
         <RefreshView x:Name="RoastLogRefreshView"
-                     Grid.Row="1"
-                     IsRefreshing="False"
+                     Grid.Row="2"
+                     IsRefreshing="{Binding IsLoading}"
                      Command="{Binding RefreshCommand}">
             <!-- Direct child of RefreshView should be CollectionView -->
             <CollectionView x:Name="RoastLogCollection"
+                            ItemsSource="{Binding Roasts}"
                             SelectionMode="None"
                             Margin="20,10,20,10">
                 <CollectionView.ItemsLayout>
@@ -95,13 +105,13 @@
                     </StackLayout>
                 </CollectionView.EmptyView>
                 <CollectionView.ItemTemplate>
-                    <DataTemplate>
+                    <DataTemplate x:DataType="models:RoastData">
                         <SwipeView>
                             <SwipeView.LeftItems>
                                 <SwipeItems>
                                     <SwipeItem IconImageSource="delete_icon.png"
                                                BackgroundColor="{DynamicResource SwipeDeleteColor}"
-                                               Command="{Binding Source={RelativeSource AncestorType={x:Type ContentPage}}, Path=DeleteRoastCommand}"
+                                               Command="{Binding Source={RelativeSource AncestorType={x:Type ContentPage}}, Path=BindingContext.DeleteRoastCommand}"
                                                CommandParameter="{Binding .}"/>
                                 </SwipeItems>
                             </SwipeView.LeftItems>
@@ -109,7 +119,7 @@
                                 <SwipeItems>
                                     <SwipeItem IconImageSource="edit_icon.png"
                                                BackgroundColor="{DynamicResource SwipeEditColor}"
-                                               Command="{Binding Source={RelativeSource AncestorType={x:Type ContentPage}}, Path=EditRoastCommand}"
+                                               Command="{Binding Source={RelativeSource AncestorType={x:Type ContentPage}}, Path=BindingContext.EditRoastCommand}"
                                                CommandParameter="{Binding .}"/>
                                 </SwipeItems>
                             </SwipeView.RightItems>
@@ -128,7 +138,7 @@
                                 </Border.Shadow>
                                 <Border.GestureRecognizers>
                                     <TapGestureRecognizer
-                                        Command="{Binding Source={RelativeSource AncestorType={x:Type ContentPage}}, Path=ItemTappedCommand}"
+                                        Command="{Binding Source={RelativeSource AncestorType={x:Type ContentPage}}, Path=BindingContext.ShowRoastActionsCommand}"
                                         CommandParameter="{Binding .}"/>
                                 </Border.GestureRecognizers>
                                 <Grid RowDefinitions="Auto,Auto,Auto"
