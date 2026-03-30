@@ -87,7 +87,25 @@ public class ModelValidationTests
         var errors = bean.Validate();
 
         errors.Should().Contain(error => error.Contains("Country"));
-        errors.Should().Contain(error => error.Contains("CoffeeName"));
+        errors.Should().Contain(error => error.Contains("offee name"));
+        bean.IsValid.Should().BeFalse();
+    }
+
+    [Fact]
+    public void BeanData_Validate_ReturnsErrors_WhenRequiredNamesAreEmptyOrWhitespace()
+    {
+        var bean = new BeanData
+        {
+            Country = "  ",
+            CoffeeName = "",
+            Quantity = 1,
+            RemainingQuantity = 1
+        };
+
+        var errors = bean.Validate();
+
+        errors.Should().Contain(error => error.Contains("Country"));
+        errors.Should().Contain(error => error.Contains("offee name"));
         bean.IsValid.Should().BeFalse();
     }
 

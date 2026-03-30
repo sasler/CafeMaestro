@@ -6,7 +6,7 @@
     <Nullable>enable</Nullable>
     <IsPackable>false</IsPackable>
     <UseMaui>true</UseMaui>
-    <LangVersion>preview</LangVersion>
+    <LangVersion>latest</LangVersion>
     <OutputType>Library</OutputType>
     <WindowsPackageType>None</WindowsPackageType>
     <EnableDefaultMauiItems>false</EnableDefaultMauiItems>

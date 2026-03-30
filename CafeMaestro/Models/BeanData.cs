@@ -39,22 +39,20 @@ namespace CafeMaestro.Models
 
         public BeanData()
         {
-            // Set remaining quantity to match initial quantity by default
-            RemainingQuantity = Quantity;
         }
 
         public List<string> Validate()
         {
             var errors = new List<string>();
 
-            if (Country is null)
+            if (string.IsNullOrWhiteSpace(Country))
             {
-                errors.Add("Country must not be null.");
+                errors.Add("Country must not be empty or whitespace.");
             }
 
-            if (CoffeeName is null)
+            if (string.IsNullOrWhiteSpace(CoffeeName))
             {
-                errors.Add("CoffeeName must not be null.");
+                errors.Add("Coffee name must not be empty or whitespace.");
             }
 
             if (Quantity < 0)
