@@ -1,4 +1,6 @@
 using System;
+using System.Collections.Generic;
+using System.Linq;
 using System.Text.Json.Serialization;
 
 namespace CafeMaestro.Models
@@ -32,10 +34,50 @@ namespace CafeMaestro.Models
         [JsonIgnore]
         public bool IsOutOfStock => RemainingQuantity <= 0;
 
+        [JsonIgnore]
+        public bool IsValid => !Validate().Any();
+
         public BeanData()
         {
             // Set remaining quantity to match initial quantity by default
             RemainingQuantity = Quantity;
+        }
+
+        public List<string> Validate()
+        {
+            var errors = new List<string>();
+
+            if (Country is null)
+            {
+                errors.Add("Country must not be null.");
+            }
+
+            if (CoffeeName is null)
+            {
+                errors.Add("CoffeeName must not be null.");
+            }
+
+            if (Quantity < 0)
+            {
+                errors.Add("Quantity must be greater than or equal to 0.");
+            }
+
+            if (RemainingQuantity < 0)
+            {
+                errors.Add("RemainingQuantity must be greater than or equal to 0.");
+            }
+
+            if (RemainingQuantity > Quantity)
+            {
+                errors.Add("RemainingQuantity must be less than or equal to Quantity.");
+            }
+
+            if (Price is < 0)
+            {
+                errors.Add("Price must be greater than or equal to 0.");
+            }
+
+            return errors;
         }
 
         // Method to use some of the beans for a roast
