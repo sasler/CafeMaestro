@@ -1,5 +1,6 @@
-﻿using Microsoft.Extensions.Logging;
+using Microsoft.Extensions.Logging;
 using CafeMaestro.Services;
+using CafeMaestro.ViewModels;
 using CommunityToolkit.Maui;
 using CommunityToolkit.Maui.Storage;
 using Microsoft.Maui.Controls;
@@ -34,12 +35,14 @@ public static class MauiProgram
 		builder.Services.AddSingleton<ITimerService, TimerService>();
 		builder.Services.AddSingleton<IPreferencesService, PreferencesService>();
 		builder.Services.AddSingleton<IRoastLevelService, RoastLevelService>();
+		builder.Services.AddSingleton<INavigationService, NavigationService>();
 		builder.Services.AddSingleton<IFileSaver>(FileSaver.Default);
 		builder.Services.AddSingleton<IFolderPicker>(FolderPicker.Default);
 
         // Register Pages for DI - changing to transient to avoid state retention
         builder.Services.AddTransient<AppShell>();
         builder.Services.AddTransient<LoadingPage>();
+        builder.Services.AddTransient<MainPageViewModel>();
         builder.Services.AddTransient<MainPage>();
         builder.Services.AddTransient<RoastPage>();
         builder.Services.AddTransient<BeanInventoryPage>();

@@ -17,6 +17,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Replaced page-level service locator initialization with constructor injection across app pages and shell startup flow
 - Added model-level validation and test coverage for bean, roast, and roast level data
 - Extracted shared CSV parsing into CsvParserService and updated import flows to use DI
+- Centralized Shell navigation through NavigationService and shared route constants
+- Converted MainPage to a CommunityToolkit.Mvvm view model with command bindings and unit tests
 
 ## [1.1.0] - 2025-05-07
 ### Added
