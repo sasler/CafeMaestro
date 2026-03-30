@@ -11,13 +11,15 @@ namespace CafeMaestro
     {
         // Using private field with nullable type to properly handle null case
         private readonly IRoastDataService _roastDataService;
+        private readonly ICsvParserService _csvParserService;
         private List<string> _csvHeaders = new List<string>();
         private string _selectedFilePath = string.Empty;
 
-        public RoastImportPage(IRoastDataService roastDataService)
+        public RoastImportPage(IRoastDataService roastDataService, ICsvParserService csvParserService)
         {
             InitializeComponent();
             _roastDataService = roastDataService ?? throw new ArgumentNullException(nameof(roastDataService));
+            _csvParserService = csvParserService ?? throw new ArgumentNullException(nameof(csvParserService));
         }
 
         private async void BrowseButton_Clicked(object sender, EventArgs e)
@@ -63,8 +65,7 @@ namespace CafeMaestro
                 FilePathEntry.Text = _selectedFilePath;
                 FileStatusLabel.Text = "Reading headers from file...";
 
-                // Read CSV headers - use static method directly
-                _csvHeaders = await RoastDataService.GetCsvHeadersAsync(_selectedFilePath);
+                _csvHeaders = await _csvParserService.GetCsvHeadersAsync(_selectedFilePath);
 
                 if (_csvHeaders.Count == 0)
                 {

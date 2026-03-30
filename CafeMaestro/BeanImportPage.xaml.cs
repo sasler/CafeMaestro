@@ -11,16 +11,18 @@ public partial class BeanImportPage : ContentPage
 {
     private readonly IBeanDataService _beanService;
     private readonly IAppDataService _appDataService;
+    private readonly ICsvParserService _csvParserService;
     private string? _selectedFilePath;
     private List<string> _csvHeaders = new List<string>();
     private Dictionary<string, string> _columnMapping = new Dictionary<string, string>();
     private List<Dictionary<string, string>> _previewData = new List<Dictionary<string, string>>();
 
-    public BeanImportPage(IBeanDataService beanService, IAppDataService appDataService)
+    public BeanImportPage(IBeanDataService beanService, IAppDataService appDataService, ICsvParserService csvParserService)
     {
         InitializeComponent();
         _beanService = beanService ?? throw new ArgumentNullException(nameof(beanService));
         _appDataService = appDataService ?? throw new ArgumentNullException(nameof(appDataService));
+        _csvParserService = csvParserService ?? throw new ArgumentNullException(nameof(csvParserService));
 
         // Initialize pickers
         SetupPickers();
@@ -217,7 +219,7 @@ public partial class BeanImportPage : ContentPage
             if (_previewData.Count == 0 && !string.IsNullOrEmpty(_selectedFilePath))
             {
                 // Load preview data if not already loaded
-                _previewData = await _beanService.ReadCsvContentAsync(_selectedFilePath, 5);
+                _previewData = await _csvParserService.ReadCsvContentAsync(_selectedFilePath, 5);
             }
 
             int totalRows = _previewData.Count;
@@ -314,7 +316,7 @@ public partial class BeanImportPage : ContentPage
                     FilePathEntry.Text = _selectedFilePath;
 
                     // Get CSV headers - use the static method
-                    _csvHeaders = await BeanDataService.GetCsvHeadersAsync(_selectedFilePath);
+                    _csvHeaders = await _csvParserService.GetCsvHeadersAsync(_selectedFilePath);
 
                     if (_csvHeaders.Count == 0)
                     {
@@ -323,7 +325,7 @@ public partial class BeanImportPage : ContentPage
                     }
 
                     // Load preview data
-                    _previewData = await _beanService.ReadCsvContentAsync(_selectedFilePath, 5);
+                    _previewData = await _csvParserService.ReadCsvContentAsync(_selectedFilePath, 5);
 
                     // Update pickers with headers
                     UpdatePickersWithHeaders();

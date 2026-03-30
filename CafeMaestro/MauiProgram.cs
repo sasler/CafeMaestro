@@ -28,6 +28,7 @@ public static class MauiProgram
 
 		// Register services
 		builder.Services.AddSingleton<IAppDataService, AppDataService>();
+		builder.Services.AddSingleton<ICsvParserService, CsvParserService>();
 		builder.Services.AddSingleton<IRoastDataService, RoastDataService>();
 		builder.Services.AddSingleton<IBeanDataService, BeanDataService>();
 		builder.Services.AddSingleton<ITimerService, TimerService>();

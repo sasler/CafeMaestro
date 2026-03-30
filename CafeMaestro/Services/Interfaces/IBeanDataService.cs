@@ -16,6 +16,5 @@ public interface IBeanDataService
     Task<List<BeanData>> SearchBeansAsync(string searchTerm = "");
     Task<List<BeanData>> GetAvailableBeansAsync();
     Task<List<BeanData>> GetSortedAvailableBeansAsync();
-    Task<List<Dictionary<string, string>>> ReadCsvContentAsync(string filePath, int maxRows = 100);
     Task<(int Success, int Failed, List<string> Errors)> ImportBeansFromCsvAsync(string filePath, Dictionary<string, string> columnMapping);
 }

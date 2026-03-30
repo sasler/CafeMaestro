@@ -12,6 +12,7 @@ namespace CafeMaestro.Services
     public class RoastDataService : IRoastDataService
     {
         private readonly IAppDataService _appDataService;
+        private readonly ICsvParserService _csvParserService;
         private readonly IRoastLevelService _roastLevelService;
         private readonly JsonSerializerOptions _jsonOptions;
         private readonly SemaphoreSlim _initLock = new SemaphoreSlim(1, 1);
@@ -24,9 +25,10 @@ namespace CafeMaestro.Services
             get => _appDataService.DataFilePath;
         }
 
-        public RoastDataService(IAppDataService appDataService, IRoastLevelService roastLevelService)
+        public RoastDataService(IAppDataService appDataService, ICsvParserService csvParserService, IRoastLevelService roastLevelService)
         {
             _appDataService = appDataService;
+            _csvParserService = csvParserService;
             _roastLevelService = roastLevelService;
             _currentDataFilePath = _appDataService.DataFilePath;
 
@@ -198,183 +200,6 @@ namespace CafeMaestro.Services
             }
         }
 
-        // Static method to get headers from CSV file
-        public static async Task<List<string>> GetCsvHeadersAsync(string filePath)
-        {
-            try
-            {
-                if (string.IsNullOrEmpty(filePath) || !File.Exists(filePath))
-                {
-                    throw new FileNotFoundException("CSV file not found", filePath);
-                }
-
-                // Make this truly async by using Task.Run for file I/O
-                return await Task.Run(() =>
-                {
-                    // Read all lines to find the actual header line
-                    var lines = File.ReadAllLines(filePath);
-
-                    // Skip any comment lines that might appear at the beginning
-                    int headerLineIndex = 0;
-                    while (headerLineIndex < lines.Length &&
-                           (string.IsNullOrWhiteSpace(lines[headerLineIndex]) ||
-                            lines[headerLineIndex].TrimStart().StartsWith("//")))
-                    {
-                        headerLineIndex++;
-                    }
-
-                    // Check if we found a valid header line
-                    if (headerLineIndex >= lines.Length)
-                    {
-                        return new List<string>();
-                    }
-
-                    // Get the header line
-                    string headerLine = lines[headerLineIndex];
-
-                    // Split by comma and return headers
-                    var headers = headerLine.Split(',').Select(h => h.Trim()).ToList();
-
-                    return headers;
-                });
-            }
-            catch (Exception ex)
-            {
-                System.Diagnostics.Debug.WriteLine($"Error reading CSV headers: {ex.Message}");
-                throw;
-            }
-        }
-
-        // Read CSV content with proper comment handling
-        public async Task<List<Dictionary<string, string>>> ReadCsvContentAsync(string filePath, int maxRows = 100)
-        {
-            try
-            {
-                if (string.IsNullOrEmpty(filePath) || !File.Exists(filePath))
-                {
-                    throw new FileNotFoundException("CSV file not found", filePath);
-                }
-
-                // Make this truly async by using Task.Run for file I/O
-                return await Task.Run(() =>
-                {
-                    var result = new List<Dictionary<string, string>>();
-                    string[] lines = File.ReadAllLines(filePath);
-
-
-                    // Skip any comment lines that might appear at the beginning
-                    int headerLineIndex = 0;
-                    while (headerLineIndex < lines.Length &&
-                           (string.IsNullOrWhiteSpace(lines[headerLineIndex]) ||
-                            lines[headerLineIndex].TrimStart().StartsWith("//")))
-                    {
-                        headerLineIndex++;
-                    }
-
-                    // Check if we have enough lines for header + data
-                    if (headerLineIndex >= lines.Length - 1)
-                    {
-                        return result;
-                    }
-
-                    // Get headers from the correct line
-                    string[] headers = lines[headerLineIndex].Split(',').Select(h => h.Trim()).ToArray();
-
-                    // Process data rows (limit to maxRows)
-                    int rowsProcessed = 0;
-                    for (int i = headerLineIndex + 1; i < lines.Length && rowsProcessed < maxRows; i++)
-                    {
-                        string line = lines[i];
-
-                        // Skip empty lines
-                        if (string.IsNullOrWhiteSpace(line))
-                        {
-                            continue;
-                        }
-
-                        // Split CSV line (handling quoted values)
-                        List<string> values = SplitCsvLine(line);
-
-                        // Create a dictionary for this row
-                        var rowData = new Dictionary<string, string>();
-
-                        // Map values to headers
-                        for (int j = 0; j < Math.Min(headers.Length, values.Count); j++)
-                        {
-                            rowData[headers[j]] = values[j];
-                        }
-
-                        result.Add(rowData);
-                        rowsProcessed++;
-                    }
-
-                    return result;
-                });
-            }
-            catch (Exception ex)
-            {
-                System.Diagnostics.Debug.WriteLine($"Error reading CSV content: {ex.Message}");
-                System.Diagnostics.Debug.WriteLine($"Exception details: {ex}");
-                throw;
-            }
-        }
-
-        // Helper method to split CSV line properly handling quoted values
-        private List<string> SplitCsvLine(string line)
-        {
-            var result = new List<string>();
-            bool inQuotes = false;
-            var currentValue = new System.Text.StringBuilder();
-
-            for (int i = 0; i < line.Length; i++)
-            {
-                char c = line[i];
-
-                if (c == '"')
-                {
-                    inQuotes = !inQuotes;
-                    // Also add the quote character to preserve it for proper cleaning later
-                    currentValue.Append(c);
-                }
-                else if (c == ',' && !inQuotes)
-                {
-                    // End of field, add to result
-                    string value = CleanCsvValue(currentValue.ToString());
-                    result.Add(value);
-                    currentValue.Clear();
-                }
-                else
-                {
-                    // Add character to current field
-                    currentValue.Append(c);
-                }
-            }
-
-            // Add the last value
-            string lastValue = CleanCsvValue(currentValue.ToString());
-            result.Add(lastValue);
-
-            return result;
-        }
-
-        // Remove quotes and trim values
-        private string CleanCsvValue(string value)
-        {
-            string original = value;
-            value = value.Trim();
-
-            // Remove surrounding quotes if present
-            if (value.StartsWith("\"") && value.EndsWith("\""))
-            {
-                value = value.Substring(1, value.Length - 2);
-            }
-
-            // Replace any escaped quotes (two double quotes) with a single quote
-            value = value.Replace("\"\"", "\"");
-
-            return value;
-        }
-
         // Import roasts from CSV file
         public async Task<(int Success, int Failed, List<string> Errors)> ImportRoastsFromCsvAsync(
             string filePath,
@@ -390,7 +215,7 @@ namespace CafeMaestro.Services
                 using var notificationSuspension = _appDataService.SuspendNotifications();
 
                 // Read the CSV data
-                var csvData = await ReadCsvContentAsync(filePath, int.MaxValue);
+                var csvData = await _csvParserService.ReadCsvContentAsync(filePath, int.MaxValue);
 
                 var errors = new List<string>();
                 int successCount = 0;
