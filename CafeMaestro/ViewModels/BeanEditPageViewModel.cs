@@ -188,14 +188,14 @@ public partial class BeanEditPageViewModel : ObservableObject, IQueryAttributabl
             return false;
         }
 
-        if (!double.TryParse(Quantity, out double quantity) || quantity <= 0)
+        if (!double.TryParse(Quantity, System.Globalization.NumberStyles.Any, System.Globalization.CultureInfo.InvariantCulture, out double quantity) || quantity <= 0)
         {
             bean = new BeanData();
             validationMessage = "Please enter a valid quantity";
             return false;
         }
 
-        if (!double.TryParse(RemainingQuantity, out double remainingQuantity) || remainingQuantity < 0)
+        if (!double.TryParse(RemainingQuantity, System.Globalization.NumberStyles.Any, System.Globalization.CultureInfo.InvariantCulture, out double remainingQuantity) || remainingQuantity < 0)
         {
             bean = new BeanData();
             validationMessage = "Please enter a valid remaining quantity";
@@ -212,7 +212,7 @@ public partial class BeanEditPageViewModel : ObservableObject, IQueryAttributabl
         decimal? parsedPrice = null;
         if (!string.IsNullOrWhiteSpace(Price))
         {
-            if (!decimal.TryParse(Price, out decimal price) || price < 0)
+            if (!decimal.TryParse(Price, System.Globalization.NumberStyles.Any, System.Globalization.CultureInfo.InvariantCulture, out decimal price) || price < 0)
             {
                 bean = new BeanData();
                 validationMessage = "Please enter a valid price";

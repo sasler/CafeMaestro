@@ -223,6 +223,7 @@ public partial class RoastPageViewModel : ObservableObject, IQueryAttributable
 
     public void OnDisappearing()
     {
+        _timerService.TimeUpdated -= OnTimeUpdated;
         _timerService.Stop();
         ApplyStoppedTimerState(canStop: false);
         _roastToEdit = null;
