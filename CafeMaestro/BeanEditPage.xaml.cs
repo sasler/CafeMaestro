@@ -116,7 +116,7 @@ public partial class BeanEditPage : ContentPage
             _bean.Country = CountryEntry.Text?.Trim() ?? "";
             _bean.Variety = VarietyEntry.Text?.Trim() ?? "";
             _bean.Process = ProcessPicker.SelectedItem?.ToString() ?? "";
-            _bean.PurchaseDate = PurchaseDatePicker.Date;
+            _bean.PurchaseDate = PurchaseDatePicker.Date ?? DateTime.Now;
             _bean.Notes = NotesEditor.Text?.Trim() ?? "";
             _bean.Link = LinkEntry.Text?.Trim() ?? "";
 
