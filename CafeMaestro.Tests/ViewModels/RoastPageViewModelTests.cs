@@ -217,6 +217,138 @@ public class RoastPageViewModelTests
         viewModel.CanMarkFirstCrack.Should().BeFalse();
     }
 
+    [Fact]
+    public async Task SaveCommand_InsufficientBeans_SavesSuccessfully()
+    {
+        BeanData bean = new()
+        {
+            Id = Guid.NewGuid(),
+            Country = "Colombia",
+            CoffeeName = "Supremo",
+            Variety = "Caturra",
+            RemainingQuantity = 0.05,
+            Quantity = 1
+        };
+        RoastData? savedRoast = null;
+
+        RoastPageViewModel viewModel = CreateViewModel(
+            setup: mocks =>
+            {
+                mocks.BeanDataService.Setup(service => service.GetSortedAvailableBeansAsync())
+                    .ReturnsAsync(new List<BeanData> { bean });
+                mocks.BeanDataService.Setup(service => service.UpdateBeanQuantityAsync(bean.Id, 0.1))
+                    .ReturnsAsync(true);
+                mocks.RoastDataService.Setup(service => service.SaveRoastDataAsync(It.IsAny<RoastData>()))
+                    .Callback<RoastData>(roast => savedRoast = roast)
+                    .ReturnsAsync(true);
+                mocks.RoastLevelService.Setup(service => service.GetRoastLevelNameAsync(15))
+                    .ReturnsAsync("City");
+            });
+
+        await viewModel.OnAppearingAsync();
+        viewModel.BatchWeightText = "100";
+        viewModel.FinalWeightText = "85";
+        viewModel.TemperatureText = "210";
+        viewModel.SetManualTimerDisplay("10:30");
+
+        await EventuallyAsync(() => viewModel.LossPercentLabel.Contains("15.0%"));
+        viewModel.IsBatchWeightWarningVisible.Should().BeTrue();
+        viewModel.CanStartTimer.Should().BeTrue();
+
+        await viewModel.SaveCommand.ExecuteAsync(null);
+
+        savedRoast.Should().NotBeNull();
+        savedRoast!.BatchWeight.Should().Be(100);
+        savedRoast.FinalWeight.Should().Be(85);
+    }
+
+    [Fact]
+    public async Task SaveCommand_WithoutFinalWeight_SavesWithZeroFinalWeight()
+    {
+        BeanData bean = CreateBean();
+        RoastData? savedRoast = null;
+
+        RoastPageViewModel viewModel = CreateViewModel(
+            setup: mocks =>
+            {
+                mocks.BeanDataService.Setup(service => service.GetSortedAvailableBeansAsync())
+                    .ReturnsAsync(new List<BeanData> { bean });
+                mocks.BeanDataService.Setup(service => service.UpdateBeanQuantityAsync(bean.Id, 0.1))
+                    .ReturnsAsync(true);
+                mocks.RoastDataService.Setup(service => service.SaveRoastDataAsync(It.IsAny<RoastData>()))
+                    .Callback<RoastData>(roast => savedRoast = roast)
+                    .ReturnsAsync(true);
+            });
+
+        await viewModel.OnAppearingAsync();
+        viewModel.BatchWeightText = "100";
+        viewModel.TemperatureText = "210";
+        viewModel.SetManualTimerDisplay("10:30");
+        // FinalWeightText left empty
+
+        await viewModel.SaveCommand.ExecuteAsync(null);
+
+        savedRoast.Should().NotBeNull();
+        savedRoast!.BatchWeight.Should().Be(100);
+        savedRoast.FinalWeight.Should().Be(0);
+    }
+
+    [Fact]
+    public void RoastData_PendingRoast_ShowsPendingLevel()
+    {
+        RoastData roast = new()
+        {
+            BeanType = "Ethiopia Yirgacheffe",
+            BatchWeight = 100,
+            FinalWeight = 0,
+            Temperature = 210,
+            RoastMinutes = 10,
+            RoastSeconds = 30,
+            RoastLevelName = "Pending"
+        };
+
+        roast.HasFinalWeight.Should().BeFalse();
+        roast.WeightLossPercentage.Should().Be(0);
+        roast.WeightLossDisplay.Should().Be("Pending");
+        roast.Summary.Should().Contain("Pending roast of");
+    }
+
+    [Fact]
+    public void RoastData_CompletedRoast_ShowsNormalLevel()
+    {
+        RoastData roast = new()
+        {
+            BeanType = "Ethiopia Yirgacheffe",
+            BatchWeight = 100,
+            FinalWeight = 85,
+            Temperature = 210,
+            RoastMinutes = 10,
+            RoastSeconds = 30,
+            RoastLevelName = "City"
+        };
+
+        roast.HasFinalWeight.Should().BeTrue();
+        roast.WeightLossPercentage.Should().Be(15);
+        roast.WeightLossDisplay.Should().Be("15.0%");
+        roast.Summary.Should().Contain("City roast of");
+    }
+
+    [Fact]
+    public void RoastData_ZeroFinalWeight_PassesValidation()
+    {
+        RoastData roast = new()
+        {
+            BeanType = "Ethiopia Yirgacheffe",
+            BatchWeight = 100,
+            FinalWeight = 0,
+            Temperature = 210,
+            RoastMinutes = 10,
+            RoastSeconds = 30
+        };
+
+        roast.Validate().Should().BeEmpty();
+    }
+
     private static BeanData CreateBean()
     {
         return new BeanData

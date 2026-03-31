@@ -210,11 +210,92 @@ public class SettingsPageViewModelTests
         viewModel.RoastLevels.Last().Name.Should().Be("Burned");
     }
 
+    [Fact]
+    public async Task ShareDataFileCommand_SharesViaShareService()
+    {
+        var appDataService = CreateAppDataServiceMock();
+        var preferencesService = CreatePreferencesServiceMock();
+        var roastDataService = new Mock<IRoastDataService>();
+        var roastLevelService = CreateRoastLevelServiceMock([]);
+        var shareService = new Mock<IShareService>();
+
+        appDataService.SetupGet(service => service.DataFilePath).Returns(@"C:\data\cafemaestro.json");
+        shareService.Setup(service => service.ShareFileAsync(It.IsAny<string>(), It.IsAny<string>()))
+            .Returns(Task.CompletedTask);
+
+        var viewModel = CreateViewModel(
+            appDataService.Object,
+            preferencesService.Object,
+            roastDataService.Object,
+            roastLevelService.Object,
+            shareService.Object);
+
+        await viewModel.ShareDataFileCommand.ExecuteAsync(null);
+
+        shareService.Verify(
+            service => service.ShareFileAsync(@"C:\data\cafemaestro.json", "Share CafeMaestro Data"),
+            Times.Once);
+    }
+
+    [Fact]
+    public async Task ShareRoastLogCsvCommand_ExportsAndShares()
+    {
+        var appDataService = CreateAppDataServiceMock();
+        var preferencesService = CreatePreferencesServiceMock();
+        var roastDataService = new Mock<IRoastDataService>();
+        var roastLevelService = CreateRoastLevelServiceMock([]);
+        var shareService = new Mock<IShareService>();
+
+        roastDataService.Setup(service => service.ExportRoastLogAsync(It.IsAny<string>()))
+            .Returns(Task.CompletedTask);
+        shareService.Setup(service => service.ShareFileAsync(It.IsAny<string>(), It.IsAny<string>()))
+            .Returns(Task.CompletedTask);
+
+        var viewModel = CreateViewModel(
+            appDataService.Object,
+            preferencesService.Object,
+            roastDataService.Object,
+            roastLevelService.Object,
+            shareService.Object);
+
+        await viewModel.ShareRoastLogCsvCommand.ExecuteAsync(null);
+
+        roastDataService.Verify(
+            service => service.ExportRoastLogAsync(It.Is<string>(path => path.Contains("CafeMaestro_RoastLog_") && path.EndsWith(".csv"))),
+            Times.Once);
+        shareService.Verify(
+            service => service.ShareFileAsync(It.IsAny<string>(), "Share Roast Log"),
+            Times.Once);
+    }
+
+    [Fact]
+    public async Task ShareDataFileCommand_NoFile_ShowsError()
+    {
+        var appDataService = CreateAppDataServiceMock();
+        appDataService.SetupGet(service => service.DataFilePath).Returns(string.Empty);
+        var preferencesService = CreatePreferencesServiceMock();
+        var roastDataService = new Mock<IRoastDataService>();
+        var roastLevelService = CreateRoastLevelServiceMock([]);
+        var shareService = new Mock<IShareService>();
+
+        var viewModel = CreateViewModel(
+            appDataService.Object,
+            preferencesService.Object,
+            roastDataService.Object,
+            roastLevelService.Object,
+            shareService.Object);
+
+        await viewModel.ShareDataFileCommand.ExecuteAsync(null);
+
+        shareService.Verify(service => service.ShareFileAsync(It.IsAny<string>(), It.IsAny<string>()), Times.Never);
+    }
+
     private static SettingsPageViewModel CreateViewModel(
         IAppDataService appDataService,
         IPreferencesService preferencesService,
         IRoastDataService roastDataService,
-        IRoastLevelService roastLevelService)
+        IRoastLevelService roastLevelService,
+        IShareService? shareService = null)
     {
         return new SettingsPageViewModel(
             preferencesService,
@@ -224,6 +305,7 @@ public class SettingsPageViewModelTests
             Mock.Of<IFileSaver>(),
             Mock.Of<IFolderPicker>(),
             Mock.Of<INavigationService>(),
+            shareService ?? Mock.Of<IShareService>(),
             new WeakReferenceMessenger());
     }
 

@@ -121,6 +121,25 @@
                                                                      CornerRadius="25"/>
                                                  </HorizontalStackLayout>
 
+                                                 <HorizontalStackLayout Spacing="10"
+                                                                        HorizontalOptions="Center">
+                                                         <Button Text="Share Data File"
+                                                                 Command="{Binding ShareDataFileCommand}"
+                                                                 BackgroundColor="{DynamicResource SecondaryColor}"
+                                                                 TextColor="{DynamicResource ButtonTextColor}"
+                                                                 HeightRequest="48"
+                                                                 CornerRadius="24"
+                                                                 HorizontalOptions="FillAndExpand"/>
+
+                                                         <Button Text="Share Roast Log"
+                                                                 Command="{Binding ShareRoastLogCsvCommand}"
+                                                                 BackgroundColor="{DynamicResource SecondaryColor}"
+                                                                 TextColor="{DynamicResource ButtonTextColor}"
+                                                                 HeightRequest="48"
+                                                                 CornerRadius="24"
+                                                                 HorizontalOptions="FillAndExpand"/>
+                                                 </HorizontalStackLayout>
+
                                                  <Button Text="Use Default Location"
                                                          Command="{Binding UseDefaultDataFileCommand}"
                                                          BackgroundColor="{DynamicResource AccentColor}"

@@ -167,7 +167,7 @@
                                                            Grid.ColumnSpan="2"
                                                            Spacing="15"
                                                            Margin="0,5,0,0">
-                                        <Label Text="{Binding WeightLossPercentage, StringFormat='Loss: {0:F1}%'}"
+                                        <Label Text="{Binding WeightLossDisplay, StringFormat='Loss: {0}'}"
                                                FontSize="14"
                                                TextColor="{DynamicResource ItemDetailTextColor}"/>
                                         <Label Text="{Binding FormattedTime, StringFormat='Time: {0}'}"

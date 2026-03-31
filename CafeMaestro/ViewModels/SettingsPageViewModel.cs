@@ -22,6 +22,7 @@ public partial class SettingsPageViewModel : ObservableObject
     private readonly IFileSaver _fileSaver;
     private readonly IFolderPicker _folderPicker;
     private readonly INavigationService _navigationService;
+    private readonly IShareService _shareService;
     private readonly IMessenger _messenger;
     private bool _isLoadingThemeSettings;
     private bool _isThemeInitialized;
@@ -37,7 +38,8 @@ public partial class SettingsPageViewModel : ObservableObject
         IRoastLevelService roastLevelService,
         IFileSaver fileSaver,
         IFolderPicker folderPicker,
-        INavigationService navigationService)
+        INavigationService navigationService,
+        IShareService shareService)
         : this(
             preferencesService,
             appDataService,
@@ -46,6 +48,7 @@ public partial class SettingsPageViewModel : ObservableObject
             fileSaver,
             folderPicker,
             navigationService,
+            shareService,
             WeakReferenceMessenger.Default)
     {
     }
@@ -58,6 +61,7 @@ public partial class SettingsPageViewModel : ObservableObject
         IFileSaver fileSaver,
         IFolderPicker folderPicker,
         INavigationService navigationService,
+        IShareService shareService,
         IMessenger messenger)
     {
         _preferencesService = preferencesService ?? throw new ArgumentNullException(nameof(preferencesService));
@@ -67,6 +71,7 @@ public partial class SettingsPageViewModel : ObservableObject
         _fileSaver = fileSaver ?? throw new ArgumentNullException(nameof(fileSaver));
         _folderPicker = folderPicker ?? throw new ArgumentNullException(nameof(folderPicker));
         _navigationService = navigationService ?? throw new ArgumentNullException(nameof(navigationService));
+        _shareService = shareService ?? throw new ArgumentNullException(nameof(shareService));
         _messenger = messenger ?? throw new ArgumentNullException(nameof(messenger));
     }
 
@@ -323,6 +328,48 @@ public partial class SettingsPageViewModel : ObservableObject
         {
             Debug.WriteLine($"Error exporting roast log: {ex.Message}");
             SendAlert("Error", $"Failed to export data: {ex.Message}");
+        }
+    }
+
+    [RelayCommand]
+    public async Task ShareDataFileAsync()
+    {
+        try
+        {
+            string filePath = _appDataService.DataFilePath;
+            if (string.IsNullOrWhiteSpace(filePath))
+            {
+                SendAlert("Error", "No data file found to share. Please create or select a data file first.");
+                return;
+            }
+
+            await _shareService.ShareFileAsync(filePath, "Share CafeMaestro Data");
+        }
+        catch (Exception ex)
+        {
+            Debug.WriteLine($"Error sharing data file: {ex.Message}");
+            SendAlert("Error", $"Failed to share data file: {ex.Message}");
+        }
+    }
+
+    [RelayCommand]
+    public async Task ShareRoastLogCsvAsync()
+    {
+        try
+        {
+            string tempDir = Path.Combine(Path.GetTempPath(), "CafeMaestro");
+            Directory.CreateDirectory(tempDir);
+
+            string fileName = $"CafeMaestro_RoastLog_{DateTime.Now:yyyy-MM-dd}.csv";
+            string tempFilePath = Path.Combine(tempDir, fileName);
+
+            await _roastDataService.ExportRoastLogAsync(tempFilePath);
+            await _shareService.ShareFileAsync(tempFilePath, "Share Roast Log");
+        }
+        catch (Exception ex)
+        {
+            Debug.WriteLine($"Error sharing roast log: {ex.Message}");
+            SendAlert("Error", $"Failed to share roast log: {ex.Message}");
         }
     }
 
