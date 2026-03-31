@@ -1,5 +1,3 @@
-using System.Diagnostics;
-
 namespace CafeMaestro.Services;
 
 public class ShareService : IShareService

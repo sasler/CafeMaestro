@@ -196,7 +196,7 @@ namespace CafeMaestro.Services
                                   $"{roast.Temperature}," +
                                   $"{roast.BatchWeight}," +
                                   $"{roast.FinalWeight}," +
-                                  $"{(roast.HasFinalWeight ? roast.WeightLossPercentage.ToString("F1") : "")}," +
+                                  $"{(roast.HasFinalWeight ? roast.WeightLossPercentage.ToString("F1") : "Pending")}," +
                                   $"{roast.FormattedTime}," +
                                   $"{roast.RoastLevelName}," +
                                   $"\"{roast.Notes}\"");

@@ -621,7 +621,7 @@ public partial class RoastPageViewModel : ObservableObject, IQueryAttributable
         double finalWeight = 0;
         if (!string.IsNullOrWhiteSpace(FinalWeightText))
         {
-            if (!double.TryParse(FinalWeightText, out finalWeight) || finalWeight < 0)
+            if (!double.TryParse(FinalWeightText, out finalWeight) || finalWeight <= 0)
             {
                 await _alertService.ShowAlertAsync("Validation Error", "Please enter a valid final weight in grams.", "OK");
                 return null;
