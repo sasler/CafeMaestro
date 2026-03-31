@@ -568,7 +568,7 @@ public partial class RoastPageViewModel : ObservableObject, IQueryAttributable
             {
                 BatchWeightWarningText = $"Insufficient beans available! (only {availableBeans:F1} g remaining)";
                 IsBatchWeightWarningVisible = true;
-                CanStartTimer = false;
+                CanStartTimer = !IsTimerRunning;
                 return;
             }
         }
@@ -618,26 +618,20 @@ public partial class RoastPageViewModel : ObservableObject, IQueryAttributable
             return null;
         }
 
-        double batchWeightKg = batchWeight / 1000.0;
-        if (batchWeightKg > SelectedBean.RemainingQuantity)
+        double finalWeight = 0;
+        if (!string.IsNullOrWhiteSpace(FinalWeightText))
         {
-            await _alertService.ShowAlertAsync(
-                "Validation Error",
-                $"Not enough beans available. You have {SelectedBean.RemainingQuantity:F2}kg remaining, but need {batchWeightKg:F2}kg.",
-                "OK");
-            return null;
-        }
+            if (!double.TryParse(FinalWeightText, out finalWeight) || finalWeight <= 0)
+            {
+                await _alertService.ShowAlertAsync("Validation Error", "Please enter a valid final weight in grams.", "OK");
+                return null;
+            }
 
-        if (!double.TryParse(FinalWeightText, out double finalWeight) || finalWeight <= 0)
-        {
-            await _alertService.ShowAlertAsync("Validation Error", "Please enter a valid final weight in grams.", "OK");
-            return null;
-        }
-
-        if (finalWeight > batchWeight)
-        {
-            await _alertService.ShowAlertAsync("Validation Error", "Final weight cannot be greater than batch weight.", "OK");
-            return null;
+            if (finalWeight > batchWeight)
+            {
+                await _alertService.ShowAlertAsync("Validation Error", "Final weight cannot be greater than batch weight.", "OK");
+                return null;
+            }
         }
 
         if (!double.TryParse(TemperatureText, out double temperature) || temperature <= 0)
@@ -704,7 +698,9 @@ public partial class RoastPageViewModel : ObservableObject, IQueryAttributable
 
             TimerDisplay = FormatTime(_roastToEdit.RoastMinutes, _roastToEdit.RoastSeconds);
             BatchWeightText = _roastToEdit.BatchWeight.ToString("F1");
-            FinalWeightText = _roastToEdit.FinalWeight.ToString("F1");
+            FinalWeightText = _roastToEdit.HasFinalWeight
+                ? _roastToEdit.FinalWeight.ToString("F1")
+                : string.Empty;
             TemperatureText = _roastToEdit.Temperature.ToString("F0");
             Notes = _roastToEdit.Notes;
 

@@ -36,6 +36,17 @@ For any feature, bug fix, or change, follow the **implement-feature** skill (`.g
 7. PR creation with gitmoji
 8. GitHub Copilot auto-review polling and follow-up
 
+> **CRITICAL — Atomic Review Cycle:** Steps 7–8 form an atomic unit of work. After receiving the GitHub Copilot auto-review, you **must** complete ALL of the following before yielding, stopping, or marking the task complete:
+>
+> 1. Read and evaluate **every** review comment
+> 2. Fix all valid issues in code
+> 3. Re-run tests and builds to verify fixes
+> 4. Commit and push the fixes
+> 5. Reply to **every single comment** on the PR explaining what you did (or why you disagree)
+> 6. Confirm no unreplied comments remain
+>
+> **Do NOT** stop partway through the review cycle. Replying to some comments but not others is unacceptable — treat the review follow-up as a single indivisible operation.
+
 ---
 
 ## Architecture
@@ -187,6 +198,8 @@ Follow **MVVM** with **dependency injection** throughout.
 - ❌ Subscribe to singleton events without unsubscribing — causes memory leaks
 - ❌ Mix cultures in number formatting — always use `InvariantCulture`
 - ❌ Use .NET 9 or older APIs/patterns — this is .NET 10
+- ❌ Leave review comments unaddressed or unreplied — complete the full review cycle atomically
+- ❌ Mark a task complete with pending review follow-ups — all comments must be replied to first
 
 ---
 

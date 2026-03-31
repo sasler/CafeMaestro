@@ -225,7 +225,7 @@
                        TextColor="{StaticResource SwipeDeleteColor}"
                        FontAttributes="Bold"/>
 
-                <Label Text="Final Weight (g):"
+                <Label Text="Final Weight (g) - Optional:"
                        TextColor="{DynamicResource PrimaryTextColor}"/>
                 <Border Stroke="{DynamicResource EntryBorderColor}"
                         StrokeThickness="1"
@@ -233,7 +233,7 @@
                     <Entry x:Name="FinalWeightEntry"
                            Text="{Binding FinalWeightText, Mode=TwoWay}"
                            Keyboard="Numeric"
-                           Placeholder="Enter final weight"
+                           Placeholder="Enter final weight (or leave empty)"
                            TextColor="{DynamicResource PrimaryTextColor}"
                            BackgroundColor="{DynamicResource EntryBackgroundColor}"
                            PlaceholderColor="{DynamicResource PlaceholderColor}"/>

@@ -99,9 +99,16 @@ namespace CafeMaestro.Services
         {
             try
             {
-                // Before saving, determine and set the roast level name
-                string roastLevelName = await _roastLevelService.GetRoastLevelNameAsync(roastData.WeightLossPercentage);
-                roastData.RoastLevelName = roastLevelName;
+                // Before saving, determine and set the roast level name (only if final weight is known)
+                if (roastData.HasFinalWeight)
+                {
+                    string roastLevelName = await _roastLevelService.GetRoastLevelNameAsync(roastData.WeightLossPercentage);
+                    roastData.RoastLevelName = roastLevelName;
+                }
+                else
+                {
+                    roastData.RoastLevelName = "Pending";
+                }
 
                 // Load full app data
                 var appData = await _appDataService.LoadAppDataAsync();
@@ -133,10 +140,15 @@ namespace CafeMaestro.Services
 
                 foreach (var roastLog in appData.RoastLogs)
                 {
-                    if (string.IsNullOrEmpty(roastLog.RoastLevelName))
+                    if (string.IsNullOrEmpty(roastLog.RoastLevelName) && roastLog.HasFinalWeight)
                     {
                         // Use the RoastLevelService to get the correct level name
                         roastLog.RoastLevelName = await _roastLevelService.GetRoastLevelNameAsync(roastLog.WeightLossPercentage);
+                        needsUpdate = true;
+                    }
+                    else if (string.IsNullOrEmpty(roastLog.RoastLevelName) && !roastLog.HasFinalWeight)
+                    {
+                        roastLog.RoastLevelName = "Pending";
                         needsUpdate = true;
                     }
                 }
@@ -184,7 +196,7 @@ namespace CafeMaestro.Services
                                   $"{roast.Temperature}," +
                                   $"{roast.BatchWeight}," +
                                   $"{roast.FinalWeight}," +
-                                  $"{roast.WeightLossPercentage}," +
+                                  $"{(roast.HasFinalWeight ? roast.WeightLossPercentage.ToString("F1") : "Pending")}," +
                                   $"{roast.FormattedTime}," +
                                   $"{roast.RoastLevelName}," +
                                   $"\"{roast.Notes}\"");
@@ -634,7 +646,14 @@ namespace CafeMaestro.Services
             try
             {
                 // Before saving, determine and set the roast level name
-                updatedRoast.RoastLevelName = await _roastLevelService.GetRoastLevelNameAsync(updatedRoast.WeightLossPercentage);
+                if (updatedRoast.HasFinalWeight)
+                {
+                    updatedRoast.RoastLevelName = await _roastLevelService.GetRoastLevelNameAsync(updatedRoast.WeightLossPercentage);
+                }
+                else
+                {
+                    updatedRoast.RoastLevelName = "Pending";
+                }
 
                 // Load full app data
                 var appData = await _appDataService.LoadAppDataAsync();

@@ -23,7 +23,17 @@ namespace CafeMaestro.Models
         public int? FirstCrackSeconds { get; set; } = null;
 
         [JsonIgnore]
-        public double WeightLossPercentage => Math.Round(((BatchWeight - FinalWeight) / BatchWeight) * 100, 2);
+        public bool HasFinalWeight => FinalWeight > 0;
+
+        [JsonIgnore]
+        public double WeightLossPercentage => HasFinalWeight && BatchWeight > 0
+            ? Math.Round(((BatchWeight - FinalWeight) / BatchWeight) * 100, 2)
+            : 0;
+
+        [JsonIgnore]
+        public string WeightLossDisplay => HasFinalWeight
+            ? $"{WeightLossPercentage:F1}%"
+            : "Pending";
 
         [JsonIgnore]
         public string FormattedTime => $"{RoastMinutes:D2}:{RoastSeconds:D2}";
@@ -42,7 +52,9 @@ namespace CafeMaestro.Models
             : 0;
 
         [JsonIgnore]
-        public string Summary => $"{RoastLevelName} roast of {BeanType} at {Temperature}°C for {FormattedTime}";
+        public string Summary => HasFinalWeight
+            ? $"{RoastLevelName} roast of {BeanType} at {Temperature}°C for {FormattedTime}"
+            : $"Pending roast of {BeanType} at {Temperature}°C for {FormattedTime}";
 
         [JsonIgnore]
         public bool IsValid => !Validate().Any();

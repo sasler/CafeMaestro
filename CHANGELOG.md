@@ -7,6 +7,24 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased] - Complete Architecture Refactor
 ### Added
+- Share functionality: share data file (JSON) and roast log (CSV) via OS share sheet
+- IShareService interface and ShareService implementation using MAUI Share API
+- Share Data File and Share Roast Log buttons on Settings page
+- Support for saving roasts without final weight (optional field for batch roasting workflows)
+- "Pending" roast level display for roasts awaiting final weight entry
+- HasFinalWeight and WeightLossDisplay computed properties on RoastData model
+- 8 new unit tests covering share commands and flexible roast saving
+
+### Changed
+- Bean quantity validation is now warning-only (no longer blocks timer start or saving)
+- Final weight field is now optional on the Roast page
+- Roast log displays "Pending" for weight loss and roast level when final weight is not yet entered
+- CSV export shows "Pending" for incomplete roasts instead of "0.0%"
+- RoastDataService handles Pending roast level for roasts without final weight
+- Version bumped to 1.2.0
+
+## [1.1.0] - Complete Architecture Refactor
+### Added
 - GitHub Actions CI workflow for automated build and test on PRs
 - Comprehensive README.md with architecture docs, build commands, and CI badge
 - Rewritten copilot-instructions.md reflecting new MVVM architecture and conventions

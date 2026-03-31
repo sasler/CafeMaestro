@@ -235,6 +235,8 @@ After creating the PR, GitHub Copilot will automatically review it. This can tak
 
 ## Step 13 — Address Copilot Review Comments
 
+> **This step is ATOMIC.** Do not yield, stop, or mark the task complete until ALL comments have been both addressed in code AND replied to on the PR. Partial completion (e.g., replying to some comments but not others) is NOT acceptable.
+
 For each comment/suggestion from the GitHub Copilot review:
 
 1. **Read carefully** — understand what the reviewer is flagging
@@ -244,8 +246,9 @@ For each comment/suggestion from the GitHub Copilot review:
 
 After implementing changes:
 - Run all tests and builds again (Step 5)
-- Reply to **each** inline comment explaining what you did to address it
+- Reply to **every single** inline comment explaining what you did to address it
 - If you disagreed, reply with your reasoning
+- **Verify** that no unreplied comments remain before proceeding
 
 ---
 

@@ -37,6 +37,7 @@ public static class MauiProgram
 		builder.Services.AddSingleton<IRoastLevelService, RoastLevelService>();
 		builder.Services.AddSingleton<INavigationService, NavigationService>();
 		builder.Services.AddSingleton<IAlertService, AlertService>();
+		builder.Services.AddSingleton<IShareService, ShareService>();
 		builder.Services.AddSingleton<IFileSaver>(FileSaver.Default);
 		builder.Services.AddSingleton<IFolderPicker>(FolderPicker.Default);
 
