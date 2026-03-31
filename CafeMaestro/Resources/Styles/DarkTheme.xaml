@@ -12,11 +12,15 @@
 
     <!-- Text colors -->
     <Color x:Key="PrimaryTextColor">White</Color>
+    <Color x:Key="TextColor">White</Color>
     <Color x:Key="SecondaryTextColor">#e0e0e0</Color>
     <Color x:Key="TertiaryTextColor">#c0c0c0</Color>
     <Color x:Key="PlaceholderColor">#909090</Color>
     <Color x:Key="InverseTextColor">#202020</Color>
     <Color x:Key="ButtonTextColor">White</Color>
+    <Color x:Key="CardBackgroundColor">#2D2D2D</Color>
+    <Color x:Key="ItemTimestampTextColor">#BBBBBB</Color>
+    <Color x:Key="ItemDetailTextColor">#AAAAAA</Color>
     <Color x:Key="TimerInstructionColor">#a0a0a0</Color>
     
     <!-- Input control colors -->
@@ -36,6 +40,13 @@
     
     <!-- Misc -->
     <Color x:Key="TransparentColor">Transparent</Color>
+    <Color x:Key="CardShadowColor">#20000000</Color>
+    <Color x:Key="ItemCardHoverBackgroundColor">#383838</Color>
+    <Color x:Key="TimerRunningIndicatorColor">Red</Color>
+    <Color x:Key="PreviousRoastBackgroundColor">#303030</Color>
+    <Color x:Key="PreviousRoastBorderColor">#444444</Color>
     <Color x:Key="ErrorColor">#FF6B6B</Color>
     <Color x:Key="SuccessColor">#00E676</Color>
+    <Color x:Key="HighlightColor">#5A4A12</Color>
+    <Color x:Key="ModalOverlayColor">#88000000</Color>
 </ResourceDictionary>

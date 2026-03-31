@@ -1,11 +1,14 @@
 <?xml version="1.0" encoding="utf-8" ?>
 <ContentPage xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
              xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
+             xmlns:models="clr-namespace:CafeMaestro.Models"
+             xmlns:vm="clr-namespace:CafeMaestro.ViewModels"
              x:Class="CafeMaestro.BeanInventoryPage"
+             x:DataType="vm:BeanInventoryPageViewModel"
              BackgroundColor="{DynamicResource PageBackgroundColor}"
              Title="Bean Inventory">
 
-    <Grid RowDefinitions="Auto,*"
+    <Grid RowDefinitions="Auto,Auto,*"
           Padding="0"
           Margin="0">
         <!-- Header Area -->
@@ -36,7 +39,7 @@
                                    VerticalOptions="Center">
                 <ImageButton x:Name="AddBeanButton"
                              Source="add_icon.png"
-                             Clicked="AddBean_Clicked"
+                             Command="{Binding AddBeanCommand}"
                              BackgroundColor="{DynamicResource PrimaryColor}"
                              WidthRequest="50"
                              HeightRequest="50"
@@ -45,7 +48,7 @@
 
                 <ImageButton x:Name="ImportButton"
                              Source="import_icon.png"
-                             Clicked="ImportButton_Clicked"
+                             Command="{Binding NavigateToImportCommand}"
                              BackgroundColor="{DynamicResource TertiaryColor}"
                              WidthRequest="50"
                              HeightRequest="50"
@@ -59,23 +62,30 @@
                         StrokeThickness="0"
                         StrokeShape="RoundRectangle 25">
                     <Label x:Name="RecordCountLabel"
-                           Text="0"
+                           Text="{Binding RecordCount}"
                            FontSize="20"
                            FontAttributes="Bold"
-                           TextColor="White"
+                           TextColor="{DynamicResource ButtonTextColor}"
                            HorizontalOptions="Center"
                            VerticalOptions="Center"/>
                 </Border>
             </HorizontalStackLayout>
         </Grid>
 
+        <SearchBar Grid.Row="1"
+                   Margin="20,0,20,0"
+                   Placeholder="Search beans"
+                   Text="{Binding SearchText}"
+                   SearchCommand="{Binding SearchCommand}" />
+
         <!-- Content Area with CollectionView -->
         <RefreshView x:Name="BeansRefreshView"
-                     Grid.Row="1"
-                     IsRefreshing="False"
+                     Grid.Row="2"
+                     IsRefreshing="{Binding IsLoading}"
                      Command="{Binding RefreshCommand}">
             <!-- Direct child of RefreshView should be CollectionView -->
             <CollectionView x:Name="BeansCollection"
+                            ItemsSource="{Binding Beans}"
                             SelectionMode="None"
                             Margin="20,10,20,10">
                 <CollectionView.ItemsLayout>
@@ -94,13 +104,13 @@
                     </StackLayout>
                 </CollectionView.EmptyView>
                 <CollectionView.ItemTemplate>
-                    <DataTemplate>
+                    <DataTemplate x:DataType="models:BeanData">
                         <SwipeView>
                             <SwipeView.LeftItems>
                                 <SwipeItems>
                                     <SwipeItem IconImageSource="delete_icon.png"
                                                BackgroundColor="{DynamicResource SwipeDeleteColor}"
-                                               Command="{Binding Source={RelativeSource AncestorType={x:Type ContentPage}}, Path=DeleteBeanCommand}"
+                                               Command="{Binding Source={RelativeSource AncestorType={x:Type ContentPage}}, Path=BindingContext.DeleteBeanCommand}"
                                                CommandParameter="{Binding .}"/>
                                 </SwipeItems>
                             </SwipeView.LeftItems>
@@ -108,7 +118,7 @@
                                 <SwipeItems>
                                     <SwipeItem IconImageSource="edit_icon.png"
                                                BackgroundColor="{DynamicResource SwipeEditColor}"
-                                               Command="{Binding Source={RelativeSource AncestorType={x:Type ContentPage}}, Path=EditBeanCommand}"
+                                               Command="{Binding Source={RelativeSource AncestorType={x:Type ContentPage}}, Path=BindingContext.EditBeanCommand}"
                                                CommandParameter="{Binding .}"/>
                                 </SwipeItems>
                             </SwipeView.RightItems>
@@ -120,14 +130,14 @@
                                     BackgroundColor="{DynamicResource NeutralColor}"
                                     Style="{StaticResource ItemCardStyle}">
                                 <Border.Shadow>
-                                    <Shadow Brush="#20000000"
+                                    <Shadow Brush="{DynamicResource CardShadowColor}"
                                             Offset="0,3"
                                             Radius="6"
                                             Opacity="0.2"/>
                                 </Border.Shadow>
                                 <Border.GestureRecognizers>
                                     <TapGestureRecognizer
-                                        Command="{Binding Source={RelativeSource AncestorType={x:Type ContentPage}}, Path=ItemTappedCommand}"
+                                        Command="{Binding Source={RelativeSource AncestorType={x:Type ContentPage}}, Path=BindingContext.ShowBeanActionsCommand}"
                                         CommandParameter="{Binding .}"/>
                                 </Border.GestureRecognizers>
                                 <Grid RowDefinitions="Auto,Auto,Auto"
@@ -142,7 +152,7 @@
                                            Grid.Column="1"
                                            Text="{Binding PurchaseDate, StringFormat='{0:MM/dd/yyyy}'}"
                                            FontSize="14"
-                                           TextColor="{AppThemeBinding Light=Gray, Dark=#BBBBBB}"/>
+                                           TextColor="{DynamicResource ItemTimestampTextColor}"/>
 
                                     <Label Grid.Row="1"
                                            Grid.Column="0"
@@ -158,10 +168,10 @@
                                                            Margin="0,5,0,0">
                                         <Label Text="{Binding QuantityDisplay}"
                                                FontSize="14"
-                                               TextColor="{AppThemeBinding Light=#808080, Dark=#AAAAAA}"/>
+                                               TextColor="{DynamicResource ItemDetailTextColor}"/>
                                         <Label Text="{Binding PriceDisplay}"
                                                FontSize="14"
-                                               TextColor="{AppThemeBinding Light=#808080, Dark=#AAAAAA}"/>
+                                               TextColor="{DynamicResource ItemDetailTextColor}"/>
                                     </HorizontalStackLayout>
                                 </Grid>
                             </Border>

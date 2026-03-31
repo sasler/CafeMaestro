@@ -1,28 +1,28 @@
 <?xml version="1.0" encoding="utf-8" ?>
 <ContentPage xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
              xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
+             xmlns:viewModels="clr-namespace:CafeMaestro.ViewModels"
              x:Class="CafeMaestro.BeanImportPage"
+             x:Name="PageRoot"
+             x:DataType="viewModels:BeanImportPageViewModel"
              BackgroundColor="{DynamicResource PageBackgroundColor}"
              Title="Import Beans">
     <ScrollView Padding="0"
-            Margin="0">
-        <Grid RowDefinitions="Auto, *"
-                Padding="0"
                 Margin="0">
-            <!-- Header Area - Clean Design -->
+        <Grid RowDefinitions="Auto,*"
+              Padding="0"
+              Margin="0">
             <Grid Grid.Row="0"
                   ColumnDefinitions="Auto,*"
                   Padding="20,20"
                   HeightRequest="100"
-                  HorizontalOptions="Fill"
-                  Margin="0">
-                <!-- Logo and Title within Header -->
+                  HorizontalOptions="Fill">
                 <Image Grid.Column="0"
                        Source="beans_icon.png"
                        HeightRequest="60"
                        WidthRequest="60"
                        Aspect="AspectFit"
-                       VerticalOptions="Center"/>
+                       VerticalOptions="Center" />
                 <Label Grid.Column="1"
                        Text="Import Beans"
                        FontSize="28"
@@ -30,16 +30,13 @@
                        HorizontalOptions="Start"
                        VerticalOptions="Center"
                        TextColor="{DynamicResource PrimaryColor}"
-                       Margin="16,0,0,0"/>
+                       Margin="16,0,0,0" />
             </Grid>
 
-            <!-- Main Content Area -->
             <VerticalStackLayout Grid.Row="1"
                                  Padding="24,0,24,24"
                                  Spacing="15"
                                  BackgroundColor="{DynamicResource PageBackgroundColor}">
-
-                <!-- Step 1: Select CSV File -->
                 <Border Margin="0,12"
                         Padding="16"
                         StrokeShape="RoundRectangle 12"
@@ -50,41 +47,41 @@
                         <Label Text="Step 1: Select CSV File"
                                FontSize="18"
                                FontAttributes="Bold"
-                               TextColor="{DynamicResource PrimaryTextColor}"/>
-                        
+                               TextColor="{DynamicResource PrimaryTextColor}" />
+
                         <Label Text="Select a CSV file with bean data. The first row should contain headers."
                                TextColor="{DynamicResource SecondaryTextColor}"
-                               FontSize="14"/>
-                        
-                        <Grid ColumnDefinitions="*,Auto" RowDefinitions="Auto,Auto">
-                            <Entry x:Name="FilePathEntry" 
-                                   Placeholder="CSV file path" 
+                               FontSize="14" />
+
+                        <Grid ColumnDefinitions="*,Auto"
+                              RowDefinitions="Auto,Auto">
+                            <Entry Placeholder="CSV file path"
                                    IsReadOnly="True"
                                    Grid.Column="0"
-                                   Grid.Row="0"/>
-                            
+                                   Grid.Row="0"
+                                   Text="{Binding FilePath}" />
+
                             <Button Text="Browse"
                                     Grid.Column="1"
                                     Grid.Row="0"
                                     Margin="8,0,0,0"
-                                    Clicked="BrowseButton_Clicked"
+                                    Command="{Binding BrowseCommand}"
                                     BackgroundColor="{DynamicResource PrimaryColor}"
-                                    TextColor="{DynamicResource ButtonTextColor}"/>
+                                    TextColor="{DynamicResource ButtonTextColor}" />
 
-                            <Label x:Name="FileStatusLabel"
-                                   Grid.Column="0"
+                            <Label Grid.Column="0"
                                    Grid.ColumnSpan="2"
                                    Grid.Row="1"
                                    Margin="0,4,0,0"
+                                   Text="{Binding ImportStatus}"
                                    TextColor="{DynamicResource TertiaryTextColor}"
-                                   FontSize="12"/>
+                                   FontSize="12"
+                                   LineBreakMode="WordWrap" />
                         </Grid>
                     </VerticalStackLayout>
                 </Border>
 
-                <!-- Step 2: Map Fields (Only visible after file is selected) -->
-                <Border x:Name="MapFieldsSection"
-                        IsVisible="False"
+                <Border IsVisible="{Binding HasHeaders}"
                         Margin="0,12"
                         Padding="16"
                         StrokeShape="RoundRectangle 12"
@@ -92,118 +89,48 @@
                         StrokeThickness="0.5"
                         BackgroundColor="{DynamicResource NeutralColor}">
                     <VerticalStackLayout Spacing="12">
-                        <Label Text="Step 2: Map Fields"
-                               FontSize="18"
-                               FontAttributes="Bold"
-                               TextColor="{DynamicResource PrimaryTextColor}"/>
-                        
-                        <Label Text="Match CSV columns to bean properties."
-                               TextColor="{DynamicResource SecondaryTextColor}"
-                               FontSize="14"/>
-                        
-                        <Grid x:Name="MappingGrid"
-                              ColumnDefinitions="*,*"
-                              RowDefinitions="Auto,Auto,Auto,Auto,Auto,Auto,Auto,Auto,Auto"
-                              ColumnSpacing="12"
-                              RowSpacing="12">
-                            
-                            <!-- Labels in column 0, pickers in column 1 -->
-                            <Label Text="Coffee Name *" 
-                                   Grid.Row="0" 
-                                   Grid.Column="0"
-                                   VerticalOptions="Center"
-                                   TextColor="{DynamicResource PrimaryTextColor}"/>
-                            <Picker x:Name="CoffeeNamePicker" 
-                                    Grid.Row="0" 
-                                    Grid.Column="1"
-                                    Title="Select column"/>
-                            
-                            <Label Text="Country *" 
-                                   Grid.Row="1" 
-                                   Grid.Column="0"
-                                   VerticalOptions="Center"
-                                   TextColor="{DynamicResource PrimaryTextColor}"/>
-                            <Picker x:Name="CountryPicker" 
-                                    Grid.Row="1" 
-                                    Grid.Column="1"
-                                    Title="Select column"/>
-                            
-                            <Label Text="Variety" 
-                                   Grid.Row="2" 
-                                   Grid.Column="0"
-                                   VerticalOptions="Center"
-                                   TextColor="{DynamicResource PrimaryTextColor}"/>
-                            <Picker x:Name="VarietyPicker" 
-                                    Grid.Row="2" 
-                                    Grid.Column="1"
-                                    Title="Select column"/>
-                            
-                            <Label Text="Process" 
-                                   Grid.Row="3" 
-                                   Grid.Column="0"
-                                   VerticalOptions="Center"
-                                   TextColor="{DynamicResource PrimaryTextColor}"/>
-                            <Picker x:Name="ProcessPicker" 
-                                    Grid.Row="3" 
-                                    Grid.Column="1"
-                                    Title="Select column"/>
-                            
-                            <Label Text="Purchase Date" 
-                                   Grid.Row="4" 
-                                   Grid.Column="0"
-                                   VerticalOptions="Center"
-                                   TextColor="{DynamicResource PrimaryTextColor}"/>
-                            <Picker x:Name="PurchaseDatePicker" 
-                                    Grid.Row="4" 
-                                    Grid.Column="1"
-                                    Title="Select column"/>
-                            
-                            <Label Text="Quantity (kg)" 
-                                   Grid.Row="5" 
-                                   Grid.Column="0"
-                                   VerticalOptions="Center"
-                                   TextColor="{DynamicResource PrimaryTextColor}"/>
-                            <Picker x:Name="QuantityPicker" 
-                                    Grid.Row="5" 
-                                    Grid.Column="1"
-                                    Title="Select column"/>
-                            
-                            <Label Text="Price" 
-                                   Grid.Row="6" 
-                                   Grid.Column="0"
-                                   VerticalOptions="Center"
-                                   TextColor="{DynamicResource PrimaryTextColor}"/>
-                            <Picker x:Name="PricePicker" 
-                                    Grid.Row="6" 
-                                    Grid.Column="1"
-                                    Title="Select column"/>
-                            
-                            <Label Text="Notes" 
-                                   Grid.Row="7" 
-                                   Grid.Column="0"
-                                   VerticalOptions="Center"
-                                   TextColor="{DynamicResource PrimaryTextColor}"/>
-                            <Picker x:Name="NotesPicker" 
-                                    Grid.Row="7" 
-                                    Grid.Column="1"
-                                    Title="Select column"/>
-                            
-                            <Label Text="Link" 
-                                   Grid.Row="8" 
-                                   Grid.Column="0"
-                                   VerticalOptions="Center"
-                                   TextColor="{DynamicResource PrimaryTextColor}"/>
-                            <Picker x:Name="LinkPicker" 
-                                    Grid.Row="8" 
-                                    Grid.Column="1"
-                                    Title="Select column"/>
+                        <Grid ColumnDefinitions="*,Auto">
+                            <VerticalStackLayout Grid.Column="0"
+                                                 Spacing="4">
+                                <Label Text="Step 2: Map Fields"
+                                       FontSize="18"
+                                       FontAttributes="Bold"
+                                       TextColor="{DynamicResource PrimaryTextColor}" />
+                                <Label Text="Match CSV columns to bean properties."
+                                       TextColor="{DynamicResource SecondaryTextColor}"
+                                       FontSize="14" />
+                            </VerticalStackLayout>
+
+                            <Button Grid.Column="1"
+                                    Text="Auto-map"
+                                    Command="{Binding AutoMapColumnsCommand}"
+                                    BackgroundColor="{DynamicResource SecondaryColor}"
+                                    TextColor="{DynamicResource ButtonTextColor}"
+                                    VerticalOptions="Center" />
                         </Grid>
+
+                        <CollectionView ItemsSource="{Binding ColumnMappings}"
+                                        SelectionMode="None">
+                            <CollectionView.ItemTemplate>
+                                <DataTemplate>
+                                    <Grid ColumnDefinitions="*,*"
+                                          ColumnSpacing="12"
+                                          Padding="0,4">
+                                        <Label Text="{Binding DisplayName}"
+                                               VerticalOptions="Center"
+                                               TextColor="{DynamicResource PrimaryTextColor}" />
+                                        <Picker Grid.Column="1"
+                                                Title="Select column"
+                                                ItemsSource="{Binding Source={x:Reference PageRoot}, Path=BindingContext.Headers}"
+                                                SelectedItem="{Binding SelectedHeader, Mode=TwoWay}" />
+                                    </Grid>
+                                </DataTemplate>
+                            </CollectionView.ItemTemplate>
+                        </CollectionView>
                     </VerticalStackLayout>
                 </Border>
 
-                <!-- Step 3: Preview Data (Only visible after mapping) -->
-                <Border x:Name="PreviewSection"
-                        IsVisible="False"
+                <Border IsVisible="{Binding HasSelectedFile}"
                         Margin="0,12"
                         Padding="16"
                         StrokeShape="RoundRectangle 12"
@@ -214,44 +141,64 @@
                         <Label Text="Step 3: Preview"
                                FontSize="18"
                                FontAttributes="Bold"
-                               TextColor="{DynamicResource PrimaryTextColor}"/>
-                        
+                               TextColor="{DynamicResource PrimaryTextColor}" />
+
                         <Label Text="Preview of the data to be imported."
                                TextColor="{DynamicResource SecondaryTextColor}"
-                               FontSize="14"/>
-                        
-                        <Label x:Name="PreviewStatusLabel"
+                               FontSize="14" />
+
+                        <Label Text="{Binding ImportStatus}"
                                TextColor="{DynamicResource TertiaryTextColor}"
-                               FontSize="14"/>
+                               FontSize="14"
+                               LineBreakMode="WordWrap" />
+
+                        <CollectionView ItemsSource="{Binding PreviewData}"
+                                        SelectionMode="None"
+                                        EmptyView="No preview rows available.">
+                            <CollectionView.ItemTemplate>
+                                <DataTemplate>
+                                    <Border Padding="12"
+                                            StrokeShape="RoundRectangle 10"
+                                            Stroke="{DynamicResource BorderColor}"
+                                            StrokeThickness="0.5"
+                                            BackgroundColor="{DynamicResource PageBackgroundColor}">
+                                        <VerticalStackLayout Spacing="4">
+                                            <Label Text="{Binding Title}"
+                                                   FontAttributes="Bold"
+                                                   TextColor="{DynamicResource PrimaryTextColor}" />
+                                            <Label Text="{Binding Detail}"
+                                                   FontSize="12"
+                                                   TextColor="{DynamicResource SecondaryTextColor}"
+                                                   LineBreakMode="WordWrap" />
+                                        </VerticalStackLayout>
+                                    </Border>
+                                </DataTemplate>
+                            </CollectionView.ItemTemplate>
+                        </CollectionView>
                     </VerticalStackLayout>
                 </Border>
 
-                <!-- Activity Indicator for loading operations -->
-                <ActivityIndicator x:Name="LoadingIndicator"
-                                   IsRunning="False"
-                                   IsVisible="False"
+                <ActivityIndicator IsRunning="{Binding IsImporting}"
+                                   IsVisible="{Binding IsImporting}"
                                    HorizontalOptions="Center"
                                    VerticalOptions="Center"
-                                   Margin="0,20,0,20"/>
+                                   Margin="0,20,0,20" />
 
-                <!-- Button Controls -->
                 <HorizontalStackLayout Spacing="10"
                                        Margin="0,10,0,0"
                                        HorizontalOptions="Center">
-                    <Button x:Name="CancelButton"
-                            Text="Cancel"
-                            Clicked="CancelButton_Clicked"
+                    <Button Text="Cancel"
+                            Command="{Binding CancelCommand}"
                             BackgroundColor="{DynamicResource SecondaryColor}"
                             TextColor="{DynamicResource ButtonTextColor}"
-                            WidthRequest="120"/>
-                    
-                    <Button x:Name="ImportButton"
-                            Text="Import Beans"
-                            Clicked="ImportButton_Clicked"
-                            IsEnabled="False"
+                            WidthRequest="120" />
+
+                    <Button Text="Import Beans"
+                            Command="{Binding ImportCommand}"
+                            IsEnabled="{Binding CanImport}"
                             BackgroundColor="{DynamicResource PrimaryColor}"
                             TextColor="{DynamicResource ButtonTextColor}"
-                            WidthRequest="120"/>
+                            WidthRequest="120" />
                 </HorizontalStackLayout>
             </VerticalStackLayout>
         </Grid>

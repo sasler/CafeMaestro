@@ -1,4 +1,6 @@
 using System;
+using System.Collections.Generic;
+using System.Linq;
 using System.Text.Json.Serialization;
 
 namespace CafeMaestro.Models
@@ -41,5 +43,81 @@ namespace CafeMaestro.Models
 
         [JsonIgnore]
         public string Summary => $"{RoastLevelName} roast of {BeanType} at {Temperature}°C for {FormattedTime}";
+
+        [JsonIgnore]
+        public bool IsValid => !Validate().Any();
+
+        public List<string> Validate()
+        {
+            var errors = new List<string>();
+
+            if (string.IsNullOrWhiteSpace(BeanType))
+            {
+                errors.Add("BeanType must not be empty.");
+            }
+
+            if (BatchWeight <= 0)
+            {
+                errors.Add("BatchWeight must be greater than 0.");
+            }
+
+            if (FinalWeight < 0)
+            {
+                errors.Add("FinalWeight must be greater than or equal to 0.");
+            }
+
+            if (FinalWeight > BatchWeight)
+            {
+                errors.Add("FinalWeight must be less than or equal to BatchWeight.");
+            }
+
+            if (Temperature <= 0 || Temperature > 500)
+            {
+                errors.Add("Temperature must be greater than 0 and less than or equal to 500.");
+            }
+
+            if (RoastMinutes < 0)
+            {
+                errors.Add("RoastMinutes must be greater than or equal to 0.");
+            }
+
+            if (RoastSeconds < 0 || RoastSeconds >= 60)
+            {
+                errors.Add("RoastSeconds must be between 0 and 59.");
+            }
+
+            var hasFirstCrackMinutes = FirstCrackMinutes.HasValue;
+            var hasFirstCrackSeconds = FirstCrackSeconds.HasValue;
+
+            if (hasFirstCrackMinutes != hasFirstCrackSeconds)
+            {
+                errors.Add("First crack time requires both minutes and seconds.");
+            }
+            else if (hasFirstCrackMinutes && hasFirstCrackSeconds)
+            {
+                if (FirstCrackMinutes < 0)
+                {
+                    errors.Add("First crack minutes must be greater than or equal to 0.");
+                }
+
+                if (FirstCrackSeconds < 0 || FirstCrackSeconds >= 60)
+                {
+                    errors.Add("First crack seconds must be between 0 and 59.");
+                }
+
+                if (errors.All(error => !error.Contains("First crack")))
+                {
+                    var totalRoastSeconds = (RoastMinutes * 60) + RoastSeconds;
+                    var firstCrackTotalSeconds = (FirstCrackMinutes.GetValueOrDefault() * 60) + FirstCrackSeconds.GetValueOrDefault();
+
+                    if (firstCrackTotalSeconds > totalRoastSeconds)
+                    {
+                        errors.Add("First crack time must be within the total roast time.");
+                    }
+                }
+            }
+
+            return errors;
+        }
     }
 }

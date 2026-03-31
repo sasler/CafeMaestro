@@ -1,8 +1,10 @@
 <?xml version="1.0" encoding="utf-8" ?>
 <ContentPage xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
              xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
-             xmlns:local="clr-namespace:CafeMaestro"
+             xmlns:vm="clr-namespace:CafeMaestro.ViewModels"
              x:Class="CafeMaestro.SettingsPage"
+             x:Name="RootPage"
+             x:DataType="vm:SettingsPageViewModel"
              BackgroundColor="{DynamicResource PageBackgroundColor}"
              Title="Settings">
        <ContentPage.Resources>
@@ -10,7 +12,7 @@
               <Style x:Key="EditEntryStyle"
                      TargetType="Entry">
                      <Setter Property="BackgroundColor"
-                             Value="{DynamicResource InputBackgroundColor}"/>
+                             Value="{DynamicResource EntryBackgroundColor}"/>
                      <Setter Property="TextColor"
                              Value="{DynamicResource PrimaryTextColor}"/>
                      <Setter Property="PlaceholderColor"
@@ -67,7 +69,7 @@
                                            StrokeThickness="0.5"
                                            StrokeShape="RoundRectangle 12">
                                           <Border.Shadow>
-                                                 <Shadow Brush="#20000000"
+                                                 <Shadow Brush="{DynamicResource BorderColor}"
                                                          Offset="0,2"
                                                          Radius="4"
                                                          Opacity="0.2"/>
@@ -79,52 +81,55 @@
                                                         FontAttributes="Bold"
                                                         TextColor="{DynamicResource PrimaryTextColor}"/>
 
-                                                 <Label x:Name="DataFilePath"
-                                                        Text="Loading..."
-                                                        FontSize="14"
-                                                        LineBreakMode="CharacterWrap"
-                                                        TextColor="{DynamicResource PrimaryTextColor}"/>
+                                                 <Label Text="{Binding DataFilePath}"
+                                                         FontSize="14"
+                                                         LineBreakMode="CharacterWrap"
+                                                         TextColor="{DynamicResource PrimaryTextColor}"/>
 
                                                  <HorizontalStackLayout Spacing="10"
                                                                         HorizontalOptions="Center">
-                                                        <ImageButton x:Name="NewDataFileButton"
-                                                                     Source="new_icon.png"
-                                                                     Clicked="NewDataFileButton_Clicked"
-                                                                     BackgroundColor="#0078D4"
+                                                         <ImageButton Source="new_icon.png"
+                                                                     Command="{Binding CreateNewDataFileCommand}"
+                                                                     BackgroundColor="{DynamicResource PrimaryColor}"
                                                                      WidthRequest="50"
                                                                      HeightRequest="50"
                                                                      Padding="5"
                                                                      CornerRadius="25"/>
 
-                                                        <ImageButton x:Name="ExistingDataFileButton"
-                                                                     Source="load_icon.png"
-                                                                     Clicked="ExistingDataFileButton_Clicked"
-                                                                     BackgroundColor="#008000"
+                                                         <ImageButton Source="load_icon.png"
+                                                                     Command="{Binding ChooseExistingDataFileCommand}"
+                                                                     BackgroundColor="{DynamicResource SuccessColor}"
                                                                      WidthRequest="50"
                                                                      HeightRequest="50"
                                                                      Padding="5"
                                                                      CornerRadius="25"/>
 
-                                                        <ImageButton x:Name="ExportButton"
-                                                                     Source="export_icon.png"
-                                                                     Clicked="ExportButton_Clicked"
+                                                         <ImageButton Source="export_icon.png"
+                                                                     Command="{Binding ExportCommand}"
                                                                      BackgroundColor="{DynamicResource SecondaryColor}"
                                                                      WidthRequest="50"
                                                                      HeightRequest="50"
                                                                      Padding="5"
                                                                      CornerRadius="25"/>
 
-                                                        <ImageButton x:Name="ImportButton"
-                                                                     Source="import_icon.png"
-                                                                     Clicked="ImportButton_Clicked"
+                                                         <ImageButton Source="import_icon.png"
+                                                                     Command="{Binding ImportCommand}"
                                                                      BackgroundColor="{DynamicResource TertiaryColor}"
                                                                      WidthRequest="50"
                                                                      HeightRequest="50"
                                                                      Padding="5"
                                                                      CornerRadius="25"/>
                                                  </HorizontalStackLayout>
-                                          </VerticalStackLayout>
-                                   </Border>
+
+                                                 <Button Text="Use Default Location"
+                                                         Command="{Binding UseDefaultDataFileCommand}"
+                                                         BackgroundColor="{DynamicResource AccentColor}"
+                                                         TextColor="{DynamicResource ButtonTextColor}"
+                                                         HeightRequest="48"
+                                                         CornerRadius="24"
+                                                         HorizontalOptions="Fill"/>
+                                         </VerticalStackLayout>
+                                  </Border>
 
                                    <!-- Roast Levels Section -->
                                    <Border Stroke="{DynamicResource BorderColor}"
@@ -132,7 +137,7 @@
                                            StrokeThickness="0.5"
                                            StrokeShape="RoundRectangle 12">
                                           <Border.Shadow>
-                                                 <Shadow Brush="#20000000"
+                                                 <Shadow Brush="{DynamicResource BorderColor}"
                                                          Offset="0,2"
                                                          Radius="4"
                                                          Opacity="0.2"/>
@@ -149,18 +154,18 @@
                                                         TextColor="{DynamicResource SecondaryTextColor}"/>
 
                                                  <!-- List of roast levels -->
-                                                 <CollectionView x:Name="RoastLevelsCollection"
+                                                 <CollectionView ItemsSource="{Binding RoastLevels}"
                                                                  EmptyView="No roast levels defined"
                                                                  SelectionMode="None">
-                                                        <CollectionView.ItemTemplate>
-                                                               <DataTemplate>
+                                                         <CollectionView.ItemTemplate>
+                                                               <DataTemplate x:DataType="vm:RoastLevelViewModel">
                                                                       <Grid Padding="5"
                                                                             ColumnDefinitions="*, Auto, Auto">
-                                                                             <Border Grid.Column="0"
-                                                                                     BackgroundColor="{DynamicResource CardBackgroundColor}"
-                                                                                     StrokeShape="RoundRectangle 8"
-                                                                                     Padding="3">
-                                                                                    <VerticalStackLayout>
+                                                                            <Border Grid.Column="0"
+                                                                                    BackgroundColor="{DynamicResource NeutralColor}"
+                                                                                    StrokeShape="RoundRectangle 8"
+                                                                                    Padding="3">
+                                                                                   <VerticalStackLayout>
                                                                                            <Label Text="{Binding Name}"
                                                                                                   FontSize="16"
                                                                                                   FontAttributes="Bold"
@@ -171,25 +176,25 @@
                                                                                     </VerticalStackLayout>
                                                                              </Border>
 
-                                                                             <ImageButton Grid.Column="1"
-                                                                                          Source="edit_icon.png"
-                                                                                          Command="{Binding Source={RelativeSource AncestorType={x:Type local:SettingsPage}}, Path=EditRoastLevelCommand}"
-                                                                                          CommandParameter="{Binding .}"
-                                                                                          BackgroundColor="#0078D4"
-                                                                                          WidthRequest="40"
-                                                                                          HeightRequest="40"
-                                                                                          Padding="8"
+                                                                            <ImageButton Grid.Column="1"
+                                                                                         Source="edit_icon.png"
+                                                                                          Command="{Binding Source={x:Reference RootPage}, Path=BindingContext.EditRoastLevelCommand}"
+                                                                                         CommandParameter="{Binding .}"
+                                                                                          BackgroundColor="{DynamicResource SwipeEditColor}"
+                                                                                         WidthRequest="40"
+                                                                                         HeightRequest="40"
+                                                                                         Padding="8"
                                                                                           Margin="8,0,0,0"
                                                                                           CornerRadius="20"/>
 
-                                                                             <ImageButton Grid.Column="2"
-                                                                                          Source="delete_icon.png"
-                                                                                          Command="{Binding Source={RelativeSource AncestorType={x:Type local:SettingsPage}}, Path=DeleteRoastLevelCommand}"
-                                                                                          CommandParameter="{Binding .}"
-                                                                                          BackgroundColor="#E74C3C"
-                                                                                          WidthRequest="40"
-                                                                                          HeightRequest="40"
-                                                                                          Padding="8"
+                                                                            <ImageButton Grid.Column="2"
+                                                                                         Source="delete_icon.png"
+                                                                                          Command="{Binding Source={x:Reference RootPage}, Path=BindingContext.DeleteRoastLevelCommand}"
+                                                                                         CommandParameter="{Binding .}"
+                                                                                          BackgroundColor="{DynamicResource SwipeDeleteColor}"
+                                                                                         WidthRequest="40"
+                                                                                         HeightRequest="40"
+                                                                                         Padding="8"
                                                                                           Margin="8,0,0,0"
                                                                                           CornerRadius="20"/>
                                                                       </Grid>
@@ -197,22 +202,34 @@
                                                         </CollectionView.ItemTemplate>
                                                  </CollectionView>
 
-                                                 <Button Text="Add New Roast Level"
-                                                         Clicked="AddRoastLevel_Clicked"
-                                                         BackgroundColor="{DynamicResource SecondaryColor}"
-                                                         TextColor="White"
-                                                         HeightRequest="50"
-                                                         CornerRadius="25"
-                                                         HorizontalOptions="Fill"/>
-                                          </VerticalStackLayout>
-                                   </Border>
+                                                 <Grid ColumnDefinitions="*,*"
+                                                       ColumnSpacing="12">
+                                                        <Button Grid.Column="0"
+                                                                Text="Add New Roast Level"
+                                                                Command="{Binding AddRoastLevelCommand}"
+                                                                BackgroundColor="{DynamicResource SecondaryColor}"
+                                                                TextColor="{DynamicResource ButtonTextColor}"
+                                                                HeightRequest="50"
+                                                                CornerRadius="25"
+                                                                HorizontalOptions="Fill"/>
+                                                        <Button Grid.Column="1"
+                                                                Text="Reset Defaults"
+                                                                Command="{Binding ResetRoastLevelsToDefaultsCommand}"
+                                                                BackgroundColor="{DynamicResource AccentColor}"
+                                                                TextColor="{DynamicResource ButtonTextColor}"
+                                                                HeightRequest="50"
+                                                                CornerRadius="25"
+                                                                HorizontalOptions="Fill"/>
+                                                 </Grid>
+                                         </VerticalStackLayout>
+                                  </Border>
 
                                    <!-- Theme Section -->
                                    <Border Stroke="{DynamicResource BorderColor}"
                                            StrokeThickness="0.5"
                                            StrokeShape="RoundRectangle 12">
                                           <Border.Shadow>
-                                                 <Shadow Brush="#20000000"
+                                                 <Shadow Brush="{DynamicResource BorderColor}"
                                                          Offset="0,2"
                                                          Radius="4"
                                                          Opacity="0.2"/>
@@ -224,12 +241,11 @@
                                                         FontAttributes="Bold"
                                                         TextColor="{DynamicResource PrimaryTextColor}"/>
 
-                                                 <Picker x:Name="ThemePicker"
-                                                         Title="Select your preferred theme for the app"
-                                                         SelectedIndexChanged="ThemePicker_SelectedIndexChanged"
+                                                 <Picker Title="Select your preferred theme for the app"
+                                                         SelectedIndex="{Binding SelectedThemeIndex, Mode=TwoWay}"
                                                          TextColor="{DynamicResource PrimaryTextColor}"
                                                          TitleColor="{DynamicResource SecondaryTextColor}"
-                                                         BackgroundColor="{DynamicResource InputBackgroundColor}"
+                                                         BackgroundColor="{DynamicResource PickerBackgroundColor}"
                                                          Margin="0,5,0,10">
                                                         <Picker.Items>
                                                                <x:String>System Theme</x:String>
@@ -246,7 +262,7 @@
                                            StrokeThickness="0.5"
                                            StrokeShape="RoundRectangle 12">
                                           <Border.Shadow>
-                                                 <Shadow Brush="#20000000"
+                                                 <Shadow Brush="{DynamicResource BorderColor}"
                                                          Offset="0,2"
                                                          Radius="4"
                                                          Opacity="0.2"/>
@@ -267,31 +283,30 @@
                                                         <Label Text="Version:"
                                                                FontSize="14"
                                                                TextColor="{DynamicResource PrimaryTextColor}"/>
-                                                        <Label x:Name="VersionLabel"
-                                                               Text="1.0.0"
+                                                        <Label Text="{Binding VersionDisplay}"
                                                                FontSize="14"
                                                                TextColor="{DynamicResource PrimaryTextColor}"/>
                                                  </HorizontalStackLayout>
 
-                                                 <!-- Version History Label -->
-                                                 <Label x:Name="VersionHistoryLabel"
+                                                  <!-- Version History Label -->
+                                                 <Label Text="{Binding VersionHistoryDisplay}"
                                                         FontSize="14"
                                                         TextColor="{DynamicResource SecondaryTextColor}"
                                                         LineBreakMode="WordWrap"/>
 
-                                                 <Label Text="© 2025 CafeMaestro Team"
-                                                        FontSize="14"
-                                                        TextColor="{AppThemeBinding Light=Gray, Dark=#BBBBBB}"/>
-                                          </VerticalStackLayout>
-                                   </Border>
-                            </VerticalStackLayout>
+                                                  <Label Text="© 2025 CafeMaestro Team"
+                                                         FontSize="14"
+                                                         TextColor="{DynamicResource SecondaryTextColor}"/>
+                                         </VerticalStackLayout>
+                                  </Border>
+                           </VerticalStackLayout>
                      </Grid>
               </ScrollView>
 
               <!-- Popup for editing roast levels -->
               <Grid x:Name="EditRoastLevelPopup"
-                    IsVisible="False"
-                    BackgroundColor="#80000000"
+                    IsVisible="{Binding IsEditRoastLevelPopupVisible}"
+                    BackgroundColor="{DynamicResource ModalOverlayColor}"
                     InputTransparent="False">
                      <Border BackgroundColor="{DynamicResource PageBackgroundColor}"
                              WidthRequest="320"
@@ -303,9 +318,8 @@
                             <Grid RowDefinitions="Auto,*,Auto"
                                   Padding="20">
                                    <!-- Header -->
-                                   <Label x:Name="EditPopupTitle"
+                                   <Label Text="{Binding EditPopupTitle}"
                                           Grid.Row="0"
-                                          Text="Edit Roast Level"
                                           FontSize="22"
                                           FontAttributes="Bold"
                                           HorizontalOptions="Center"
@@ -318,14 +332,14 @@
                                           <Label Text="Name"
                                                  FontSize="16"
                                                  TextColor="{DynamicResource PrimaryTextColor}"/>
-                                          <Entry x:Name="RoastLevelNameEntry"
+                                          <Entry Text="{Binding RoastLevelName}"
                                                  Placeholder="Enter roast level name"
                                                  Style="{StaticResource EditEntryStyle}"/>
 
                                           <Label Text="Min Weight Loss (%)"
                                                  FontSize="16"
                                                  TextColor="{DynamicResource PrimaryTextColor}"/>
-                                          <Entry x:Name="MinWeightLossEntry"
+                                          <Entry Text="{Binding MinWeightLossText}"
                                                  Placeholder="0.0"
                                                  Keyboard="Numeric"
                                                  Style="{StaticResource EditEntryStyle}"/>
@@ -333,7 +347,7 @@
                                           <Label Text="Max Weight Loss (%)"
                                                  FontSize="16"
                                                  TextColor="{DynamicResource PrimaryTextColor}"/>
-                                          <Entry x:Name="MaxWeightLossEntry"
+                                          <Entry Text="{Binding MaxWeightLossText}"
                                                  Placeholder="100.0"
                                                  Keyboard="Numeric"
                                                  Style="{StaticResource EditEntryStyle}"/>
@@ -344,22 +358,19 @@
                                                           Spacing="10"
                                                           HorizontalOptions="Center"
                                                           Margin="0,15,0,0">
-                                          <Button x:Name="SaveRoastLevelButton"
-                                                  Text="Save"
-                                                  Clicked="SaveRoastLevel_Clicked"
+                                          <Button Text="Save"
+                                                  Command="{Binding SaveRoastLevelCommand}"
                                                   Style="{StaticResource ActionButtonStyle}"
-                                                  BackgroundColor="{DynamicResource PrimaryColor}"
-                                                  TextColor="White"
+                                                  TextColor="{DynamicResource ButtonTextColor}"
                                                   WidthRequest="120"
                                                   HeightRequest="45"
                                                   CornerRadius="22"/>
 
-                                          <Button x:Name="CancelRoastLevelButton"
-                                                  Text="Cancel"
-                                                  Clicked="CancelRoastLevel_Clicked"
-                                                  Style="{StaticResource DestructiveButtonStyle}"
-                                                  BackgroundColor="#666666"
-                                                  TextColor="White"
+                                          <Button Text="Cancel"
+                                                  Command="{Binding CancelRoastLevelCommand}"
+                                                  Style="{StaticResource ButtonStyle}"
+                                                  BackgroundColor="{DynamicResource NeutralColor}"
+                                                  TextColor="{DynamicResource PrimaryTextColor}"
                                                   WidthRequest="120"
                                                   HeightRequest="45"
                                                   CornerRadius="22"/>

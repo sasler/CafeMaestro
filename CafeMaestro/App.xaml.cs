@@ -1,4 +1,5 @@
-﻿using CafeMaestro.Services;
+﻿using CafeMaestro.Navigation;
+using CafeMaestro.Services;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Maui.ApplicationModel;
 
@@ -6,51 +7,29 @@ namespace CafeMaestro;
 
 public partial class App : Application
 {
-    private AppDataService _appDataService;
-    private PreferencesService _preferencesService;
+    private readonly IAppDataService _appDataService;
+    private readonly IPreferencesService _preferencesService;
+    private readonly INavigationService _navigationService;
+    private readonly IServiceProvider _serviceProvider;
     private Models.AppData? _appData; // Make nullable to fix constructor error
-    private bool _appDataInitialized = false;
 
     // Flag to track if first run setup is needed (to avoid firing it multiple times)
     private bool _firstRunSetupNeeded = false;
 
     // The initial page for the primary window
-    private Page _initialPage;
+    private readonly Page _initialPage;
 
-    public App()
+    public App(IAppDataService appDataService, IPreferencesService preferencesService, INavigationService navigationService, IServiceProvider serviceProvider)
     {
         InitializeComponent();
-
-        // Initialize services with proper fallbacks
-        IServiceProvider? serviceProvider = null;
-
-        // Try to get the service provider from different sources depending on initialization state
-        if (Handler?.MauiContext?.Services is IServiceProvider provider)
-        {
-            serviceProvider = provider;
-            Resources["ServiceProvider"] = serviceProvider;
-        }
-        else if (IPlatformApplication.Current?.Services is IServiceProvider platformProvider)
-        {
-            serviceProvider = platformProvider;
-            Resources["ServiceProvider"] = serviceProvider;
-        }
-        else
-        {
-            // Create a minimal service provider for the LoadingPage to use
-            var serviceCollection = new ServiceCollection();
-            serviceCollection.AddSingleton<AppDataService>();
-            serviceCollection.AddSingleton<PreferencesService>();
-            serviceProvider = serviceCollection.BuildServiceProvider();
-            Resources["ServiceProvider"] = serviceProvider;
-        }
-
-        // Get services using GetService with null fallbacks
-        _appDataService = serviceProvider.GetService<AppDataService>() ?? new AppDataService();
-        _preferencesService = serviceProvider.GetService<PreferencesService>() ?? new PreferencesService();
+        _appDataService = appDataService ?? throw new ArgumentNullException(nameof(appDataService));
+        _preferencesService = preferencesService ?? throw new ArgumentNullException(nameof(preferencesService));
+        _navigationService = navigationService ?? throw new ArgumentNullException(nameof(navigationService));
+        _serviceProvider = serviceProvider ?? throw new ArgumentNullException(nameof(serviceProvider));
+        Resources["ServiceProvider"] = _serviceProvider;
 
         // Create the initial page
-        _initialPage = new LoadingPage(serviceProvider);
+        _initialPage = CreateLoadingPage();
 
         // Subscribe to data changed events
         _appDataService.DataChanged += OnAppDataChanged;
@@ -100,15 +79,13 @@ public partial class App : Application
         catch (Exception ex)
         {
             System.Diagnostics.Debug.WriteLine($"Error creating window: {ex.Message}");
-            // Even in error case, show a LoadingPage with the service provider if available
-            if (Handler?.MauiContext?.Services is IServiceProvider serviceProvider)
-            {
-                return new Window(new LoadingPage(serviceProvider));
-            }
-
-            // Ultimate fallback - must provide a non-null page
-            return new Window(new AppShell());
+            return new Window(CreateLoadingPage());
         }
+    }
+
+    private LoadingPage CreateLoadingPage()
+    {
+        return new LoadingPage(_appDataService, _preferencesService, _serviceProvider.GetRequiredService<AppShell>());
     }
 
     // Load and apply the saved theme preference
@@ -165,7 +142,6 @@ public partial class App : Application
                     Beans = new List<Models.BeanData>(),
                     RoastLogs = new List<Models.RoastData>()
                 };
-                _appDataInitialized = true;
                 return;
             }
 
@@ -190,7 +166,6 @@ public partial class App : Application
                 await _preferencesService.ClearAppDataFilePathAsync();
             }
 
-            _appDataInitialized = true;
         }
         catch (Exception ex)
         {
@@ -203,7 +178,6 @@ public partial class App : Application
                 Beans = new List<Models.BeanData>(),
                 RoastLogs = new List<Models.RoastData>()
             };
-            _appDataInitialized = true;
         }
     }
 
@@ -215,7 +189,9 @@ public partial class App : Application
             // Execute on main thread because it's a UI operation
             await MainThread.InvokeOnMainThreadAsync(async () =>
             {
-                bool useDefault = await Shell.Current.DisplayAlert(
+                Page currentPage = GetActivePage();
+
+                bool useDefault = await currentPage.DisplayAlertAsync(
                     "Welcome to CafeMaestro!",
                     "Would you like to store your coffee roasting data in the default application folder, or choose a custom location?",
                     "Use Default", "Choose Custom Location");
@@ -249,7 +225,7 @@ public partial class App : Application
                     _firstRunSetupNeeded = false;
 
                     // Notify user
-                    await Shell.Current.DisplayAlert(
+                    await currentPage.DisplayAlertAsync(
                         "Data File Created",
                         $"Your coffee data will be stored at:\n{defaultFilePath}",
                         "OK");
@@ -257,10 +233,10 @@ public partial class App : Application
                 else
                 {
                     // Navigate to settings page to choose location
-                    await Shell.Current.GoToAsync("//settings");
+                    await _navigationService.GoToAsync(Routes.Settings);
 
                     // Display prompt about creating a data file
-                    await Shell.Current.DisplayAlert(
+                    await currentPage.DisplayAlertAsync(
                         "Select Data Location",
                         "Please use the options below to select an existing data file or create a new one in your preferred location.",
                         "OK");
@@ -273,6 +249,17 @@ public partial class App : Application
             // If there's an error, try again on next app launch
             await _preferencesService.ClearAppDataFilePathAsync();
         }
+    }
+
+    private Page GetActivePage()
+    {
+        Page page = Windows.FirstOrDefault()?.Page ?? _initialPage;
+
+        return page switch
+        {
+            NavigationPage navigationPage when navigationPage.CurrentPage != null => navigationPage.CurrentPage,
+            _ => page
+        };
     }
 
     public void SetTheme(string theme)
@@ -349,7 +336,11 @@ public partial class App : Application
     // Pass data to a page when navigating
     public void PassDataToPage(Page page)
     {
-        var navParams = new NavigationParameters(GetAppData());
-        page.BindingContext = navParams;
+        if (page.BindingContext is not null)
+        {
+            return;
+        }
+
+        page.BindingContext = new NavigationParameters(GetAppData());
     }
 }

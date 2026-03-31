@@ -1,7 +1,9 @@
 ﻿<?xml version="1.0" encoding="UTF-8" ?>
 <ContentPage xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
              xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
+             xmlns:vm="clr-namespace:CafeMaestro.ViewModels"
              x:Class="CafeMaestro.MainPage"
+             x:DataType="vm:MainPageViewModel"
              Title="CafeMaestro"
              BackgroundColor="{DynamicResource PageBackgroundColor}"
              Padding="0">
@@ -57,12 +59,10 @@
                                                  FontSize="14"
                                                  FontAttributes="Bold"
                                                  TextColor="{DynamicResource TextColor}"/>
-                                          <Label x:Name="DataFileNameLabel"
-                                                 Text="File: cafemaestro_data.json"
+                                          <Label Text="{Binding DataFilePathDisplay}"
                                                  FontSize="12"
                                                  TextColor="{DynamicResource SecondaryTextColor}"/>
-                                          <Label x:Name="DataStatsLabel"
-                                                 Text="Beans: 0  |  Roasts: 0"
+                                          <Label Text="{Binding DataStatsDisplay}"
                                                  FontSize="12"
                                                  TextColor="{DynamicResource SecondaryTextColor}"/>
                                    </VerticalStackLayout>
@@ -87,16 +87,16 @@
                                                  HeightRequest="36"
                                                  WidthRequest="36"
                                                  VerticalOptions="Center"/>
-                                          <Label Grid.Column="1"
-                                                 Text="Start Roasting"
-                                                 TextColor="White"
-                                                 FontSize="20"
+                                                 <Label Grid.Column="1"
+                                                         Text="Start Roasting"
+                                                         TextColor="{DynamicResource ButtonTextColor}"
+                                                         FontSize="20"
                                                  FontAttributes="Bold"
                                                  VerticalOptions="Center"
                                                  Margin="10,0,0,0"/>
                                    </Grid>
                                    <Border.GestureRecognizers>
-                                          <TapGestureRecognizer Tapped="GoToRoastPage_Clicked"/>
+                                          <TapGestureRecognizer Command="{Binding StartRoastingCommand}"/>
                                    </Border.GestureRecognizers>
                             </Border>
                             <Grid ColumnDefinitions="*,*"
@@ -122,15 +122,15 @@
                                                         HeightRequest="32"
                                                         WidthRequest="32"
                                                         HorizontalOptions="Center"/>
-                                                 <Label Grid.Row="1"
-                                                        Text="Beans"
-                                                        TextColor="White"
-                                                        FontSize="16"
+                                                  <Label Grid.Row="1"
+                                                         Text="Beans"
+                                                         TextColor="{DynamicResource ButtonTextColor}"
+                                                         FontSize="16"
                                                         FontAttributes="Bold"
                                                         HorizontalOptions="Center"/>
                                           </Grid>
                                           <Border.GestureRecognizers>
-                                                 <TapGestureRecognizer Tapped="GoToBeanInventory_Clicked"/>
+                                                 <TapGestureRecognizer Command="{Binding GoToBeansCommand}"/>
                                           </Border.GestureRecognizers>
                                    </Border>
 
@@ -155,15 +155,15 @@
                                                         HeightRequest="32"
                                                         WidthRequest="32"
                                                         HorizontalOptions="Center"/>
-                                                 <Label Grid.Row="1"
-                                                        Text="Roast Log"
-                                                        TextColor="White"
-                                                        FontSize="16"
+                                                  <Label Grid.Row="1"
+                                                         Text="Roast Log"
+                                                         TextColor="{DynamicResource ButtonTextColor}"
+                                                         FontSize="16"
                                                         FontAttributes="Bold"
                                                         HorizontalOptions="Center"/>
                                           </Grid>
                                           <Border.GestureRecognizers>
-                                                 <TapGestureRecognizer Tapped="GoToRoastLog_Clicked"/>
+                                                 <TapGestureRecognizer Command="{Binding GoToRoastLogCommand}"/>
                                           </Border.GestureRecognizers>
                                    </Border>
                             </Grid>
@@ -187,17 +187,17 @@
                                                  HeightRequest="30"
                                                  WidthRequest="30"
                                                  VerticalOptions="Center"/>
-                                          <Label Grid.Column="1"
-                                                 Text="Settings"
-                                                 TextColor="White"
-                                                 FontSize="18"
+                                           <Label Grid.Column="1"
+                                                  Text="Settings"
+                                                  TextColor="{DynamicResource ButtonTextColor}"
+                                                  FontSize="18"
                                                  FontAttributes="Bold"
                                                  HorizontalOptions="Start"
                                                  VerticalOptions="Center"
                                                  Margin="10,0,0,0"/>
                                    </Grid>
                                    <Border.GestureRecognizers>
-                                          <TapGestureRecognizer Tapped="GoToSettings_Clicked"/>
+                                          <TapGestureRecognizer Command="{Binding GoToSettingsCommand}"/>
                                    </Border.GestureRecognizers>
                             </Border>
                      </VerticalStackLayout>
