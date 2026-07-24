@@ -20,4 +20,16 @@ public sealed class AlertService : IAlertService
             await page.DisplayAlertAsync(title, message, cancel);
         });
     }
+    public Task<bool> ShowConfirmationAsync(string title, string message, string accept, string cancel)
+    {
+        return MainThread.InvokeOnMainThreadAsync(async () =>
+        {
+            Page? page = Shell.Current?.CurrentPage
+                         ?? Application.Current?.Windows.FirstOrDefault()?.Page;
+
+            return page is not null &&
+                   await page.DisplayAlertAsync(title, message, accept, cancel);
+        });
+    }
+
 }

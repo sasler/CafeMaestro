@@ -113,36 +113,12 @@ public partial class MainPageViewModel : ObservableObject
         return _navigationService.GoToAsync(route);
     }
 
-    private async Task InitializeWithCorrectPathAsync()
+    private Task InitializeWithCorrectPathAsync()
     {
-        try
-        {
-            string? savedFilePath = await _preferencesService.GetAppDataFilePathAsync();
-
-            if (!string.IsNullOrWhiteSpace(savedFilePath))
-            {
-                _userDataFilePath = savedFilePath;
-
-                if (!string.Equals(_appDataService.DataFilePath, savedFilePath, StringComparison.Ordinal))
-                {
-                    AppData appData = await _appDataService.SetCustomFilePathAsync(savedFilePath);
-                    RefreshFromAppData(appData, savedFilePath);
-                    return;
-                }
-            }
-            else if (!string.IsNullOrWhiteSpace(_appDataService.DataFilePath))
-            {
-                _userDataFilePath = _appDataService.DataFilePath;
-            }
-
-            RefreshFromAppData(_appDataService.CurrentData, _appDataService.DataFilePath);
-        }
-        catch (Exception ex)
-        {
-            Debug.WriteLine($"Error in MainPageViewModel initialization: {ex.Message}");
-        }
+        _userDataFilePath = _appDataService.DataFilePath;
+        RefreshFromAppData(_appDataService.CurrentData, _appDataService.DataFilePath);
+        return Task.CompletedTask;
     }
-
     private void EnsureSubscribed()
     {
         if (_isSubscribed)

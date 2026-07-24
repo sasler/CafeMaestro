@@ -15,23 +15,18 @@ public class MainPageViewModelTests
         var appDataService = new Mock<IAppDataService>();
         var preferencesService = new Mock<IPreferencesService>();
 
-        appDataService.SetupGet(service => service.DataFilePath).Returns(@"C:\data\default.json");
+        appDataService.SetupGet(service => service.DataFilePath).Returns(@"C:\data\cafemaestro_data.json");
         appDataService.SetupGet(service => service.CurrentData).Returns(appData);
-        appDataService.Setup(service => service.SetCustomFilePathAsync(@"C:\data\custom.json"))
-            .ReturnsAsync(appData);
-        preferencesService.Setup(service => service.GetAppDataFilePathAsync())
-            .ReturnsAsync(@"C:\data\custom.json");
 
         var viewModel = new MainPageViewModel(appDataService.Object, preferencesService.Object);
 
         await viewModel.OnAppearingAsync();
 
-        viewModel.DataFilePath.Should().Be(@"C:\data\custom.json");
-        viewModel.DataFilePathDisplay.Should().Be("File: custom.json");
+        viewModel.DataFilePath.Should().Be(@"C:\data\cafemaestro_data.json");
+        viewModel.DataFilePathDisplay.Should().Be("File: cafemaestro_data.json");
         viewModel.BeanCount.Should().Be(2);
         viewModel.RoastCount.Should().Be(3);
         viewModel.DataStatsDisplay.Should().Be("Beans: 2  |  Roasts: 3");
-        appDataService.Verify(service => service.SetCustomFilePathAsync(@"C:\data\custom.json"), Times.Once);
     }
 
     [Fact]
@@ -89,7 +84,6 @@ public class MainPageViewModelTests
         var appDataService = new Mock<IAppDataService>();
         appDataService.SetupGet(service => service.DataFilePath).Returns(@"C:\data\cafemaestro_data.json");
         appDataService.SetupGet(service => service.CurrentData).Returns(appData);
-        appDataService.Setup(service => service.SetCustomFilePathAsync(It.IsAny<string>())).ReturnsAsync(appData);
         return appDataService;
     }
 

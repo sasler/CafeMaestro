@@ -402,45 +402,9 @@ public partial class RoastPageViewModel : ObservableObject, IQueryAttributable
 
     private async Task InitializeDataFilePathAsync()
     {
-        try
-        {
-            bool isFirstRun = await _preferencesService.IsFirstRunAsync();
-            string? savedFilePath = await _preferencesService.GetAppDataFilePathAsync();
-
-            if (!string.IsNullOrEmpty(savedFilePath))
-            {
-                if (File.Exists(savedFilePath))
-                {
-                    await _appDataService.SetCustomFilePathAsync(savedFilePath);
-                    await _roastDataService.InitializeFromPreferencesAsync(_preferencesService);
-                    await _beanService.InitializeFromPreferencesAsync(_preferencesService);
-                }
-                else
-                {
-                    await _alertService.ShowAlertAsync(
-                        "Data File Not Found",
-                        $"The previously used data file could not be found: {savedFilePath}\n\nUsing default location instead.",
-                        "OK");
-
-                    await _appDataService.ResetToDefaultPathAsync();
-                    await _preferencesService.ClearAppDataFilePathAsync();
-                }
-            }
-            else if (isFirstRun)
-            {
-                await _navigationService.GoToAsync(Routes.Settings);
-                await _alertService.ShowAlertAsync(
-                    "Welcome to CafeMaestro",
-                    "Please select or create a data file location to store your coffee roasting data.",
-                    "OK");
-            }
-        }
-        catch (Exception ex)
-        {
-            await _alertService.ShowAlertAsync("Error", $"Failed to initialize data file: {ex.Message}", "OK");
-        }
+        await _roastDataService.InitializeFromPreferencesAsync(_preferencesService);
+        await _beanService.InitializeFromPreferencesAsync(_preferencesService);
     }
-
     private async Task LoadAvailableBeansAsync()
     {
         try

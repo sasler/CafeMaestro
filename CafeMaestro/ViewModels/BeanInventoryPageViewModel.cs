@@ -15,7 +15,6 @@ public partial class BeanInventoryPageViewModel : ObservableObject
     private readonly INavigationService _navigationService;
     private readonly List<BeanData> _allBeans = [];
     private bool _isSubscribed;
-    private bool _hasInitializedPath;
 
     [ObservableProperty]
     public partial ObservableCollection<BeanData> Beans { get; set; } = [];
@@ -58,7 +57,6 @@ public partial class BeanInventoryPageViewModel : ObservableObject
     public async Task OnAppearingAsync()
     {
         EnsureSubscribed();
-        await InitializeWithCorrectPathAsync();
         await RefreshAsync();
     }
 
@@ -258,24 +256,6 @@ public partial class BeanInventoryPageViewModel : ObservableObject
 
         _appDataService.DataChanged += HandleAppDataChanged;
         _isSubscribed = true;
-    }
-
-    private async Task InitializeWithCorrectPathAsync()
-    {
-        if (_hasInitializedPath)
-        {
-            return;
-        }
-
-        string? savedPath = await _preferencesService.GetAppDataFilePathAsync();
-
-        if (!string.IsNullOrWhiteSpace(savedPath) &&
-            !string.Equals(savedPath, _appDataService.DataFilePath, StringComparison.Ordinal))
-        {
-            await _appDataService.SetCustomFilePathAsync(savedPath);
-        }
-
-        _hasInitializedPath = true;
     }
 
     private void HandleAppDataChanged(object? sender, AppData appData)

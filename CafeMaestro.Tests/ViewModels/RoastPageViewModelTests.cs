@@ -380,8 +380,6 @@ public class RoastPageViewModelTests
         mocks.NavigationService.Setup(service => service.GoToAsync(It.IsAny<string>(), It.IsAny<IDictionary<string, object>>()))
             .Returns(Task.CompletedTask);
         mocks.TimerService.Setup(service => service.GetElapsedTime()).Returns(TimeSpan.Zero);
-        mocks.AppDataService.Setup(service => service.ResetToDefaultPathAsync()).ReturnsAsync(new AppData());
-        mocks.AppDataService.Setup(service => service.SetCustomFilePathAsync(It.IsAny<string>())).ReturnsAsync(new AppData());
         mocks.RoastDataService.Setup(service => service.SaveRoastDataAsync(It.IsAny<RoastData>())).ReturnsAsync(true);
         mocks.RoastDataService.Setup(service => service.UpdateRoastLogAsync(It.IsAny<RoastData>())).ReturnsAsync(true);
         mocks.RoastLevelService.Setup(service => service.GetRoastLevelNameAsync(It.IsAny<double>())).ReturnsAsync("Unknown");

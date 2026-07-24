@@ -9,7 +9,7 @@ public interface IRoastDataService
     Task<bool> SaveRoastDataAsync(RoastData roastData);
     Task<List<RoastData>> LoadRoastDataAsync();
     Task<List<RoastData>> SearchRoastDataAsync(string beanType = "");
-    Task ExportRoastLogAsync(string filePath);
+    Task ExportRoastLogAsync(Stream destination, CancellationToken cancellationToken = default);
     Task<(int Success, int Failed, List<string> Errors)> ImportRoastsFromCsvAsync(string filePath, Dictionary<string, string> columnMapping);
     Task<int> RemoveDuplicatesAsync();
     Task<List<RoastData>> GetAllRoastsAsync();

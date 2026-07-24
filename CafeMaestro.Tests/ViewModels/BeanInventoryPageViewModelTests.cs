@@ -195,8 +195,6 @@ public class BeanInventoryPageViewModelTests
     {
         var appDataService = new Mock<IAppDataService>();
         appDataService.SetupGet(service => service.DataFilePath).Returns(@"C:\data\cafemaestro_data.json");
-        appDataService.Setup(service => service.SetCustomFilePathAsync(It.IsAny<string>()))
-            .ReturnsAsync(new AppData { Beans = [], RoastLogs = [] });
         return appDataService;
     }
 }

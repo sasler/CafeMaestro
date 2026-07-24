@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
@@ -178,40 +178,53 @@ namespace CafeMaestro.Services
             return allData.FindAll(r => r.BeanType.Contains(beanType, StringComparison.OrdinalIgnoreCase));
         }
 
-        public async Task ExportRoastLogAsync(string filePath)
+        public async Task ExportRoastLogAsync(
+            Stream destination,
+            CancellationToken cancellationToken = default)
         {
-            try
+            ArgumentNullException.ThrowIfNull(destination);
+            if (!destination.CanWrite)
             {
-                var allData = await LoadRoastDataAsync();
-                var csv = new System.Text.StringBuilder();
-
-                // Add header
-                csv.AppendLine("Date,Bean Type,Temperature,Batch Weight,Final Weight,Weight Loss %,Roast Time,Roast Level,Notes");
-
-                // Add data rows
-                foreach (var roast in allData)
-                {
-                    csv.AppendLine($"{roast.RoastDate:yyyy-MM-dd HH:mm}," +
-                                  $"\"{roast.BeanType}\"," +
-                                  $"{roast.Temperature}," +
-                                  $"{roast.BatchWeight}," +
-                                  $"{roast.FinalWeight}," +
-                                  $"{(roast.HasFinalWeight ? roast.WeightLossPercentage.ToString("F1") : "Pending")}," +
-                                  $"{roast.FormattedTime}," +
-                                  $"{roast.RoastLevelName}," +
-                                  $"\"{roast.Notes}\"");
-                }
-
-                // Write to file
-                await File.WriteAllTextAsync(filePath, csv.ToString());
+                throw new ArgumentException("The destination stream must be writable.", nameof(destination));
             }
-            catch (Exception ex)
+
+            List<RoastData> allData = await LoadRoastDataAsync();
+            await using var writer = new StreamWriter(
+                destination,
+                new System.Text.UTF8Encoding(encoderShouldEmitUTF8Identifier: false),
+                1024,
+                leaveOpen: true);
+            await writer.WriteLineAsync(
+                "Date,Bean Type,Temperature,Batch Weight,Final Weight,Weight Loss %,Roast Time,Roast Level,Notes");
+
+            foreach (RoastData roast in allData)
             {
-                System.Diagnostics.Debug.WriteLine($"Error exporting roast log: {ex.Message}");
-                throw;
+                cancellationToken.ThrowIfCancellationRequested();
+                string weightLoss = roast.HasFinalWeight
+                    ? roast.WeightLossPercentage.ToString("F1", System.Globalization.CultureInfo.InvariantCulture)
+                    : "Pending";
+                string line = string.Join(
+                    ",",
+                    roast.RoastDate.ToString("yyyy-MM-dd HH:mm", System.Globalization.CultureInfo.InvariantCulture),
+                    EscapeCsv(roast.BeanType),
+                    roast.Temperature.ToString(System.Globalization.CultureInfo.InvariantCulture),
+                    roast.BatchWeight.ToString(System.Globalization.CultureInfo.InvariantCulture),
+                    roast.FinalWeight.ToString(System.Globalization.CultureInfo.InvariantCulture),
+                    weightLoss,
+                    EscapeCsv(roast.FormattedTime),
+                    EscapeCsv(roast.RoastLevelName),
+                    EscapeCsv(roast.Notes));
+                await writer.WriteLineAsync(line);
             }
+
+            await writer.FlushAsync(cancellationToken);
         }
 
+        private static string EscapeCsv(string? value)
+        {
+            string safeValue = value ?? string.Empty;
+            return $"\"{safeValue.Replace("\"", "\"\"")}\"";
+        }
         // Import roasts from CSV file
         public async Task<(int Success, int Failed, List<string> Errors)> ImportRoastsFromCsvAsync(
             string filePath,

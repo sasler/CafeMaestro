@@ -28,66 +28,29 @@ public partial class LoadingPage : ContentPage
     {
         try
         {
-            await UpdateStatusAsync("Initializing services...");
-
-            string? savedFilePath = null;
-            bool isFirstRun = true;
-
-            savedFilePath = await _preferencesService.GetAppDataFilePathAsync();
-            isFirstRun = await _preferencesService.IsFirstRunAsync();
-
-            if (!string.IsNullOrEmpty(savedFilePath) && File.Exists(savedFilePath))
-            {
-                await UpdateStatusAsync($"Loading data from {Path.GetFileName(savedFilePath)}...");
-
-                await _appDataService.SetCustomFilePathAsync(savedFilePath);
-                await _appDataService.LoadAppDataAsync();
-
-                await Task.Delay(500);
-
-                await NavigateToAppShell(false);
-            }
-            else
-            {
-                await UpdateStatusAsync("Preparing first run experience...");
-
-                await Task.Delay(500);
-
-                await NavigateToAppShell(true);
-            }
+            await UpdateStatusAsync("Preparing your CafeMaestro data...");
+            await _appDataService.InitializeAsync(_preferencesService);
+            await NavigateToAppShell();
         }
         catch (Exception ex)
         {
             Debug.WriteLine($"LoadingPage: Error loading data - {ex.Message}");
-            await UpdateStatusAsync("Error loading data. Starting app anyway...");
-
-            await Task.Delay(1000);
-
-            await NavigateToAppShell(true);
+            await UpdateStatusAsync("Your data file needs attention. Opening CafeMaestro safely...");
+            await Task.Delay(750);
+            await NavigateToAppShell();
         }
     }
 
-    private async Task NavigateToAppShell(bool setFirstRunNeeded)
+    private async Task NavigateToAppShell()
     {
         await MainThread.InvokeOnMainThreadAsync(() =>
         {
-            var app = Application.Current as App;
-            if (app != null && setFirstRunNeeded)
+            if (Application.Current?.Windows.FirstOrDefault() is Window window)
             {
-                app.SetFirstRunNeeded(true);
-            }
-
-            if (Application.Current != null && Application.Current.Windows.Count > 0)
-            {
-                var window = Application.Current.Windows[0];
-                if (window != null)
-                {
-                    window.Page = _appShell;
-                }
+                window.Page = _appShell;
             }
         });
     }
-
     private async Task UpdateStatusAsync(string message)
     {
         await MainThread.InvokeOnMainThreadAsync(() =>

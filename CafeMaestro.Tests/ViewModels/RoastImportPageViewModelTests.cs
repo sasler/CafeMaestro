@@ -48,14 +48,15 @@ public class RoastImportPageViewModelTests
         const string filePath = @"C:\imports\roasts.csv";
         var csvParserService = new Mock<ICsvParserService>();
         csvParserService.Setup(service => service.GetCsvHeadersAsync(filePath))
-            .ReturnsAsync(["Date", "Coffee Bean"]);
+            .ReturnsAsync(["Date", "Coffee Bean", "Batch Weight"]);
         csvParserService.Setup(service => service.ReadCsvContentAsync(filePath, 5))
             .ReturnsAsync(
             [
                 new Dictionary<string, string>
                 {
                     ["Date"] = "2025-03-01",
-                    ["Coffee Bean"] = "Colombia"
+                    ["Coffee Bean"] = "Colombia",
+                    ["Batch Weight"] = "220"
                 }
             ]);
 
@@ -85,7 +86,8 @@ public class RoastImportPageViewModelTests
                 filePath,
                 It.Is<Dictionary<string, string>>(mapping =>
                     mapping["RoastDate"] == "Date" &&
-                    mapping["BeanType"] == "Coffee Bean")),
+                    mapping["BeanType"] == "Coffee Bean" &&
+                    mapping["BatchWeight"] == "Batch Weight")),
             Times.Once);
         alertService.Verify(
             service => service.ShowAlertAsync(
@@ -94,6 +96,58 @@ public class RoastImportPageViewModelTests
                 "OK"),
             Times.Once);
         navigationService.Verify(service => service.GoBackAsync(), Times.Once);
+    }
+
+    [Fact]
+    public async Task BrowseCommand_WithoutBatchWeightMapping_DisablesImport()
+    {
+        const string filePath = @"C:\imports\roasts.csv";
+        var csvParserService = new Mock<ICsvParserService>();
+        csvParserService.Setup(service => service.GetCsvHeadersAsync(filePath))
+            .ReturnsAsync(["Date", "Coffee Bean"]);
+        csvParserService.Setup(service => service.ReadCsvContentAsync(filePath, 5))
+            .ReturnsAsync(
+            [
+                new Dictionary<string, string>
+                {
+                    ["Date"] = "2025-03-01",
+                    ["Coffee Bean"] = "Colombia"
+                }
+            ]);
+        var viewModel = CreateViewModel(csvParserService: csvParserService);
+        viewModel.PickFileAsync = () => Task.FromResult<string?>(filePath);
+
+        await viewModel.BrowseCommand.ExecuteAsync(null);
+
+        viewModel.ColumnMappings.Single(mapping => mapping.PropertyKey == "BatchWeight")
+            .IsRequired.Should().BeTrue();
+        viewModel.CanImport.Should().BeFalse();
+        viewModel.ImportStatus.Should().Contain("Batch Weight");
+    }
+    [Fact]
+    public async Task BrowseCommand_WithInvalidBatchWeight_DisablesImport()
+    {
+        const string filePath = @"C:\imports\roasts.csv";
+        var csvParserService = new Mock<ICsvParserService>();
+        csvParserService.Setup(service => service.GetCsvHeadersAsync(filePath))
+            .ReturnsAsync(["Date", "Coffee Bean", "Batch Weight"]);
+        csvParserService.Setup(service => service.ReadCsvContentAsync(filePath, 5))
+            .ReturnsAsync(
+            [
+                new Dictionary<string, string>
+                {
+                    ["Date"] = "2025-03-01",
+                    ["Coffee Bean"] = "Colombia",
+                    ["Batch Weight"] = "not-a-weight"
+                }
+            ]);
+        var viewModel = CreateViewModel(csvParserService: csvParserService);
+        viewModel.PickFileAsync = () => Task.FromResult<string?>(filePath);
+
+        await viewModel.BrowseCommand.ExecuteAsync(null);
+
+        viewModel.CanImport.Should().BeFalse();
+        viewModel.ImportStatus.Should().Contain("No valid roast rows");
     }
 
     [Fact]
