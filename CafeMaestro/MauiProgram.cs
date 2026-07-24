@@ -10,42 +10,49 @@ namespace CafeMaestro;
 
 public static class MauiProgram
 {
-	public static MauiApp CreateMauiApp()
-	{
-		var builder = MauiApp.CreateBuilder();
-		builder
-			.UseMauiApp<App>()
-			.UseMauiCommunityToolkit()
-			.ConfigureFonts(fonts =>
-			{
-				fonts.AddFont("OpenSans-Regular.ttf", "OpenSansRegular");
-				fonts.AddFont("OpenSans-Semibold.ttf", "OpenSansSemibold");
-				fonts.AddFont("digital-7-mono.ttf", "Digital7");
-			})
-			.ConfigureEssentials(essentials =>
-			{
-				essentials.UseVersionTracking();
-			});
+    public static MauiApp CreateMauiApp()
+    {
+        var builder = MauiApp.CreateBuilder();
+        builder
+            .UseMauiApp<App>()
+            .UseMauiCommunityToolkit()
+            .ConfigureFonts(fonts =>
+            {
+                fonts.AddFont("OpenSans-Regular.ttf", "OpenSansRegular");
+                fonts.AddFont("OpenSans-Semibold.ttf", "OpenSansSemibold");
+                fonts.AddFont("digital-7-mono.ttf", "Digital7");
+            })
+            .ConfigureEssentials(essentials =>
+            {
+                essentials.UseVersionTracking();
+            });
 
-		// Register services
-		builder.Services.AddSingleton<IAppDataService, AppDataService>();
-		builder.Services.AddSingleton<ICsvParserService, CsvParserService>();
-		builder.Services.AddSingleton<IRoastDataService, RoastDataService>();
-		builder.Services.AddSingleton<IBeanDataService, BeanDataService>();
-		builder.Services.AddSingleton<ITimerService, TimerService>();
-		builder.Services.AddSingleton<IPreferencesService, PreferencesService>();
-		builder.Services.AddSingleton<IRoastLevelService, RoastLevelService>();
-		builder.Services.AddSingleton<INavigationService, NavigationService>();
-		builder.Services.AddSingleton<IAlertService, AlertService>();
-		builder.Services.AddSingleton<IShareService, ShareService>();
-		builder.Services.AddSingleton<IFileSaver>(FileSaver.Default);
-		builder.Services.AddSingleton<IFolderPicker>(FolderPicker.Default);
+        // Register services
+        builder.Services.AddSingleton<IAppDataService, ManagedAppDataService>();
+        builder.Services.AddSingleton<ICsvParserService, CsvParserService>();
+        builder.Services.AddSingleton<IRoastDataService, RoastDataService>();
+        builder.Services.AddSingleton<IBeanDataService, BeanDataService>();
+        builder.Services.AddSingleton<ITimerService, TimerService>();
+        builder.Services.AddSingleton<IPreferencesService, PreferencesService>();
+        builder.Services.AddSingleton<IRoastLevelService, RoastLevelService>();
+        builder.Services.AddSingleton<INavigationService, NavigationService>();
+        builder.Services.AddSingleton<IAlertService, AlertService>();
+        builder.Services.AddSingleton<IShareService, ShareService>();
+        builder.Services.AddSingleton<IFileSaver>(FileSaver.Default);
+        builder.Services.AddSingleton<Microsoft.Maui.Storage.IFilePicker>(Microsoft.Maui.Storage.FilePicker.Default);
+#if ANDROID
+        builder.Services.AddSingleton<IDocumentSaveService, AndroidDocumentSaveService>();
+#else
+        builder.Services.AddSingleton<IDocumentSaveService, ToolkitDocumentSaveService>();
+#endif
+        builder.Services.AddSingleton<IUserFileService, UserFileService>();
+        builder.Services.AddSingleton<IDataBackupService, DataBackupService>();
 
         // Register Pages for DI - changing to transient to avoid state retention
         builder.Services.AddTransient<AppShell>();
         builder.Services.AddTransient<LoadingPage>();
         builder.Services.AddTransient<MainPageViewModel>();
-        builder.Services.AddTransient<SettingsPageViewModel>();
+        builder.Services.AddTransient<DataSettingsPageViewModel>();
         builder.Services.AddTransient<RoastPageViewModel>();
         builder.Services.AddTransient<BeanInventoryPageViewModel>();
         builder.Services.AddTransient<BeanEditPageViewModel>();
@@ -62,9 +69,9 @@ public static class MauiProgram
         builder.Services.AddTransient<SettingsPage>();
 
 #if DEBUG
-		builder.Logging.AddDebug();
+        builder.Logging.AddDebug();
 #endif
 
-		return builder.Build();
-	}
+        return builder.Build();
+    }
 }

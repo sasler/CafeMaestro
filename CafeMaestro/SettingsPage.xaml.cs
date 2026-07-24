@@ -1,19 +1,12 @@
 using CafeMaestro.ViewModels;
-using CommunityToolkit.Mvvm.Messaging;
-using CommunityToolkit.Mvvm.Messaging.Messages;
 
 namespace CafeMaestro;
 
-public partial class SettingsPage : ContentPage,
-    IRecipient<SettingsAlertMessage>,
-    IRecipient<PickDataFileRequestMessage>,
-    IRecipient<SettingsActionSheetRequestMessage>,
-    IRecipient<SettingsConfirmationRequestMessage>
+public partial class SettingsPage : ContentPage
 {
-    private readonly SettingsPageViewModel _viewModel;
-    private bool _isMessengerRegistered;
+    private readonly DataSettingsPageViewModel _viewModel;
 
-    public SettingsPage(SettingsPageViewModel viewModel)
+    public SettingsPage(DataSettingsPageViewModel viewModel)
     {
         InitializeComponent();
         _viewModel = viewModel ?? throw new ArgumentNullException(nameof(viewModel));
@@ -23,7 +16,6 @@ public partial class SettingsPage : ContentPage,
     protected override async void OnAppearing()
     {
         base.OnAppearing();
-        RegisterMessenger();
         await _viewModel.OnAppearingAsync();
 
         if (_viewModel.ShouldHighlightDataFileSection)
@@ -35,29 +27,8 @@ public partial class SettingsPage : ContentPage,
 
     protected override void OnDisappearing()
     {
-        UnregisterMessenger();
         _viewModel.OnDisappearing();
         base.OnDisappearing();
-    }
-
-    public void Receive(SettingsAlertMessage message)
-    {
-        _ = DisplayAlertAsync(message.Value.Title, message.Value.Message, message.Value.Cancel);
-    }
-
-    public void Receive(PickDataFileRequestMessage message)
-    {
-        _ = HandlePickDataFileRequestAsync(message);
-    }
-
-    public void Receive(SettingsActionSheetRequestMessage message)
-    {
-        _ = HandleActionSheetRequestAsync(message);
-    }
-
-    public void Receive(SettingsConfirmationRequestMessage message)
-    {
-        _ = HandleConfirmationRequestAsync(message);
     }
 
     protected override bool OnBackButtonPressed()
@@ -66,85 +37,17 @@ public partial class SettingsPage : ContentPage,
         return true;
     }
 
-    private void RegisterMessenger()
-    {
-        if (_isMessengerRegistered)
-        {
-            return;
-        }
-
-        WeakReferenceMessenger.Default.RegisterAll(this);
-        _isMessengerRegistered = true;
-    }
-
-    private void UnregisterMessenger()
-    {
-        if (!_isMessengerRegistered)
-        {
-            return;
-        }
-
-        WeakReferenceMessenger.Default.UnregisterAll(this);
-        _isMessengerRegistered = false;
-    }
-
     private async Task HighlightDataFileSectionAsync()
     {
-        if (DataFileSection == null)
-        {
-            return;
-        }
-
-        var dataFileSection = DataFileSection;
-        var originalColor = dataFileSection.BackgroundColor;
-        dataFileSection.BackgroundColor = GetResourceColor("HighlightColor", originalColor);
-        dataFileSection.Scale = 0.97;
-        await dataFileSection.FadeToAsync(0.85, 250);
-        await dataFileSection.FadeToAsync(1, 250);
-        await dataFileSection.ScaleToAsync(1.02, 150);
-        await dataFileSection.ScaleToAsync(1.0, 150);
+        var originalColor = DataFileSection.BackgroundColor;
+        DataFileSection.BackgroundColor = GetResourceColor("HighlightColor", originalColor);
+        DataFileSection.Scale = 0.97;
+        await DataFileSection.FadeToAsync(0.85, 250);
+        await DataFileSection.FadeToAsync(1, 250);
+        await DataFileSection.ScaleToAsync(1.02, 150);
+        await DataFileSection.ScaleToAsync(1.0, 150);
         await Task.Delay(500);
-        dataFileSection.BackgroundColor = originalColor;
-    }
-
-    private async Task HandlePickDataFileRequestAsync(PickDataFileRequestMessage message)
-    {
-        try
-        {
-            var customFileType = new FilePickerFileType(
-                new Dictionary<DevicePlatform, IEnumerable<string>>
-                {
-                    { DevicePlatform.WinUI, [".json"] },
-                    { DevicePlatform.Android, ["application/json"] },
-                    { DevicePlatform.iOS, ["public.json"] },
-                    { DevicePlatform.MacCatalyst, ["public.json"] }
-                });
-
-            var options = new PickOptions
-            {
-                PickerTitle = message.PickerTitle,
-                FileTypes = customFileType
-            };
-
-            var result = await FilePicker.PickAsync(options);
-            message.Reply(result?.FullPath);
-        }
-        catch
-        {
-            message.Reply((string?)null);
-        }
-    }
-
-    private async Task HandleActionSheetRequestAsync(SettingsActionSheetRequestMessage message)
-    {
-        string? result = await DisplayActionSheetAsync(message.Title, message.Cancel, null, message.Buttons.ToArray());
-        message.Reply(result);
-    }
-
-    private async Task HandleConfirmationRequestAsync(SettingsConfirmationRequestMessage message)
-    {
-        bool confirm = await DisplayAlertAsync(message.Title, message.Message, message.Accept, message.Cancel);
-        message.Reply(confirm);
+        DataFileSection.BackgroundColor = originalColor;
     }
 
     private static Color GetResourceColor(string key, Color fallback)

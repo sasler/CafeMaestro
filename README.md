@@ -20,9 +20,9 @@ CafeMaestro is a comprehensive tool designed for coffee enthusiasts and professi
 - **First Crack Tracking**: Mark the exact moment of first crack for development time analysis.
 - **Roast Level Analysis**: Automatic classification of roast levels based on weight loss percentage.
 - **Custom Roast Levels**: Define and customize your own roast levels based on weight loss percentages.
-- **Data Import/Export**: Import and export bean and roast data via CSV for backup and analysis.
+- **CSV Transfer**: Import bean and roast records, then save or share roast-log CSV files through the system document UI.
 - **Theme Support**: Choose between light, dark, or system theme preferences.
-- **Custom Data Storage**: Select where your data file is stored or use the default location.
+- **Automatic Data Safety**: Keep the live dataset private inside CafeMaestro, export validated backups, and recover from the five newest automatic safety copies.
 - **Cross-Platform**: Built with .NET MAUI for Android and Windows (iOS/macOS supported by framework).
 
 ## Getting Started
@@ -102,7 +102,7 @@ All services are registered via DI in `MauiProgram.cs` using interface-based sin
 
 | Service | Interface | Responsibility |
 |---------|-----------|----------------|
-| AppDataService | IAppDataService | JSON data persistence, file management |
+| ManagedAppDataService | IAppDataService | Private canonical JSON persistence with transactional saves and legacy migration |
 | BeanDataService | IBeanDataService | Bean CRUD operations, CSV import |
 | RoastDataService | IRoastDataService | Roast CRUD, CSV import/export |
 | RoastLevelService | IRoastLevelService | Roast level classification |
@@ -111,6 +111,8 @@ All services are registered via DI in `MauiProgram.cs` using interface-based sin
 | NavigationService | INavigationService | Centralized Shell navigation |
 | AlertService | IAlertService | ViewModel-driven dialog alerts |
 | CsvParserService | ICsvParserService | Shared CSV file parsing |
+| UserFileService | IUserFileService | Stream-based document selection, temporary import caching, and Save As |
+| DataBackupService | IDataBackupService | Backup preview, validation, restore, export, and safety history |
 
 ## Usage
 
@@ -142,6 +144,14 @@ The Roast Log section allows you to:
 - Filter and search by bean type
 - Edit or delete existing roast records
 - Export roast data to CSV
+
+### Data and Backups
+
+CafeMaestro saves the working dataset automatically in private app storage. In Settings you can:
+- Start a new dataset only after confirmation and an automatic recovery copy
+- Save, restore, or share JSON backup copies without modifying selected source files
+- Restore one of the five most recent automatic safety backups
+- Import coffee beans or roast logs from CSV, and save or share roast-log CSV exports
 
 ## Contributing
 

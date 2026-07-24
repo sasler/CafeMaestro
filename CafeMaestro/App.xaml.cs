@@ -1,4 +1,3 @@
-﻿using CafeMaestro.Navigation;
 using CafeMaestro.Services;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Maui.ApplicationModel;
@@ -9,22 +8,18 @@ public partial class App : Application
 {
     private readonly IAppDataService _appDataService;
     private readonly IPreferencesService _preferencesService;
-    private readonly INavigationService _navigationService;
     private readonly IServiceProvider _serviceProvider;
     private Models.AppData? _appData; // Make nullable to fix constructor error
 
-    // Flag to track if first run setup is needed (to avoid firing it multiple times)
-    private bool _firstRunSetupNeeded = false;
 
     // The initial page for the primary window
     private readonly Page _initialPage;
 
-    public App(IAppDataService appDataService, IPreferencesService preferencesService, INavigationService navigationService, IServiceProvider serviceProvider)
+    public App(IAppDataService appDataService, IPreferencesService preferencesService, IServiceProvider serviceProvider)
     {
         InitializeComponent();
         _appDataService = appDataService ?? throw new ArgumentNullException(nameof(appDataService));
         _preferencesService = preferencesService ?? throw new ArgumentNullException(nameof(preferencesService));
-        _navigationService = navigationService ?? throw new ArgumentNullException(nameof(navigationService));
         _serviceProvider = serviceProvider ?? throw new ArgumentNullException(nameof(serviceProvider));
         Resources["ServiceProvider"] = _serviceProvider;
 
@@ -38,12 +33,6 @@ public partial class App : Application
         LoadThemePreference();
     }
 
-    // Method to set first run flag from LoadingPage
-    public void SetFirstRunNeeded(bool needed)
-    {
-        _firstRunSetupNeeded = needed;
-    }
-
     // Handle data changes
     private void OnAppDataChanged(object? sender, Models.AppData appData)
     {
@@ -54,27 +43,7 @@ public partial class App : Application
     {
         try
         {
-            // Create a window with the initial page that was prepared in the constructor
-            var window = new Window(_initialPage);
-
-            // Subscribe to window created event to show first run dialog if needed
-            window.Created += (s, e) =>
-            {
-                // If current Page is AppShell and first run is needed, show dialog
-                if (_firstRunSetupNeeded && window.Page is AppShell)
-                {
-                    // Show first run setup dialog after a short delay to ensure UI is ready
-                    Task.Delay(500).ContinueWith(async _ =>
-                    {
-                        await MainThread.InvokeOnMainThreadAsync(async () =>
-                        {
-                            await ShowFirstRunSetupAsync();
-                        });
-                    });
-                }
-            };
-
-            return window;
+            return new Window(_initialPage);
         }
         catch (Exception ex)
         {
@@ -82,7 +51,6 @@ public partial class App : Application
             return new Window(CreateLoadingPage());
         }
     }
-
     private LoadingPage CreateLoadingPage()
     {
         return new LoadingPage(_appDataService, _preferencesService, _serviceProvider.GetRequiredService<AppShell>());
@@ -120,146 +88,6 @@ public partial class App : Application
             UserAppTheme = Microsoft.Maui.ApplicationModel.AppTheme.Unspecified;
             SetTheme("System");
         }
-    }
-
-    private async Task InitializeAppDataAsync()
-    {
-        try
-        {
-            // First check if this is the app's first run
-            bool isFirstRun = await _preferencesService.IsFirstRunAsync();
-
-            // Check if user has a saved file path preference
-            string? savedFilePath = await _preferencesService.GetAppDataFilePathAsync();
-
-            // If it's the first run or there's no saved path, we need to prompt the user
-            if (isFirstRun || string.IsNullOrEmpty(savedFilePath))
-            {
-                _firstRunSetupNeeded = true;
-                // Create empty data just for UI initialization
-                _appData = new Models.AppData
-                {
-                    Beans = new List<Models.BeanData>(),
-                    RoastLogs = new List<Models.RoastData>()
-                };
-                return;
-            }
-
-            // We have a saved file path, verify it exists
-            if (File.Exists(savedFilePath))
-            {
-                // Load data from the user-defined path
-                await _appDataService.SetCustomFilePathAsync(savedFilePath);
-                _appData = await _appDataService.LoadAppDataAsync();
-            }
-            else
-            {
-                // File doesn't exist anymore, need to prompt user again
-                _firstRunSetupNeeded = true;
-                // Create empty data just for UI initialization
-                _appData = new Models.AppData
-                {
-                    Beans = new List<Models.BeanData>(),
-                    RoastLogs = new List<Models.RoastData>()
-                };
-                // Clear the invalid path
-                await _preferencesService.ClearAppDataFilePathAsync();
-            }
-
-        }
-        catch (Exception ex)
-        {
-            System.Diagnostics.Debug.WriteLine($"Error initializing app data: {ex.Message}");
-            // Something went wrong, we need to prompt the user
-            _firstRunSetupNeeded = true;
-            // Create empty data just for UI initialization
-            _appData = new Models.AppData
-            {
-                Beans = new List<Models.BeanData>(),
-                RoastLogs = new List<Models.RoastData>()
-            };
-        }
-    }
-
-    // Show first run setup dialog to configure data file
-    private async Task ShowFirstRunSetupAsync()
-    {
-        try
-        {
-            // Execute on main thread because it's a UI operation
-            await MainThread.InvokeOnMainThreadAsync(async () =>
-            {
-                Page currentPage = GetActivePage();
-
-                bool useDefault = await currentPage.DisplayAlertAsync(
-                    "Welcome to CafeMaestro!",
-                    "Would you like to store your coffee roasting data in the default application folder, or choose a custom location?",
-                    "Use Default", "Choose Custom Location");
-
-                if (useDefault)
-                {
-                    // User chose default path
-                    // Create a default file path in Documents folder
-                    string documentsPath = Environment.GetFolderPath(Environment.SpecialFolder.MyDocuments);
-                    string defaultFilePath = Path.Combine(documentsPath, "CafeMaestro", "cafemaestro_data.json");
-
-                    // Ensure directory exists
-                    string? directoryPath = Path.GetDirectoryName(defaultFilePath);
-                    if (!string.IsNullOrEmpty(directoryPath))
-                    {
-                        Directory.CreateDirectory(directoryPath);
-                    }
-                    else
-                    {
-                        throw new InvalidOperationException("Could not determine directory path for default data file");
-                    }
-
-                    // Create the file and save
-                    _appData = await _appDataService.CreateEmptyDataFileAsync(defaultFilePath);
-
-                    // Save this path in preferences
-                    await _preferencesService.SaveAppDataFilePathAsync(defaultFilePath);
-
-                    // Mark first run as completed
-                    await _preferencesService.SetFirstRunCompletedAsync();
-                    _firstRunSetupNeeded = false;
-
-                    // Notify user
-                    await currentPage.DisplayAlertAsync(
-                        "Data File Created",
-                        $"Your coffee data will be stored at:\n{defaultFilePath}",
-                        "OK");
-                }
-                else
-                {
-                    // Navigate to settings page to choose location
-                    await _navigationService.GoToAsync(Routes.Settings);
-
-                    // Display prompt about creating a data file
-                    await currentPage.DisplayAlertAsync(
-                        "Select Data Location",
-                        "Please use the options below to select an existing data file or create a new one in your preferred location.",
-                        "OK");
-                }
-            });
-        }
-        catch (Exception ex)
-        {
-            System.Diagnostics.Debug.WriteLine($"Error showing first run setup: {ex.Message}");
-            // If there's an error, try again on next app launch
-            await _preferencesService.ClearAppDataFilePathAsync();
-        }
-    }
-
-    private Page GetActivePage()
-    {
-        Page page = Windows.FirstOrDefault()?.Page ?? _initialPage;
-
-        return page switch
-        {
-            NavigationPage navigationPage when navigationPage.CurrentPage != null => navigationPage.CurrentPage,
-            _ => page
-        };
     }
 
     public void SetTheme(string theme)

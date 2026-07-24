@@ -2,9 +2,10 @@
 <ContentPage xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
              xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
              xmlns:vm="clr-namespace:CafeMaestro.ViewModels"
+             xmlns:services="clr-namespace:CafeMaestro.Services"
              x:Class="CafeMaestro.SettingsPage"
              x:Name="RootPage"
-             x:DataType="vm:SettingsPageViewModel"
+             x:DataType="vm:DataSettingsPageViewModel"
              BackgroundColor="{DynamicResource PageBackgroundColor}"
              Title="Settings">
        <ContentPage.Resources>
@@ -61,8 +62,7 @@
                                                  Spacing="15"
                                                  BackgroundColor="{DynamicResource PageBackgroundColor}"
                                                  Margin="0,10,0,0">
-
-                                   <!-- Data File Section -->
+                                   <!-- Data and Backups Section -->
                                    <Border x:Name="DataFileSection"
                                            Stroke="{DynamicResource BorderColor}"
                                            BackgroundColor="{DynamicResource PageBackgroundColor}"
@@ -74,81 +74,196 @@
                                                          Radius="4"
                                                          Opacity="0.2"/>
                                           </Border.Shadow>
-                                          <VerticalStackLayout Spacing="16"
-                                                               Padding="16,10">
-                                                 <Label Text="Data File"
-                                                        FontSize="18"
+                                          <VerticalStackLayout Spacing="16" Padding="16">
+                                                 <Grid ColumnDefinitions="*,Auto">
+                                                        <VerticalStackLayout Spacing="3">
+                                                               <Label Text="Data &amp; Backups"
+                                                                      FontSize="20"
+                                                                      FontAttributes="Bold"
+                                                                      TextColor="{DynamicResource PrimaryTextColor}"/>
+                                                               <Label Text="Your working data stays private inside CafeMaestro."
+                                                                      FontSize="14"
+                                                                      TextColor="{DynamicResource SecondaryTextColor}"/>
+                                                        </VerticalStackLayout>
+                                                        <ActivityIndicator Grid.Column="1"
+                                                                           IsRunning="{Binding IsDataOperationInProgress}"
+                                                                           IsVisible="{Binding IsDataOperationInProgress}"
+                                                                           Color="{DynamicResource PrimaryColor}"
+                                                                           VerticalOptions="Center"/>
+                                                 </Grid>
+
+                                                 <Border BackgroundColor="{DynamicResource CardBackgroundColor}"
+                                                         Stroke="{DynamicResource BorderColor}"
+                                                         StrokeThickness="1"
+                                                         StrokeShape="RoundRectangle 10"
+                                                         Padding="12">
+                                                        <Grid ColumnDefinitions="Auto,*" ColumnSpacing="12">
+                                                               <Image Source="save_icon.png"
+                                                                      HeightRequest="34"
+                                                                      WidthRequest="34"
+                                                                      VerticalOptions="Center"
+                                                                      SemanticProperties.Description="Automatic save status"/>
+                                                               <VerticalStackLayout Grid.Column="1" Spacing="2">
+                                                                      <Label Text="{Binding DataStatusDisplay}"
+                                                                             FontAttributes="Bold"
+                                                                             TextColor="{DynamicResource SuccessColor}"/>
+                                                                      <Label Text="{Binding DataSummaryDisplay}"
+                                                                             TextColor="{DynamicResource PrimaryTextColor}"/>
+                                                                      <Label Text="{Binding LastModifiedDisplay}"
+                                                                             FontSize="13"
+                                                                             TextColor="{DynamicResource SecondaryTextColor}"/>
+                                                               </VerticalStackLayout>
+                                                        </Grid>
+                                                 </Border>
+
+                                                 <Label Text="Current Data"
+                                                        FontSize="16"
                                                         FontAttributes="Bold"
                                                         TextColor="{DynamicResource PrimaryTextColor}"/>
-
-                                                 <Label Text="{Binding DataFilePath}"
-                                                         FontSize="14"
-                                                         LineBreakMode="CharacterWrap"
-                                                         TextColor="{DynamicResource PrimaryTextColor}"/>
-
-                                                 <HorizontalStackLayout Spacing="10"
-                                                                        HorizontalOptions="Center">
-                                                         <ImageButton Source="new_icon.png"
-                                                                     Command="{Binding CreateNewDataFileCommand}"
-                                                                     BackgroundColor="{DynamicResource PrimaryColor}"
-                                                                     WidthRequest="50"
-                                                                     HeightRequest="50"
-                                                                     Padding="5"
-                                                                     CornerRadius="25"/>
-
-                                                         <ImageButton Source="load_icon.png"
-                                                                     Command="{Binding ChooseExistingDataFileCommand}"
-                                                                     BackgroundColor="{DynamicResource SuccessColor}"
-                                                                     WidthRequest="50"
-                                                                     HeightRequest="50"
-                                                                     Padding="5"
-                                                                     CornerRadius="25"/>
-
-                                                         <ImageButton Source="export_icon.png"
-                                                                     Command="{Binding ExportCommand}"
-                                                                     BackgroundColor="{DynamicResource SecondaryColor}"
-                                                                     WidthRequest="50"
-                                                                     HeightRequest="50"
-                                                                     Padding="5"
-                                                                     CornerRadius="25"/>
-
-                                                         <ImageButton Source="import_icon.png"
-                                                                     Command="{Binding ImportCommand}"
-                                                                     BackgroundColor="{DynamicResource TertiaryColor}"
-                                                                     WidthRequest="50"
-                                                                     HeightRequest="50"
-                                                                     Padding="5"
-                                                                     CornerRadius="25"/>
-                                                 </HorizontalStackLayout>
-
-                                                 <HorizontalStackLayout Spacing="10"
-                                                                        HorizontalOptions="Center">
-                                                         <Button Text="Share Data File"
-                                                                 Command="{Binding ShareDataFileCommand}"
-                                                                 BackgroundColor="{DynamicResource SecondaryColor}"
-                                                                 TextColor="{DynamicResource ButtonTextColor}"
-                                                                 HeightRequest="48"
-                                                                 CornerRadius="24"
-                                                                 HorizontalOptions="FillAndExpand"/>
-
-                                                         <Button Text="Share Roast Log"
-                                                                 Command="{Binding ShareRoastLogCsvCommand}"
-                                                                 BackgroundColor="{DynamicResource SecondaryColor}"
-                                                                 TextColor="{DynamicResource ButtonTextColor}"
-                                                                 HeightRequest="48"
-                                                                 CornerRadius="24"
-                                                                 HorizontalOptions="FillAndExpand"/>
-                                                 </HorizontalStackLayout>
-
-                                                 <Button Text="Use Default Location"
-                                                         Command="{Binding UseDefaultDataFileCommand}"
+                                                 <Label Text="Start fresh only after CafeMaestro saves an automatic recovery copy."
+                                                        FontSize="13"
+                                                        TextColor="{DynamicResource SecondaryTextColor}"/>
+                                                 <Button Text="Start New Data"
+                                                         Command="{Binding StartNewDataCommand}"
+                                                         IsEnabled="{Binding CanRunDataOperation}"
                                                          BackgroundColor="{DynamicResource AccentColor}"
                                                          TextColor="{DynamicResource ButtonTextColor}"
-                                                         HeightRequest="48"
-                                                         CornerRadius="24"
-                                                         HorizontalOptions="Fill"/>
-                                         </VerticalStackLayout>
-                                  </Border>
+                                                         MinimumHeightRequest="48"
+                                                         CornerRadius="12"
+                                                         SemanticProperties.Description="Start a new empty dataset after confirmation and automatic backup"/>
+
+                                                 <BoxView HeightRequest="1" BackgroundColor="{DynamicResource SeparatorColor}"/>
+
+                                                 <Label Text="Backups"
+                                                        FontSize="16"
+                                                        FontAttributes="Bold"
+                                                        TextColor="{DynamicResource PrimaryTextColor}"/>
+                                                 <Label Text="Saving creates a copy. Restoring validates and copies a backup; the selected source is never changed."
+                                                        FontSize="13"
+                                                        TextColor="{DynamicResource SecondaryTextColor}"/>
+                                                 <Grid ColumnDefinitions="*,*" RowDefinitions="Auto,Auto" ColumnSpacing="10" RowSpacing="10">
+                                                        <Button Grid.Row="0" Grid.Column="0"
+                                                                Text="Save Backup"
+                                                                Command="{Binding SaveBackupCommand}"
+                                                                IsEnabled="{Binding CanRunDataOperation}"
+                                                                BackgroundColor="{DynamicResource PrimaryColor}"
+                                                                TextColor="{DynamicResource ButtonTextColor}"
+                                                                MinimumHeightRequest="48"
+                                                                CornerRadius="12"
+                                                                SemanticProperties.Description="Save a JSON backup copy"/>
+                                                        <Button Grid.Row="0" Grid.Column="1"
+                                                                Text="Restore from Backup"
+                                                                Command="{Binding RestoreFromBackupCommand}"
+                                                                IsEnabled="{Binding CanRunDataOperation}"
+                                                                BackgroundColor="{DynamicResource SecondaryColor}"
+                                                                TextColor="{DynamicResource ButtonTextColor}"
+                                                                MinimumHeightRequest="48"
+                                                                CornerRadius="12"
+                                                                SemanticProperties.Description="Validate and restore a JSON backup without modifying the selected file"/>
+                                                        <Button Grid.Row="1" Grid.Column="0" Grid.ColumnSpan="2"
+                                                                Text="Share Backup"
+                                                                Command="{Binding ShareBackupCommand}"
+                                                                IsEnabled="{Binding CanRunDataOperation}"
+                                                                BackgroundColor="{DynamicResource TertiaryColor}"
+                                                                TextColor="{DynamicResource ButtonTextColor}"
+                                                                MinimumHeightRequest="48"
+                                                                CornerRadius="12"
+                                                                SemanticProperties.Description="Share a copy of the current CafeMaestro data"/>
+                                                 </Grid>
+
+                                                 <VerticalStackLayout IsVisible="{Binding HasAutomaticBackups}" Spacing="8">
+                                                        <Label Text="Automatic Backups"
+                                                               FontSize="15"
+                                                               FontAttributes="Bold"
+                                                               TextColor="{DynamicResource PrimaryTextColor}"/>
+                                                        <Label Text="The five most recent recovery copies are kept on this device."
+                                                               FontSize="13"
+                                                               TextColor="{DynamicResource SecondaryTextColor}"/>
+                                                        <VerticalStackLayout BindableLayout.ItemsSource="{Binding AutomaticBackups}" Spacing="8">
+                                                               <BindableLayout.ItemTemplate>
+                                                                      <DataTemplate x:DataType="services:DataBackupSummary">
+                                                                             <Border BackgroundColor="{DynamicResource CardBackgroundColor}"
+                                                                                     Stroke="{DynamicResource BorderColor}"
+                                                                                     StrokeShape="RoundRectangle 8"
+                                                                                     Padding="10">
+                                                                                    <Grid ColumnDefinitions="*,Auto" ColumnSpacing="10">
+                                                                                           <VerticalStackLayout Spacing="2">
+                                                                                                  <Label Text="{Binding CreatedAt, StringFormat='{}{0:g}'}"
+                                                                                                         FontAttributes="Bold"
+                                                                                                         TextColor="{DynamicResource PrimaryTextColor}"/>
+                                                                                                  <Label Text="{Binding BeanCount, StringFormat='Beans: {0}'}"
+                                                                                                         FontSize="13"
+                                                                                                         TextColor="{DynamicResource SecondaryTextColor}"/>
+                                                                                                  <Label Text="{Binding RoastCount, StringFormat='Roasts: {0}'}"
+                                                                                                         FontSize="13"
+                                                                                                         TextColor="{DynamicResource SecondaryTextColor}"/>
+                                                                                           </VerticalStackLayout>
+                                                                                           <Button Grid.Column="1"
+                                                                                                   Text="Restore"
+                                                                                                   Command="{Binding Source={x:Reference RootPage}, Path=BindingContext.RestoreSafetyBackupCommand}"
+                                                                                                   CommandParameter="{Binding .}"
+                                                                                                   BackgroundColor="{DynamicResource SecondaryColor}"
+                                                                                                   TextColor="{DynamicResource ButtonTextColor}"
+                                                                                                   MinimumHeightRequest="48"
+                                                                                                   CornerRadius="12"
+                                                                                                   SemanticProperties.Description="Restore this automatic backup"/>
+                                                                                    </Grid>
+                                                                             </Border>
+                                                                      </DataTemplate>
+                                                               </BindableLayout.ItemTemplate>
+                                                        </VerticalStackLayout>
+                                                 </VerticalStackLayout>
+
+                                                 <BoxView HeightRequest="1" BackgroundColor="{DynamicResource SeparatorColor}"/>
+
+                                                 <Label Text="CSV Transfer"
+                                                        FontSize="16"
+                                                        FontAttributes="Bold"
+                                                        TextColor="{DynamicResource PrimaryTextColor}"/>
+                                                 <Label Text="Import selected records or export a roast-log spreadsheet without replacing your CafeMaestro backup."
+                                                        FontSize="13"
+                                                        TextColor="{DynamicResource SecondaryTextColor}"/>
+                                                 <Grid ColumnDefinitions="*,*" RowDefinitions="Auto,Auto" ColumnSpacing="10" RowSpacing="10">
+                                                        <Button Grid.Row="0" Grid.Column="0"
+                                                                Text="Import Coffee Beans"
+                                                                Command="{Binding ImportCoffeeBeansCommand}"
+                                                                IsEnabled="{Binding CanRunDataOperation}"
+                                                                SemanticProperties.Description="Open the coffee bean CSV import screen"
+                                                                BackgroundColor="{DynamicResource SecondaryColor}"
+                                                                TextColor="{DynamicResource ButtonTextColor}"
+                                                                MinimumHeightRequest="48"
+                                                                CornerRadius="12"/>
+                                                        <Button Grid.Row="0" Grid.Column="1"
+                                                                Text="Import Roast Logs"
+                                                                Command="{Binding ImportRoastLogsCommand}"
+                                                                IsEnabled="{Binding CanRunDataOperation}"
+                                                                SemanticProperties.Description="Open the roast log CSV import screen"
+                                                                BackgroundColor="{DynamicResource SecondaryColor}"
+                                                                TextColor="{DynamicResource ButtonTextColor}"
+                                                                MinimumHeightRequest="48"
+                                                                CornerRadius="12"/>
+                                                        <Button Grid.Row="1" Grid.Column="0"
+                                                                Text="Export Roast Log CSV"
+                                                                Command="{Binding ExportRoastLogCsvCommand}"
+                                                                SemanticProperties.Description="Save the roast log as a CSV document"
+                                                                IsEnabled="{Binding CanRunDataOperation}"
+                                                                BackgroundColor="{DynamicResource PrimaryColor}"
+                                                                TextColor="{DynamicResource ButtonTextColor}"
+                                                                MinimumHeightRequest="48"
+                                                                CornerRadius="12"/>
+                                                        <Button Grid.Row="1" Grid.Column="1"
+                                                                Text="Share Roast Log CSV"
+                                                                Command="{Binding ShareRoastLogCsvCommand}"
+                                                                SemanticProperties.Description="Share the roast log as a CSV document"
+                                                                IsEnabled="{Binding CanRunDataOperation}"
+                                                                BackgroundColor="{DynamicResource TertiaryColor}"
+                                                                TextColor="{DynamicResource ButtonTextColor}"
+                                                                MinimumHeightRequest="48"
+                                                                CornerRadius="12"/>
+                                                 </Grid>
+                                          </VerticalStackLayout>
+                                   </Border>
+
 
                                    <!-- Roast Levels Section -->
                                    <Border Stroke="{DynamicResource BorderColor}"

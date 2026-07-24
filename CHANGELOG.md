@@ -7,6 +7,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased] - Complete Architecture Refactor
 ### Added
+- App-managed automatic saving to private storage, with no setup prompt
+- Validated JSON backup previews and five-item automatic safety-backup history
+- Android Storage Access Framework integration for opening and saving JSON/CSV documents
 - Share functionality: share data file (JSON) and roast log (CSV) via OS share sheet
 - IShareService interface and ShareService implementation using MAUI Share API
 - Share Data File and Share Roast Log buttons on Settings page
@@ -15,13 +18,25 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - HasFinalWeight and WeightLossDisplay computed properties on RoastData model
 - 8 new unit tests covering share commands and flexible roast saving
 
+### Fixed
+- Android file operations now read picker results through streams, including content:// documents
+- Removed the delayed settings request-message race that produced No response was received errors
+- Invalid backup JSON is rejected without modifying active data or the selected source
+
 ### Changed
+- Redesigned Settings data management with clear, labeled, accessible actions
+- Restore and Start New now require confirmation and create an automatic recovery copy first
+- Roast-log export writes to streams so Android document URIs never reach File.* APIs
+- Version bumped to 1.3.0
 - Bean quantity validation is now warning-only (no longer blocks timer start or saving)
 - Final weight field is now optional on the Roast page
 - Roast log displays "Pending" for weight loss and roast level when final weight is not yet entered
 - CSV export shows "Pending" for incomplete roasts instead of "0.0%"
 - RoastDataService handles Pending roast level for roasts without final weight
-- Version bumped to 1.2.0
+
+### Removed
+- Custom live-data file locations and the first-run storage-location prompt
+- Broad Android storage and media permissions that are unnecessary with the system document picker
 
 ## [1.1.0] - Complete Architecture Refactor
 ### Added
@@ -56,12 +71,18 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [1.1.0] - 2025-05-07
 ### Added
+- App-managed automatic saving to private storage, with no setup prompt
+- Validated JSON backup previews and five-item automatic safety-backup history
+- Android Storage Access Framework integration for opening and saving JSON/CSV documents
 - Version tracking functionality using .NET MAUI's built-in capabilities
 - CHANGELOG.md to track version history
 - Version history information in Settings page
 
 ## [1.0.0] - 2025-05-07
 ### Added
+- App-managed automatic saving to private storage, with no setup prompt
+- Validated JSON backup previews and five-item automatic safety-backup history
+- Android Storage Access Framework integration for opening and saving JSON/CSV documents
 - Initial release of CafeMaestro
 - Core coffee roasting tracking functionality
 - Bean inventory management
