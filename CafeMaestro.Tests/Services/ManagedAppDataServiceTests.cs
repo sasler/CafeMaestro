@@ -58,7 +58,7 @@ public sealed class ManagedAppDataServiceTests : IDisposable
     {
         string canonicalPath = Path.Combine(_testDirectory, "cafemaestro_data.json");
         var preferences = new Mock<IPreferencesService>();
-        var service = new ManagedAppDataService(canonicalPath);
+        var service = new ManagedAppDataService(canonicalPath, () => "1.3.0");
         await service.InitializeAsync(preferences.Object);
         AppData data = AppDataFactory.CreateDefault();
         data.Beans.Add(new BeanData
@@ -76,6 +76,7 @@ public sealed class ManagedAppDataServiceTests : IDisposable
         AppData? persisted = JsonSerializer.Deserialize<AppData>(
             await File.ReadAllTextAsync(canonicalPath));
         persisted!.Beans.Should().ContainSingle(bean => bean.CoffeeName == "Saved");
+        persisted.AppVersion.Should().Be("1.3.0");
     }
 
     [Fact]

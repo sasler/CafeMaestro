@@ -71,18 +71,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [1.1.0] - 2025-05-07
 ### Added
-- App-managed automatic saving to private storage, with no setup prompt
-- Validated JSON backup previews and five-item automatic safety-backup history
-- Android Storage Access Framework integration for opening and saving JSON/CSV documents
 - Version tracking functionality using .NET MAUI's built-in capabilities
 - CHANGELOG.md to track version history
 - Version history information in Settings page
 
 ## [1.0.0] - 2025-05-07
 ### Added
-- App-managed automatic saving to private storage, with no setup prompt
-- Validated JSON backup previews and five-item automatic safety-backup history
-- Android Storage Access Framework integration for opening and saving JSON/CSV documents
 - Initial release of CafeMaestro
 - Core coffee roasting tracking functionality
 - Bean inventory management

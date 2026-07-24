@@ -57,7 +57,7 @@ public sealed class AndroidDocumentSaveService : IDocumentSaveService
                                        throw new InvalidOperationException(
                                            "No Android activity is available to write the document.");
             await using Stream destination =
-                currentActivity.ContentResolver?.OpenOutputStream(result.Data.Data, "wt") ??
+                currentActivity.ContentResolver?.OpenOutputStream(result.Data.Data, "rwt") ??
                 throw new IOException("Android did not provide a writable document stream.");
             await content.CopyToAsync(destination, cancellationToken);
             await destination.FlushAsync(cancellationToken);

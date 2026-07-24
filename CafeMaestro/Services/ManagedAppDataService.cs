@@ -1,4 +1,3 @@
-using System.Reflection;
 using System.Text.Json;
 using System.Text.Json.Serialization;
 using CafeMaestro.Models;
@@ -8,6 +7,7 @@ namespace CafeMaestro.Services;
 public sealed class ManagedAppDataService : IAppDataService
 {
     private readonly string _canonicalFilePath;
+    private readonly Func<string> _appVersionProvider;
     private readonly JsonSerializerOptions _jsonOptions = new()
     {
         WriteIndented = true,
@@ -25,11 +25,14 @@ public sealed class ManagedAppDataService : IAppDataService
     {
     }
 
-    public ManagedAppDataService(string canonicalFilePath)
+    public ManagedAppDataService(
+        string canonicalFilePath,
+        Func<string>? appVersionProvider = null)
     {
         _canonicalFilePath = string.IsNullOrWhiteSpace(canonicalFilePath)
             ? throw new ArgumentException("Canonical data path is required.", nameof(canonicalFilePath))
             : Path.GetFullPath(canonicalFilePath);
+        _appVersionProvider = appVersionProvider ?? GetAppVersion;
     }
 
     public event EventHandler<AppData>? DataChanged;
@@ -172,7 +175,7 @@ public sealed class ManagedAppDataService : IAppDataService
         try
         {
             appData.LastModified = DateTime.UtcNow;
-            appData.AppVersion = GetAppVersion();
+            appData.AppVersion = _appVersionProvider();
             await WriteAtomicAsync(appData);
             _cachedData = appData;
 
@@ -231,10 +234,7 @@ public sealed class ManagedAppDataService : IAppDataService
         }
         finally
         {
-            if (File.Exists(temporaryPath))
-            {
-                File.Delete(temporaryPath);
-            }
+            TryDeleteTemporaryFile(temporaryPath);
         }
     }
 
@@ -290,12 +290,48 @@ public sealed class ManagedAppDataService : IAppDataService
         ];
     }
 
+    private static void TryDeleteTemporaryFile(string temporaryPath)
+    {
+        try
+        {
+            if (File.Exists(temporaryPath))
+            {
+                File.Delete(temporaryPath);
+            }
+        }
+        catch (IOException)
+        {
+            // Cleanup is best-effort; the canonical replacement may already have succeeded.
+        }
+        catch (UnauthorizedAccessException)
+        {
+            // Cleanup is best-effort; the canonical replacement may already have succeeded.
+        }
+    }
+
     private static string GetAppVersion()
     {
-        Version? version = Assembly.GetExecutingAssembly().GetName().Version;
-        return version is null
-            ? "1.0.0"
-            : $"{version.Major}.{version.Minor}.{version.Build}";
+        try
+        {
+            string version = AppInfo.Current.VersionString;
+            if (!string.IsNullOrWhiteSpace(version))
+            {
+                return version;
+            }
+        }
+        catch (InvalidOperationException)
+        {
+            // AppInfo may be unavailable in a unit-test host.
+        }
+        catch (NotImplementedException)
+        {
+            // AppInfo may be unavailable in a unit-test host.
+        }
+
+        Version? assemblyVersion = typeof(ManagedAppDataService).Assembly.GetName().Version;
+        return assemblyVersion is null
+            ? "Unknown"
+            : $"{assemblyVersion.Major}.{assemblyVersion.Minor}.{assemblyVersion.Build}";
     }
 
     private bool AreNotificationsSuspended =>
