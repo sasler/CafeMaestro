@@ -8,8 +8,7 @@ internal static class AppDataJsonReader
     private static readonly string[] RequiredArrayProperties =
     [
         nameof(AppData.Beans),
-        nameof(AppData.RoastLogs),
-        nameof(AppData.RoastLevels)
+        nameof(AppData.RoastLogs)
     ];
 
     public static async Task<AppData> DeserializeAsync(

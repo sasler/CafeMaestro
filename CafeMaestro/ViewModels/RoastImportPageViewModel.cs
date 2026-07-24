@@ -19,7 +19,7 @@ public partial class RoastImportPageViewModel : ObservableObject
         new("BeanType", "Coffee Bean *", true, ["coffee", "bean", "type"]),
         new("Temperature", "Temperature", false, ["temp", "temperature"]),
         new("RoastTime", "Time", false, ["time", "duration"]),
-        new("BatchWeight", "Batch Weight", false, ["batch", "weight", "charge"]),
+        new("BatchWeight", "Batch Weight *", true, ["batch", "weight", "charge"]),
         new("FinalWeight", "Final Weight", false, ["final", "drop"]),
         new("WeightLoss", "Loss Percentage", false, ["loss", "%", "shrink"]),
         new("Notes", "Notes", false, ["note", "notes", "comment"])
@@ -357,14 +357,15 @@ public partial class RoastImportPageViewModel : ObservableObject
         if (!HasRequiredMappings())
         {
             _validPreviewRowCount = 0;
-            ImportStatus = "Map Date and Coffee Bean to enable import.";
+            ImportStatus = "Map Date, Coffee Bean, and Batch Weight to enable import.";
             NotifyStateChanged();
             return;
         }
 
         _validPreviewRowCount = _rawPreviewRows.Count(row =>
             !string.IsNullOrWhiteSpace(GetMappedValue(row, mappings, "RoastDate")) &&
-            !string.IsNullOrWhiteSpace(GetMappedValue(row, mappings, "BeanType")));
+            !string.IsNullOrWhiteSpace(GetMappedValue(row, mappings, "BeanType")) &&
+            TryParsePositiveWeight(GetMappedValue(row, mappings, "BatchWeight")));
 
         ImportStatus = _validPreviewRowCount > 0
             ? $"Ready to import {_validPreviewRowCount} roast log(s) from {_rawPreviewRows.Count} preview row(s)."
@@ -451,6 +452,16 @@ public partial class RoastImportPageViewModel : ObservableObject
         }
 
         return string.Empty;
+    }
+
+    private static bool TryParsePositiveWeight(string value)
+    {
+        return double.TryParse(
+                   value.Replace("g", "", StringComparison.OrdinalIgnoreCase).Trim(),
+                   System.Globalization.NumberStyles.Float,
+                   System.Globalization.CultureInfo.CurrentCulture,
+                   out double weight) &&
+               weight > 0;
     }
 
     private static string Normalize(string value)

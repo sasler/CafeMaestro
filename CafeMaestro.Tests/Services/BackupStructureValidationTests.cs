@@ -35,6 +35,28 @@ public sealed class BackupStructureValidationTests : IDisposable
             Times.Never);
     }
 
+    [Fact]
+    public async Task RestoreExternalBackupAsync_LegacyJsonWithoutRoastLevelsAddsDefaults()
+    {
+        string sourcePath = Path.Combine(_testDirectory, "legacy.json");
+        await File.WriteAllTextAsync(sourcePath, "{\"Beans\":[],\"RoastLogs\":[]}");
+        var appDataService = new Mock<IAppDataService>();
+        appDataService.SetupGet(service => service.CurrentData).Returns(AppDataFactory.CreateDefault());
+        appDataService
+            .Setup(service => service.SaveAppDataAsync(It.IsAny<AppData>()))
+            .ReturnsAsync(true);
+        var service = new DataBackupService(
+            appDataService.Object,
+            Path.Combine(_testDirectory, "Backups"));
+
+        await service.RestoreExternalBackupAsync(sourcePath);
+
+        appDataService.Verify(
+            candidate => candidate.SaveAppDataAsync(
+                It.Is<AppData>(data => data.RoastLevels.Count == 7)),
+            Times.Once);
+    }
+
     public void Dispose()
     {
         if (Directory.Exists(_testDirectory))
