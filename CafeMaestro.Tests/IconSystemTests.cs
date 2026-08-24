@@ -2,6 +2,7 @@ using CafeMaestro.Controls;
 using FluentAssertions;
 using Microsoft.Maui.Controls;
 using Microsoft.Maui.Graphics;
+using System.Reflection;
 using System.Xml.Linq;
 
 namespace CafeMaestro.Tests;
@@ -142,6 +143,19 @@ public class IconSystemTests
     }
 
     [Fact]
+    public void IconView_ConstructorExplicitlyExcludesDecorativeIconsFromTheAccessibilityTree()
+    {
+        ConstructorInfo constructor = typeof(IconView).GetConstructor(Type.EmptyTypes)!;
+        MethodInfo accessibilitySetter = typeof(AutomationProperties).GetMethod(
+            nameof(AutomationProperties.SetIsInAccessibleTree),
+            [typeof(BindableObject), typeof(bool?)])!;
+
+        CallsMethodWithThisAndFalse(constructor, accessibilitySetter).Should().BeTrue(
+            "the compiled IconView constructor must explicitly call "
+            + "AutomationProperties.SetIsInAccessibleTree(this, false)");
+    }
+
+    [Fact]
     public void BeanGlyphs_UseMultipleBeanBodies_NotAClosedOvalWithALongSlash()
     {
         Icons["IconBeanData"].Count(character => character is 'Z' or 'z').Should().BeGreaterThanOrEqualTo(2);
@@ -214,4 +228,31 @@ public class IconSystemTests
 
     private static string Normalize(string data) =>
         new(data.Where(character => !char.IsWhiteSpace(character)).ToArray());
+
+    private static bool CallsMethodWithThisAndFalse(ConstructorInfo constructor, MethodInfo expectedMethod)
+    {
+        byte[] il = constructor.GetMethodBody()!.GetILAsByteArray()!;
+
+        for (int index = 7; index <= il.Length - 5; index++)
+        {
+            // ldarg.0, ldc.i4.0, newobj Nullable<bool>, call <method token>
+            if (il[index - 7] != 0x02
+                || il[index - 6] != 0x16
+                || il[index - 5] != 0x73
+                || il[index] != 0x28)
+            {
+                continue;
+            }
+
+            int token = BitConverter.ToInt32(il, index + 1);
+            if (constructor.Module.ResolveMethod(token) is MethodInfo calledMethod
+                && calledMethod.Name == expectedMethod.Name
+                && calledMethod.DeclaringType == expectedMethod.DeclaringType)
+            {
+                return true;
+            }
+        }
+
+        return false;
+    }
 }

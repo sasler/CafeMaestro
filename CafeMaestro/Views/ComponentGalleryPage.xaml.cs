@@ -12,8 +12,8 @@ public partial class ComponentGalleryPage : ContentPage
     private const string IconKeyPrefix = "Icon";
     private const string IconKeySuffix = "Data";
 
-    /// <summary>Left + right of the PagePadding token.</summary>
-    private const double HorizontalPagePadding = 32;
+    /// <summary>Left + right of the default PagePadding token if resources are unavailable.</summary>
+    private const double HorizontalPagePaddingFallback = 32;
 
     private const double PaletteCellWidth = 92;
     private const double IconCellWidth = 84;
@@ -116,15 +116,15 @@ public partial class ComponentGalleryPage : ContentPage
 
     private void OnGalleryScrollSizeChanged(object? sender, EventArgs e)
     {
-        double available = GalleryScroll.Width - HorizontalPagePadding;
+        int paletteColumns = CalculateColumnCount(
+            GalleryScroll.Width, PaletteCellWidth, Application.Current?.Resources);
+        int iconColumns = CalculateColumnCount(
+            GalleryScroll.Width, IconCellWidth, Application.Current?.Resources);
 
-        if (available <= 0)
+        if (paletteColumns == 0 || iconColumns == 0)
         {
             return;
         }
-
-        int paletteColumns = Math.Max(1, (int)(available / PaletteCellWidth));
-        int iconColumns = Math.Max(1, (int)(available / IconCellWidth));
 
         if (paletteColumns == _paletteColumns && iconColumns == _iconColumns)
         {
@@ -136,6 +136,42 @@ public partial class ComponentGalleryPage : ContentPage
 
         FillGrid(PaletteGallery, PaletteKeys.Select(BuildPaletteCell).ToList(), paletteColumns, PaletteCellWidth);
         FillGrid(IconGallery, IconCells().ToList(), iconColumns, IconCellWidth);
+    }
+
+    /// <summary>
+    /// Resolves the horizontal space consumed by the shared PagePadding token. The
+    /// fallback keeps the debug gallery usable before app resources are available.
+    /// </summary>
+    public static double ResolveHorizontalPagePadding(ResourceDictionary? resources)
+    {
+        if (resources?.TryGetValue("PagePadding", out object? value) == true
+            && value is Thickness padding
+            && double.IsFinite(padding.Left)
+            && double.IsFinite(padding.Right)
+            && padding.Left >= 0
+            && padding.Right >= 0)
+        {
+            return padding.Left + padding.Right;
+        }
+
+        return HorizontalPagePaddingFallback;
+    }
+
+    /// <summary>Calculates responsive grid columns from the viewport and shared padding token.</summary>
+    public static int CalculateColumnCount(
+        double viewportWidth,
+        double cellWidth,
+        ResourceDictionary? resources)
+    {
+        if (!double.IsFinite(viewportWidth)
+            || !double.IsFinite(cellWidth)
+            || cellWidth <= 0)
+        {
+            return 0;
+        }
+
+        double available = viewportWidth - ResolveHorizontalPagePadding(resources);
+        return available > 0 ? Math.Max(1, (int)(available / cellWidth)) : 0;
     }
 
     /// <summary>

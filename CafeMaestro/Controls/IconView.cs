@@ -61,6 +61,7 @@ public class IconView : ContentView
         // Decorative until a caller gives the glyph a meaning; icon-only controls are
         // expected to set Description so screen readers announce the action.
         SemanticProperties.SetDescription(this, null);
+        AutomationProperties.SetIsInAccessibleTree(this, false);
         ApplySize();
         ApplyAppearance();
     }

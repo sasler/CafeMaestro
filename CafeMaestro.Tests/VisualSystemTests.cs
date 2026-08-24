@@ -1,7 +1,10 @@
 using System.Globalization;
 using CafeMaestro.Services;
+using CafeMaestro.Views;
 using FluentAssertions;
+using Microsoft.Maui;
 using Microsoft.Maui.ApplicationModel;
+using Microsoft.Maui.Controls;
 
 namespace CafeMaestro.Tests;
 
@@ -90,6 +93,7 @@ public class VisualSystemTests
             "FontSizeStatus", "FontFamilyTabular",
             "TouchTargetMin", "PrimaryActionHeight",
             "IconSizeSm", "IconSizeMd", "IconSizeLg",
+            "PagePadding",
             "BreakpointMedium"
         ]);
 
@@ -102,6 +106,25 @@ public class VisualSystemTests
         ParseToken(tokens, "IconSizeSm").Should().Be(18);
         ParseToken(tokens, "IconSizeMd").Should().Be(24);
         ParseToken(tokens, "IconSizeLg").Should().Be(32);
+    }
+
+    [Fact]
+    public void ComponentGallery_ResponsiveColumnsConsumeTheSharedPagePaddingToken()
+    {
+        ResourceDictionary resources = new()
+        {
+            ["PagePadding"] = new Thickness(20, 12, 28, 12)
+        };
+
+        ComponentGalleryPage.ResolveHorizontalPagePadding(resources).Should().Be(48);
+        ComponentGalleryPage.CalculateColumnCount(360, 92, resources).Should().Be(3);
+
+        resources["PagePadding"] = new Thickness(50, 12, 50, 12);
+
+        ComponentGalleryPage.CalculateColumnCount(360, 92, resources).Should().Be(2,
+            "responsive columns must change when the shared PagePadding token changes");
+        ComponentGalleryPage.ResolveHorizontalPagePadding(new ResourceDictionary()).Should().Be(32,
+            "a missing token needs a safe fallback for the debug gallery");
     }
 
     [Fact]
