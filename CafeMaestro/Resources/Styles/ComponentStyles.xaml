@@ -1,0 +1,579 @@
+﻿<?xml version="1.0" encoding="UTF-8" ?>
+<!--
+    Direction B component recipes.
+
+    Rules this file keeps so pages do not have to:
+      * Colour only ever arrives through a semantic theme resource (DynamicResource),
+        so a component works in both themes without knowing which one is loaded.
+      * Status is colour + label + shape. Every status variant carries a tinted surface,
+        a matching border and a coloured edge, and always leaves room for its word.
+      * Nothing declares a fixed height. Sizes are minimums, so dynamic text grows a
+        card or an action instead of clipping it.
+-->
+<ResourceDictionary xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
+                    xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
+                    xmlns:controls="clr-namespace:CafeMaestro.Controls">
+
+    <!--
+        Tokens are merged here rather than only in App.xaml so the StaticResource
+        lookups below resolve while this dictionary is being parsed. The nested merge
+        also makes every token available application-wide.
+    -->
+    <ResourceDictionary.MergedDictionaries>
+        <ResourceDictionary Source="DesignTokens.xaml" />
+    </ResourceDictionary.MergedDictionaries>
+
+    <!-- =========================================================
+         Icons
+         ========================================================= -->
+
+    <!--
+        Default every glyph to body text colour so it follows the theme, and let input
+        fall through: a glyph is a label for a control, never the control itself. Use
+        IconButtonStyle for something tappable.
+    -->
+    <Style TargetType="controls:IconView">
+        <Setter Property="IconColor" Value="{DynamicResource PrimaryTextColor}" />
+        <Setter Property="IconSize" Value="{StaticResource IconSizeMd}" />
+        <Setter Property="InputTransparent" Value="True" />
+    </Style>
+
+    <!-- =========================================================
+         Surfaces
+         ========================================================= -->
+
+    <Style x:Key="CardStyle" TargetType="Border">
+        <Setter Property="BackgroundColor" Value="{DynamicResource ElevatedSurfaceColor}" />
+        <Setter Property="Stroke" Value="{DynamicResource BorderColor}" />
+        <Setter Property="StrokeThickness" Value="{StaticResource HairlineThickness}" />
+        <Setter Property="Padding" Value="{StaticResource CardPadding}" />
+        <Setter Property="StrokeShape">
+            <RoundRectangle CornerRadius="{StaticResource CornerRadiusMd}" />
+        </Setter>
+    </Style>
+
+    <Style x:Key="CompactCardStyle" TargetType="Border" BasedOn="{StaticResource CardStyle}">
+        <Setter Property="Padding" Value="{StaticResource CompactCardPadding}" />
+    </Style>
+
+    <!-- Sheets and popups sit above cards. -->
+    <Style x:Key="RaisedCardStyle" TargetType="Border" BasedOn="{StaticResource CardStyle}">
+        <Setter Property="BackgroundColor" Value="{DynamicResource RaisedSurfaceColor}" />
+        <Setter Property="StrokeShape">
+            <RoundRectangle CornerRadius="{StaticResource CornerRadiusLg}" />
+        </Setter>
+    </Style>
+
+    <!-- Neutral list card paired with a semantic channel edge and status glyph. -->
+    <Style x:Key="StatusEdgeCardStyle" TargetType="Border" BasedOn="{StaticResource CardStyle}">
+        <Setter Property="BackgroundColor" Value="{DynamicResource ElevatedSurfaceColor}" />
+    </Style>
+
+    <!-- Status cards: tinted surface + matching border. The status word belongs inside. -->
+    <Style x:Key="RoastCardStyle" TargetType="Border" BasedOn="{StaticResource CardStyle}">
+        <Setter Property="BackgroundColor" Value="{DynamicResource RoastSurfaceColor}" />
+        <Setter Property="Stroke" Value="{DynamicResource RoastBorderColor}" />
+    </Style>
+
+    <Style x:Key="CoolingCardStyle" TargetType="Border" BasedOn="{StaticResource CardStyle}">
+        <Setter Property="BackgroundColor" Value="{DynamicResource CoolingSurfaceColor}" />
+        <Setter Property="Stroke" Value="{DynamicResource CoolingBorderColor}" />
+    </Style>
+
+    <Style x:Key="ReadyCardStyle" TargetType="Border" BasedOn="{StaticResource CardStyle}">
+        <Setter Property="BackgroundColor" Value="{DynamicResource ReadySurfaceColor}" />
+        <Setter Property="Stroke" Value="{DynamicResource ReadyBorderColor}" />
+    </Style>
+
+    <Style x:Key="AttentionCardStyle" TargetType="Border" BasedOn="{StaticResource CardStyle}">
+        <Setter Property="BackgroundColor" Value="{DynamicResource AttentionSurfaceColor}" />
+        <Setter Property="Stroke" Value="{DynamicResource AttentionBorderColor}" />
+    </Style>
+
+    <Style x:Key="DangerCardStyle" TargetType="Border" BasedOn="{StaticResource CardStyle}">
+        <Setter Property="BackgroundColor" Value="{DynamicResource DangerSurfaceColor}" />
+        <Setter Property="Stroke" Value="{DynamicResource DangerBorderColor}" />
+    </Style>
+
+    <!--
+        Channel edge: the 3 dp colour bar down the left of a batch channel. Pair it with
+        the status word - the bar alone is never the only cue.
+    -->
+    <Style x:Key="ChannelEdgeStyle" TargetType="BoxView">
+        <Setter Property="WidthRequest" Value="{StaticResource AccentEdgeThickness}" />
+        <Setter Property="HorizontalOptions" Value="Start" />
+        <Setter Property="VerticalOptions" Value="Fill" />
+        <Setter Property="Color" Value="{DynamicResource BorderColor}" />
+    </Style>
+
+    <Style x:Key="RoastChannelEdgeStyle" TargetType="BoxView" BasedOn="{StaticResource ChannelEdgeStyle}">
+        <Setter Property="Color" Value="{DynamicResource RoastColor}" />
+    </Style>
+
+    <Style x:Key="CoolingChannelEdgeStyle" TargetType="BoxView" BasedOn="{StaticResource ChannelEdgeStyle}">
+        <Setter Property="Color" Value="{DynamicResource CoolingColor}" />
+    </Style>
+
+    <Style x:Key="ReadyChannelEdgeStyle" TargetType="BoxView" BasedOn="{StaticResource ChannelEdgeStyle}">
+        <Setter Property="Color" Value="{DynamicResource ReadyColor}" />
+    </Style>
+
+    <Style x:Key="AttentionChannelEdgeStyle" TargetType="BoxView" BasedOn="{StaticResource ChannelEdgeStyle}">
+        <Setter Property="Color" Value="{DynamicResource AttentionColor}" />
+    </Style>
+
+    <Style x:Key="DangerChannelEdgeStyle" TargetType="BoxView" BasedOn="{StaticResource ChannelEdgeStyle}">
+        <Setter Property="Color" Value="{DynamicResource DangerColor}" />
+    </Style>
+
+    <!-- Reusable non-colour cue paired with every status word. -->
+    <Style x:Key="StatusGlyphStyle" TargetType="controls:IconView">
+        <Setter Property="IconSize" Value="{StaticResource IconSizeSm}" />
+        <Setter Property="VerticalOptions" Value="Center" />
+    </Style>
+
+    <Style x:Key="RoastStatusGlyphStyle" TargetType="controls:IconView" BasedOn="{StaticResource StatusGlyphStyle}">
+        <Setter Property="IconColor" Value="{DynamicResource RoastColor}" />
+        <Setter Property="IsFilled" Value="True" />
+    </Style>
+
+    <Style x:Key="CoolingStatusGlyphStyle" TargetType="controls:IconView" BasedOn="{StaticResource StatusGlyphStyle}">
+        <Setter Property="IconColor" Value="{DynamicResource CoolingColor}" />
+    </Style>
+
+    <Style x:Key="ReadyStatusGlyphStyle" TargetType="controls:IconView" BasedOn="{StaticResource StatusGlyphStyle}">
+        <Setter Property="IconColor" Value="{DynamicResource ReadyColor}" />
+    </Style>
+
+    <Style x:Key="AttentionStatusGlyphStyle" TargetType="controls:IconView" BasedOn="{StaticResource StatusGlyphStyle}">
+        <Setter Property="IconColor" Value="{DynamicResource AttentionColor}" />
+    </Style>
+
+    <Style x:Key="DangerStatusGlyphStyle" TargetType="controls:IconView" BasedOn="{StaticResource StatusGlyphStyle}">
+        <Setter Property="IconColor" Value="{DynamicResource DangerColor}" />
+    </Style>
+
+    <!-- =========================================================
+         Type
+         ========================================================= -->
+
+    <Style x:Key="SectionHeaderStyle" TargetType="Label">
+        <Setter Property="TextColor" Value="{DynamicResource MutedTextColor}" />
+        <Setter Property="FontSize" Value="{StaticResource FontSizeCaption}" />
+        <Setter Property="FontFamily" Value="{StaticResource FontFamilyEmphasis}" />
+        <Setter Property="CharacterSpacing" Value="1.2" />
+        <Setter Property="TextTransform" Value="Uppercase" />
+    </Style>
+
+    <Style x:Key="CardTitleStyle" TargetType="Label">
+        <Setter Property="TextColor" Value="{DynamicResource PrimaryTextColor}" />
+        <Setter Property="FontSize" Value="{StaticResource FontSizeTitle}" />
+        <Setter Property="FontFamily" Value="{StaticResource FontFamilyEmphasis}" />
+        <Setter Property="LineBreakMode" Value="WordWrap" />
+    </Style>
+
+    <Style x:Key="CardMetaStyle" TargetType="Label">
+        <Setter Property="TextColor" Value="{DynamicResource SecondaryTextColor}" />
+        <Setter Property="FontSize" Value="{StaticResource FontSizeMeta}" />
+        <Setter Property="LineBreakMode" Value="WordWrap" />
+    </Style>
+
+    <Style x:Key="CardCaptionStyle" TargetType="Label">
+        <Setter Property="TextColor" Value="{DynamicResource MutedTextColor}" />
+        <Setter Property="FontSize" Value="{StaticResource FontSizeCaption}" />
+        <Setter Property="LineBreakMode" Value="WordWrap" />
+    </Style>
+
+    <!-- Weights, times, percentages and counts. Never body text. -->
+    <Style x:Key="NumericValueStyle" TargetType="Label">
+        <Setter Property="TextColor" Value="{DynamicResource PrimaryTextColor}" />
+        <Setter Property="FontSize" Value="{StaticResource FontSizeTitle}" />
+        <Setter Property="FontFamily" Value="{StaticResource FontFamilyTabular}" />
+        <Setter Property="FontAttributes" Value="Bold" />
+        <Setter Property="HorizontalTextAlignment" Value="End" />
+    </Style>
+
+    <!-- The one dominant elapsed/countdown number, and nothing else. -->
+    <Style x:Key="InstrumentValueStyle" TargetType="Label">
+        <Setter Property="TextColor" Value="{DynamicResource PrimaryTextColor}" />
+        <Setter Property="FontSize" Value="{StaticResource FontSizeInstrument}" />
+        <Setter Property="FontFamily" Value="{StaticResource FontFamilyInstrument}" />
+        <Setter Property="HorizontalTextAlignment" Value="Center" />
+    </Style>
+
+    <!-- =========================================================
+         Fields
+         ========================================================= -->
+
+    <Style x:Key="FieldLabelStyle" TargetType="Label">
+        <Setter Property="TextColor" Value="{DynamicResource SecondaryTextColor}" />
+        <Setter Property="FontSize" Value="{StaticResource FontSizeMeta}" />
+        <Setter Property="Margin" Value="0,0,0,4" />
+    </Style>
+
+    <Style x:Key="FieldContainerStyle" TargetType="Border">
+        <Setter Property="BackgroundColor" Value="{DynamicResource ElevatedSurfaceColor}" />
+        <Setter Property="Stroke" Value="{DynamicResource BorderColor}" />
+        <Setter Property="StrokeThickness" Value="{StaticResource HairlineThickness}" />
+        <Setter Property="Padding" Value="{StaticResource FieldPadding}" />
+        <Setter Property="MinimumHeightRequest" Value="{StaticResource ControlHeightMin}" />
+        <Setter Property="StrokeShape">
+            <RoundRectangle CornerRadius="{StaticResource CornerRadiusMd}" />
+        </Setter>
+    </Style>
+
+    <Style x:Key="FieldContainerErrorStyle" TargetType="Border" BasedOn="{StaticResource FieldContainerStyle}">
+        <Setter Property="Stroke" Value="{DynamicResource DangerColor}" />
+        <Setter Property="StrokeThickness" Value="{StaticResource FocusRingThickness}" />
+    </Style>
+
+    <Style x:Key="FieldEntryStyle" TargetType="Entry">
+        <Setter Property="TextColor" Value="{DynamicResource PrimaryTextColor}" />
+        <Setter Property="PlaceholderColor" Value="{DynamicResource MutedTextColor}" />
+        <Setter Property="BackgroundColor" Value="{DynamicResource TransparentColor}" />
+        <Setter Property="FontSize" Value="{StaticResource FontSizeBody}" />
+        <Setter Property="MinimumHeightRequest" Value="{StaticResource ControlHeightMin}" />
+        <Setter Property="VisualStateManager.VisualStateGroups">
+            <VisualStateGroupList>
+                <VisualStateGroup Name="CommonStates">
+                    <VisualState Name="Normal" />
+                    <VisualState Name="Focused">
+                        <VisualState.Setters>
+                            <Setter Property="TextColor" Value="{DynamicResource PrimaryTextColor}" />
+                        </VisualState.Setters>
+                    </VisualState>
+                    <VisualState Name="Disabled">
+                        <VisualState.Setters>
+                            <Setter Property="TextColor" Value="{DynamicResource DisabledColor}" />
+                        </VisualState.Setters>
+                    </VisualState>
+                </VisualStateGroup>
+            </VisualStateGroupList>
+        </Setter>
+    </Style>
+
+    <!-- Error text is placed directly beneath its field and linked to it semantically. -->
+    <Style x:Key="FieldErrorStyle" TargetType="Label">
+        <Setter Property="TextColor" Value="{DynamicResource DangerColor}" />
+        <Setter Property="FontSize" Value="{StaticResource FontSizeMeta}" />
+        <Setter Property="Margin" Value="0,4,0,0" />
+        <Setter Property="LineBreakMode" Value="WordWrap" />
+    </Style>
+
+    <Style x:Key="FieldHintStyle" TargetType="Label" BasedOn="{StaticResource FieldErrorStyle}">
+        <Setter Property="TextColor" Value="{DynamicResource MutedTextColor}" />
+    </Style>
+
+    <!--
+        Focus ring for composites that wrap a focusable control. Apply it by swapping
+        the container style, or by driving a VisualState from the inner control.
+    -->
+    <Style x:Key="FocusRingStyle" TargetType="Border" BasedOn="{StaticResource FieldContainerStyle}">
+        <Setter Property="Stroke" Value="{DynamicResource FocusColor}" />
+        <Setter Property="StrokeThickness" Value="{StaticResource FocusRingThickness}" />
+    </Style>
+
+    <!-- =========================================================
+         Actions
+         ========================================================= -->
+
+    <!-- The bottom action bar. The primary action is always the bottom-most element. -->
+    <Style x:Key="ActionBarStyle" TargetType="VerticalStackLayout">
+        <Setter Property="Spacing" Value="{StaticResource SpaceSm}" />
+        <Setter Property="Padding" Value="{StaticResource ActionBarPadding}" />
+    </Style>
+
+    <Style x:Key="PrimaryActionStyle" TargetType="Button">
+        <Setter Property="BackgroundColor" Value="{DynamicResource RoastColor}" />
+        <Setter Property="TextColor" Value="{DynamicResource OnRoastColor}" />
+        <Setter Property="FontSize" Value="{StaticResource FontSizeTitle}" />
+        <Setter Property="FontFamily" Value="{StaticResource FontFamilyEmphasis}" />
+        <Setter Property="CornerRadius" Value="{StaticResource ButtonRadiusLg}" />
+        <Setter Property="MinimumHeightRequest" Value="{StaticResource PrimaryActionHeight}" />
+        <Setter Property="Padding" Value="{StaticResource ChipPadding}" />
+        <Setter Property="VisualStateManager.VisualStateGroups">
+            <VisualStateGroupList>
+                <VisualStateGroup Name="CommonStates">
+                    <VisualState Name="Normal" />
+                    <VisualState Name="PointerOver">
+                        <VisualState.Setters>
+                            <Setter Property="Opacity" Value="0.92" />
+                        </VisualState.Setters>
+                    </VisualState>
+                    <VisualState Name="Pressed">
+                        <VisualState.Setters>
+                            <Setter Property="Scale" Value="0.985" />
+                            <Setter Property="Opacity" Value="0.88" />
+                        </VisualState.Setters>
+                    </VisualState>
+                    <VisualState Name="Disabled">
+                        <VisualState.Setters>
+                            <Setter Property="BackgroundColor" Value="{DynamicResource DisabledSurfaceColor}" />
+                            <Setter Property="TextColor" Value="{DynamicResource DisabledColor}" />
+                        </VisualState.Setters>
+                    </VisualState>
+                </VisualStateGroup>
+            </VisualStateGroupList>
+        </Setter>
+    </Style>
+
+    <!-- Confirm/save. Green means complete or ready, never "go". -->
+    <Style x:Key="ConfirmActionStyle" TargetType="Button" BasedOn="{StaticResource PrimaryActionStyle}">
+        <Setter Property="BackgroundColor" Value="{DynamicResource ReadyColor}" />
+        <Setter Property="TextColor" Value="{DynamicResource OnReadyColor}" />
+    </Style>
+
+    <Style x:Key="SecondaryActionStyle" TargetType="Button" BasedOn="{StaticResource PrimaryActionStyle}">
+        <Setter Property="BackgroundColor" Value="{DynamicResource TransparentColor}" />
+        <Setter Property="TextColor" Value="{DynamicResource SecondaryTextColor}" />
+        <Setter Property="BorderColor" Value="{DynamicResource BorderColor}" />
+        <Setter Property="BorderWidth" Value="{StaticResource HairlineThickness}" />
+        <Setter Property="MinimumHeightRequest" Value="{StaticResource ControlHeightMin}" />
+        <Setter Property="FontFamily" Value="{StaticResource FontFamilyBody}" />
+        <Setter Property="FontSize" Value="{StaticResource FontSizeBody}" />
+        <Setter Property="VisualStateManager.VisualStateGroups">
+            <VisualStateGroupList>
+                <VisualStateGroup Name="CommonStates">
+                    <VisualState Name="Normal" />
+                    <VisualState Name="PointerOver">
+                        <VisualState.Setters>
+                            <Setter Property="BackgroundColor" Value="{DynamicResource ElevatedSurfaceColor}" />
+                            <Setter Property="BorderColor" Value="{DynamicResource SecondaryTextColor}" />
+                        </VisualState.Setters>
+                    </VisualState>
+                    <VisualState Name="Pressed">
+                        <VisualState.Setters>
+                            <Setter Property="BackgroundColor" Value="{DynamicResource RaisedSurfaceColor}" />
+                            <Setter Property="Scale" Value="0.985" />
+                        </VisualState.Setters>
+                    </VisualState>
+                    <VisualState Name="Disabled">
+                        <VisualState.Setters>
+                            <Setter Property="TextColor" Value="{DynamicResource DisabledColor}" />
+                            <Setter Property="BorderColor" Value="{DynamicResource BorderColor}" />
+                            <Setter Property="Opacity" Value="0.7" />
+                        </VisualState.Setters>
+                    </VisualState>
+                </VisualStateGroup>
+            </VisualStateGroupList>
+        </Setter>
+    </Style>
+
+    <!-- Destructive: red text and outline only, and never beside a primary action. -->
+    <Style x:Key="DestructiveActionStyle" TargetType="Button" BasedOn="{StaticResource SecondaryActionStyle}">
+        <Setter Property="TextColor" Value="{DynamicResource DangerColor}" />
+        <Setter Property="BorderColor" Value="{DynamicResource DangerBorderColor}" />
+        <Setter Property="VisualStateManager.VisualStateGroups">
+            <VisualStateGroupList>
+                <VisualStateGroup Name="CommonStates">
+                    <VisualState Name="Normal" />
+                    <VisualState Name="PointerOver">
+                        <VisualState.Setters>
+                            <Setter Property="BackgroundColor" Value="{DynamicResource DangerSurfaceColor}" />
+                            <Setter Property="BorderColor" Value="{DynamicResource DangerColor}" />
+                        </VisualState.Setters>
+                    </VisualState>
+                    <VisualState Name="Pressed">
+                        <VisualState.Setters>
+                            <Setter Property="BackgroundColor" Value="{DynamicResource DangerSurfaceColor}" />
+                            <Setter Property="BorderColor" Value="{DynamicResource DangerColor}" />
+                            <Setter Property="Scale" Value="0.985" />
+                            <Setter Property="Opacity" Value="0.82" />
+                        </VisualState.Setters>
+                    </VisualState>
+                    <VisualState Name="Disabled">
+                        <VisualState.Setters>
+                            <Setter Property="TextColor" Value="{DynamicResource DisabledColor}" />
+                            <Setter Property="BorderColor" Value="{DynamicResource BorderColor}" />
+                            <Setter Property="Opacity" Value="0.7" />
+                        </VisualState.Setters>
+                    </VisualState>
+                </VisualStateGroup>
+            </VisualStateGroupList>
+        </Setter>
+    </Style>
+
+    <!--
+        Icon-only control. Put the Button and an IconView in the same Grid cell, Button
+        first so the glyph draws over it: the platform keeps focus, press states and the
+        semantic description on the button, while the glyph stays a themeable vector.
+    -->
+    <Style x:Key="IconButtonStyle" TargetType="Button">
+        <Setter Property="BackgroundColor" Value="{DynamicResource TransparentColor}" />
+        <Setter Property="BorderColor" Value="{DynamicResource BorderColor}" />
+        <Setter Property="BorderWidth" Value="{StaticResource HairlineThickness}" />
+        <Setter Property="CornerRadius" Value="{StaticResource ButtonRadiusMd}" />
+        <Setter Property="MinimumHeightRequest" Value="{StaticResource TouchTargetMin}" />
+        <Setter Property="MinimumWidthRequest" Value="{StaticResource TouchTargetMin}" />
+        <Setter Property="Padding" Value="0" />
+        <Setter Property="VisualStateManager.VisualStateGroups">
+            <VisualStateGroupList>
+                <VisualStateGroup Name="CommonStates">
+                    <VisualState Name="Normal" />
+                    <VisualState Name="PointerOver">
+                        <VisualState.Setters>
+                            <Setter Property="BackgroundColor" Value="{DynamicResource ElevatedSurfaceColor}" />
+                        </VisualState.Setters>
+                    </VisualState>
+                    <VisualState Name="Pressed">
+                        <VisualState.Setters>
+                            <Setter Property="BackgroundColor" Value="{DynamicResource RaisedSurfaceColor}" />
+                            <Setter Property="Scale" Value="0.97" />
+                        </VisualState.Setters>
+                    </VisualState>
+                    <VisualState Name="Disabled">
+                        <VisualState.Setters>
+                            <Setter Property="Opacity" Value="0.45" />
+                        </VisualState.Setters>
+                    </VisualState>
+                </VisualStateGroup>
+            </VisualStateGroupList>
+        </Setter>
+    </Style>
+
+    <!-- The isolated amber header action (Add bean, New roast, Import). -->
+    <Style x:Key="AccentIconButtonStyle" TargetType="Button" BasedOn="{StaticResource IconButtonStyle}">
+        <Setter Property="BackgroundColor" Value="{DynamicResource RoastColor}" />
+        <Setter Property="BorderColor" Value="{DynamicResource RoastColor}" />
+        <Setter Property="TextColor" Value="{DynamicResource OnRoastColor}" />
+    </Style>
+
+    <!-- =========================================================
+         Status chips
+         ========================================================= -->
+
+    <Style x:Key="StatusChipStyle" TargetType="Border">
+        <Setter Property="BackgroundColor" Value="{DynamicResource ElevatedSurfaceColor}" />
+        <Setter Property="Stroke" Value="{DynamicResource BorderColor}" />
+        <Setter Property="StrokeThickness" Value="{StaticResource HairlineThickness}" />
+        <Setter Property="Padding" Value="{StaticResource ChipPadding}" />
+        <Setter Property="HorizontalOptions" Value="Start" />
+        <Setter Property="StrokeShape">
+            <RoundRectangle CornerRadius="{StaticResource CornerRadiusSm}" />
+        </Setter>
+    </Style>
+
+    <Style x:Key="RoastChipStyle" TargetType="Border" BasedOn="{StaticResource StatusChipStyle}">
+        <Setter Property="BackgroundColor" Value="{DynamicResource RoastSurfaceColor}" />
+        <Setter Property="Stroke" Value="{DynamicResource RoastBorderColor}" />
+    </Style>
+
+    <Style x:Key="CoolingChipStyle" TargetType="Border" BasedOn="{StaticResource StatusChipStyle}">
+        <Setter Property="BackgroundColor" Value="{DynamicResource CoolingSurfaceColor}" />
+        <Setter Property="Stroke" Value="{DynamicResource CoolingBorderColor}" />
+    </Style>
+
+    <Style x:Key="ReadyChipStyle" TargetType="Border" BasedOn="{StaticResource StatusChipStyle}">
+        <Setter Property="BackgroundColor" Value="{DynamicResource ReadySurfaceColor}" />
+        <Setter Property="Stroke" Value="{DynamicResource ReadyBorderColor}" />
+    </Style>
+
+    <Style x:Key="AttentionChipStyle" TargetType="Border" BasedOn="{StaticResource StatusChipStyle}">
+        <Setter Property="BackgroundColor" Value="{DynamicResource AttentionSurfaceColor}" />
+        <Setter Property="Stroke" Value="{DynamicResource AttentionBorderColor}" />
+    </Style>
+
+    <Style x:Key="DangerChipStyle" TargetType="Border" BasedOn="{StaticResource StatusChipStyle}">
+        <Setter Property="BackgroundColor" Value="{DynamicResource DangerSurfaceColor}" />
+        <Setter Property="Stroke" Value="{DynamicResource DangerBorderColor}" />
+    </Style>
+
+    <!-- Chip text carries the status word; the colour only reinforces it. -->
+    <Style x:Key="StatusChipLabelStyle" TargetType="Label">
+        <Setter Property="FontSize" Value="{StaticResource FontSizeStatus}" />
+        <Setter Property="FontFamily" Value="{StaticResource FontFamilyTabular}" />
+        <Setter Property="FontAttributes" Value="Bold" />
+        <Setter Property="TextColor" Value="{DynamicResource SecondaryTextColor}" />
+        <Setter Property="VerticalTextAlignment" Value="Center" />
+    </Style>
+
+    <Style x:Key="RoastChipLabelStyle" TargetType="Label" BasedOn="{StaticResource StatusChipLabelStyle}">
+        <Setter Property="TextColor" Value="{DynamicResource RoastColor}" />
+    </Style>
+
+    <Style x:Key="CoolingChipLabelStyle" TargetType="Label" BasedOn="{StaticResource StatusChipLabelStyle}">
+        <Setter Property="TextColor" Value="{DynamicResource CoolingColor}" />
+    </Style>
+
+    <Style x:Key="ReadyChipLabelStyle" TargetType="Label" BasedOn="{StaticResource StatusChipLabelStyle}">
+        <Setter Property="TextColor" Value="{DynamicResource ReadyColor}" />
+    </Style>
+
+    <Style x:Key="AttentionChipLabelStyle" TargetType="Label" BasedOn="{StaticResource StatusChipLabelStyle}">
+        <Setter Property="TextColor" Value="{DynamicResource AttentionColor}" />
+    </Style>
+
+    <Style x:Key="DangerChipLabelStyle" TargetType="Label" BasedOn="{StaticResource StatusChipLabelStyle}">
+        <Setter Property="TextColor" Value="{DynamicResource DangerColor}" />
+    </Style>
+
+    <!-- =========================================================
+         Empty, error and loading
+         ========================================================= -->
+
+    <!-- Explain what belongs here and offer one action; never push the action off-screen. -->
+    <Style x:Key="EmptyStateStyle" TargetType="VerticalStackLayout">
+        <Setter Property="Spacing" Value="{StaticResource SpaceMd}" />
+        <Setter Property="Padding" Value="{StaticResource CardPadding}" />
+        <Setter Property="HorizontalOptions" Value="Center" />
+        <Setter Property="VerticalOptions" Value="Center" />
+    </Style>
+
+    <Style x:Key="EmptyStateTitleStyle" TargetType="Label">
+        <Setter Property="TextColor" Value="{DynamicResource PrimaryTextColor}" />
+        <Setter Property="FontSize" Value="{StaticResource FontSizeHeadline}" />
+        <Setter Property="FontFamily" Value="{StaticResource FontFamilyEmphasis}" />
+        <Setter Property="HorizontalTextAlignment" Value="Center" />
+    </Style>
+
+    <Style x:Key="EmptyStateBodyStyle" TargetType="Label">
+        <Setter Property="TextColor" Value="{DynamicResource SecondaryTextColor}" />
+        <Setter Property="FontSize" Value="{StaticResource FontSizeBody}" />
+        <Setter Property="HorizontalTextAlignment" Value="Center" />
+        <Setter Property="LineBreakMode" Value="WordWrap" />
+    </Style>
+
+    <!-- Inline retry banner. Cached rows stay on screen behind it - never a false empty state. -->
+    <Style x:Key="ErrorBannerStyle" TargetType="Border" BasedOn="{StaticResource DangerCardStyle}">
+        <Setter Property="Padding" Value="{StaticResource CompactCardPadding}" />
+    </Style>
+
+    <Style x:Key="ErrorBannerTextStyle" TargetType="Label">
+        <Setter Property="TextColor" Value="{DynamicResource DangerColor}" />
+        <Setter Property="FontSize" Value="{StaticResource FontSizeMeta}" />
+        <Setter Property="LineBreakMode" Value="WordWrap" />
+    </Style>
+
+    <!-- Skeletons preserve layout; ordinary reads never get a full-page spinner. -->
+    <Style x:Key="LoadingSkeletonStyle" TargetType="BoxView">
+        <Setter Property="Color" Value="{DynamicResource SkeletonColor}" />
+        <Setter Property="CornerRadius" Value="{StaticResource RadiusSm}" />
+        <Setter Property="HeightRequest" Value="{StaticResource SpaceMd}" />
+    </Style>
+
+    <Style x:Key="LoadingIndicatorStyle" TargetType="ActivityIndicator">
+        <Setter Property="Color" Value="{DynamicResource RoastColor}" />
+    </Style>
+
+    <!-- =========================================================
+         Shell
+         ========================================================= -->
+
+    <!--
+        Tab tinting. Android tints the monochrome tab assets from these colours; see
+        docs/visual-system.md for the Windows fallback.
+    -->
+    <Style TargetType="Shell" ApplyToDerivedTypes="True">
+        <Setter Property="Shell.BackgroundColor" Value="{DynamicResource SurfaceColor}" />
+        <Setter Property="Shell.ForegroundColor" Value="{DynamicResource PrimaryTextColor}" />
+        <Setter Property="Shell.TitleColor" Value="{DynamicResource PrimaryTextColor}" />
+        <Setter Property="Shell.DisabledColor" Value="{DynamicResource DisabledColor}" />
+        <Setter Property="Shell.UnselectedColor" Value="{DynamicResource SecondaryTextColor}" />
+        <Setter Property="Shell.NavBarHasShadow" Value="False" />
+        <Setter Property="Shell.TabBarBackgroundColor" Value="{DynamicResource ElevatedSurfaceColor}" />
+        <Setter Property="Shell.TabBarForegroundColor" Value="{DynamicResource RoastColor}" />
+        <Setter Property="Shell.TabBarTitleColor" Value="{DynamicResource RoastColor}" />
+        <Setter Property="Shell.TabBarUnselectedColor" Value="{DynamicResource SecondaryTextColor}" />
+    </Style>
+
+</ResourceDictionary>

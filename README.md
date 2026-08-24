@@ -72,11 +72,14 @@ CafeMaestro/
 ├── ViewModels/           # MVVM ViewModels using CommunityToolkit.Mvvm source generators
 ├── Services/             # Business logic services
 │   └── Interfaces/       # Service contracts (IAppDataService, IBeanDataService, etc.)
+├── Controls/             # Reusable controls (IconView)
 ├── Navigation/           # Centralized route constants
 ├── Resources/
-│   ├── Styles/           # Theme resources (LightTheme.xaml, DarkTheme.xaml)
+│   ├── Styles/           # Visual system (DesignTokens, DarkTheme, LightTheme,
+│   │                     #   ComponentStyles, IconGeometries) - see docs/visual-system.md
 │   ├── Images/           # SVG icons (converted to PNG at build time)
 │   └── Fonts/            # Custom fonts
+├── Views/                # Pages that are not at the project root
 ├── Platforms/            # Platform-specific implementations
 └── *.xaml / *.xaml.cs    # Pages (thin code-behind, logic in ViewModels)
 

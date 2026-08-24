@@ -1,0 +1,81 @@
+﻿<?xml version="1.0" encoding="UTF-8" ?>
+<!--
+    Direction B icon language — Direction A's outline set.
+
+    One 24 x 24 grid, 1.75 stroke, round caps and joins, no fills. Every glyph is a
+    single-colour outline that takes its colour from the semantic palette, so light
+    and dark are the same asset and a status icon can inherit its channel's colour.
+
+    Two deliberate exceptions:
+      * IconFirstCrackData is the only filled glyph - a hollow bolt loses its
+        silhouette at 18 dp, and it is the one mark hunted for under time pressure.
+      * IconSettingsData keeps the mechanical cog, redrawn hollow at 1.75.
+
+    One hard rule: the circular arrow means Reset and nothing else. Starting the next
+    batch is a bean with a plus badge (IconNewBatchData) because the circular arrow
+    read as Reset. No other glyph in this file may use a circular arrow.
+-->
+<ResourceDictionary xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
+                    xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml">
+
+    <!-- ===================== Roast domain ===================== -->
+
+    <!-- Two overlapping beans remain unmistakable at tab-bar size. -->
+    <x:String x:Key="IconBeanData">M4.4 7.2 C2.8 10.1 4.2 15.1 8 17.2 C11 18.8 13.8 16.5 13.6 12.8 C13.4 9.3 10.7 6.5 7.7 5.9 C6.3 5.6 5.1 6.1 4.4 7.2 Z M6.2 8.2 C7.8 9.1 8.6 11.1 8.2 13.1 C8 14.1 8.4 15 9.3 15.5 M11.2 6.2 C9.8 8.6 10.6 13.1 13.7 15.5 C16.4 17.6 19.4 16 20 12.8 C20.6 9.7 18.4 6.4 15.7 5.3 C13.9 4.6 12.1 4.9 11.2 6.2 Z M13.2 7.2 C14.6 8.4 15.4 10.1 15.2 11.8 C15 13 15.5 14 16.6 14.5</x:String>
+
+    <!-- Roaster drum. -->
+    <x:String x:Key="IconDrumData">M6 5.5 H16.5 A3.5 6.5 0 0 1 16.5 18.5 H6 M6 5.5 A3.5 6.5 0 1 0 6 18.5 A3.5 6.5 0 1 0 6 5.5 Z M16.5 9 H20 V15 H16.5 M4 20.5 H18.5</x:String>
+
+    <!-- Stopwatch: the roast surface's own mark, and the Roast tab. -->
+    <x:String x:Key="IconTimerData">M4.7 13.5 A7.3 7.3 0 1 1 19.3 13.5 A7.3 7.3 0 1 1 4.7 13.5 Z M12 10 V13.5 L14.4 14.9 M9.6 3 H14.4 M12 3 V5.2</x:String>
+
+    <!-- First crack. The only filled glyph in the set; render with IsFilled="True". -->
+    <x:String x:Key="IconFirstCrackData">M13.2 3.2 L7.6 12.6 H11.7 L10.6 20.8 L16.6 11.2 H12.4 Z</x:String>
+
+    <!-- Drop: a drum mouth releases beans into a slotted cooling tray. -->
+    <x:String x:Key="IconDropData">M3 4.5 H13.5 V10.5 H3 Z M6 7.5 H10.5 M13.5 5.8 L17 7.8 V10.2 M14.8 11.7 C13.9 12.3 14.1 13.6 15.1 14 C16.1 14.4 16.9 13.4 16.5 12.5 C16.2 11.8 15.4 11.4 14.8 11.7 Z M18.4 12.8 C17.6 13.4 17.9 14.6 18.8 14.9 C19.7 15.2 20.4 14.3 20 13.5 C19.7 12.9 19 12.5 18.4 12.8 Z M4 16.5 H21 L19 20.5 H6 Z M8.5 16.5 V20.5 M12.5 16.5 V20.5 M16.5 16.5 V20.5</x:String>
+
+    <!-- Cooling is airflow, never a snowflake: the cooler blows air. -->
+    <x:String x:Key="IconCoolingData">M3 17.5 C6 16 6.5 12 9.2 9.8 C11.2 8.1 13.3 8 15.2 8.7 M5.2 21 C8.3 18.8 8.7 15.1 11.5 12.8 C14 10.8 17.2 10.8 19.3 12.4 M3.2 12.2 C5.1 10.8 5.5 7.8 7.7 5.9 C9.8 4.1 12 4 13.8 4.8</x:String>
+
+    <!-- Weigh in. -->
+    <x:String x:Key="IconWeighData">M12 4.6 V20 M7 20 H17 M4 8.6 H20 M4 8.6 L2 13 A3 3 0 0 0 8 13 Z M20 8.6 L22 13 A3 3 0 0 1 16 13 Z M10.7 5.2 A1.3 1.3 0 1 1 13.3 5.2 A1.3 1.3 0 1 1 10.7 5.2 Z</x:String>
+
+    <!-- Charge temperature. -->
+    <x:String x:Key="IconTemperatureData">M14 14.2 V5 A2 2 0 1 0 10 5 V14.2 A4 4 0 1 0 14 14.2 Z M12 8.4 V14.4</x:String>
+
+    <!-- New batch: bean plus badge. Additive, not cyclical. -->
+    <x:String x:Key="IconNewBatchData">M3.7 10 C2.6 12.1 3.7 15.7 6.4 17.2 C8.7 18.5 11 16.9 10.9 14.2 C10.8 11.8 8.9 9.7 6.7 9.3 C5.4 9.1 4.3 9.3 3.7 10 Z M5.2 11 C6.4 11.7 7 13.1 6.8 14.4 C6.7 15.1 7 15.7 7.6 16 M8.4 8.8 C7.4 10.7 8.2 14 10.6 15.7 C12.8 17.3 15.2 16 15.7 13.5 C16.1 11.2 14.5 8.9 12.5 8.1 C10.9 7.4 9.2 7.7 8.4 8.8 Z M10 9.7 C11.1 10.6 11.7 11.9 11.6 13 C11.5 13.9 11.9 14.6 12.7 15 M14 5.5 A4.5 4.5 0 1 1 23 5.5 A4.5 4.5 0 1 1 14 5.5 Z M18.5 2.9 V8.1 M15.9 5.5 H21.1</x:String>
+
+    <!-- Reset, and only Reset. -->
+    <x:String x:Key="IconResetData">M20.4 12 A8.4 8.4 0 1 1 17.9 6 M20.4 3.6 V8 H16</x:String>
+
+    <!-- ===================== Transport ===================== -->
+
+    <x:String x:Key="IconPauseData">M9.2 5 V19 M14.8 5 V19</x:String>
+    <x:String x:Key="IconPlayData">M8.6 5.4 L18.4 12 L8.6 18.6 Z</x:String>
+
+    <!-- ===================== Status ===================== -->
+
+    <x:String x:Key="IconCheckData">M4.4 12.4 L9.2 17.2 L19.8 6.6</x:String>
+    <x:String x:Key="IconAlertData">M12 3.6 L21.4 20 H2.6 Z M12 9.8 V14.2 M12 17.4 H12.01</x:String>
+
+    <!-- ===================== Shell destinations ===================== -->
+
+    <!-- Roast uses IconTimerData; Beans uses IconBeanData. -->
+    <x:String x:Key="IconLogData">M4 6.4 H20 M4 12 H20 M4 17.6 H14</x:String>
+    <x:String x:Key="IconSettingsData">M10.2 2.8 H13.8 L14.25 5.65 L16.1 6.75 L18.7 5.65 L20.5 8.85 L18.4 10.7 V13.1 L20.5 14.95 L18.7 18.15 L16.1 17.05 L14.25 18.15 L13.8 21 H10.2 L9.75 18.15 L7.9 17.05 L5.3 18.15 L3.5 14.95 L5.6 13.1 V10.7 L3.5 8.85 L5.3 5.65 L7.9 6.75 L9.75 5.65 Z M9.1 12 A2.9 2.9 0 1 1 14.9 12 A2.9 2.9 0 1 1 9.1 12 Z</x:String>
+
+    <!-- ===================== Actions ===================== -->
+
+    <x:String x:Key="IconAddData">M12 4 V20 M4 12 H20</x:String>
+    <x:String x:Key="IconEditData">M4 20.2 H8.2 L20.4 8 L16.2 3.8 L4 16 Z M14.4 5.6 L18.6 9.8</x:String>
+    <x:String x:Key="IconDeleteData">M3.8 6.6 H20.2 M9 6.6 V4.4 H15 V6.6 M6.4 6.6 L7.4 20 H16.6 L17.6 6.6</x:String>
+    <x:String x:Key="IconSearchData">M4 10.5 A6.5 6.5 0 1 1 17 10.5 A6.5 6.5 0 1 1 4 10.5 Z M15.3 15.3 L20 20</x:String>
+    <x:String x:Key="IconImportData">M12 3 V14 M8.5 10.5 L12 14 L15.5 10.5 M4 16 V19.5 H20 V16</x:String>
+    <x:String x:Key="IconExportData">M12 14 V3 M8.5 6.5 L12 3 L15.5 6.5 M4 16 V19.5 H20 V16</x:String>
+    <x:String x:Key="IconMoreData">M4 12 A1 1 0 1 1 6 12 A1 1 0 1 1 4 12 Z M11 12 A1 1 0 1 1 13 12 A1 1 0 1 1 11 12 Z M18 12 A1 1 0 1 1 20 12 A1 1 0 1 1 18 12 Z</x:String>
+    <x:String x:Key="IconChevronData">M9 5.4 L15.6 12 L9 18.6</x:String>
+    <x:String x:Key="IconCloseData">M6.2 6.2 L17.8 17.8 M17.8 6.2 L6.2 17.8</x:String>
+
+</ResourceDictionary>

@@ -1,0 +1,8 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!-- Direction B shell icon: Log. 24 grid, 1.75 stroke, round caps and joins, hollow. -->
+<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24"
+     fill="none" stroke="#FFFFFF" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round">
+  <path d="M4 6.4h16"/>
+  <path d="M4 12h16"/>
+  <path d="M4 17.6h10"/>
+</svg>

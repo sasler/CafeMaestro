@@ -16,6 +16,11 @@ public static class Routes
     public const string BeanInventoryPage = "BeanInventoryPage";
     public const string SettingsPage = "SettingsPage";
 
+#if DEBUG
+    // Review harness for the shared visual system. Never registered in a release build.
+    public const string ComponentGallery = "ComponentGalleryPage";
+#endif
+
     // Detail routes (no // prefix)
     public const string BeanEdit = "BeanEditPage";
     public const string BeanImport = "BeanImportPage";

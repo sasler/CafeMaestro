@@ -1,52 +1,119 @@
+﻿<?xml version="1.0" encoding="UTF-8" ?>
+<!--
+    Direction B — Roast Console, dark.
+
+    Dark is the default mode: it is the one the console was designed around. Every key
+    below also exists in LightTheme.xaml with the same meaning, so a component never
+    needs to know which theme is loaded.
+
+    Semantic families: Surface, ElevatedSurface, RaisedSurface, PrimaryText,
+    SecondaryText, Border, Roast, Cooling, Ready, Attention, Danger, Focus, Disabled
+    and Scrim. Status is always colour + label + shape; colour alone never carries meaning.
+-->
 <ResourceDictionary xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
                     xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
                     x:Class="CafeMaestro.DarkTheme">
-    <!-- Base theme colors - Modern Vibrant Palette -->
-    <Color x:Key="PageBackgroundColor">#121212</Color>
-    <Color x:Key="NavigationBarColor">#1E1E1E</Color> <!-- Dark grey -->
-    <Color x:Key="PrimaryColor">#42A5F5</Color> <!-- Bright blue -->
-    <Color x:Key="SecondaryColor">#4DB6AC</Color> <!-- Light teal -->
-    <Color x:Key="TertiaryColor">#9FA8DA</Color> <!-- Light indigo -->
-    <Color x:Key="NeutralColor">#2D2D2D</Color> <!-- Dark grey -->
-    <Color x:Key="AccentColor">#FFAC563B</Color> <!-- Bright orange -->
 
-    <!-- Text colors -->
-    <Color x:Key="PrimaryTextColor">White</Color>
-    <Color x:Key="TextColor">White</Color>
-    <Color x:Key="SecondaryTextColor">#e0e0e0</Color>
-    <Color x:Key="TertiaryTextColor">#c0c0c0</Color>
-    <Color x:Key="PlaceholderColor">#909090</Color>
-    <Color x:Key="InverseTextColor">#202020</Color>
-    <Color x:Key="ButtonTextColor">White</Color>
-    <Color x:Key="CardBackgroundColor">#2D2D2D</Color>
-    <Color x:Key="ItemTimestampTextColor">#BBBBBB</Color>
-    <Color x:Key="ItemDetailTextColor">#AAAAAA</Color>
-    <Color x:Key="TimerInstructionColor">#a0a0a0</Color>
-    
-    <!-- Input control colors -->
-    <Color x:Key="EntryBackgroundColor">#333333</Color>
-    <Color x:Key="EntryBorderColor">#505050</Color>
-    <Color x:Key="PickerBackgroundColor">#333333</Color>
-    <Color x:Key="PickerBorderColor">#505050</Color>
-    
-    <!-- Border/separator colors -->
-    <Color x:Key="BorderColor">#505050</Color>
-    <Color x:Key="SeparatorColor">#404040</Color>
-    <Color x:Key="TimerBorderColor">#8B4513</Color> <!-- Match Primary -->
-    
-    <!-- SwipeView action colors -->
-    <Color x:Key="SwipeEditColor">#2196F3</Color> <!-- Brighter blue for edit actions in dark mode -->
-    <Color x:Key="SwipeDeleteColor">#FF5252</Color> <!-- Brighter red for delete actions in dark mode -->
-    
-    <!-- Misc -->
+    <!-- ===================== Semantic surfaces ===================== -->
+    <Color x:Key="SurfaceColor">#0B0D10</Color>
+    <Color x:Key="ElevatedSurfaceColor">#15191E</Color>
+    <Color x:Key="RaisedSurfaceColor">#1B2128</Color>
+    <Color x:Key="SunkenSurfaceColor">#05070A</Color>
+    <Color x:Key="SkeletonColor">#1C222A</Color>
+
+    <!-- ===================== Semantic text ===================== -->
+    <Color x:Key="PrimaryTextColor">#EDF2F7</Color>
+    <Color x:Key="SecondaryTextColor">#94A3B2</Color>
+    <Color x:Key="MutedTextColor">#7C8A9A</Color>
+
+    <!-- ===================== Lines ===================== -->
+    <Color x:Key="BorderColor">#2A323C</Color>
+    <Color x:Key="SubtleBorderColor">#1F262E</Color>
+
+    <!-- ===================== Status: roasting / action ===================== -->
+    <Color x:Key="RoastColor">#FF8A1E</Color>
+    <Color x:Key="OnRoastColor">#170B02</Color>
+    <Color x:Key="RoastSurfaceColor">#1F1710</Color>
+    <Color x:Key="RoastBorderColor">#74471F</Color>
+
+    <!-- ===================== Status: cooling ===================== -->
+    <Color x:Key="CoolingColor">#2ED3E4</Color>
+    <Color x:Key="OnCoolingColor">#03171A</Color>
+    <Color x:Key="CoolingSurfaceColor">#0E1B1F</Color>
+    <Color x:Key="CoolingBorderColor">#1F6570</Color>
+
+    <!-- ===================== Status: ready / complete ===================== -->
+    <Color x:Key="ReadyColor">#3BD980</Color>
+    <Color x:Key="OnReadyColor">#04220F</Color>
+    <Color x:Key="ReadySurfaceColor">#0E1B15</Color>
+    <Color x:Key="ReadyBorderColor">#245F3F</Color>
+
+    <!-- ===================== Status: attention ===================== -->
+    <Color x:Key="AttentionColor">#FFC53D</Color>
+    <Color x:Key="OnAttentionColor">#1A1203</Color>
+    <Color x:Key="AttentionSurfaceColor">#1F1A0D</Color>
+    <Color x:Key="AttentionBorderColor">#6B5721</Color>
+
+    <!-- ===================== Status: destructive / error ===================== -->
+    <Color x:Key="DangerColor">#FF6B57</Color>
+    <Color x:Key="OnDangerColor">#220904</Color>
+    <Color x:Key="DangerSurfaceColor">#1F1211</Color>
+    <Color x:Key="DangerBorderColor">#6F3733</Color>
+
+    <!-- ===================== Focus, disabled, scrim ===================== -->
+    <Color x:Key="FocusColor">#8AB4FF</Color>
+    <Color x:Key="DisabledColor">#5E6C7C</Color>
+    <Color x:Key="DisabledSurfaceColor">#171B21</Color>
+    <Color x:Key="ScrimColor">#CC05070A</Color>
+    <Color x:Key="PlatformStatusBarColor">#0B0D10</Color>
+    <Color x:Key="PlatformNavigationBarColor">#15191E</Color>
+
+    <!-- ==================================================================
+         Compatibility aliases.
+
+         Pages written before the redesign still bind these names. They now
+         resolve to the semantic palette above, so existing screens pick up
+         Direction B while later tickets migrate them to the shared styles.
+         ================================================================== -->
+    <Color x:Key="PageBackgroundColor">#0B0D10</Color>
+    <Color x:Key="NavigationBarColor">#15191E</Color>
+    <Color x:Key="PrimaryColor">#FF8A1E</Color>
+    <Color x:Key="SecondaryColor">#2ED3E4</Color>
+    <Color x:Key="TertiaryColor">#3BD980</Color>
+    <Color x:Key="NeutralColor">#15191E</Color>
+    <Color x:Key="AccentColor">#FF8A1E</Color>
+
+    <Color x:Key="TextColor">#EDF2F7</Color>
+    <Color x:Key="TertiaryTextColor">#7C8A9A</Color>
+    <Color x:Key="PlaceholderColor">#7C8A9A</Color>
+    <Color x:Key="InverseTextColor">#0B0D10</Color>
+    <Color x:Key="ButtonTextColor">#170B02</Color>
+    <Color x:Key="CardBackgroundColor">#15191E</Color>
+    <Color x:Key="ItemTimestampTextColor">#7C8A9A</Color>
+    <Color x:Key="ItemDetailTextColor">#94A3B2</Color>
+    <Color x:Key="TimerInstructionColor">#94A3B2</Color>
+
+    <Color x:Key="EntryBackgroundColor">#15191E</Color>
+    <Color x:Key="EntryBorderColor">#2A323C</Color>
+    <Color x:Key="PickerBackgroundColor">#15191E</Color>
+    <Color x:Key="PickerBorderColor">#2A323C</Color>
+
+    <Color x:Key="SeparatorColor">#1F262E</Color>
+    <Color x:Key="TimerBorderColor">#FF8A1E</Color>
+
+    <Color x:Key="SwipeEditColor">#2ED3E4</Color>
+    <Color x:Key="SwipeDeleteColor">#FF6B57</Color>
+
     <Color x:Key="TransparentColor">Transparent</Color>
-    <Color x:Key="CardShadowColor">#20000000</Color>
-    <Color x:Key="ItemCardHoverBackgroundColor">#383838</Color>
-    <Color x:Key="TimerRunningIndicatorColor">Red</Color>
-    <Color x:Key="PreviousRoastBackgroundColor">#303030</Color>
-    <Color x:Key="PreviousRoastBorderColor">#444444</Color>
-    <Color x:Key="ErrorColor">#FF6B6B</Color>
-    <Color x:Key="SuccessColor">#00E676</Color>
-    <Color x:Key="HighlightColor">#5A4A12</Color>
-    <Color x:Key="ModalOverlayColor">#88000000</Color>
+    <!-- Dark mode separates surfaces with borders, not decorative shadows. -->
+    <Color x:Key="CardShadowColor">#00000000</Color>
+    <Color x:Key="ItemCardHoverBackgroundColor">#1B2128</Color>
+    <Color x:Key="TimerRunningIndicatorColor">#FF8A1E</Color>
+    <Color x:Key="PreviousRoastBackgroundColor">#15191E</Color>
+    <Color x:Key="PreviousRoastBorderColor">#2A323C</Color>
+    <Color x:Key="ErrorColor">#FF6B57</Color>
+    <Color x:Key="SuccessColor">#3BD980</Color>
+    <Color x:Key="HighlightColor">#1F1A0D</Color>
+    <Color x:Key="ModalOverlayColor">#CC05070A</Color>
+
 </ResourceDictionary>

@@ -9,6 +9,7 @@ public partial class App : Application
     private readonly IAppDataService _appDataService;
     private readonly IPreferencesService _preferencesService;
     private readonly IServiceProvider _serviceProvider;
+    private ThemePreference _activeThemePreference = ThemePreference.Dark;
     private Models.AppData? _appData; // Make nullable to fix constructor error
 
 
@@ -28,6 +29,7 @@ public partial class App : Application
 
         // Subscribe to data changed events
         _appDataService.DataChanged += OnAppDataChanged;
+        RequestedThemeChanged += OnRequestedThemeChanged;
 
         // Load theme preference
         LoadThemePreference();
@@ -43,7 +45,10 @@ public partial class App : Application
     {
         try
         {
-            return new Window(_initialPage);
+            Window window = new(_initialPage);
+            ApplyPlatformChrome(ThemePreferencePolicy.ResolveEffectiveTheme(
+                _activeThemePreference, RequestedTheme));
+            return window;
         }
         catch (Exception ex)
         {
@@ -68,29 +73,52 @@ public partial class App : Application
             {
                 case Services.ThemePreference.Light:
                     UserAppTheme = Microsoft.Maui.ApplicationModel.AppTheme.Light;
-                    SetTheme("Light");
+                    SetTheme(ThemePreference.Light);
                     break;
                 case Services.ThemePreference.Dark:
                     UserAppTheme = Microsoft.Maui.ApplicationModel.AppTheme.Dark;
-                    SetTheme("Dark");
+                    SetTheme(ThemePreference.Dark);
                     break;
                 case Services.ThemePreference.System:
                 default:
                     UserAppTheme = Microsoft.Maui.ApplicationModel.AppTheme.Unspecified;
-                    SetTheme("System");
+                    SetTheme(ThemePreference.System);
                     break;
             }
         }
         catch (Exception ex)
         {
             System.Diagnostics.Debug.WriteLine($"Error loading theme preference: {ex.Message}");
-            // Default to system theme
-            UserAppTheme = Microsoft.Maui.ApplicationModel.AppTheme.Unspecified;
-            SetTheme("System");
+            // Dark is the fallback when no usable preference can be read.
+            UserAppTheme = Microsoft.Maui.ApplicationModel.AppTheme.Dark;
+            SetTheme(ThemePreference.Dark);
         }
     }
 
-    public void SetTheme(string theme)
+    public void SetTheme(string theme) => SetTheme(theme switch
+    {
+        "Light" => ThemePreference.Light,
+        "Dark" => ThemePreference.Dark,
+        _ => ThemePreference.System
+    });
+
+    private void SetTheme(ThemePreference preference)
+    {
+        _activeThemePreference = preference;
+        AppTheme effectiveTheme = ThemePreferencePolicy.ResolveEffectiveTheme(preference, RequestedTheme);
+        ApplyThemeDictionary(effectiveTheme);
+    }
+
+    private void OnRequestedThemeChanged(object? sender, AppThemeChangedEventArgs e)
+    {
+        if (_activeThemePreference == ThemePreference.System)
+        {
+            ApplyThemeDictionary(ThemePreferencePolicy.ResolveEffectiveTheme(
+                _activeThemePreference, e.RequestedTheme));
+        }
+    }
+
+    private void ApplyThemeDictionary(AppTheme effectiveTheme)
     {
         try
         {
@@ -99,50 +127,28 @@ public partial class App : Application
             if (mergedDictionaries == null)
                 return;
 
-            // Since we can't set Source programmatically, we'll handle styles.xaml differently
-            // First, let's identify theme dictionaries and other dictionaries
-            var themeDictionaries = new List<ResourceDictionary>();
-            var otherDictionaries = new List<ResourceDictionary>();
+            // Swap only the colour dictionary: tokens, icon geometries and component
+            // styles stay merged and re-resolve their DynamicResource colours.
+            // Dictionaries added by an earlier SetTheme call were constructed in code and
+            // therefore have no Source, so match on type as well or they accumulate.
+            var themeDictionaries = mergedDictionaries
+                .Where(dict => dict is DarkTheme or LightTheme
+                    || dict.Source?.OriginalString is string source
+                       && (source.Contains("LightTheme.xaml") || source.Contains("DarkTheme.xaml")))
+                .ToList();
 
-            foreach (var dict in mergedDictionaries.ToList())
-            {
-                string? source = dict.Source?.OriginalString;
-                if (source != null && (source.Contains("LightTheme.xaml") || source.Contains("DarkTheme.xaml")))
-                {
-                    themeDictionaries.Add(dict);
-                }
-                else
-                {
-                    otherDictionaries.Add(dict);
-                }
-            }
-            // Remove only theme dictionaries, keeping other dictionaries intact
             foreach (var dict in themeDictionaries)
             {
                 mergedDictionaries.Remove(dict);
             }
 
             // Add the new theme dictionary
-            ResourceDictionary newTheme;
-            switch (theme)
-            {
-                case "Light":
-                    newTheme = new LightTheme();
-                    break;
-                case "Dark":
-                    newTheme = new DarkTheme();
-                    break;
-                default:
-                    // Set theme based on system preference
-                    if (Current?.RequestedTheme == AppTheme.Dark)
-                        newTheme = new DarkTheme();
-                    else
-                        newTheme = new LightTheme();
-                    break;
-            }
+            ResourceDictionary newTheme = effectiveTheme == AppTheme.Dark
+                ? new DarkTheme()
+                : new LightTheme();
 
-            // Add the theme dictionary first for proper precedence
             mergedDictionaries.Add(newTheme);
+            ApplyPlatformChrome(effectiveTheme);
         }
         catch (Exception ex)
         {
@@ -150,6 +156,8 @@ public partial class App : Application
             System.Diagnostics.Debug.WriteLine($"Stack trace: {ex.StackTrace}");
         }
     }
+
+    static partial void ApplyPlatformChrome(AppTheme effectiveTheme);
 
     // Get the current app data
     public Models.AppData GetAppData()
