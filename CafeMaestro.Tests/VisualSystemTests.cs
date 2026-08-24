@@ -210,11 +210,12 @@ public class VisualSystemTests
     {
         string chrome = File.ReadAllText(Path.Combine(
             XamlResourceReader.RepositoryRoot, "CafeMaestro", "Platforms", "Android", "App.PlatformChrome.cs"));
+        string normalizedChrome = chrome.Replace("\r\n", "\n", StringComparison.Ordinal);
 
-        chrome.Should().Contain("OperatingSystem.IsAndroidVersionAtLeast(26)");
-        chrome.Should().Contain("SystemUiFlags.LightNavigationBar",
+        normalizedChrome.Should().Contain("OperatingSystem.IsAndroidVersionAtLeast(26)");
+        normalizedChrome.Should().Contain("SystemUiFlags.LightNavigationBar",
             "API 26-29 support dark navigation icons through the legacy system UI flag");
-        chrome.Should().Contain("? statusBarColor\n                        : navigationBarColor",
+        normalizedChrome.Should().Contain("? statusBarColor\n                        : navigationBarColor",
             "API 21-25 need a dark navigation background because dark navigation icons are unavailable");
     }
 
