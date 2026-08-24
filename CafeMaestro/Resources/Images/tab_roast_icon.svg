@@ -1,0 +1,10 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!-- Direction B shell icon: Roast. 24 grid, 1.75 stroke, round caps and joins, hollow.
+     Monochrome white so the platform tab tint can recolour it. -->
+<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24"
+     fill="none" stroke="#FFFFFF" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round">
+  <circle cx="12" cy="13.5" r="7.3"/>
+  <path d="M12 10v3.5l2.4 1.4"/>
+  <path d="M9.6 3h4.8"/>
+  <path d="M12 3v2.2"/>
+</svg>

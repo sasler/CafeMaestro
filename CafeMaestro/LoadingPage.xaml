@@ -12,7 +12,7 @@
                      VerticalOptions="Center"
                      Spacing="20">
 
-            <Image Source="cafemaestro_logo.svg"
+            <Image Source="cafemaestro_logo.png"
                    HeightRequest="120"
                    WidthRequest="120"
                    HorizontalOptions="Center">
@@ -28,7 +28,7 @@
                    TextColor="{DynamicResource PrimaryTextColor}"/>
 
             <ActivityIndicator IsRunning="True"
-                              Color="{DynamicResource Primary}"
+                              Color="{DynamicResource RoastColor}"
                               HorizontalOptions="Center"
                               HeightRequest="50"
                               WidthRequest="50"/>

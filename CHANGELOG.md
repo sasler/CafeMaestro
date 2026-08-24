@@ -7,6 +7,19 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased] - Complete Architecture Refactor
 ### Added
+- Direction B visual system: shared design tokens, semantic dark/light themes, component styles and a vector icon set
+- `Resources/Styles/DesignTokens.xaml` with spacing, radii, type scale, control sizing, icon sizes and responsive breakpoints
+- `Resources/Styles/ComponentStyles.xaml` with card, field, action-bar, status-chip, icon-button, empty/error/loading and focus styles
+- `Resources/Styles/IconGeometries.xaml` with 25 glyphs on a 24-unit grid, a fixed 1.75 dp rendered stroke, round caps and joins
+- Reusable `IconView` control that renders a glyph at 18/24/32 dp in any semantic colour, so icons follow the theme
+- Bean-plus New batch glyph, Reset-only circular arrow, hollow mechanical Settings cog and filled First Crack bolt
+- Four monochrome Shell tab assets for platform-selected/unselected tinting, Android screenshot-verified and Windows build-verified
+- `ThemePreferencePolicy`, making dark the fallback only when no preference has ever been stored
+- Debug-only component gallery page rendering every component and glyph in both themes
+- `docs/visual-system.md` documenting the shared visual system and how to consume it
+- Reusable phase glyph, word and channel-edge status variants, including neutral cards with semantic status edges
+- Platform tabular-font tokens for stable times, weights, percentages, quantities and counts
+- Tests covering theme key parity, WCAG text contrast in both themes, live system-theme behavior, semantic icon fallback, touch targets, resource reachability, rendered stroke weight and geometry invariants
 - App-managed automatic saving to private storage, with no setup prompt
 - Validated JSON backup previews and five-item automatic safety-backup history
 - Android Storage Access Framework integration for opening and saving JSON/CSV documents
@@ -19,11 +32,21 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - 8 new unit tests covering share commands and flexible roast saving
 
 ### Fixed
+- Loading screen referenced `cafemaestro_logo.svg` and a non-existent `Primary` colour, so the logo and spinner never picked up their intended appearance
+- Repeated theme switches no longer stack theme dictionaries: dictionaries added in code have no `Source`, so they were never removed again
+- Android system chrome now follows semantic theme tokens with contrast-safe status/navigation icons and no template purple
+- Small Bean/New batch, Drop, Cooling, Weigh and Drum glyphs no longer collapse into ambiguous silhouettes
 - Android file operations now read picker results through streams, including content:// documents
 - Removed the delayed settings request-message race that produced No response was received errors
 - Invalid backup JSON is rejected without modifying active data or the selected source
 
 ### Changed
+- Rebuilt DarkTheme and LightTheme around identical semantic colour keys; pre-redesign key names remain as aliases so existing pages keep rendering
+- Dark is now the default appearance for a new install; an explicit System/Light/Dark choice is always preserved
+- System theme changes now apply live while System is selected; explicit Light and Dark choices remain stable
+- Light-theme surfaces and Roast, Attention and Danger channels now remain perceptually distinct with warmer supporting neutrals
+- Shell tabs use the new monochrome Direction B assets
+- Version bumped to 1.4.0
 - Redesigned Settings data management with clear, labeled, accessible actions
 - Restore and Start New now require confirmation and create an automatic recovery copy first
 - Roast-log export writes to streams so Android document URIs never reach File.* APIs

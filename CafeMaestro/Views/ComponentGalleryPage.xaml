@@ -1,0 +1,382 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<!--
+    Debug-only review harness for the shared visual system.
+
+    Everything on this page is built from ComponentStyles.xaml, DesignTokens.xaml and
+    IconGeometries.xaml - nothing is styled locally. If a component looks wrong here,
+    it is wrong everywhere.
+-->
+<ContentPage xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
+             xmlns:controls="clr-namespace:CafeMaestro.Controls"
+             xmlns:viewmodels="clr-namespace:CafeMaestro.ViewModels"
+             x:Class="CafeMaestro.Views.ComponentGalleryPage"
+             x:DataType="viewmodels:ComponentGalleryPageViewModel"
+             Title="Gallery"
+             BackgroundColor="{DynamicResource SurfaceColor}">
+
+    <ScrollView x:Name="GalleryScroll">
+        <VerticalStackLayout Padding="{StaticResource PagePadding}"
+                             Spacing="{StaticResource SpaceXl}">
+
+            <!-- ============ Theme switch ============ -->
+            <VerticalStackLayout Spacing="{StaticResource SpaceSm}">
+                <Label Style="{StaticResource SectionHeaderStyle}" Text="Theme" />
+                <Label Style="{StaticResource CardMetaStyle}"
+                       Text="{Binding SelectedTheme, StringFormat='Current: {0}. Dark is the default for a new install; an explicit choice is always preserved.'}" />
+                <HorizontalStackLayout Spacing="{StaticResource SpaceSm}">
+                    <Button Style="{StaticResource SecondaryActionStyle}"
+                            Text="Dark"
+                            Command="{Binding SelectThemeCommand}"
+                            CommandParameter="Dark" />
+                    <Button Style="{StaticResource SecondaryActionStyle}"
+                            Text="Light"
+                            Command="{Binding SelectThemeCommand}"
+                            CommandParameter="Light" />
+                    <Button Style="{StaticResource SecondaryActionStyle}"
+                            Text="System"
+                            Command="{Binding SelectThemeCommand}"
+                            CommandParameter="System" />
+                </HorizontalStackLayout>
+            </VerticalStackLayout>
+
+            <!-- ============ Semantic palette ============ -->
+            <VerticalStackLayout Spacing="{StaticResource SpaceSm}">
+                <Label Style="{StaticResource SectionHeaderStyle}" Text="Semantic colours" />
+                <VerticalStackLayout x:Name="PaletteGallery"
+                                     Spacing="{StaticResource SpaceSm}" />
+            </VerticalStackLayout>
+
+            <!-- ============ Icons ============ -->
+            <VerticalStackLayout Spacing="{StaticResource SpaceSm}">
+                <Label Style="{StaticResource SectionHeaderStyle}" Text="Icons — 24 grid, 1.75 stroke" />
+                <Label Style="{StaticResource CardCaptionStyle}"
+                       Text="Populated from IconGeometries.xaml, so every shipped glyph appears here." />
+                <VerticalStackLayout x:Name="IconGallery"
+                                     Spacing="{StaticResource SpaceSm}" />
+            </VerticalStackLayout>
+
+            <!-- ============ Critical glyphs at every shipped size ============ -->
+            <VerticalStackLayout Spacing="{StaticResource SpaceSm}">
+                <Label Style="{StaticResource SectionHeaderStyle}" Text="Critical icons at 18 / 24 / 32" />
+                <Label Style="{StaticResource CardCaptionStyle}"
+                       Text="Check meaning, silhouette and optical stroke weight at every shipped size." />
+                <Border Style="{StaticResource CardStyle}">
+                    <Grid ColumnDefinitions="Auto,*" RowDefinitions="Auto,Auto,Auto,Auto,Auto,Auto,Auto,Auto,Auto,Auto"
+                          ColumnSpacing="{StaticResource SpaceLg}"
+                          RowSpacing="{StaticResource SpaceMd}">
+
+                        <Label Grid.Row="0" Grid.Column="0" Style="{StaticResource CardCaptionStyle}" Text="New batch" />
+                        <HorizontalStackLayout Grid.Row="0" Grid.Column="1" Spacing="{StaticResource SpaceLg}" VerticalOptions="Center">
+                            <controls:IconView Data="{StaticResource IconNewBatchData}" IconSize="{StaticResource IconSizeSm}" IconColor="{DynamicResource ReadyColor}" />
+                            <controls:IconView Data="{StaticResource IconNewBatchData}" IconSize="{StaticResource IconSizeMd}" IconColor="{DynamicResource ReadyColor}" />
+                            <controls:IconView Data="{StaticResource IconNewBatchData}" IconSize="{StaticResource IconSizeLg}" IconColor="{DynamicResource ReadyColor}" />
+                        </HorizontalStackLayout>
+
+                        <Label Grid.Row="1" Grid.Column="0" Style="{StaticResource CardCaptionStyle}" Text="Reset" />
+                        <HorizontalStackLayout Grid.Row="1" Grid.Column="1" Spacing="{StaticResource SpaceLg}" VerticalOptions="Center">
+                            <controls:IconView Data="{StaticResource IconResetData}" IconSize="{StaticResource IconSizeSm}" />
+                            <controls:IconView Data="{StaticResource IconResetData}" IconSize="{StaticResource IconSizeMd}" />
+                            <controls:IconView Data="{StaticResource IconResetData}" IconSize="{StaticResource IconSizeLg}" />
+                        </HorizontalStackLayout>
+
+                        <Label Grid.Row="2" Grid.Column="0" Style="{StaticResource CardCaptionStyle}" Text="First Crack" />
+                        <HorizontalStackLayout Grid.Row="2" Grid.Column="1" Spacing="{StaticResource SpaceLg}" VerticalOptions="Center">
+                            <controls:IconView Data="{StaticResource IconFirstCrackData}" IsFilled="True" IconSize="{StaticResource IconSizeSm}" IconColor="{DynamicResource RoastColor}" />
+                            <controls:IconView Data="{StaticResource IconFirstCrackData}" IsFilled="True" IconSize="{StaticResource IconSizeMd}" IconColor="{DynamicResource RoastColor}" />
+                            <controls:IconView Data="{StaticResource IconFirstCrackData}" IsFilled="True" IconSize="{StaticResource IconSizeLg}" IconColor="{DynamicResource RoastColor}" />
+                        </HorizontalStackLayout>
+
+                        <Label Grid.Row="3" Grid.Column="0" Style="{StaticResource CardCaptionStyle}" Text="Drop" />
+                        <HorizontalStackLayout Grid.Row="3" Grid.Column="1" Spacing="{StaticResource SpaceLg}" VerticalOptions="Center">
+                            <controls:IconView Data="{StaticResource IconDropData}" IconSize="{StaticResource IconSizeSm}" IconColor="{DynamicResource RoastColor}" />
+                            <controls:IconView Data="{StaticResource IconDropData}" IconSize="{StaticResource IconSizeMd}" IconColor="{DynamicResource RoastColor}" />
+                            <controls:IconView Data="{StaticResource IconDropData}" IconSize="{StaticResource IconSizeLg}" IconColor="{DynamicResource RoastColor}" />
+                        </HorizontalStackLayout>
+
+                        <Label Grid.Row="4" Grid.Column="0" Style="{StaticResource CardCaptionStyle}" Text="Beans" />
+                        <HorizontalStackLayout Grid.Row="4" Grid.Column="1" Spacing="{StaticResource SpaceLg}" VerticalOptions="Center">
+                            <controls:IconView Data="{StaticResource IconBeanData}" IconSize="{StaticResource IconSizeSm}" />
+                            <controls:IconView Data="{StaticResource IconBeanData}" IconSize="{StaticResource IconSizeMd}" />
+                            <controls:IconView Data="{StaticResource IconBeanData}" IconSize="{StaticResource IconSizeLg}" />
+                        </HorizontalStackLayout>
+
+                        <Label Grid.Row="5" Grid.Column="0" Style="{StaticResource CardCaptionStyle}" Text="Cooling" />
+                        <HorizontalStackLayout Grid.Row="5" Grid.Column="1" Spacing="{StaticResource SpaceLg}" VerticalOptions="Center">
+                            <controls:IconView Data="{StaticResource IconCoolingData}" IconSize="{StaticResource IconSizeSm}" IconColor="{DynamicResource CoolingColor}" />
+                            <controls:IconView Data="{StaticResource IconCoolingData}" IconSize="{StaticResource IconSizeMd}" IconColor="{DynamicResource CoolingColor}" />
+                            <controls:IconView Data="{StaticResource IconCoolingData}" IconSize="{StaticResource IconSizeLg}" IconColor="{DynamicResource CoolingColor}" />
+                        </HorizontalStackLayout>
+
+                        <Label Grid.Row="6" Grid.Column="0" Style="{StaticResource CardCaptionStyle}" Text="Log" />
+                        <HorizontalStackLayout Grid.Row="6" Grid.Column="1" Spacing="{StaticResource SpaceLg}" VerticalOptions="Center">
+                            <controls:IconView Data="{StaticResource IconLogData}" IconSize="{StaticResource IconSizeSm}" />
+                            <controls:IconView Data="{StaticResource IconLogData}" IconSize="{StaticResource IconSizeMd}" />
+                            <controls:IconView Data="{StaticResource IconLogData}" IconSize="{StaticResource IconSizeLg}" />
+                        </HorizontalStackLayout>
+
+                        <Label Grid.Row="7" Grid.Column="0" Style="{StaticResource CardCaptionStyle}" Text="Import" />
+                        <HorizontalStackLayout Grid.Row="7" Grid.Column="1" Spacing="{StaticResource SpaceLg}" VerticalOptions="Center">
+                            <controls:IconView Data="{StaticResource IconImportData}" IconSize="{StaticResource IconSizeSm}" />
+                            <controls:IconView Data="{StaticResource IconImportData}" IconSize="{StaticResource IconSizeMd}" />
+                            <controls:IconView Data="{StaticResource IconImportData}" IconSize="{StaticResource IconSizeLg}" />
+                        </HorizontalStackLayout>
+
+                        <Label Grid.Row="8" Grid.Column="0" Style="{StaticResource CardCaptionStyle}" Text="Weigh" />
+                        <HorizontalStackLayout Grid.Row="8" Grid.Column="1" Spacing="{StaticResource SpaceLg}" VerticalOptions="Center">
+                            <controls:IconView Data="{StaticResource IconWeighData}" IconSize="{StaticResource IconSizeSm}" IconColor="{DynamicResource ReadyColor}" />
+                            <controls:IconView Data="{StaticResource IconWeighData}" IconSize="{StaticResource IconSizeMd}" IconColor="{DynamicResource ReadyColor}" />
+                            <controls:IconView Data="{StaticResource IconWeighData}" IconSize="{StaticResource IconSizeLg}" IconColor="{DynamicResource ReadyColor}" />
+                        </HorizontalStackLayout>
+
+                        <Label Grid.Row="9" Grid.Column="0" Style="{StaticResource CardCaptionStyle}" Text="Drum" />
+                        <HorizontalStackLayout Grid.Row="9" Grid.Column="1" Spacing="{StaticResource SpaceLg}" VerticalOptions="Center">
+                            <controls:IconView Data="{StaticResource IconDrumData}" IconSize="{StaticResource IconSizeSm}" />
+                            <controls:IconView Data="{StaticResource IconDrumData}" IconSize="{StaticResource IconSizeMd}" />
+                            <controls:IconView Data="{StaticResource IconDrumData}" IconSize="{StaticResource IconSizeLg}" />
+                        </HorizontalStackLayout>
+                    </Grid>
+                </Border>
+            </VerticalStackLayout>
+
+            <!-- ============ Cards and channels ============ -->
+            <VerticalStackLayout Spacing="{StaticResource SpaceSm}">
+                <Label Style="{StaticResource SectionHeaderStyle}" Text="Cards" />
+
+                <Border Style="{StaticResource CardStyle}">
+                    <VerticalStackLayout Spacing="{StaticResource SpaceXs}">
+                        <Label Style="{StaticResource CardTitleStyle}" Text="Ethiopia Guji" />
+                        <Label Style="{StaticResource CardMetaStyle}" Text="Natural · Heirloom" />
+                        <Label Style="{StaticResource NumericValueStyle}" Text="1.52 kg" HorizontalOptions="Start" />
+                    </VerticalStackLayout>
+                </Border>
+
+                <Border Style="{StaticResource RaisedCardStyle}">
+                    <VerticalStackLayout Spacing="{StaticResource SpaceXs}">
+                        <Label Style="{StaticResource CardTitleStyle}" Text="Raised surface" />
+                        <Label Style="{StaticResource CardMetaStyle}" Text="Sheets and popups sit above cards." />
+                    </VerticalStackLayout>
+                </Border>
+
+                <!-- Status card: colour edge + tinted surface + the status word. -->
+                <Border Style="{StaticResource RoastCardStyle}">
+                    <Grid ColumnDefinitions="Auto,*,Auto" ColumnSpacing="{StaticResource SpaceMd}">
+                        <BoxView Grid.Column="0" Style="{StaticResource RoastChannelEdgeStyle}" />
+                        <VerticalStackLayout Grid.Column="1" Spacing="{StaticResource SpaceXs}">
+                            <Label Style="{StaticResource CardTitleStyle}" Text="Batch 2 · Ethiopia Guji" />
+                            <Label Style="{StaticResource CardMetaStyle}" Text="240 g in · 218 °C" />
+                        </VerticalStackLayout>
+                        <Border Grid.Column="2" Style="{StaticResource RoastChipStyle}" VerticalOptions="Start">
+                            <HorizontalStackLayout Spacing="{StaticResource SpaceXs}">
+                                <controls:IconView Style="{StaticResource RoastStatusGlyphStyle}" Data="{StaticResource IconFirstCrackData}" />
+                                <Label Style="{StaticResource RoastChipLabelStyle}" Text="ROASTING" />
+                            </HorizontalStackLayout>
+                        </Border>
+                    </Grid>
+                </Border>
+
+                <Border Style="{StaticResource CoolingCardStyle}">
+                    <Grid ColumnDefinitions="Auto,*,Auto" ColumnSpacing="{StaticResource SpaceMd}">
+                        <BoxView Grid.Column="0" Style="{StaticResource CoolingChannelEdgeStyle}" />
+                        <VerticalStackLayout Grid.Column="1" Spacing="{StaticResource SpaceXs}">
+                            <Label Style="{StaticResource CardTitleStyle}" Text="Batch 1 · Ethiopia Guji" />
+                            <Label Style="{StaticResource CardMetaStyle}" Text="Dropped 09:28 · weigh in around 09:33" />
+                        </VerticalStackLayout>
+                        <Border Grid.Column="2" Style="{StaticResource CoolingChipStyle}" VerticalOptions="Start">
+                            <HorizontalStackLayout Spacing="{StaticResource SpaceXs}">
+                                <controls:IconView Style="{StaticResource CoolingStatusGlyphStyle}" Data="{StaticResource IconCoolingData}" />
+                                <Label Style="{StaticResource CoolingChipLabelStyle}" Text="COOLING 4:12" />
+                            </HorizontalStackLayout>
+                        </Border>
+                    </Grid>
+                </Border>
+
+                <Border Style="{StaticResource ReadyCardStyle}">
+                    <Grid ColumnDefinitions="Auto,*,Auto" ColumnSpacing="{StaticResource SpaceMd}">
+                        <BoxView Grid.Column="0" Style="{StaticResource ReadyChannelEdgeStyle}" />
+                        <VerticalStackLayout Grid.Column="1" Spacing="{StaticResource SpaceXs}">
+                            <Label Style="{StaticResource CardTitleStyle}" Text="Batch 1 · Ethiopia Guji" />
+                            <Label Style="{StaticResource CardMetaStyle}" Text="240 g in · cooled" />
+                        </VerticalStackLayout>
+                        <Border Grid.Column="2" Style="{StaticResource ReadyChipStyle}" VerticalOptions="Start">
+                            <HorizontalStackLayout Spacing="{StaticResource SpaceXs}">
+                                <controls:IconView Style="{StaticResource ReadyStatusGlyphStyle}" Data="{StaticResource IconCheckData}" />
+                                <Label Style="{StaticResource ReadyChipLabelStyle}" Text="NEEDS WEIGHT" />
+                            </HorizontalStackLayout>
+                        </Border>
+                    </Grid>
+                </Border>
+
+                <!-- Neutral-list pattern: state lives in edge + glyph + word, not a wall of tint. -->
+                <Border Style="{StaticResource StatusEdgeCardStyle}">
+                    <Grid ColumnDefinitions="Auto,*,Auto" ColumnSpacing="{StaticResource SpaceMd}">
+                        <BoxView Grid.Column="0" Style="{StaticResource AttentionChannelEdgeStyle}" />
+                        <VerticalStackLayout Grid.Column="1" Spacing="{StaticResource SpaceXs}">
+                            <Label Style="{StaticResource CardTitleStyle}" Text="Kenya Nyeri" />
+                            <Label Style="{StaticResource CardMetaStyle}" Text="Washed · SL28" />
+                        </VerticalStackLayout>
+                        <Border Grid.Column="2" Style="{StaticResource AttentionChipStyle}" VerticalOptions="Start">
+                            <HorizontalStackLayout Spacing="{StaticResource SpaceXs}">
+                                <controls:IconView Style="{StaticResource AttentionStatusGlyphStyle}" Data="{StaticResource IconAlertData}" />
+                                <Label Style="{StaticResource AttentionChipLabelStyle}" Text="LOW · 180 g" />
+                            </HorizontalStackLayout>
+                        </Border>
+                    </Grid>
+                </Border>
+
+                <Border Style="{StaticResource StatusEdgeCardStyle}">
+                    <Grid ColumnDefinitions="Auto,*,Auto" ColumnSpacing="{StaticResource SpaceMd}">
+                        <BoxView Grid.Column="0" Style="{StaticResource DangerChannelEdgeStyle}" />
+                        <VerticalStackLayout Grid.Column="1" Spacing="{StaticResource SpaceXs}">
+                            <Label Style="{StaticResource CardTitleStyle}" Text="Batch 3 · Brazil Cerrado" />
+                            <Label Style="{StaticResource CardMetaStyle}" Text="Discarded before drop" />
+                        </VerticalStackLayout>
+                        <Border Grid.Column="2" Style="{StaticResource DangerChipStyle}" VerticalOptions="Start">
+                            <HorizontalStackLayout Spacing="{StaticResource SpaceXs}">
+                                <controls:IconView Style="{StaticResource DangerStatusGlyphStyle}" Data="{StaticResource IconCloseData}" />
+                                <Label Style="{StaticResource DangerChipLabelStyle}" Text="DISCARDED" />
+                            </HorizontalStackLayout>
+                        </Border>
+                    </Grid>
+                </Border>
+            </VerticalStackLayout>
+
+            <!-- ============ Fields ============ -->
+            <VerticalStackLayout Spacing="{StaticResource SpaceSm}">
+                <Label Style="{StaticResource SectionHeaderStyle}" Text="Fields" />
+
+                <VerticalStackLayout>
+                    <Label Style="{StaticResource FieldLabelStyle}" Text="Batch weight (g)" />
+                    <Border Style="{StaticResource FieldContainerStyle}">
+                        <Entry Style="{StaticResource FieldEntryStyle}" Text="240.0" Keyboard="Numeric" />
+                    </Border>
+                    <Label Style="{StaticResource FieldHintStyle}" Text="Recorded to 0.1 g." />
+                </VerticalStackLayout>
+
+                <VerticalStackLayout>
+                    <Label Style="{StaticResource FieldLabelStyle}" Text="Final weight (g)" />
+                    <Border Style="{StaticResource FieldContainerErrorStyle}">
+                        <Entry Style="{StaticResource FieldEntryStyle}" Text="260.0" Keyboard="Numeric" />
+                    </Border>
+                    <Label Style="{StaticResource FieldErrorStyle}"
+                           Text="More than the 240 g you loaded — did you weigh both batches together?" />
+                </VerticalStackLayout>
+
+                <VerticalStackLayout>
+                    <Label Style="{StaticResource FieldLabelStyle}" Text="Focus ring" />
+                    <Border Style="{StaticResource FocusRingStyle}">
+                        <Entry Style="{StaticResource FieldEntryStyle}" Placeholder="Focused appearance" />
+                    </Border>
+                </VerticalStackLayout>
+
+                <VerticalStackLayout>
+                    <Label Style="{StaticResource FieldLabelStyle}" Text="Disabled" />
+                    <Border Style="{StaticResource FieldContainerStyle}">
+                        <Entry Style="{StaticResource FieldEntryStyle}" Text="Locked while saving" IsEnabled="False" />
+                    </Border>
+                </VerticalStackLayout>
+            </VerticalStackLayout>
+
+            <!-- ============ Icon buttons ============ -->
+            <VerticalStackLayout Spacing="{StaticResource SpaceSm}">
+                <Label Style="{StaticResource SectionHeaderStyle}" Text="Icon buttons" />
+                <Label Style="{StaticResource CardCaptionStyle}"
+                       Text="The Button owns focus, press states and the accessible name; the IconView sits beneath it." />
+                <HorizontalStackLayout Spacing="{StaticResource SpaceSm}">
+                    <Grid>
+                        <Button Style="{StaticResource IconButtonStyle}" SemanticProperties.Description="Search" />
+                        <controls:IconView Data="{StaticResource IconSearchData}" IconColor="{DynamicResource SecondaryTextColor}" />
+                    </Grid>
+                    <Grid>
+                        <Button Style="{StaticResource IconButtonStyle}" SemanticProperties.Description="Import" />
+                        <controls:IconView Data="{StaticResource IconImportData}" IconColor="{DynamicResource SecondaryTextColor}" />
+                    </Grid>
+                    <Grid>
+                        <Button x:Name="AccentAddButton" Style="{StaticResource AccentIconButtonStyle}" SemanticProperties.Description="Add bean" />
+                        <controls:IconView Data="{StaticResource IconAddData}"
+                                           IconColor="{Binding TextColor, Source={x:Reference AccentAddButton}}" />
+                    </Grid>
+                    <Grid>
+                        <Button Style="{StaticResource IconButtonStyle}" SemanticProperties.Description="More actions" />
+                        <controls:IconView Data="{StaticResource IconMoreData}" IconColor="{DynamicResource SecondaryTextColor}" />
+                    </Grid>
+                    <Grid>
+                        <Button Style="{StaticResource IconButtonStyle}" SemanticProperties.Description="Delete" IsEnabled="False" />
+                        <controls:IconView Data="{StaticResource IconDeleteData}" IconColor="{DynamicResource DisabledColor}" />
+                    </Grid>
+                </HorizontalStackLayout>
+            </VerticalStackLayout>
+
+            <!-- ============ Actions ============ -->
+            <VerticalStackLayout Style="{StaticResource ActionBarStyle}" Padding="0">
+                <Label Style="{StaticResource SectionHeaderStyle}" Text="Actions" />
+                <Label Style="{StaticResource CardCaptionStyle}" Text="Roast flow · primary remains bottom-most" />
+                <Button Style="{StaticResource SecondaryActionStyle}" Text="Done for now" />
+                <Button Style="{StaticResource PrimaryActionStyle}" Text="DROP BEANS" />
+                <Label Style="{StaticResource CardCaptionStyle}" Text="Weigh-in confirmation · shown in its own focused context" />
+                <Button Style="{StaticResource ConfirmActionStyle}" Text="SAVE WEIGHT" />
+                <Label Style="{StaticResource CardCaptionStyle}" Text="Destructive action · spatially isolated from the primary" />
+                <Button Style="{StaticResource DestructiveActionStyle}" Text="Discard batch" />
+                <Label Style="{StaticResource CardCaptionStyle}" Text="Disabled state" />
+                <Button Style="{StaticResource PrimaryActionStyle}" Text="Disabled primary" IsEnabled="False" />
+            </VerticalStackLayout>
+
+            <!-- ============ Empty, error, loading ============ -->
+            <VerticalStackLayout Spacing="{StaticResource SpaceSm}">
+                <Label Style="{StaticResource SectionHeaderStyle}" Text="Empty, error and loading" />
+
+                <Border Style="{StaticResource CardStyle}">
+                    <VerticalStackLayout Style="{StaticResource EmptyStateStyle}">
+                        <controls:IconView Data="{StaticResource IconBeanData}"
+                                           IconSize="{StaticResource IconSizeLg}"
+                                           IconColor="{DynamicResource MutedTextColor}" />
+                        <Label Style="{StaticResource EmptyStateTitleStyle}" Text="No beans yet" />
+                        <Label Style="{StaticResource EmptyStateBodyStyle}"
+                               Text="Beans you add here become the list you pick from when a roast starts." />
+                        <Button Style="{StaticResource PrimaryActionStyle}" Text="Add your first bean" />
+                    </VerticalStackLayout>
+                </Border>
+
+                <Border Style="{StaticResource ErrorBannerStyle}">
+                    <Grid ColumnDefinitions="Auto,*,Auto" ColumnSpacing="{StaticResource SpaceMd}">
+                        <controls:IconView Grid.Column="0"
+                                           Data="{StaticResource IconAlertData}"
+                                           IconSize="{StaticResource IconSizeSm}"
+                                           IconColor="{DynamicResource DangerColor}"
+                                           VerticalOptions="Center" />
+                        <Label Grid.Column="1"
+                               Style="{StaticResource ErrorBannerTextStyle}"
+                               Text="Couldn't read your roast data. The rows below are the last copy we loaded."
+                               VerticalOptions="Center" />
+                        <Button Grid.Column="2" Style="{StaticResource SecondaryActionStyle}" Text="Retry" />
+                    </Grid>
+                </Border>
+
+                <Border Style="{StaticResource CardStyle}">
+                    <VerticalStackLayout Spacing="{StaticResource SpaceSm}">
+                        <BoxView Style="{StaticResource LoadingSkeletonStyle}" WidthRequest="160" HorizontalOptions="Start" />
+                        <BoxView Style="{StaticResource LoadingSkeletonStyle}" WidthRequest="220" HorizontalOptions="Start" />
+                        <BoxView Style="{StaticResource LoadingSkeletonStyle}" WidthRequest="120" HorizontalOptions="Start" />
+                        <ActivityIndicator Style="{StaticResource LoadingIndicatorStyle}"
+                                           IsRunning="True"
+                                           HorizontalOptions="Start" />
+                    </VerticalStackLayout>
+                </Border>
+            </VerticalStackLayout>
+
+            <!-- ============ Instrument type ============ -->
+            <VerticalStackLayout Spacing="{StaticResource SpaceSm}">
+                <Label Style="{StaticResource SectionHeaderStyle}" Text="Instrument value" />
+                <Border Style="{StaticResource CardStyle}">
+                    <VerticalStackLayout>
+                        <Label Style="{StaticResource InstrumentValueStyle}" Text="07:42" TextColor="{DynamicResource RoastColor}" />
+                        <Label Style="{StaticResource CardCaptionStyle}"
+                               Text="The digital face is reserved for this one number."
+                               HorizontalTextAlignment="Center" />
+                    </VerticalStackLayout>
+                </Border>
+            </VerticalStackLayout>
+
+        </VerticalStackLayout>
+    </ScrollView>
+</ContentPage>

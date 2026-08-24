@@ -69,6 +69,10 @@ public static class MauiProgram
         builder.Services.AddTransient<SettingsPage>();
 
 #if DEBUG
+        // Review harness for the shared visual system - Debug builds only.
+        builder.Services.AddTransient<ComponentGalleryPageViewModel>();
+        builder.Services.AddTransient<Views.ComponentGalleryPage>();
+
         builder.Logging.AddDebug();
 #endif
 

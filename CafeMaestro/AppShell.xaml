@@ -15,25 +15,25 @@
 
         <ShellContent
             Title="Roast"
-            Icon="roast_icon.png"
+            Icon="tab_roast_icon.png"
             ContentTemplate="{DataTemplate local:RoastPage}"
             Route="RoastPage" />
 
         <ShellContent
             Title="Roast Log"
-            Icon="log_icon.png"
+            Icon="tab_log_icon.png"
             ContentTemplate="{DataTemplate local:RoastLogPage}"
             Route="RoastLogPage" />
 
         <ShellContent
             Title="Beans"
-            Icon="beans_icon.png"
+            Icon="tab_beans_icon.png"
             ContentTemplate="{DataTemplate local:BeanInventoryPage}"
             Route="BeanInventoryPage" />
 
         <ShellContent
             Title="Settings"
-            Icon="settings_icon.png"
+            Icon="tab_settings_icon.png"
             ContentTemplate="{DataTemplate local:SettingsPage}"
             Route="SettingsPage" />
     </TabBar>

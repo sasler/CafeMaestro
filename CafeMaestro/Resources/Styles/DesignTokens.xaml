@@ -1,0 +1,105 @@
+﻿<?xml version="1.0" encoding="UTF-8" ?>
+<!--
+    Direction B design tokens.
+
+    Everything here is theme independent: spacing, radii, type scale, control sizing
+    and breakpoints. Colour lives in DarkTheme.xaml / LightTheme.xaml, component
+    recipes live in ComponentStyles.xaml.
+-->
+<ResourceDictionary xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
+                    xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml">
+
+    <!-- ===== Spacing (4 dp rhythm) ===== -->
+    <x:Double x:Key="SpaceXs">4</x:Double>
+    <x:Double x:Key="SpaceSm">8</x:Double>
+    <x:Double x:Key="SpaceMd">12</x:Double>
+    <x:Double x:Key="SpaceLg">16</x:Double>
+    <x:Double x:Key="SpaceXl">24</x:Double>
+    <x:Double x:Key="Space2Xl">32</x:Double>
+
+    <Thickness x:Key="CardPadding">16</Thickness>
+    <Thickness x:Key="CompactCardPadding">12</Thickness>
+    <Thickness x:Key="PagePadding">16,12</Thickness>
+    <Thickness x:Key="ChipPadding">10,4</Thickness>
+    <Thickness x:Key="FieldPadding">12,10</Thickness>
+    <Thickness x:Key="ActionBarPadding">16,12,16,16</Thickness>
+
+    <!-- ===== Corner radii ===== -->
+    <x:Double x:Key="RadiusSm">8</x:Double>
+    <x:Double x:Key="RadiusMd">12</x:Double>
+    <x:Double x:Key="RadiusLg">16</x:Double>
+    <x:Double x:Key="RadiusXl">20</x:Double>
+    <x:Double x:Key="RadiusPill">999</x:Double>
+
+    <!--
+        MAUI types the same radius three ways: Border.StrokeShape wants a CornerRadius,
+        Button.CornerRadius wants an int, and layout code wants a double. The values are
+        kept in step here so a component never has to hardcode one.
+    -->
+    <CornerRadius x:Key="CornerRadiusSm">8</CornerRadius>
+    <CornerRadius x:Key="CornerRadiusMd">12</CornerRadius>
+    <CornerRadius x:Key="CornerRadiusLg">16</CornerRadius>
+    <CornerRadius x:Key="CornerRadiusXl">20</CornerRadius>
+    <CornerRadius x:Key="CornerRadiusPill">999</CornerRadius>
+
+    <x:Int32 x:Key="ButtonRadiusSm">8</x:Int32>
+    <x:Int32 x:Key="ButtonRadiusMd">12</x:Int32>
+    <x:Int32 x:Key="ButtonRadiusLg">16</x:Int32>
+
+    <!-- ===== Type scale ===== -->
+    <!--
+        Sizes are dp at 100% text scale. Every style keeps FontAutoScalingEnabled on,
+        so these grow with the system setting - which is why no card, row or action
+        below declares a fixed height.
+    -->
+    <x:Double x:Key="FontSizeCaption">12</x:Double>
+    <x:Double x:Key="FontSizeMeta">13</x:Double>
+    <x:Double x:Key="FontSizeStatus">14</x:Double>
+    <x:Double x:Key="FontSizeBody">16</x:Double>
+    <x:Double x:Key="FontSizeTitle">18</x:Double>
+    <x:Double x:Key="FontSizeHeadline">22</x:Double>
+    <x:Double x:Key="FontSizeDisplay">30</x:Double>
+    <x:Double x:Key="FontSizeInstrument">48</x:Double>
+
+    <x:String x:Key="FontFamilyBody">OpenSansRegular</x:String>
+    <x:String x:Key="FontFamilyEmphasis">OpenSansSemibold</x:String>
+    <!--
+        A true tabular monospace for secondary numbers. Platform system faces avoid
+        reusing the seven-segment instrument font in weights, times and counts.
+    -->
+    <OnPlatform x:Key="FontFamilyTabular" x:TypeArguments="x:String" Default="monospace">
+        <On Platform="Android" Value="monospace" />
+        <On Platform="WinUI" Value="Cascadia Mono" />
+        <On Platform="iOS,MacCatalyst" Value="Menlo" />
+    </OnPlatform>
+    <!-- The digital face is reserved for the one dominant elapsed/countdown number. -->
+    <x:String x:Key="FontFamilyInstrument">Digital7</x:String>
+
+    <!-- ===== Control sizing ===== -->
+    <!--
+        Minimums, never fixed heights: MinimumHeightRequest lets a control grow with
+        dynamic text instead of clipping it.
+    -->
+    <x:Double x:Key="TouchTargetMin">48</x:Double>
+    <x:Double x:Key="ControlHeightMin">48</x:Double>
+    <x:Double x:Key="PrimaryActionHeight">56</x:Double>
+    <x:Double x:Key="DropBarHeight">66</x:Double>
+
+    <!-- ===== Icon grid ===== -->
+    <x:Double x:Key="IconGrid">24</x:Double>
+    <x:Double x:Key="IconStrokeThickness">1.75</x:Double>
+    <x:Double x:Key="IconSizeSm">18</x:Double>
+    <x:Double x:Key="IconSizeMd">24</x:Double>
+    <x:Double x:Key="IconSizeLg">32</x:Double>
+
+    <!-- ===== Strokes ===== -->
+    <x:Double x:Key="HairlineThickness">1</x:Double>
+    <x:Double x:Key="AccentEdgeThickness">3</x:Double>
+    <x:Double x:Key="FocusRingThickness">2</x:Double>
+
+    <!-- ===== Responsive breakpoints (dp) ===== -->
+    <x:Double x:Key="BreakpointCompact">360</x:Double>
+    <x:Double x:Key="BreakpointMedium">600</x:Double>
+    <x:Double x:Key="BreakpointExpanded">900</x:Double>
+
+</ResourceDictionary>

@@ -1,13 +1,20 @@
-﻿<?xml version="1.0" encoding="UTF-8" ?>
+<?xml version="1.0" encoding="UTF-8" ?>
 <Application xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
              xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
              x:Class="CafeMaestro.App">
     <Application.Resources>
         <ResourceDictionary>
             <ResourceDictionary.MergedDictionaries>
-                <!-- Only include one default theme -->
-                <ResourceDictionary Source="Resources/Styles/LightTheme.xaml" />
-                <!-- Include Styles.xaml for common styles -->
+                <!--
+                    Dark is the default mode; App.LoadThemePreference swaps this for the
+                    stored preference when the user has made an explicit choice.
+                -->
+                <ResourceDictionary Source="Resources/Styles/DarkTheme.xaml" />
+                <!-- Icon path data for IconView -->
+                <ResourceDictionary Source="Resources/Styles/IconGeometries.xaml" />
+                <!-- Component recipes; merges DesignTokens.xaml so tokens resolve app-wide -->
+                <ResourceDictionary Source="Resources/Styles/ComponentStyles.xaml" />
+                <!-- Legacy styles still used by pages awaiting migration -->
                 <ResourceDictionary Source="Resources/Styles/Styles.xaml" />
             </ResourceDictionary.MergedDictionaries>
         </ResourceDictionary>

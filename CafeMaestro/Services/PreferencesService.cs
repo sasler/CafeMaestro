@@ -110,30 +110,18 @@ namespace CafeMaestro.Services
                 // Ignore any errors when setting the value
             }
         }
-          // Get the user's theme preference (defaults to System)
+          // Get the user's theme preference (dark unless an explicit choice was stored)
         public async Task<ThemePreference> GetThemePreferenceAsync()
         {
             try
             {
                 string? value = await SecureStorage.GetAsync(ThemePreferenceKey);
-                if (string.IsNullOrEmpty(value))
-                {
-                    // Default to System theme
-                    return ThemePreference.System;
-                }
-                
-                // Parse the stored theme value
-                if (Enum.TryParse<ThemePreference>(value, out var theme))
-                {
-                    return theme;
-                }
-                
-                return ThemePreference.System;
+                return ThemePreferencePolicy.FromStoredValue(value);
             }
             catch (Exception)
             {
-                // On error, default to System theme
-                return ThemePreference.System;
+                // Secure storage is unavailable - treat it as "no preference stored".
+                return ThemePreferencePolicy.Fallback;
             }
         }
         
