@@ -36,6 +36,16 @@ internal static class RoastProjection
             ElapsedSeconds(draft, asOfUtc) > MaxPlausibleRoastSeconds;
     }
 
+    /// <summary>
+    /// Whether wall-clock rollback made the current running interval unknowable. Recovery must
+    /// collect an elapsed duration instead of treating the clamped projection as earned time.
+    /// </summary>
+    internal static bool RequiresCorrectedElapsed(
+        ActiveRoastDraft draft,
+        DateTimeOffset asOfUtc) =>
+        asOfUtc < draft.StartedAtUtc ||
+        draft.RunningSinceUtc is DateTimeOffset runningSinceUtc && asOfUtc < runningSinceUtc;
+
     internal static ActiveRoastSnapshot ToSnapshot(ActiveRoastDraft draft, DateTimeOffset asOfUtc) =>
         new()
         {
@@ -52,7 +62,8 @@ internal static class RoastProjection
             FirstCrackElapsedSeconds = draft.FirstCrackElapsedSeconds,
             FirstCrackEnabled = draft.FirstCrackEnabled,
             CoolingDurationSeconds = draft.CoolingDurationSeconds,
-            IsElapsedImplausible = IsElapsedImplausible(draft, asOfUtc)
+            IsElapsedImplausible = IsElapsedImplausible(draft, asOfUtc),
+            RequiresCorrectedElapsed = RequiresCorrectedElapsed(draft, asOfUtc)
         };
 
     /// <summary>

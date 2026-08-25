@@ -27,6 +27,12 @@ public enum RoastTransitionError
     RoastAlreadyResolved,
     InvalidWeight,
     InvalidDropTime,
+
+    /// <summary>
+    /// The device clock sits behind the roast's own anchors, so the elapsed time cannot be
+    /// derived. Recovery must supply an explicit corrected duration rather than guess one.
+    /// </summary>
+    CorrectedElapsedRequired,
     FirstCrackUnavailable,
     ActiveRoastBlocksAction,
     PersistenceFailed
@@ -54,11 +60,37 @@ public sealed record RecoveryDecision
     public bool BeansWereUsed { get; private init; }
     public bool KeepLog { get; private init; }
 
+    /// <summary>
+    /// The roast time the user states the batch actually ran. Required when the device clock
+    /// sits behind the roast's anchors, because the app cannot derive it from a broken clock.
+    /// See <see cref="ActiveRoastSnapshot.RequiresCorrectedElapsed"/>.
+    /// </summary>
+    public double? CorrectedElapsedSeconds { get; private init; }
+
     public static RecoveryDecision KeepRoasting() =>
         new() { Kind = RecoveryDecisionKind.KeepRoasting };
 
+    /// <summary>Keep roasting on a corrected timeline, after a clock change broke the anchors.</summary>
+    public static RecoveryDecision KeepRoasting(double correctedElapsedSeconds) =>
+        new()
+        {
+            Kind = RecoveryDecisionKind.KeepRoasting,
+            CorrectedElapsedSeconds = correctedElapsedSeconds
+        };
+
     public static RecoveryDecision EndedAt(DateTimeOffset endedAtUtc) =>
         new() { Kind = RecoveryDecisionKind.EndedAt, EndedAtUtc = endedAtUtc };
+
+    /// <summary>Record the drop on a corrected timeline, stating how long the batch ran.</summary>
+    public static RecoveryDecision EndedAt(
+        DateTimeOffset endedAtUtc,
+        double correctedElapsedSeconds) =>
+        new()
+        {
+            Kind = RecoveryDecisionKind.EndedAt,
+            EndedAtUtc = endedAtUtc,
+            CorrectedElapsedSeconds = correctedElapsedSeconds
+        };
 
     public static RecoveryDecision Discard(bool beansWereUsed, bool keepLog) =>
         new() { Kind = RecoveryDecisionKind.Discard, BeansWereUsed = beansWereUsed, KeepLog = keepLog };
@@ -83,6 +115,12 @@ public sealed record ActiveRoastSnapshot
 
     /// <summary>True when the wall clock moved backwards or produced an impossible duration.</summary>
     public required bool IsElapsedImplausible { get; init; }
+
+    /// <summary>
+    /// The clock sits behind this roast's own anchors, so the running interval is unknowable.
+    /// Recovery must collect an explicit roast duration; it must not bank a clamped zero.
+    /// </summary>
+    public required bool RequiresCorrectedElapsed { get; init; }
 
     public bool IsRunning => Phase == ActiveRoastPhase.Roasting;
 

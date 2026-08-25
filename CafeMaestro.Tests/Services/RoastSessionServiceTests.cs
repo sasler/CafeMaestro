@@ -434,10 +434,11 @@ public sealed class RoastSessionServiceTests
 
         snapshot.ActiveRoast!.ElapsedSeconds.Should().Be(300);
         snapshot.ActiveRoast.IsElapsedImplausible.Should().BeTrue();
+        snapshot.ActiveRoast.RequiresCorrectedElapsed.Should().BeTrue();
         snapshot.RequiresRecovery.Should().BeTrue();
 
         TransitionResult kept = await relaunched.Session.RecoverAsync(
-            RecoveryDecision.KeepRoasting());
+            RecoveryDecision.KeepRoasting(300));
 
         kept.Success.Should().BeTrue();
         kept.Snapshot.ActiveRoast!.ElapsedSeconds.Should().Be(300);
@@ -445,6 +446,59 @@ public sealed class RoastSessionServiceTests
         relaunched.Clock.AdvanceSeconds(60);
         (await relaunched.Session.GetSnapshotAsync()).ActiveRoast!.ElapsedSeconds
             .Should().Be(360);
+    }
+
+    [Fact]
+    public async Task RecoverAsync_WhenANeverPausedClockRollsBack_RequiresExplicitElapsed()
+    {
+        using RoastSessionTestHarness original = await RoastSessionTestHarness.CreateAsync(Start);
+        BeanData bean = await original.AddBeanAsync();
+        (await original.Session.StartAsync(new RoastSetup(bean.Id, 218, 240))).Success
+            .Should().BeTrue();
+
+        using RoastSessionTestHarness relaunched =
+            await original.RelaunchAsync(Start.AddMinutes(-30));
+
+        TransitionResult refused = await relaunched.Session.RecoverAsync(
+            RecoveryDecision.KeepRoasting());
+
+        refused.Success.Should().BeFalse();
+        refused.Error.Should().Be(RoastTransitionError.CorrectedElapsedRequired);
+        refused.Snapshot.RequiresRecovery.Should().BeTrue();
+
+        TransitionResult corrected = await relaunched.Session.RecoverAsync(
+            RecoveryDecision.KeepRoasting(420));
+
+        corrected.Success.Should().BeTrue();
+        corrected.Snapshot.RequiresRecovery.Should().BeFalse();
+        corrected.Snapshot.ActiveRoast!.ElapsedSeconds.Should().Be(420);
+        corrected.Snapshot.ActiveRoast.RequiresCorrectedElapsed.Should().BeFalse();
+        relaunched.Clock.AdvanceSeconds(30);
+        (await relaunched.Session.GetSnapshotAsync()).ActiveRoast!.ElapsedSeconds.Should().Be(450);
+    }
+
+    [Fact]
+    public async Task RecoverAsync_WhenKeepRoastingWriteFails_LeavesRecoveryOutstanding()
+    {
+        using RoastSessionTestHarness original = await RoastSessionTestHarness.CreateAsync(Start);
+        BeanData bean = await original.AddBeanAsync();
+        (await original.Session.StartAsync(new RoastSetup(bean.Id, 218, 240))).Success
+            .Should().BeTrue();
+
+        using RoastSessionTestHarness relaunched = await RoastSessionTestHarness.ReopenAsync(
+            original.CanonicalPath,
+            Start.AddSeconds(600),
+            (data, _) => data.ActiveRoastSession?.ActiveRoast is not null
+                ? throw new IOException("Injected keep-roasting failure.")
+                : Task.CompletedTask);
+
+        TransitionResult result = await relaunched.Session.RecoverAsync(
+            RecoveryDecision.KeepRoasting());
+
+        result.Success.Should().BeFalse();
+        result.Error.Should().Be(RoastTransitionError.PersistenceFailed);
+        result.Snapshot.RequiresRecovery.Should().BeTrue();
+        (await relaunched.Session.GetSnapshotAsync()).RequiresRecovery.Should().BeTrue();
     }
 
     [Fact]
@@ -487,12 +541,56 @@ public sealed class RoastSessionServiceTests
             RecoveryDecision.EndedAt(Start.AddSeconds(-10)));
 
         result.Success.Should().BeFalse();
-        result.Error.Should().Be(RoastTransitionError.InvalidDropTime);
+        result.Error.Should().Be(RoastTransitionError.CorrectedElapsedRequired);
         relaunched.Current.RoastLogs.Should().BeEmpty();
         relaunched.Current.ActiveRoastSession!.ActiveRoast.Should().NotBeNull();
         // A refused answer must leave recovery outstanding, or the roast becomes unreachable.
         result.Snapshot.RequiresRecovery.Should().BeTrue();
         (await relaunched.Session.GetSnapshotAsync()).RequiresRecovery.Should().BeTrue();
+    }
+
+    [Fact]
+    public async Task RecoverAsync_WithRollbackTimeline_UsesExplicitElapsedForTheRoastDuration()
+    {
+        using RoastSessionTestHarness original = await RoastSessionTestHarness.CreateAsync(Start);
+        BeanData bean = await original.AddBeanAsync();
+        (await original.Session.StartAsync(new RoastSetup(bean.Id, 218, 240))).Success
+            .Should().BeTrue();
+
+        DateTimeOffset rolledBackNow = Start.AddMinutes(-30);
+        DateTimeOffset correctedEnd = rolledBackNow.AddSeconds(-15);
+        using RoastSessionTestHarness relaunched =
+            await original.RelaunchAsync(rolledBackNow);
+
+        TransitionResult result = await relaunched.Session.RecoverAsync(
+            RecoveryDecision.EndedAt(correctedEnd, 515));
+
+        result.Success.Should().BeTrue();
+        RoastData roast = relaunched.Current.RoastLogs.Single();
+        roast.DroppedAtUtc.Should().Be(correctedEnd);
+        roast.TotalSeconds.Should().Be(515);
+    }
+
+    [Fact]
+    public async Task RecoverAsync_WhenAccumulatedElapsedExtendsPastCorrectedEnd_IsRefused()
+    {
+        using RoastSessionTestHarness original = await RoastSessionTestHarness.CreateAsync(Start);
+        BeanData bean = await original.AddBeanAsync();
+        (await original.Session.StartAsync(new RoastSetup(bean.Id, 218, 240))).Success
+            .Should().BeTrue();
+        original.Clock.AdvanceSeconds(300);
+        (await original.Session.PauseAsync()).Success.Should().BeTrue();
+
+        using RoastSessionTestHarness relaunched =
+            await original.RelaunchAsync(Start.AddSeconds(900));
+
+        TransitionResult result = await relaunched.Session.RecoverAsync(
+            RecoveryDecision.EndedAt(Start.AddSeconds(200)));
+
+        result.Success.Should().BeFalse();
+        result.Error.Should().Be(RoastTransitionError.InvalidDropTime);
+        result.Snapshot.RequiresRecovery.Should().BeTrue();
+        relaunched.Current.RoastLogs.Should().BeEmpty();
     }
 
     [Fact]

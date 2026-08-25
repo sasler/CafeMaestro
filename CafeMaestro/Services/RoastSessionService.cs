@@ -202,9 +202,15 @@ public sealed class RoastSessionService : IRoastSessionService, IDisposable
             },
             cancellationToken);
 
-    public async Task<TransitionResult> DropAsync(
+    public Task<TransitionResult> DropAsync(
         DateTimeOffset? correctedDropUtc = null,
-        CancellationToken cancellationToken = default)
+        CancellationToken cancellationToken = default) =>
+        DropAsyncCore(correctedDropUtc, correctedElapsedSeconds: null, cancellationToken);
+
+    private async Task<TransitionResult> DropAsyncCore(
+        DateTimeOffset? correctedDropUtc,
+        double? correctedElapsedSeconds,
+        CancellationToken cancellationToken)
     {
         bool notificationsEnabled =
             await _roastPreferencesService.GetCoolingNotificationsEnabledAsync();
@@ -236,14 +242,50 @@ public sealed class RoastSessionService : IRoastSessionService, IDisposable
                 }
 
                 DateTimeOffset dropUtc = correctedDropUtc ?? now;
-                if (dropUtc < draft.StartedAtUtc || dropUtc > now)
+                if (dropUtc > now)
                 {
                     return context.Reject(
                         RoastTransitionError.InvalidDropTime,
-                        "The drop time must fall between the start of the roast and now.");
+                        "The drop time cannot be in the future.");
                 }
 
-                RoastData roast = MaterializeRoast(draft, dropUtc, RoastCompletionStatus.AwaitingWeight);
+                double elapsedSeconds;
+                if (correctedElapsedSeconds.HasValue)
+                {
+                    if (!IsValidCorrectedElapsed(draft, correctedElapsedSeconds.Value))
+                    {
+                        return context.Reject(
+                            RoastTransitionError.InvalidDropTime,
+                            "The corrected roast duration must preserve all elapsed roast events.");
+                    }
+
+                    elapsedSeconds = correctedElapsedSeconds.Value;
+                }
+                else
+                {
+                    if (dropUtc < draft.StartedAtUtc ||
+                        RoastProjection.RequiresCorrectedElapsed(draft, dropUtc))
+                    {
+                        return context.Reject(
+                            RoastTransitionError.CorrectedElapsedRequired,
+                            "Enter the elapsed roast time to correct the clock rollback.");
+                    }
+
+                    elapsedSeconds = RoastProjection.ElapsedSeconds(draft, dropUtc);
+                    double availableWallClockSeconds = (dropUtc - draft.StartedAtUtc).TotalSeconds;
+                    if (elapsedSeconds > availableWallClockSeconds)
+                    {
+                        return context.Reject(
+                            RoastTransitionError.InvalidDropTime,
+                            "The corrected end time is earlier than elapsed roast time already recorded.");
+                    }
+                }
+
+                RoastData roast = MaterializeRoast(
+                    draft,
+                    dropUtc,
+                    RoastCompletionStatus.AwaitingWeight,
+                    elapsedSeconds);
                 data.RoastLogs.Add(roast);
                 DecrementInventory(data, draft.BeanId, draft.BatchWeight);
                 session!.ActiveRoast = null;
@@ -485,7 +527,10 @@ public sealed class RoastSessionService : IRoastSessionService, IDisposable
                 }
 
                 // As above: a rejected or unsaved corrected drop leaves recovery outstanding.
-                return await DropAsync(decision.EndedAtUtc.Value, cancellationToken);
+                return await DropAsyncCore(
+                    decision.EndedAtUtc.Value,
+                    decision.CorrectedElapsedSeconds,
+                    cancellationToken);
 
             default:
                 return await ExecuteAsync(
@@ -499,23 +544,34 @@ public sealed class RoastSessionService : IRoastSessionService, IDisposable
                                 "There is no roast to recover.");
                         }
 
-                        // Confirming "still going" folds the interval the app was closed for
-                        // into the accumulated total, which is the time the batch really spent
-                        // roasting, and then re-anchors to the current clock.
-                        double elapsedSeconds = RoastProjection.ElapsedSeconds(draft, now);
-
-                        if (now < draft.StartedAtUtc)
+                        bool requiresCorrection =
+                            RoastProjection.RequiresCorrectedElapsed(draft, now);
+                        if (requiresCorrection && !decision.CorrectedElapsedSeconds.HasValue)
                         {
-                            // The device clock moved behind the roast's own anchors. Rebase them
-                            // onto the current clock so elapsed time keeps advancing instead of
-                            // stalling; the time already earned is held in the accumulated total.
+                            return context.Reject(
+                                RoastTransitionError.CorrectedElapsedRequired,
+                                "Enter the elapsed roast time to correct the clock rollback.");
+                        }
+
+                        double elapsedSeconds = decision.CorrectedElapsedSeconds
+                            ?? RoastProjection.ElapsedSeconds(draft, now);
+                        if (!IsValidCorrectedElapsed(draft, elapsedSeconds))
+                        {
+                            return context.Reject(
+                                RoastTransitionError.CorrectedElapsedRequired,
+                                "The corrected roast duration must preserve all elapsed roast events.");
+                        }
+
+                        if (decision.CorrectedElapsedSeconds.HasValue)
+                        {
+                            DateTimeOffset correctedStartUtc = now.AddSeconds(-elapsedSeconds);
                             RoastSessionData session = data.ActiveRoastSession!;
-                            if (session.StartedAtUtc > now)
+                            if (session.StartedAtUtc > correctedStartUtc)
                             {
-                                session.StartedAtUtc = now;
+                                session.StartedAtUtc = correctedStartUtc;
                             }
 
-                            draft.StartedAtUtc = now;
+                            draft.StartedAtUtc = correctedStartUtc;
                         }
 
                         if (draft.Phase == ActiveRoastPhase.Roasting)
@@ -524,12 +580,9 @@ public sealed class RoastSessionService : IRoastSessionService, IDisposable
                             draft.RunningSinceUtc = now;
                         }
 
-                        if (draft.FirstCrackElapsedSeconds >
-                            (int)Math.Floor(draft.AccumulatedElapsedSeconds) &&
-                            draft.Phase == ActiveRoastPhase.Paused)
+                        else
                         {
-                            draft.FirstCrackElapsedSeconds =
-                                (int)Math.Floor(draft.AccumulatedElapsedSeconds);
+                            draft.AccumulatedElapsedSeconds = elapsedSeconds;
                         }
 
                         _acknowledgedDraftId = draft.Id;
@@ -542,10 +595,11 @@ public sealed class RoastSessionService : IRoastSessionService, IDisposable
     private RoastData MaterializeRoast(
         ActiveRoastDraft draft,
         DateTimeOffset endedAtUtc,
-        RoastCompletionStatus completionStatus)
+        RoastCompletionStatus completionStatus,
+        double? correctedElapsedSeconds = null)
     {
         int totalSeconds = (int)Math.Floor(Math.Min(
-            RoastProjection.ElapsedSeconds(draft, endedAtUtc),
+            correctedElapsedSeconds ?? RoastProjection.ElapsedSeconds(draft, endedAtUtc),
             RoastProjection.MaxPlausibleRoastSeconds));
         int? firstCrackSeconds = draft.FirstCrackElapsedSeconds.HasValue
             ? Math.Min(draft.FirstCrackElapsedSeconds.Value, totalSeconds)
@@ -586,6 +640,16 @@ public sealed class RoastSessionService : IRoastSessionService, IDisposable
 
         return roast;
     }
+
+    private static bool IsValidCorrectedElapsed(
+        ActiveRoastDraft draft,
+        double correctedElapsedSeconds) =>
+        double.IsFinite(correctedElapsedSeconds) &&
+        correctedElapsedSeconds >= 0 &&
+        correctedElapsedSeconds <= RoastProjection.MaxPlausibleRoastSeconds &&
+        correctedElapsedSeconds >= draft.AccumulatedElapsedSeconds &&
+        (!draft.FirstCrackElapsedSeconds.HasValue ||
+            correctedElapsedSeconds >= draft.FirstCrackElapsedSeconds.Value);
 
     private static void DecrementInventory(AppData data, Guid beanId, double batchWeightGrams)
     {
@@ -644,14 +708,28 @@ public sealed class RoastSessionService : IRoastSessionService, IDisposable
         {
             DateTimeOffset now = _clock.UtcNow;
             var context = new RejectionContext();
-            bool committed = await _appDataService.TryUpdateAsync(
-                data => mutation(data, now, context),
-                cancellationToken);
+            Guid? previousAcknowledgedDraftId = _acknowledgedDraftId;
+            bool committed;
+            try
+            {
+                committed = await _appDataService.TryUpdateAsync(
+                    data => mutation(data, now, context),
+                    cancellationToken);
+            }
+            catch
+            {
+                _acknowledgedDraftId = previousAcknowledgedDraftId;
+                throw;
+            }
 
             if (committed)
             {
                 return TransitionResult.Ok(BuildSnapshot(_appDataService.CurrentData));
             }
+
+            // The candidate acknowledgement must be visible while a successful update publishes
+            // DataChanged, but it is not real unless that same candidate commits.
+            _acknowledgedDraftId = previousAcknowledgedDraftId;
 
             return TransitionResult.Fail(
                 context.Error == RoastTransitionError.None
