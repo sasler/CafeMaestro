@@ -1,0 +1,47 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<ContentView xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
+             xmlns:vm="clr-namespace:CafeMaestro.ViewModels"
+             xmlns:models="clr-namespace:CafeMaestro.Models"
+             x:Class="CafeMaestro.Views.Roast.RoastHandoffView"
+             x:Name="Root"
+             x:DataType="vm:RoastPageViewModel">
+    <Grid RowDefinitions="Auto,*,Auto" Padding="{StaticResource PagePadding}" RowSpacing="{StaticResource SpaceLg}">
+        <VerticalStackLayout>
+            <Label Text="ROAST SESSION" Style="{StaticResource SectionHeaderStyle}" />
+            <Label Text="Batch handoff" FontSize="{StaticResource FontSizeHeadline}" FontAttributes="Bold"
+                   TextColor="{DynamicResource PrimaryTextColor}" />
+            <Label Text="Cooling continues even after you finish this session." Style="{StaticResource CardMetaStyle}" />
+        </VerticalStackLayout>
+
+        <CollectionView Grid.Row="1" ItemsSource="{Binding Channels}" SelectionMode="None">
+            <CollectionView.ItemTemplate>
+                <DataTemplate x:DataType="models:RoastChannelPresentation">
+                    <Border Style="{StaticResource CoolingCardStyle}" Margin="0,0,0,12">
+                        <Border.GestureRecognizers>
+                            <TapGestureRecognizer Command="{Binding Source={x:Reference Root}, Path=BindingContext.WeighChannelCommand}"
+                                                  CommandParameter="{Binding .}" />
+                        </Border.GestureRecognizers>
+                        <Grid ColumnDefinitions="Auto,*,Auto" ColumnSpacing="{StaticResource SpaceMd}">
+                            <Label Text="{Binding BatchLabel}" Style="{StaticResource NumericValueStyle}" />
+                            <VerticalStackLayout Grid.Column="1">
+                                <Label Text="{Binding BeanDisplaySnapshot}" Style="{StaticResource CardTitleStyle}" />
+                                <Label Text="{Binding StatusLabel}" Style="{StaticResource CardMetaStyle}" />
+                            </VerticalStackLayout>
+                            <Label Grid.Column="2" Text="{Binding TimeDisplay}" Style="{StaticResource NumericValueStyle}" />
+                        </Grid>
+                    </Border>
+                </DataTemplate>
+            </CollectionView.ItemTemplate>
+        </CollectionView>
+
+        <VerticalStackLayout Grid.Row="2" Style="{StaticResource ActionBarStyle}">
+            <Button Text="{Binding PrimaryActionText}" Command="{Binding PrimaryHandoffActionCommand}"
+                    Style="{StaticResource PrimaryActionStyle}" />
+            <Button Text="{Binding SecondaryActionText}" Command="{Binding SecondaryHandoffActionCommand}"
+                    Style="{StaticResource SecondaryActionStyle}" />
+            <Button Text="ADJUST DROP TIME" Command="{Binding AdjustDropTimeCommand}"
+                    Style="{StaticResource SecondaryActionStyle}" />
+        </VerticalStackLayout>
+    </Grid>
+</ContentView>

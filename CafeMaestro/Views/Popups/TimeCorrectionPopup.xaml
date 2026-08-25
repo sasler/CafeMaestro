@@ -1,0 +1,22 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<ContentView xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
+             xmlns:popupVm="clr-namespace:CafeMaestro.ViewModels.Popups"
+             x:Class="CafeMaestro.Views.Popups.TimeCorrectionPopup"
+             x:DataType="popupVm:TimeCorrectionViewModel"
+             WidthRequest="330" Padding="{StaticResource SpaceMd}">
+    <Border Style="{StaticResource AttentionCardStyle}">
+        <VerticalStackLayout Spacing="{StaticResource SpaceLg}">
+            <Label Text="{Binding Request.Title}" Style="{StaticResource SectionHeaderStyle}" />
+            <Label Text="{Binding Request.Description}" Style="{StaticResource CardMetaStyle}" />
+            <Border Style="{StaticResource FieldContainerStyle}">
+                <Entry Text="{Binding TimeText, Mode=TwoWay}" Keyboard="Text" Placeholder="mm:ss"
+                       Style="{StaticResource FieldEntryStyle}" FontSize="{StaticResource FontSizeDisplay}" />
+            </Border>
+            <Label Text="{Binding ValidationMessage}" Style="{StaticResource FieldErrorStyle}" />
+            <Button Text="SAVE CORRECTION" Command="{Binding SaveCommand}" IsEnabled="{Binding CanSave}"
+                    Style="{StaticResource PrimaryActionStyle}" />
+            <Button Text="CANCEL" Command="{Binding CancelCommand}" Style="{StaticResource SecondaryActionStyle}" />
+        </VerticalStackLayout>
+    </Border>
+</ContentView>

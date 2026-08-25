@@ -15,9 +15,9 @@ CafeMaestro is a comprehensive tool designed for coffee enthusiasts and professi
 ## Features
 
 - **Bean Inventory Management**: Track green coffee beans, including origin, variety, processing method, and remaining quantity.
-- **Roast Timer**: Precision timer with digital display for accurate roast timing.
+- **Roast Console**: Prefilled bean, temperature, and batch weight setup; a persisted elapsed instrument; one-tap Drop; and a two-batch cooling/weigh-in handoff.
 - **Roast Logging**: Record all aspects of each roast including temperature, batch weight, final weight, and calculated weight loss.
-- **First Crack Tracking**: Mark the exact moment of first crack for development time analysis.
+- **Optional First Crack Tracking**: When enabled in roasting preferences, mark or correct First Crack for live development-time analysis; the default console stays uncluttered.
 - **Roast Level Analysis**: Automatic classification of roast levels based on weight loss percentage.
 - **Custom Roast Levels**: Define and customize your own roast levels based on weight loss percentages.
 - **CSV Transfer**: Import bean and roast records, then save or share roast-log CSV files through the system document UI.
@@ -130,15 +130,16 @@ Use the Beans section to add, edit, and track your green coffee beans. Record:
 
 ### Recording Roasts
 
-The Roast Coffee feature helps you:
-- Select beans from your inventory
-- Time your roast with the built-in digital timer
-- Record roasting temperature
-- Track batch and final weights
-- Automatically calculate weight loss percentage
-- Classify roast level based on weight loss
-- Record the time of first crack during roasting
-- View previous roast data for the selected bean type
+The Roast Console keeps the normal path short while preserving every physical obligation:
+- Select a bean and accept or edit its prefilled temperature and batch weight
+- Compare against the newest completed result without turning it into a target
+- Start only after the active draft is durable, then Pause/Resume or Drop from the elapsed instrument
+- Set up Batch 2 from the first drop while Batch 1 cools
+- Weigh a ready batch through an explicit batch-identity sheet at 0.1 g precision
+- Recover an interrupted roast with explicit elapsed correction when the device clock changed
+- Enable First Crack tracking only when development time and DTR are useful
+
+See [Roast Console architecture and behavior](docs/roast-console.md) for the state and ownership boundaries.
 
 ### Reviewing Roast Logs
 

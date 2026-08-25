@@ -7,6 +7,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased] - Complete Architecture Refactor
 ### Added
+- Direction B Roast Console vertical slice with three-field prefilled setup, previous completed-result reference, persisted elapsed sweep, Pause/Resume, one-tap Drop, cooling handoff, and back-to-back Batch 2 setup
+- Typed Setup, Active, Handoff, Recovery, and Persistence Error roast views plus MVVM popup flows for explicit batch selection, 0.1 g weigh-in, discard, navigation confirmation, reset, and time correction
+- Five-minute cooling channels that become Ready to weigh without negative countdowns, with first-drop Batch 2 and second-drop Batch 1 action priority
+- Display-wake ownership that follows only an actively roasting foreground page and is always released on pause, drop, recovery, or page exit
+- Focused Roast Console tests for representative presentation transitions, repeating elapsed/cooling geometry boundaries, weight validation, reset, and drop-time correction
 - `IRoastSessionService`: the single writer of roast-session state, owning Start, Pause, Resume, Mark 1C, Drop, Discard, weigh-in, Mark Unweighed, Finish session and recovery as lock-scoped atomic mutations
 - Bean inventory now moves inside the same mutation that appends the roast, so a failed write can never consume beans without a matching log entry, and a retried or double-tapped Drop applies exactly once
 - `IRoastQueryService` projections: carry-forward setup values, the newest **completed** result as the reference roast, and the open-work queue ordered oldest drop first
@@ -57,6 +62,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Invalid backup JSON is rejected without modifying active data or the selected source
 
 ### Changed
+- Version bumped to 1.7.0
+- The Roast page now consumes immutable `IRoastSessionService` snapshots instead of owning timer or persistence truth; final weight is captured only through focused weigh-in after cooling
 - Version bumped to 1.5.0
 - Legacy roast records now preserve display snapshots, link exact unique beans, and distinguish completed from awaiting-weight results during migration
 - Windows test hosts now restore the app's Windows graph directly while the app keeps Android and host-appropriate Apple targets

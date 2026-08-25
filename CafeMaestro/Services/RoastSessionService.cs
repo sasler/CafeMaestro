@@ -171,6 +171,32 @@ public sealed class RoastSessionService : IRoastSessionService, IDisposable
             },
             cancellationToken);
 
+    public Task<TransitionResult> ResetAsync(CancellationToken cancellationToken = default) =>
+        ExecuteAsync(
+            (data, now, context) =>
+            {
+                ActiveRoastDraft? draft = data.ActiveRoastSession?.ActiveRoast;
+                if (draft is null)
+                {
+                    return context.Reject(RoastTransitionError.NoActiveRoast, "No batch is roasting.");
+                }
+
+                if (draft.Phase != ActiveRoastPhase.Paused)
+                {
+                    return context.Reject(
+                        RoastTransitionError.InvalidPhase,
+                        "Pause the batch before resetting the timer.");
+                }
+
+                draft.StartedAtUtc = now;
+                draft.RunningSinceUtc = null;
+                draft.AccumulatedElapsedSeconds = 0;
+                draft.FirstCrackElapsedSeconds = null;
+                _acknowledgedDraftId = draft.Id;
+                return true;
+            },
+            cancellationToken);
+
     public Task<TransitionResult> MarkFirstCrackAsync(CancellationToken cancellationToken = default) =>
         ExecuteAsync(
             (data, now, context) =>
@@ -197,6 +223,32 @@ public sealed class RoastSessionService : IRoastSessionService, IDisposable
 
                 draft.FirstCrackElapsedSeconds =
                     (int)Math.Floor(RoastProjection.ElapsedSeconds(draft, now));
+                _acknowledgedDraftId = draft.Id;
+                return true;
+            },
+            cancellationToken);
+
+    public Task<TransitionResult> CorrectFirstCrackAsync(
+        int elapsedSeconds,
+        CancellationToken cancellationToken = default) =>
+        ExecuteAsync(
+            (data, now, context) =>
+            {
+                ActiveRoastDraft? draft = data.ActiveRoastSession?.ActiveRoast;
+                if (draft is null)
+                {
+                    return context.Reject(RoastTransitionError.NoActiveRoast, "No batch is roasting.");
+                }
+
+                int currentElapsed = (int)Math.Floor(RoastProjection.ElapsedSeconds(draft, now));
+                if (!draft.FirstCrackEnabled || elapsedSeconds < 0 || elapsedSeconds > currentElapsed)
+                {
+                    return context.Reject(
+                        RoastTransitionError.FirstCrackUnavailable,
+                        "First Crack time must fall within the current roast time.");
+                }
+
+                draft.FirstCrackElapsedSeconds = elapsedSeconds;
                 _acknowledgedDraftId = draft.Id;
                 return true;
             },
@@ -320,6 +372,70 @@ public sealed class RoastSessionService : IRoastSessionService, IDisposable
             _appDataService.CurrentData.RoastLogs.Any(roast => roast.Id == roastId))
         {
             return TransitionResult.Ok(result.Snapshot);
+        }
+
+        return result;
+    }
+
+    public async Task<TransitionResult> CorrectDropAsync(
+        Guid roastId,
+        DateTimeOffset correctedDropUtc,
+        CancellationToken cancellationToken = default)
+    {
+        RoastData? correctedRoast = null;
+        TransitionResult result = await ExecuteAsync(
+            (data, now, context) =>
+            {
+                RoastData? roast = data.RoastLogs.FirstOrDefault(candidate => candidate.Id == roastId);
+                if (roast is null)
+                {
+                    return context.Reject(RoastTransitionError.RoastNotFound, "That batch is no longer in the roast log.");
+                }
+
+                if (roast.CompletionStatus != RoastCompletionStatus.AwaitingWeight || !roast.DroppedAtUtc.HasValue)
+                {
+                    return context.Reject(
+                        RoastTransitionError.RoastAlreadyResolved,
+                        "Only a batch still awaiting weight can have its drop time corrected.");
+                }
+
+                DateTimeOffset inferredStart = roast.DroppedAtUtc.Value.AddSeconds(-roast.TotalSeconds);
+                if (correctedDropUtc < inferredStart || correctedDropUtc > now)
+                {
+                    return context.Reject(
+                        RoastTransitionError.InvalidDropTime,
+                        "The corrected drop must fall between roast start and now.");
+                }
+
+                int totalSeconds = (int)Math.Floor((correctedDropUtc - inferredStart).TotalSeconds);
+                roast.DroppedAtUtc = correctedDropUtc;
+                roast.RoastDate = correctedDropUtc.ToLocalTime().DateTime;
+                roast.RoastMinutes = totalSeconds / 60;
+                roast.RoastSeconds = totalSeconds % 60;
+                if (roast.FirstCrackMinutes.HasValue && roast.FirstCrackSeconds.HasValue)
+                {
+                    int firstCrack = roast.FirstCrackMinutes.Value * 60 + roast.FirstCrackSeconds.Value;
+                    firstCrack = Math.Min(firstCrack, totalSeconds);
+                    roast.FirstCrackMinutes = firstCrack / 60;
+                    roast.FirstCrackSeconds = firstCrack % 60;
+                }
+
+                correctedRoast = roast;
+                return true;
+            },
+            cancellationToken);
+
+        if (result.Success && correctedRoast is not null)
+        {
+            await TryCancelCoolingNotificationAsync(roastId, cancellationToken);
+            if (await _roastPreferencesService.GetCoolingNotificationsEnabledAsync())
+            {
+                string? warning = await TryScheduleCoolingNotificationAsync(correctedRoast, cancellationToken);
+                if (warning is not null)
+                {
+                    result = result with { Warning = warning };
+                }
+            }
         }
 
         return result;
