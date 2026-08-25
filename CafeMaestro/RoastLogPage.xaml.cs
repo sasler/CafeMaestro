@@ -28,6 +28,12 @@ public partial class RoastLogPage : ContentPage
         base.OnDisappearing();
     }
 
+    protected override bool OnBackButtonPressed()
+    {
+        _ = _viewModel.NavigateToRoastAsync();
+        return true;
+    }
+
     private void EnsureTicker()
     {
         if (_ticker is not null)

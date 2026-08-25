@@ -8,19 +8,13 @@
 
     <TabBar>
         <ShellContent
-            Title="Home"
-            Icon="home_icon.png"
-            ContentTemplate="{DataTemplate local:MainPage}"
-            Route="MainPage" />
-
-        <ShellContent
             Title="Roast"
             Icon="tab_roast_icon.png"
             ContentTemplate="{DataTemplate local:RoastPage}"
             Route="RoastPage" />
 
         <ShellContent
-            Title="Roast Log"
+            Title="Log"
             Icon="tab_log_icon.png"
             ContentTemplate="{DataTemplate local:RoastLogPage}"
             Route="RoastLogPage" />

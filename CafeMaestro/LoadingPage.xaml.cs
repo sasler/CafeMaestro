@@ -7,13 +7,19 @@ public partial class LoadingPage : ContentPage
 {
     private readonly IAppDataService _appDataService;
     private readonly IPreferencesService _preferencesService;
+    private readonly IAppActivationService _activationService;
     private readonly AppShell _appShell;
 
-    public LoadingPage(IAppDataService appDataService, IPreferencesService preferencesService, AppShell appShell)
+    public LoadingPage(
+        IAppDataService appDataService,
+        IPreferencesService preferencesService,
+        IAppActivationService activationService,
+        AppShell appShell)
     {
         InitializeComponent();
         _appDataService = appDataService ?? throw new ArgumentNullException(nameof(appDataService));
         _preferencesService = preferencesService ?? throw new ArgumentNullException(nameof(preferencesService));
+        _activationService = activationService ?? throw new ArgumentNullException(nameof(activationService));
         _appShell = appShell ?? throw new ArgumentNullException(nameof(appShell));
 
         Loaded += OnPageLoaded;
@@ -38,6 +44,18 @@ public partial class LoadingPage : ContentPage
             await UpdateStatusAsync("Your data file needs attention. Opening CafeMaestro safely...");
             await Task.Delay(750);
             await NavigateToAppShell();
+            return;
+        }
+
+        try
+        {
+            await _activationService.HandlePendingAsync();
+        }
+        catch (Exception ex)
+        {
+            // The activation service keeps a failed payload queued for Ticket 10 to retry.
+            // A deep-link failure must never replace the usable Shell with a data warning.
+            Debug.WriteLine($"LoadingPage: Deferred activation failed - {ex.Message}");
         }
     }
 

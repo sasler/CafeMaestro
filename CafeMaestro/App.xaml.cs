@@ -1,4 +1,5 @@
 using CafeMaestro.Services;
+using CafeMaestro.ViewModels;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Maui.ApplicationModel;
 
@@ -9,6 +10,8 @@ public partial class App : Application
     private readonly IAppDataService _appDataService;
     private readonly IPreferencesService _preferencesService;
     private readonly IServiceProvider _serviceProvider;
+    private readonly RoastPageViewModel _roastPageViewModel;
+    private Window? _window;
     private ThemePreference _activeThemePreference = ThemePreference.Dark;
     private Models.AppData? _appData; // Make nullable to fix constructor error
 
@@ -16,12 +19,17 @@ public partial class App : Application
     // The initial page for the primary window
     private readonly Page _initialPage;
 
-    public App(IAppDataService appDataService, IPreferencesService preferencesService, IServiceProvider serviceProvider)
+    public App(
+        IAppDataService appDataService,
+        IPreferencesService preferencesService,
+        IServiceProvider serviceProvider,
+        RoastPageViewModel roastPageViewModel)
     {
         InitializeComponent();
         _appDataService = appDataService ?? throw new ArgumentNullException(nameof(appDataService));
         _preferencesService = preferencesService ?? throw new ArgumentNullException(nameof(preferencesService));
         _serviceProvider = serviceProvider ?? throw new ArgumentNullException(nameof(serviceProvider));
+        _roastPageViewModel = roastPageViewModel ?? throw new ArgumentNullException(nameof(roastPageViewModel));
         Resources["ServiceProvider"] = _serviceProvider;
 
         // Create the initial page
@@ -46,6 +54,7 @@ public partial class App : Application
         try
         {
             Window window = new(_initialPage);
+            AttachWindowLifecycle(window);
             ApplyPlatformChrome(ThemePreferencePolicy.ResolveEffectiveTheme(
                 _activeThemePreference, RequestedTheme));
             return window;
@@ -53,13 +62,72 @@ public partial class App : Application
         catch (Exception ex)
         {
             System.Diagnostics.Debug.WriteLine($"Error creating window: {ex.Message}");
-            return new Window(CreateLoadingPage());
+            Window fallbackWindow = new(CreateLoadingPage());
+            AttachWindowLifecycle(fallbackWindow);
+            return fallbackWindow;
         }
     }
     private LoadingPage CreateLoadingPage()
     {
-        return new LoadingPage(_appDataService, _preferencesService, _serviceProvider.GetRequiredService<AppShell>());
+        return new LoadingPage(
+            _appDataService,
+            _preferencesService,
+            _serviceProvider.GetRequiredService<IAppActivationService>(),
+            _serviceProvider.GetRequiredService<AppShell>());
     }
+
+    private void AttachWindowLifecycle(Window window)
+    {
+        if (ReferenceEquals(_window, window))
+        {
+            return;
+        }
+
+        DetachWindowLifecycle();
+        _window = window;
+        _window.Stopped += OnWindowStopped;
+        _window.Resumed += OnWindowResumed;
+        _window.Destroying += OnWindowDestroying;
+    }
+
+    private void DetachWindowLifecycle()
+    {
+        if (_window is null)
+        {
+            return;
+        }
+
+        _window.Stopped -= OnWindowStopped;
+        _window.Resumed -= OnWindowResumed;
+        _window.Destroying -= OnWindowDestroying;
+        _window = null;
+    }
+
+    private async void OnWindowStopped(object? sender, EventArgs e)
+    {
+        try
+        {
+            await _roastPageViewModel.OnWindowStoppedAsync();
+        }
+        catch (Exception ex)
+        {
+            System.Diagnostics.Debug.WriteLine($"Window stop cleanup failed: {ex.Message}");
+        }
+    }
+
+    private async void OnWindowResumed(object? sender, EventArgs e)
+    {
+        try
+        {
+            await _roastPageViewModel.OnWindowResumedAsync();
+        }
+        catch (Exception ex)
+        {
+            System.Diagnostics.Debug.WriteLine($"Window resume refresh failed: {ex.Message}");
+        }
+    }
+
+    private void OnWindowDestroying(object? sender, EventArgs e) => DetachWindowLifecycle();
 
     // Load and apply the saved theme preference
     private async void LoadThemePreference()

@@ -28,7 +28,7 @@ public partial class BeanInventoryPage : ContentPage
 
     protected override bool OnBackButtonPressed()
     {
-        _ = _viewModel.NavigateHomeAsync();
+        _ = _viewModel.NavigateToRoastAsync();
         return true;
     }
 

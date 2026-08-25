@@ -10,6 +10,21 @@ namespace CafeMaestro.Tests.ViewModels;
 public sealed class DataSettingsPageViewModelTests
 {
     [Fact]
+    public async Task RootBackRoute_ReturnsToRoastTab()
+    {
+        Mock<INavigationService> navigation = new();
+        navigation.Setup(service => service.GoToAsync(It.IsAny<string>())).Returns(Task.CompletedTask);
+        DataSettingsPageViewModel viewModel = CreateViewModel(
+            new Mock<IDataBackupService>(),
+            new Mock<IUserFileService>(),
+            navigation: navigation);
+
+        await viewModel.GoBackAsync();
+
+        navigation.Verify(service => service.GoToAsync(Routes.Roast), Times.Once);
+    }
+
+    [Fact]
     public async Task RestoreFromBackupCommand_PreviewsConfirmsRestoresAndCleansTemporaryFile()
     {
         var backupService = new Mock<IDataBackupService>();

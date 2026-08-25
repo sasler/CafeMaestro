@@ -135,6 +135,9 @@ public partial class RoastLogPageViewModel : ObservableObject
         _isSubscribed = false;
     }
 
+    /// <summary>Hardware back on the Log tab returns to Roast, the launch destination.</summary>
+    public Task NavigateToRoastAsync() => _navigationService.GoToAsync(Routes.Roast);
+
     /// <summary>Called by the one page-owned ticker; cells never own timers or subscriptions.</summary>
     public async Task RefreshTimeProjectionAsync()
     {

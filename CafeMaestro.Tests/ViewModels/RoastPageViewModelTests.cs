@@ -319,11 +319,44 @@ public class RoastPageViewModelTests
         await harness.ViewModel.OnAppearingAsync();
 
         await harness.ViewModel.OnWindowStoppedAsync();
+        harness.ViewModel.IsWindowStopped.Should().BeTrue();
         await harness.ViewModel.OnWindowResumedAsync();
 
+        harness.ViewModel.IsWindowStopped.Should().BeFalse();
         harness.Wake.Verify(service => service.SetKeepScreenOnAsync(false), Times.Once);
         harness.Wake.Verify(service => service.SetKeepScreenOnAsync(true), Times.Exactly(2));
         harness.ViewModel.ActiveTimerSemanticDescription.Should().Be("Roasting, 1 minute 2 seconds");
+    }
+
+    [Fact]
+    public async Task WindowLifecycle_LateResumeCannotUndoNewerStop()
+    {
+        Harness harness = new();
+        harness.SetSnapshot(harness.ActiveSnapshot(ActiveRoastPhase.Roasting, 62));
+        await harness.ViewModel.OnAppearingAsync();
+
+        TaskCompletionSource<bool> resumeStarted = new(TaskCreationOptions.RunContinuationsAsynchronously);
+        TaskCompletionSource<RoastSessionSnapshot> blockedSnapshot =
+            new(TaskCreationOptions.RunContinuationsAsynchronously);
+        harness.Session.Setup(service => service.GetSnapshotAsync(It.IsAny<CancellationToken>()))
+            .Returns((CancellationToken _) =>
+            {
+                resumeStarted.TrySetResult(true);
+                return blockedSnapshot.Task;
+            });
+
+        Task resumeTask = harness.ViewModel.OnWindowResumedAsync();
+        await resumeStarted.Task;
+
+        await harness.ViewModel.OnWindowStoppedAsync();
+        harness.ViewModel.IsWindowStopped.Should().BeTrue();
+
+        blockedSnapshot.SetResult(harness.ActiveSnapshot(ActiveRoastPhase.Roasting, 90));
+        await resumeTask;
+
+        harness.ViewModel.IsWindowStopped.Should().BeTrue();
+        harness.Wake.Verify(service => service.SetKeepScreenOnAsync(true), Times.Once);
+        harness.Wake.Verify(service => service.SetKeepScreenOnAsync(false), Times.Once);
     }
 
     private sealed class Harness

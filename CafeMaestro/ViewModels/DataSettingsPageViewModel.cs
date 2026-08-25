@@ -148,7 +148,7 @@ public partial class DataSettingsPageViewModel : ObservableObject
     {
     }
 
-    public Task GoBackAsync() => _navigationService.GoToAsync(Routes.Main);
+    public Task GoBackAsync() => _navigationService.GoToAsync(Routes.Roast);
 
     [RelayCommand(CanExecute = nameof(CanRunDataOperation))]
     private async Task StartNewDataAsync()

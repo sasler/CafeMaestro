@@ -150,7 +150,7 @@ public partial class BeanInventoryPageViewModel : ObservableObject
         IsWideLayout = isWideLayout;
     }
 
-    public Task NavigateHomeAsync() => _navigationService.GoToAsync(Routes.Main);
+    public Task NavigateToRoastAsync() => _navigationService.GoToAsync(Routes.Roast);
 
     [RelayCommand]
     private Task SearchAsync()
