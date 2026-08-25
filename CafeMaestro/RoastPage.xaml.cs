@@ -9,12 +9,12 @@ public partial class RoastPage : ContentPage
     private readonly RoastPageViewModel _viewModel;
     private readonly IDispatcherTimer _ticker;
     private bool _isAppeared;
+    private bool _isObservingViewModel;
 
     public RoastPage(RoastPageViewModel viewModel)
     {
         InitializeComponent();
         BindingContext = _viewModel = viewModel ?? throw new ArgumentNullException(nameof(viewModel));
-        _viewModel.PropertyChanged += OnViewModelPropertyChanged;
         _ticker = Dispatcher.CreateTimer();
         _ticker.Interval = TimeSpan.FromMilliseconds(250);
         _ticker.Tick += OnTick;
@@ -24,6 +24,7 @@ public partial class RoastPage : ContentPage
     {
         base.OnAppearing();
         _isAppeared = true;
+        SubscribeViewModel();
         await _viewModel.OnAppearingAsync();
         UpdateChrome();
         UpdateTicker();
@@ -32,6 +33,7 @@ public partial class RoastPage : ContentPage
     protected override async void OnDisappearing()
     {
         _isAppeared = false;
+        UnsubscribeViewModel();
         _ticker.Stop();
         await _viewModel.OnDisappearingAsync();
         base.OnDisappearing();
@@ -67,6 +69,28 @@ public partial class RoastPage : ContentPage
         {
             UpdateTicker();
         }
+    }
+
+    private void SubscribeViewModel()
+    {
+        if (_isObservingViewModel)
+        {
+            return;
+        }
+
+        _viewModel.PropertyChanged += OnViewModelPropertyChanged;
+        _isObservingViewModel = true;
+    }
+
+    private void UnsubscribeViewModel()
+    {
+        if (!_isObservingViewModel)
+        {
+            return;
+        }
+
+        _viewModel.PropertyChanged -= OnViewModelPropertyChanged;
+        _isObservingViewModel = false;
     }
 
     private void UpdateChrome()
