@@ -120,6 +120,7 @@ public sealed class ManagedAppDataMigrationTests : IDisposable
         Func<Task> action = () => service.InitializeAsync(Mock.Of<IPreferencesService>());
 
         await action.Should().ThrowAsync<InvalidDataException>();
+        await action.Should().ThrowAsync<InvalidDataException>();
         (await File.ReadAllTextAsync(canonicalPath)).Should().Be(invalidLegacyJson);
         string backupPath = Directory.EnumerateFiles(
             Path.Combine(_testDirectory, "Backups"),

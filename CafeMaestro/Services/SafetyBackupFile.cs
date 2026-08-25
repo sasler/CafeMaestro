@@ -34,6 +34,37 @@ internal static class SafetyBackupFile
                 await source.CopyToAsync(destination, cancellationToken);
             },
             cancellationToken);
+
+        foreach (string existingBackup in Directory.EnumerateFiles(backupDirectory, SearchPattern))
+        {
+            if (string.Equals(existingBackup, backupPath, StringComparison.Ordinal))
+            {
+                continue;
+            }
+
+            try
+            {
+                if (!await FilesHaveSameContentAsync(
+                        backupPath,
+                        existingBackup,
+                        cancellationToken))
+                {
+                    continue;
+                }
+
+                File.Delete(backupPath);
+                return existingBackup;
+            }
+            catch (IOException)
+            {
+                // A concurrently removed or unreadable backup cannot prove duplication.
+            }
+            catch (UnauthorizedAccessException)
+            {
+                // Preserve the newly published recovery copy if deduplication is unavailable.
+            }
+        }
+
         Prune(backupDirectory, maximumBackups: 5, cancellationToken);
         return backupPath;
     }
@@ -96,6 +127,56 @@ internal static class SafetyBackupFile
             catch (UnauthorizedAccessException)
             {
                 // Cleanup is best-effort after a failed or completed atomic publication.
+            }
+        }
+    }
+
+    private static async Task<bool> FilesHaveSameContentAsync(
+        string leftPath,
+        string rightPath,
+        CancellationToken cancellationToken)
+    {
+        var leftInfo = new FileInfo(leftPath);
+        var rightInfo = new FileInfo(rightPath);
+        if (leftInfo.Length != rightInfo.Length)
+        {
+            return false;
+        }
+
+        await using FileStream left = new(
+            leftPath,
+            FileMode.Open,
+            FileAccess.Read,
+            FileShare.Read,
+            81920,
+            useAsync: true);
+        await using FileStream right = new(
+            rightPath,
+            FileMode.Open,
+            FileAccess.Read,
+            FileShare.Read,
+            81920,
+            useAsync: true);
+        byte[] leftBuffer = new byte[81920];
+        byte[] rightBuffer = new byte[81920];
+
+        while (true)
+        {
+            int leftRead = await left.ReadAsync(leftBuffer, cancellationToken);
+            int rightRead = await right.ReadAsync(rightBuffer, cancellationToken);
+            if (leftRead != rightRead)
+            {
+                return false;
+            }
+
+            if (leftRead == 0)
+            {
+                return true;
+            }
+
+            if (!leftBuffer.AsSpan(0, leftRead).SequenceEqual(rightBuffer.AsSpan(0, rightRead)))
+            {
+                return false;
             }
         }
     }

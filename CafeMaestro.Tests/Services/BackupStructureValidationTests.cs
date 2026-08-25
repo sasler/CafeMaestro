@@ -35,13 +35,14 @@ public sealed class BackupStructureValidationTests : IDisposable
             Times.Never);
     }
 
-    [Fact]
-    public async Task PreviewExternalBackupAsync_MetadataOnlyLegacyJsonIsRejectedAsWrongStructure()
+    [Theory]
+    [InlineData("{\"AppVersion\":\"1.0\",\"LastModified\":\"2025-01-01T00:00:00Z\"}")]
+    [InlineData("{\"DataSchemaVersion\":1}")]
+    public async Task PreviewExternalBackupAsync_MetadataOnlyLegacyJsonIsRejectedAsWrongStructure(
+        string json)
     {
         string sourcePath = Path.Combine(_testDirectory, "metadata-only.json");
-        await File.WriteAllTextAsync(
-            sourcePath,
-            "{\"AppVersion\":\"1.0\",\"LastModified\":\"2025-01-01T00:00:00Z\"}");
+        await File.WriteAllTextAsync(sourcePath, json);
         var appDataService = new Mock<IAppDataService>();
         var service = new DataBackupService(
             appDataService.Object,
