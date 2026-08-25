@@ -35,13 +35,39 @@ public sealed class BackupStructureValidationTests : IDisposable
             Times.Never);
     }
 
+    [Theory]
+    [InlineData("{\"AppVersion\":\"1.0\",\"LastModified\":\"2025-01-01T00:00:00Z\"}")]
+    [InlineData("{\"DataSchemaVersion\":1}")]
+    [InlineData("{\"DataSchemaVersion\":1,\"dataSchemaVersion\":2,\"Beans\":[]}")]
+    public async Task PreviewExternalBackupAsync_MetadataOnlyLegacyJsonIsRejectedAsWrongStructure(
+        string json)
+    {
+        string sourcePath = Path.Combine(_testDirectory, "metadata-only.json");
+        await File.WriteAllTextAsync(sourcePath, json);
+        var appDataService = new Mock<IAppDataService>();
+        var service = new DataBackupService(
+            appDataService.Object,
+            Path.Combine(_testDirectory, "Backups"));
+
+        Func<Task> action = () => service.PreviewExternalBackupAsync(sourcePath);
+
+        await action.Should().ThrowAsync<InvalidDataException>()
+            .WithMessage("*structure*");
+        appDataService.Verify(
+            candidate => candidate.SaveAppDataAsync(It.IsAny<AppData>()),
+            Times.Never);
+    }
+
     [Fact]
     public async Task RestoreExternalBackupAsync_LegacyJsonWithoutRoastLevelsAddsDefaults()
     {
         string sourcePath = Path.Combine(_testDirectory, "legacy.json");
         await File.WriteAllTextAsync(sourcePath, "{\"Beans\":[],\"RoastLogs\":[]}");
+        AppData currentData = AppDataFactory.CreateDefault();
+        currentData.PersistenceRevision = 1;
         var appDataService = new Mock<IAppDataService>();
-        appDataService.SetupGet(service => service.CurrentData).Returns(AppDataFactory.CreateDefault());
+        appDataService.SetupGet(service => service.CurrentData).Returns(currentData);
+        appDataService.Setup(service => service.LoadAppDataAsync()).ReturnsAsync(currentData);
         appDataService
             .Setup(service => service.SaveAppDataAsync(It.IsAny<AppData>()))
             .ReturnsAsync(true);

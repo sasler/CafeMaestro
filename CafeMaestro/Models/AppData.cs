@@ -9,6 +9,13 @@ namespace CafeMaestro.Models
     /// </summary>
     public class AppData
     {
+        internal long PersistenceRevision { get; set; }
+
+        /// <summary>
+        /// Version of the persisted data contract.
+        /// </summary>
+        public int DataSchemaVersion { get; set; } = AppDataSchema.CurrentVersion;
+
         /// <summary>
         /// All bean inventory items
         /// </summary>
@@ -23,6 +30,11 @@ namespace CafeMaestro.Models
         /// User-configurable roast levels
         /// </summary>
         public List<RoastLevelData> RoastLevels { get; set; } = new List<RoastLevelData>();
+
+        /// <summary>
+        /// Durable state for the current roasting session, when one exists.
+        /// </summary>
+        public RoastSessionData? ActiveRoastSession { get; set; }
         
         /// <summary>
         /// Timestamp of last modification

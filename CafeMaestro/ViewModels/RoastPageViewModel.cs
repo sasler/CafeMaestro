@@ -328,10 +328,15 @@ public partial class RoastPageViewModel : ObservableObject, IQueryAttributable
                 {
                     Id = _roastToEdit.Id,
                     RoastDate = _roastToEdit.RoastDate,
+                    BeanId = SelectedBean?.Id ?? _roastToEdit.BeanId,
+                    BeanDisplaySnapshot = _roastToEdit.BeanDisplaySnapshot,
                     BeanType = SelectedBean?.DisplayName ?? _roastToEdit.BeanType,
                     Temperature = input.Temperature,
                     BatchWeight = input.BatchWeight,
                     FinalWeight = input.FinalWeight,
+                    CompletionStatus = input.FinalWeight.HasValue
+                        ? RoastCompletionStatus.Complete
+                        : RoastCompletionStatus.AwaitingWeight,
                     RoastMinutes = input.RoastMinutes,
                     RoastSeconds = input.RoastSeconds,
                     Notes = Notes,
@@ -354,10 +359,15 @@ public partial class RoastPageViewModel : ObservableObject, IQueryAttributable
             RoastData roastData = new()
             {
                 Id = Guid.NewGuid(),
+                BeanId = SelectedBean?.Id,
+                BeanDisplaySnapshot = SelectedBean?.DisplayName ?? "Unknown",
                 BeanType = SelectedBean?.DisplayName ?? "Unknown",
                 Temperature = input.Temperature,
                 BatchWeight = input.BatchWeight,
                 FinalWeight = input.FinalWeight,
+                CompletionStatus = input.FinalWeight.HasValue
+                    ? RoastCompletionStatus.Complete
+                    : RoastCompletionStatus.AwaitingWeight,
                 RoastMinutes = input.RoastMinutes,
                 RoastSeconds = input.RoastSeconds,
                 RoastDate = DateTime.Now,
@@ -545,6 +555,8 @@ public partial class RoastPageViewModel : ObservableObject, IQueryAttributable
     {
         if (!double.TryParse(BatchWeightText, out double batchWeight) ||
             !double.TryParse(FinalWeightText, out double finalWeight) ||
+            !double.IsFinite(batchWeight) ||
+            !double.IsFinite(finalWeight) ||
             batchWeight <= 0 ||
             finalWeight <= 0 ||
             finalWeight > batchWeight)
@@ -576,29 +588,37 @@ public partial class RoastPageViewModel : ObservableObject, IQueryAttributable
             return null;
         }
 
-        if (!double.TryParse(BatchWeightText, out double batchWeight) || batchWeight <= 0)
+        if (!double.TryParse(BatchWeightText, out double batchWeight) ||
+            !double.IsFinite(batchWeight) ||
+            batchWeight <= 0)
         {
             await _alertService.ShowAlertAsync("Validation Error", "Please enter a valid batch weight in grams.", "OK");
             return null;
         }
 
-        double finalWeight = 0;
+        double? finalWeight = null;
         if (!string.IsNullOrWhiteSpace(FinalWeightText))
         {
-            if (!double.TryParse(FinalWeightText, out finalWeight) || finalWeight <= 0)
+            if (!double.TryParse(FinalWeightText, out double parsedFinalWeight) ||
+                !double.IsFinite(parsedFinalWeight) ||
+                parsedFinalWeight <= 0)
             {
                 await _alertService.ShowAlertAsync("Validation Error", "Please enter a valid final weight in grams.", "OK");
                 return null;
             }
 
-            if (finalWeight > batchWeight)
+            if (parsedFinalWeight > batchWeight)
             {
                 await _alertService.ShowAlertAsync("Validation Error", "Final weight cannot be greater than batch weight.", "OK");
                 return null;
             }
+
+            finalWeight = parsedFinalWeight;
         }
 
-        if (!double.TryParse(TemperatureText, out double temperature) || temperature <= 0)
+        if (!double.TryParse(TemperatureText, out double temperature) ||
+            !double.IsFinite(temperature) ||
+            temperature <= 0)
         {
             await _alertService.ShowAlertAsync("Validation Error", "Please enter a valid temperature in Celsius.", "OK");
             return null;
@@ -621,6 +641,9 @@ public partial class RoastPageViewModel : ObservableObject, IQueryAttributable
             BeanType = SelectedBean.DisplayName,
             BatchWeight = batchWeight,
             FinalWeight = finalWeight,
+            CompletionStatus = finalWeight.HasValue
+                ? RoastCompletionStatus.Complete
+                : RoastCompletionStatus.AwaitingWeight,
             Temperature = temperature,
             RoastMinutes = roastMinutes,
             RoastSeconds = roastSeconds,
@@ -663,7 +686,7 @@ public partial class RoastPageViewModel : ObservableObject, IQueryAttributable
             TimerDisplay = FormatTime(_roastToEdit.RoastMinutes, _roastToEdit.RoastSeconds);
             BatchWeightText = _roastToEdit.BatchWeight.ToString("F1");
             FinalWeightText = _roastToEdit.HasFinalWeight
-                ? _roastToEdit.FinalWeight.ToString("F1")
+                ? _roastToEdit.FinalWeight.GetValueOrDefault().ToString("F1")
                 : string.Empty;
             TemperatureText = _roastToEdit.Temperature.ToString("F0");
             Notes = _roastToEdit.Notes;
@@ -680,7 +703,7 @@ public partial class RoastPageViewModel : ObservableObject, IQueryAttributable
             }
 
             await UpdateLossPercentAsync();
-            await SelectBeanAsync(_roastToEdit.BeanType);
+            await SelectBeanAsync(_roastToEdit.BeanId, _roastToEdit.BeanType);
             ValidateBatchWeight();
             UpdateFirstCrackButtonState();
         }
@@ -691,29 +714,34 @@ public partial class RoastPageViewModel : ObservableObject, IQueryAttributable
         }
     }
 
-    private async Task SelectBeanAsync(string beanType)
+    private Task SelectBeanAsync(Guid? beanId, string beanType)
     {
         if (string.IsNullOrWhiteSpace(beanType) || AvailableBeans.Count == 0)
         {
-            return;
+            return Task.CompletedTask;
         }
 
-        BeanData? bean =
-            AvailableBeans.FirstOrDefault(item => string.Equals(item.DisplayName, beanType, StringComparison.Ordinal))
-            ?? AvailableBeans.FirstOrDefault(item => string.Equals(item.DisplayName, beanType, StringComparison.OrdinalIgnoreCase))
-            ?? AvailableBeans.FirstOrDefault(item =>
-                item.DisplayName.Contains(beanType, StringComparison.OrdinalIgnoreCase) ||
-                beanType.Contains(item.DisplayName, StringComparison.OrdinalIgnoreCase));
-
-        if (bean is null)
+        BeanData? bean;
+        if (beanId.HasValue)
         {
-            await Task.CompletedTask;
-            return;
+            bean = AvailableBeans.FirstOrDefault(item => item.Id == beanId.Value);
+        }
+        else
+        {
+            BeanData[] exactMatches = AvailableBeans
+                .Where(item => string.Equals(
+                    item.DisplayName,
+                    beanType,
+                    StringComparison.Ordinal))
+                .Take(2)
+                .ToArray();
+            bean = exactMatches.Length == 1 ? exactMatches[0] : null;
         }
 
         _suppressBeanSelectionChanged = true;
         SelectedBean = bean;
         _suppressBeanSelectionChanged = false;
+        return Task.CompletedTask;
     }
 
     private void ResetPageForNewRoast()
@@ -797,7 +825,7 @@ public partial class RoastPageViewModel : ObservableObject, IQueryAttributable
 
     private sealed record RoastFormInput(
         double BatchWeight,
-        double FinalWeight,
+        double? FinalWeight,
         double Temperature,
         int RoastMinutes,
         int RoastSeconds);

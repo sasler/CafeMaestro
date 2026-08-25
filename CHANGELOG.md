@@ -7,6 +7,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased] - Complete Architecture Refactor
 ### Added
+- Versioned JSON persistence with sequential schema migrations and recovery copies before in-place upgrades
+- Lock-scoped atomic data mutations that validate and replace the complete dataset before publishing one change event
+- Durable roast-session and completion fields required by the back-to-back roasting workflow
+- Discoverable raw recovery copies that can be exported unchanged when invalid legacy data cannot be activated safely
 - Direction B visual system: shared design tokens, semantic dark/light themes, component styles and a vector icon set
 - `Resources/Styles/DesignTokens.xaml` with spacing, radii, type scale, control sizing, icon sizes and responsive breakpoints
 - `Resources/Styles/ComponentStyles.xaml` with card, field, action-bar, status-chip, icon-button, empty/error/loading and focus styles
@@ -41,6 +45,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Invalid backup JSON is rejected without modifying active data or the selected source
 
 ### Changed
+- Version bumped to 1.5.0
+- Legacy roast records now preserve display snapshots, link exact unique beans, and distinguish completed from awaiting-weight results during migration
+- Windows test hosts now restore the app's Windows graph directly while the app keeps Android and host-appropriate Apple targets
 - Rebuilt DarkTheme and LightTheme around identical semantic colour keys; pre-redesign key names remain as aliases so existing pages keep rendering
 - Dark is now the default appearance for a new install; an explicit System/Light/Dark choice is always preserved
 - System theme changes now apply live while System is selected; explicit Light and Dark choices remain stable

@@ -99,6 +99,13 @@ namespace CafeMaestro.Services
         {
             try
             {
+                if (HasInvalidFinalWeight(roastData))
+                {
+                    return false;
+                }
+
+                PrepareNewRoastForPersistence(roastData);
+
                 // Before saving, determine and set the roast level name (only if final weight is known)
                 if (roastData.HasFinalWeight)
                 {
@@ -209,7 +216,7 @@ namespace CafeMaestro.Services
                     EscapeCsv(roast.BeanType),
                     roast.Temperature.ToString(System.Globalization.CultureInfo.InvariantCulture),
                     roast.BatchWeight.ToString(System.Globalization.CultureInfo.InvariantCulture),
-                    roast.FinalWeight.ToString(System.Globalization.CultureInfo.InvariantCulture),
+                    roast.FinalWeight.GetValueOrDefault().ToString(System.Globalization.CultureInfo.InvariantCulture),
                     weightLoss,
                     EscapeCsv(roast.FormattedTime),
                     EscapeCsv(roast.RoastLevelName),
@@ -471,6 +478,13 @@ namespace CafeMaestro.Services
         {
             try
             {
+                if (HasInvalidFinalWeight(roast))
+                {
+                    return false;
+                }
+
+                PrepareNewRoastForPersistence(roast);
+
                 // Make sure ID is set
                 if (roast.Id == Guid.Empty)
                 {
@@ -581,6 +595,13 @@ namespace CafeMaestro.Services
         {
             try
             {
+                if (HasInvalidFinalWeight(roast))
+                {
+                    return false;
+                }
+
+                PrepareNewRoastForPersistence(roast);
+
                 // Make sure ID is set
                 if (roast.Id == Guid.Empty)
                 {
@@ -633,6 +654,35 @@ namespace CafeMaestro.Services
             }
         }
 
+        private static void PrepareNewRoastForPersistence(RoastData roast)
+        {
+            roast.BeanDisplaySnapshot = string.IsNullOrWhiteSpace(roast.BeanDisplaySnapshot)
+                ? roast.BeanType
+                : roast.BeanDisplaySnapshot;
+            if (!roast.DroppedAtUtc.HasValue && roast.RoastDate != default)
+            {
+                roast.DroppedAtUtc =
+                    V1ToV2AppDataMigration.ConvertLegacyRoastDate(roast.RoastDate);
+            }
+
+            if (roast.FinalWeight > 0)
+            {
+                roast.CompletionStatus = RoastCompletionStatus.Complete;
+                return;
+            }
+
+            if (roast.FinalWeight is null or 0)
+            {
+                roast.FinalWeight = null;
+                roast.CompletionStatus = RoastCompletionStatus.AwaitingWeight;
+                roast.CoolingDurationSeconds ??= 0;
+            }
+        }
+
+        private static bool HasInvalidFinalWeight(RoastData roast) =>
+            roast.FinalWeight is double finalWeight &&
+            (!double.IsFinite(finalWeight) || finalWeight < 0);
+
         // Get specific roast log by ID
         public async Task<RoastData?> GetRoastLogByIdAsync(Guid id)
         {
@@ -658,6 +708,11 @@ namespace CafeMaestro.Services
         {
             try
             {
+                if (HasInvalidFinalWeight(updatedRoast))
+                {
+                    return false;
+                }
+
                 // Before saving, determine and set the roast level name
                 if (updatedRoast.HasFinalWeight)
                 {
@@ -668,29 +723,50 @@ namespace CafeMaestro.Services
                     updatedRoast.RoastLevelName = "Pending";
                 }
 
-                // Load full app data
-                var appData = await _appDataService.LoadAppDataAsync();
-
-                // Find the roast to update
-                var existingRoast = appData.RoastLogs?.FirstOrDefault(r => r.Id == updatedRoast.Id);
-
-                if (existingRoast != null)
+                return await _appDataService.TryUpdateAsync(appData =>
                 {
-                    // Update all properties
+                    RoastData? existingRoast = appData.RoastLogs
+                        .FirstOrDefault(roast => roast.Id == updatedRoast.Id);
+                    if (existingRoast is null)
+                    {
+                        return false;
+                    }
+
+                    if (updatedRoast.BeanId.HasValue &&
+                        updatedRoast.BeanId != existingRoast.BeanId)
+                    {
+                        existingRoast.BeanId = updatedRoast.BeanId;
+                        existingRoast.BeanDisplaySnapshot = updatedRoast.BeanType;
+                    }
+
                     existingRoast.BeanType = updatedRoast.BeanType;
                     existingRoast.Temperature = updatedRoast.Temperature;
                     existingRoast.BatchWeight = updatedRoast.BatchWeight;
-                    existingRoast.FinalWeight = updatedRoast.FinalWeight;
+                    existingRoast.FinalWeight = updatedRoast.HasFinalWeight
+                        ? updatedRoast.FinalWeight
+                        : null;
+                    existingRoast.CompletionStatus = updatedRoast.HasFinalWeight
+                        ? RoastCompletionStatus.Complete
+                        : RoastCompletionStatus.AwaitingWeight;
+                    if (!updatedRoast.HasFinalWeight)
+                    {
+                        if (!existingRoast.DroppedAtUtc.HasValue &&
+                            existingRoast.RoastDate != default)
+                        {
+                            existingRoast.DroppedAtUtc =
+                                V1ToV2AppDataMigration.ConvertLegacyRoastDate(existingRoast.RoastDate);
+                        }
+
+                        existingRoast.CoolingDurationSeconds ??= 0;
+                    }
                     existingRoast.RoastMinutes = updatedRoast.RoastMinutes;
                     existingRoast.RoastSeconds = updatedRoast.RoastSeconds;
                     existingRoast.Notes = updatedRoast.Notes;
                     existingRoast.RoastLevelName = updatedRoast.RoastLevelName;
-
-                    // Save updated app data
-                    return await _appDataService.SaveAppDataAsync(appData);
-                }
-
-                return false;
+                    existingRoast.FirstCrackMinutes = updatedRoast.FirstCrackMinutes;
+                    existingRoast.FirstCrackSeconds = updatedRoast.FirstCrackSeconds;
+                    return true;
+                });
             }
             catch (Exception ex)
             {

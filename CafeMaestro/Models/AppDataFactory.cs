@@ -6,6 +6,7 @@ public static class AppDataFactory
     {
         return new AppData
         {
+            DataSchemaVersion = AppDataSchema.CurrentVersion,
             LastModified = DateTime.UtcNow,
             AppVersion = typeof(AppDataFactory).Assembly.GetName().Version?.ToString(3) ?? "1.0.0",
             Beans = [],

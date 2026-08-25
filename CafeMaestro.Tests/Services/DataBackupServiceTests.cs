@@ -84,6 +84,101 @@ public sealed class DataBackupServiceTests : IDisposable
     }
 
     [Fact]
+    public async Task StartNewDataAsync_ColdForwardCanonical_PreservesRawAndReplacesDeliberately()
+    {
+        string canonicalPath = Path.Combine(_testDirectory, "cafemaestro_data.json");
+        string originalJson = $$"""
+            {
+              "DataSchemaVersion": {{AppDataSchema.CurrentVersion + 1}},
+              "Beans": [],
+              "RoastLogs": [],
+              "RoastLevels": []
+            }
+            """;
+        await File.WriteAllTextAsync(canonicalPath, originalJson);
+        var appData = new ManagedAppDataService(canonicalPath, () => "1.5.0");
+        var service = new DataBackupService(
+            appData,
+            Path.Combine(_testDirectory, "Backups"));
+
+        AppData replacement = await service.StartNewDataAsync();
+
+        replacement.DataSchemaVersion.Should().Be(AppDataSchema.CurrentVersion);
+        replacement.Beans.Should().BeEmpty();
+        appData.IsRecoveryRequired.Should().BeFalse();
+        AppData persisted = JsonSerializer.Deserialize<AppData>(
+            await File.ReadAllTextAsync(canonicalPath))!;
+        persisted.DataSchemaVersion.Should().Be(AppDataSchema.CurrentVersion);
+        string rawBackup = Directory.EnumerateFiles(
+            Path.Combine(_testDirectory, "Backups"),
+            SafetyBackupFile.SearchPattern).Should().ContainSingle().Subject;
+        (await File.ReadAllTextAsync(rawBackup)).Should().Be(originalJson);
+    }
+
+    [Fact]
+    public async Task StartNewDataAsync_ConcurrentCommitAfterBackup_UsesRevisionGuardAndPreservesCommit()
+    {
+        string canonicalPath = Path.Combine(_testDirectory, "concurrent-replacement.json");
+        var appData = new ManagedAppDataService(canonicalPath, () => "1.5.0");
+        await appData.InitializeAsync(Mock.Of<IPreferencesService>());
+        var backupCaptured = new TaskCompletionSource<AppData>(
+            TaskCreationOptions.RunContinuationsAsynchronously);
+        var releaseBackup = new TaskCompletionSource(
+            TaskCreationOptions.RunContinuationsAsynchronously);
+        var service = new DataBackupService(
+            appData,
+            Path.Combine(_testDirectory, "Backups"),
+            async (snapshot, cancellationToken) =>
+            {
+                backupCaptured.SetResult(snapshot);
+                await releaseBackup.Task.WaitAsync(cancellationToken);
+            });
+        Task<AppData> replacement = service.StartNewDataAsync();
+        AppData safetySnapshot = await backupCaptured.Task.WaitAsync(TimeSpan.FromSeconds(2));
+
+        (await appData.UpdateAsync(data => data.Beans.Add(new BeanData
+        {
+            Country = "Test",
+            CoffeeName = "Concurrent",
+            Quantity = 1,
+            RemainingQuantity = 1
+        }))).Should().BeTrue();
+        releaseBackup.SetResult();
+
+        Func<Task> action = async () => await replacement;
+        await action.Should().ThrowAsync<IOException>();
+        safetySnapshot.Beans.Should().BeEmpty();
+        appData.CurrentData.Beans.Should().ContainSingle(bean => bean.CoffeeName == "Concurrent");
+        (await appData.LoadAppDataAsync()).Beans
+            .Should().ContainSingle(bean => bean.CoffeeName == "Concurrent");
+    }
+
+    [Fact]
+    public async Task StartNewDataAsync_SuccessReturnsCommittedGraphThatCanBeSavedAgain()
+    {
+        string canonicalPath = Path.Combine(_testDirectory, "committed-replacement.json");
+        var appData = new ManagedAppDataService(canonicalPath, () => "1.5.0");
+        await appData.InitializeAsync(Mock.Of<IPreferencesService>());
+        var service = new DataBackupService(
+            appData,
+            Path.Combine(_testDirectory, "Backups"));
+
+        AppData replacement = await service.StartNewDataAsync();
+
+        replacement.PersistenceRevision.Should().Be(appData.CurrentData.PersistenceRevision);
+        replacement.LastModified.Should().Be(appData.CurrentData.LastModified);
+        replacement.AppVersion.Should().Be("1.5.0");
+        replacement.Beans.Add(new BeanData
+        {
+            Country = "Test",
+            CoffeeName = "Reusable",
+            Quantity = 1,
+            RemainingQuantity = 1
+        });
+        (await appData.SaveAppDataAsync(replacement)).Should().BeTrue();
+    }
+
+    [Fact]
     public async Task CreateExportStreamAsync_ReturnsCurrentDataAsJson()
     {
         var appDataService = CreateAppDataService(CreateData("Current", 2, 1));
@@ -100,6 +195,114 @@ public sealed class DataBackupServiceTests : IDisposable
         exported.RoastLogs.Should().HaveCount(1);
     }
 
+    [Fact]
+    public async Task CreateExportStreamAsync_ColdForwardCanonical_RejectsFallbackExport()
+    {
+        string canonicalPath = Path.Combine(_testDirectory, "forward-export.json");
+        string originalJson = $$"""
+            {
+              "DataSchemaVersion": {{AppDataSchema.CurrentVersion + 1}},
+              "Beans": [],
+              "RoastLogs": [],
+              "RoastLevels": []
+            }
+            """;
+        await File.WriteAllTextAsync(canonicalPath, originalJson);
+        var appData = new ManagedAppDataService(canonicalPath, () => "1.5.0");
+        var service = new DataBackupService(
+            appData,
+            Path.Combine(_testDirectory, "Backups"));
+
+        Func<Task> action = async () => await service.CreateExportStreamAsync();
+
+        await action.Should().ThrowAsync<InvalidDataException>().WithMessage("*newer*recovery*");
+        (await File.ReadAllTextAsync(canonicalPath)).Should().Be(originalJson);
+    }
+
+    [Theory]
+    [InlineData("2025-02-10T13:25:00Z")]
+    [InlineData("2025-02-10T13:25:00+02:00")]
+    [InlineData("2025-02-10T13:25:00")]
+    public async Task RestoreExternalBackupAsync_VersionOneTimestampWireShapes_MigrateBeforeSave(
+        string timestamp)
+    {
+        string sourcePath = Path.Combine(_testDirectory, $"{Guid.NewGuid():N}.json");
+        string json = $$"""
+            {
+              "Beans": [],
+              "RoastLogs": [{
+                "BeanType": "Peru",
+                "Temperature": 205,
+                "BatchWeight": 200,
+                "FinalWeight": 0,
+                "RoastMinutes": 10,
+                "RoastSeconds": 0,
+                "RoastDate": "{{timestamp}}"
+              }]
+            }
+            """;
+        await File.WriteAllTextAsync(sourcePath, json);
+        AppData? saved = null;
+        var appDataService = CreateAppDataService(CreateData("Current", 1, 0));
+        appDataService
+            .Setup(service => service.SaveAppDataAsync(It.IsAny<AppData>()))
+            .Callback((AppData data) => saved = data)
+            .ReturnsAsync(true);
+        var service = new DataBackupService(
+            appDataService.Object,
+            Path.Combine(_testDirectory, "Backups"));
+
+        await service.RestoreExternalBackupAsync(sourcePath);
+
+        DateTime parsed = JsonSerializer.Deserialize<DateTime>($"\"{timestamp}\"");
+        saved!.RoastLogs.Single().DroppedAtUtc
+            .Should().Be(V1ToV2AppDataMigration.ConvertLegacyRoastDate(parsed));
+        saved.RoastLogs.Single().CompletionStatus
+            .Should().Be(RoastCompletionStatus.AwaitingWeight);
+    }
+
+    [Fact]
+    public async Task PreviewExternalBackupAsync_ForwardSchemaRejectsWithoutReplacingData()
+    {
+        string sourcePath = Path.Combine(_testDirectory, "forward.json");
+        string originalJson = $$"""
+            { "DataSchemaVersion": {{AppDataSchema.CurrentVersion + 1}}, "Beans": [], "RoastLogs": [] }
+            """;
+        await File.WriteAllTextAsync(sourcePath, originalJson);
+        var appDataService = CreateAppDataService(CreateData("Current", 1, 0));
+        var service = new DataBackupService(
+            appDataService.Object,
+            Path.Combine(_testDirectory, "Backups"));
+
+        Func<Task> action = () => service.PreviewExternalBackupAsync(sourcePath);
+
+        await action.Should().ThrowAsync<InvalidDataException>().WithMessage("*newer*recovery*");
+        appDataService.Verify(
+            candidate => candidate.SaveAppDataAsync(It.IsAny<AppData>()),
+            Times.Never);
+        (await File.ReadAllTextAsync(sourcePath)).Should().Be(originalJson);
+    }
+
+    [Fact]
+    public async Task GetSafetyBackupsAsync_NullCollectionElement_RemainsDiscoverableAndExportable()
+    {
+        string backupDirectory = Path.Combine(_testDirectory, "Backups");
+        Directory.CreateDirectory(backupDirectory);
+        string backupPath = Path.Combine(backupDirectory, "cafemaestro_safety_null.json");
+        const string rawJson = "{\"RoastLogs\":[null]}";
+        await File.WriteAllTextAsync(backupPath, rawJson);
+        var service = new DataBackupService(
+            CreateAppDataService(CreateData("Current", 0, 0)).Object,
+            backupDirectory);
+
+        DataBackupSummary raw =
+            (await service.GetSafetyBackupsAsync()).Should().ContainSingle().Subject;
+        raw.IsRawRecovery.Should().BeTrue();
+        await using Stream stream = await service.CreateSafetyBackupExportStreamAsync(raw.Id);
+        using var reader = new StreamReader(stream);
+        (await reader.ReadToEndAsync()).Should().Be(rawJson);
+    }
+
     public void Dispose()
     {
         if (Directory.Exists(_testDirectory))
@@ -113,6 +316,7 @@ public sealed class DataBackupServiceTests : IDisposable
         var appDataService = new Mock<IAppDataService>();
         appDataService.SetupGet(service => service.CurrentData).Returns(currentData);
         appDataService.SetupGet(service => service.DataFilePath).Returns("cafemaestro_data.json");
+        appDataService.Setup(service => service.LoadAppDataAsync()).ReturnsAsync(() => currentData);
         appDataService
             .Setup(service => service.SaveAppDataAsync(It.IsAny<AppData>()))
             .ReturnsAsync(true)
@@ -139,9 +343,13 @@ public sealed class DataBackupServiceTests : IDisposable
                 .Select(index => new RoastData
                 {
                     BeanType = $"{prefix} Bean {index}",
+                    BeanDisplaySnapshot = $"{prefix} Bean {index}",
                     BatchWeight = 1,
                     Temperature = 200,
-                    RoastDate = DateTime.UtcNow
+                    RoastDate = DateTime.UtcNow,
+                    DroppedAtUtc = DateTimeOffset.UtcNow,
+                    CoolingDurationSeconds = 0,
+                    CompletionStatus = RoastCompletionStatus.AwaitingWeight
                 })
                 .ToList(),
             RoastLevels =

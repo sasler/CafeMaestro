@@ -105,7 +105,7 @@ All services are registered via DI in `MauiProgram.cs` using interface-based sin
 
 | Service | Interface | Responsibility |
 |---------|-----------|----------------|
-| ManagedAppDataService | IAppDataService | Private canonical JSON persistence with transactional saves and legacy migration |
+| ManagedAppDataService | IAppDataService | Versioned private JSON persistence with atomic mutations, recovery copies, and sequential migration |
 | BeanDataService | IBeanDataService | Bean CRUD operations, CSV import |
 | RoastDataService | IRoastDataService | Roast CRUD, CSV import/export |
 | RoastLevelService | IRoastLevelService | Roast level classification |
@@ -154,7 +154,13 @@ CafeMaestro saves the working dataset automatically in private app storage. In S
 - Start a new dataset only after confirmation and an automatic recovery copy
 - Save, restore, or share JSON backup copies without modifying selected source files
 - Restore one of the five most recent automatic safety backups
+- Save an unvalidated raw recovery copy for manual repair when legacy data cannot be upgraded safely
 - Import coffee beans or roast logs from CSV, and save or share roast-log CSV exports
+
+The canonical dataset carries an explicit schema version. CafeMaestro upgrades supported legacy data
+sequentially, keeps the original bytes as a recovery copy before an in-place upgrade, and refuses to
+rewrite data created by a newer unsupported app version. See [Versioned persistence](docs/data-persistence.md)
+for the storage and mutation contract.
 
 ## Contributing
 

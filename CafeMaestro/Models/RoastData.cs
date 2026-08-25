@@ -11,7 +11,7 @@ namespace CafeMaestro.Models
         public string BeanType { get; set; } = "";
         public double Temperature { get; set; }
         public double BatchWeight { get; set; }
-        public double FinalWeight { get; set; }
+        public double? FinalWeight { get; set; }
         public int RoastMinutes { get; set; }
         public int RoastSeconds { get; set; }
         public DateTime RoastDate { get; set; }
@@ -22,13 +22,26 @@ namespace CafeMaestro.Models
         public int? FirstCrackMinutes { get; set; } = null;
         public int? FirstCrackSeconds { get; set; } = null;
 
+        public Guid? BeanId { get; set; }
+        public string BeanDisplaySnapshot { get; set; } = "";
+        public Guid? SessionId { get; set; }
+        public int? BatchNumber { get; set; }
+        public DateTimeOffset? DroppedAtUtc { get; set; }
+        public int? CoolingDurationSeconds { get; set; }
+        public RoastCompletionStatus CompletionStatus { get; set; }
+
         [JsonIgnore]
         public bool HasFinalWeight => FinalWeight > 0;
 
         [JsonIgnore]
         public double WeightLossPercentage => HasFinalWeight && BatchWeight > 0
-            ? Math.Round(((BatchWeight - FinalWeight) / BatchWeight) * 100, 2)
+            ? Math.Round(((BatchWeight - FinalWeight!.Value) / BatchWeight) * 100, 2)
             : 0;
+
+        [JsonIgnore]
+        public DateTimeOffset? ReadyToWeighAtUtc => TryGetReadyToWeighAtUtc(out DateTimeOffset readyAt)
+            ? readyAt
+            : null;
 
         [JsonIgnore]
         public string WeightLossDisplay => HasFinalWeight
@@ -68,12 +81,13 @@ namespace CafeMaestro.Models
                 errors.Add("BeanType must not be empty.");
             }
 
-            if (BatchWeight <= 0)
+            if (!double.IsFinite(BatchWeight) || BatchWeight <= 0)
             {
                 errors.Add("BatchWeight must be greater than 0.");
             }
 
-            if (FinalWeight < 0)
+            if (FinalWeight is double finalWeight &&
+                (!double.IsFinite(finalWeight) || finalWeight < 0))
             {
                 errors.Add("FinalWeight must be greater than or equal to 0.");
             }
@@ -83,7 +97,59 @@ namespace CafeMaestro.Models
                 errors.Add("FinalWeight must be less than or equal to BatchWeight.");
             }
 
-            if (Temperature <= 0 || Temperature > 500)
+            if (CompletionStatus == RoastCompletionStatus.Complete && !HasFinalWeight)
+            {
+                errors.Add("FinalWeight must be greater than 0 for a completed roast.");
+            }
+
+            if (!Enum.IsDefined(CompletionStatus))
+            {
+                errors.Add("CompletionStatus is not supported.");
+            }
+
+            if (Id == Guid.Empty)
+            {
+                errors.Add("Id must not be empty.");
+            }
+
+            if (BeanId == Guid.Empty)
+            {
+                errors.Add("BeanId must not be empty when present.");
+            }
+
+            if (SessionId == Guid.Empty)
+            {
+                errors.Add("SessionId must not be empty when present.");
+            }
+
+            if (SessionId.HasValue != BatchNumber.HasValue)
+            {
+                errors.Add("SessionId and BatchNumber must either both be present or both be empty.");
+            }
+
+            if (BatchNumber <= 0)
+            {
+                errors.Add("BatchNumber must be greater than 0 when present.");
+            }
+
+            if (CoolingDurationSeconds < 0)
+            {
+                errors.Add("CoolingDurationSeconds must be greater than or equal to 0.");
+            }
+
+            if (!DroppedAtUtc.HasValue && CoolingDurationSeconds.HasValue)
+            {
+                errors.Add("DroppedAtUtc is required when CoolingDurationSeconds is present.");
+            }
+
+            if (DroppedAtUtc.HasValue &&
+                CoolingDurationSeconds.HasValue &&
+                !TryGetReadyToWeighAtUtc(out _))
+            {
+                errors.Add("The roast readiness time exceeds the supported date range.");
+            }
+
+            if (!double.IsFinite(Temperature) || Temperature <= 0 || Temperature > 500)
             {
                 errors.Add("Temperature must be greater than 0 and less than or equal to 500.");
             }
@@ -130,6 +196,25 @@ namespace CafeMaestro.Models
             }
 
             return errors;
+        }
+
+        private bool TryGetReadyToWeighAtUtc(out DateTimeOffset readyAt)
+        {
+            readyAt = default;
+            if (!DroppedAtUtc.HasValue || CoolingDurationSeconds is null or < 0)
+            {
+                return false;
+            }
+
+            try
+            {
+                readyAt = DroppedAtUtc.Value.AddSeconds(CoolingDurationSeconds.Value);
+                return true;
+            }
+            catch (ArgumentOutOfRangeException)
+            {
+                return false;
+            }
         }
     }
 }

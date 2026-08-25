@@ -105,6 +105,57 @@ public class RoastPageViewModelTests
         mocks.RoastDataService.Verify(service => service.SaveRoastDataAsync(It.IsAny<RoastData>()), Times.Never);
     }
 
+    [Theory]
+    [InlineData("BatchWeight", "NaN")]
+    [InlineData("BatchWeight", "Infinity")]
+    [InlineData("FinalWeight", "NaN")]
+    [InlineData("FinalWeight", "Infinity")]
+    [InlineData("Temperature", "NaN")]
+    [InlineData("Temperature", "Infinity")]
+    public async Task SaveCommand_NonFiniteNumericInput_DoesNotPersist(
+        string field,
+        string value)
+    {
+        BeanData bean = CreateBean();
+        MockBundle mocks = new();
+        RoastPageViewModel viewModel = CreateViewModel(
+            mocks,
+            setup: bundle =>
+            {
+                bundle.BeanDataService.Setup(service => service.GetSortedAvailableBeansAsync())
+                    .ReturnsAsync(new List<BeanData> { bean });
+            });
+
+        await viewModel.OnAppearingAsync();
+        viewModel.BatchWeightText = "100";
+        viewModel.FinalWeightText = "85";
+        viewModel.TemperatureText = "210";
+        viewModel.SetManualTimerDisplay("10:30");
+
+        switch (field)
+        {
+            case "BatchWeight":
+                viewModel.BatchWeightText = value;
+                break;
+            case "FinalWeight":
+                viewModel.FinalWeightText = value;
+                break;
+            case "Temperature":
+                viewModel.TemperatureText = value;
+                break;
+        }
+
+        await viewModel.SaveCommand.ExecuteAsync(null);
+
+        mocks.AlertService.Verify(service => service.ShowAlertAsync(
+            "Validation Error",
+            It.IsAny<string>(),
+            "OK"), Times.Once);
+        mocks.RoastDataService.Verify(
+            service => service.SaveRoastDataAsync(It.IsAny<RoastData>()),
+            Times.Never);
+    }
+
     [Fact]
     public async Task SaveCommand_ValidNewRoast_UpdatesServices()
     {
@@ -137,6 +188,8 @@ public class RoastPageViewModelTests
 
         savedRoast.Should().NotBeNull();
         savedRoast!.BeanType.Should().Be(bean.DisplayName);
+        savedRoast.BeanId.Should().Be(bean.Id);
+        savedRoast.BeanDisplaySnapshot.Should().Be(bean.DisplayName);
         savedRoast.BatchWeight.Should().Be(100);
         savedRoast.FinalWeight.Should().Be(85);
         savedRoast.RoastMinutes.Should().Be(10);
@@ -192,6 +245,100 @@ public class RoastPageViewModelTests
         viewModel.TemperatureText.Should().Be("208");
         viewModel.Notes.Should().Be("Edit me");
         viewModel.FirstCrackLabel.Should().Be("First Crack: 08:40");
+    }
+
+    [Fact]
+    public async Task EditMode_DuplicateDisplayNames_PreservesStoredBeanIdentityOnSave()
+    {
+        BeanData wrongBean = CreateBean();
+        BeanData linkedBean = CreateBean();
+        Guid roastId = Guid.NewGuid();
+        RoastData roastToEdit = new()
+        {
+            Id = roastId,
+            BeanId = linkedBean.Id,
+            BeanType = linkedBean.DisplayName,
+            BeanDisplaySnapshot = linkedBean.DisplayName,
+            BatchWeight = 120,
+            FinalWeight = 102,
+            Temperature = 208,
+            RoastMinutes = 12,
+            RoastSeconds = 5,
+            RoastDate = new DateTime(2025, 2, 1)
+        };
+        RoastData? submitted = null;
+        RoastPageViewModel viewModel = CreateViewModel(
+            setup: mocks =>
+            {
+                mocks.BeanDataService.Setup(service => service.GetSortedAvailableBeansAsync())
+                    .ReturnsAsync(new List<BeanData> { wrongBean, linkedBean });
+                mocks.RoastDataService.Setup(service => service.GetRoastLogByIdAsync(roastId))
+                    .ReturnsAsync(roastToEdit);
+                mocks.RoastDataService.Setup(service => service.UpdateRoastLogAsync(It.IsAny<RoastData>()))
+                    .Callback<RoastData>(roast => submitted = roast)
+                    .ReturnsAsync(true);
+            });
+        viewModel.ApplyQueryAttributes(new Dictionary<string, object>
+        {
+            ["EditRoastId"] = roastId.ToString()
+        });
+
+        await viewModel.OnAppearingAsync();
+        await EventuallyAsync(() => viewModel.SelectedBean is not null);
+        await viewModel.SaveCommand.ExecuteAsync(null);
+
+        viewModel.SelectedBean.Should().BeSameAs(linkedBean);
+        submitted.Should().NotBeNull();
+        submitted!.BeanId.Should().Be(linkedBean.Id);
+        submitted.BeanDisplaySnapshot.Should().Be(linkedBean.DisplayName);
+    }
+
+    [Fact]
+    public async Task EditMode_AmbiguousLegacyBean_RemainsUnselectedAndUnlinked()
+    {
+        BeanData firstBean = CreateBean();
+        BeanData secondBean = CreateBean();
+        Guid roastId = Guid.NewGuid();
+        RoastData legacyRoast = new()
+        {
+            Id = roastId,
+            BeanId = null,
+            BeanType = firstBean.DisplayName,
+            BeanDisplaySnapshot = firstBean.DisplayName,
+            BatchWeight = 120,
+            FinalWeight = 102,
+            Temperature = 208,
+            RoastMinutes = 12,
+            RoastSeconds = 5,
+            RoastDate = new DateTime(2025, 2, 1)
+        };
+        MockBundle mocks = new();
+        RoastPageViewModel viewModel = CreateViewModel(
+            mocks,
+            setup: bundle =>
+            {
+                bundle.BeanDataService.Setup(service => service.GetSortedAvailableBeansAsync())
+                    .ReturnsAsync(new List<BeanData> { firstBean, secondBean });
+                bundle.RoastDataService.Setup(service => service.GetRoastLogByIdAsync(roastId))
+                    .ReturnsAsync(legacyRoast);
+            });
+        viewModel.ApplyQueryAttributes(new Dictionary<string, object>
+        {
+            ["EditRoastId"] = roastId.ToString()
+        });
+
+        await viewModel.OnAppearingAsync();
+        await EventuallyAsync(() => viewModel.IsEditMode);
+        await viewModel.SaveCommand.ExecuteAsync(null);
+
+        viewModel.SelectedBean.Should().BeNull();
+        mocks.RoastDataService.Verify(
+            service => service.UpdateRoastLogAsync(It.IsAny<RoastData>()),
+            Times.Never);
+        mocks.AlertService.Verify(service => service.ShowAlertAsync(
+            "Validation Error",
+            It.IsAny<string>(),
+            "OK"), Times.Once);
     }
 
     [Fact]
@@ -263,7 +410,7 @@ public class RoastPageViewModelTests
     }
 
     [Fact]
-    public async Task SaveCommand_WithoutFinalWeight_SavesWithZeroFinalWeight()
+    public async Task SaveCommand_WithoutFinalWeight_SavesWithNullFinalWeight()
     {
         BeanData bean = CreateBean();
         RoastData? savedRoast = null;
@@ -290,7 +437,7 @@ public class RoastPageViewModelTests
 
         savedRoast.Should().NotBeNull();
         savedRoast!.BatchWeight.Should().Be(100);
-        savedRoast.FinalWeight.Should().Be(0);
+        savedRoast.FinalWeight.Should().BeNull();
     }
 
     [Fact]
@@ -334,13 +481,13 @@ public class RoastPageViewModelTests
     }
 
     [Fact]
-    public void RoastData_ZeroFinalWeight_PassesValidation()
+    public void RoastData_NullFinalWeight_PassesValidation()
     {
         RoastData roast = new()
         {
             BeanType = "Ethiopia Yirgacheffe",
             BatchWeight = 100,
-            FinalWeight = 0,
+            FinalWeight = null,
             Temperature = 210,
             RoastMinutes = 10,
             RoastSeconds = 30

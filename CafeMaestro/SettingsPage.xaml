@@ -192,14 +192,21 @@
                                                                                                          FontAttributes="Bold"
                                                                                                          TextColor="{DynamicResource PrimaryTextColor}"/>
                                                                                                   <Label Text="{Binding BeanCount, StringFormat='Beans: {0}'}"
+                                                                                                         IsVisible="{Binding IsRestorable}"
                                                                                                          FontSize="13"
                                                                                                          TextColor="{DynamicResource SecondaryTextColor}"/>
                                                                                                   <Label Text="{Binding RoastCount, StringFormat='Roasts: {0}'}"
+                                                                                                         IsVisible="{Binding IsRestorable}"
                                                                                                          FontSize="13"
                                                                                                          TextColor="{DynamicResource SecondaryTextColor}"/>
+                                                                                                  <Label Text="Original data needs manual recovery"
+                                                                                                         IsVisible="{Binding IsRawRecovery}"
+                                                                                                         FontSize="13"
+                                                                                                         TextColor="{DynamicResource AttentionColor}"/>
                                                                                            </VerticalStackLayout>
                                                                                            <Button Grid.Column="1"
                                                                                                    Text="Restore"
+                                                                                                   IsVisible="{Binding IsRestorable}"
                                                                                                    Command="{Binding Source={x:Reference RootPage}, Path=BindingContext.RestoreSafetyBackupCommand}"
                                                                                                    CommandParameter="{Binding .}"
                                                                                                    BackgroundColor="{DynamicResource SecondaryColor}"
@@ -207,6 +214,16 @@
                                                                                                    MinimumHeightRequest="48"
                                                                                                    CornerRadius="12"
                                                                                                    SemanticProperties.Description="Restore this automatic backup"/>
+                                                                                           <Button Grid.Column="1"
+                                                                                                   Text="Save copy"
+                                                                                                   IsVisible="{Binding IsRawRecovery}"
+                                                                                                   Command="{Binding Source={x:Reference RootPage}, Path=BindingContext.SaveRecoveryCopyCommand}"
+                                                                                                   CommandParameter="{Binding .}"
+                                                                                                   BackgroundColor="{DynamicResource SecondaryColor}"
+                                                                                                   TextColor="{DynamicResource ButtonTextColor}"
+                                                                                                   MinimumHeightRequest="48"
+                                                                                                   CornerRadius="12"
+                                                                                                   SemanticProperties.Description="Save the original raw recovery JSON"/>
                                                                                     </Grid>
                                                                              </Border>
                                                                       </DataTemplate>
