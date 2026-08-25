@@ -22,6 +22,8 @@ public partial class RoastPageViewModel : ObservableObject, IQueryAttributable
     private readonly INavigationService _navigationService;
     private readonly IAlertService _alertService;
     private readonly IClock _clock;
+    private readonly object _lifecycleSync = new();
+    private readonly SemaphoreSlim _lifecycleWakeGate = new(1, 1);
 
     private RoastSessionSnapshot? _snapshot;
     private ActiveRoastSnapshot? _activeRoast;
@@ -32,6 +34,8 @@ public partial class RoastPageViewModel : ObservableObject, IQueryAttributable
     private Guid _requestedBeanId;
     private Func<Task>? _retryAction;
     private DropProposal? _pendingDropProposal;
+    private long _lifecycleGeneration;
+    private CancellationTokenSource? _lifecycleCancellation;
 
     [ObservableProperty]
     public partial RoastPresentationState PresentationState { get; set; } = RoastPresentationState.Setup;
@@ -258,35 +262,51 @@ public partial class RoastPageViewModel : ObservableObject, IQueryAttributable
     public async Task OnDisappearingAsync()
     {
         Unsubscribe();
-        await _displayWakeService.SetKeepScreenOnAsync(false);
+        await SetWakeForGenerationAsync(false, CurrentLifecycleGeneration());
     }
 
     public async Task OnWindowStoppedAsync()
     {
-        IsWindowStopped = true;
-        await _displayWakeService.SetKeepScreenOnAsync(false);
+        (long generation, CancellationTokenSource? cancellation) = BeginWindowStopped();
+        cancellation?.Cancel();
+        await SetWakeForGenerationAsync(false, generation);
     }
 
     public async Task OnWindowResumedAsync()
     {
+        (long generation, CancellationTokenSource cancellation) = BeginWindowResumed();
         try
         {
-            RoastSessionSnapshot snapshot = await _sessionService.GetSnapshotAsync();
+            RoastSessionSnapshot snapshot = await _sessionService.GetSnapshotAsync(cancellation.Token);
+            if (!IsCurrentLifecycleGeneration(generation))
+            {
+                return;
+            }
+
+            if (!TryMarkWindowResumed(generation))
+            {
+                return;
+            }
+
             if (PresentationState == RoastPresentationState.PersistenceError && _retryAction is not null)
             {
                 _snapshot = snapshot;
                 _activeRoast = snapshot.ActiveRoast;
                 _snapshotAtUtc = snapshot.AsOfUtc;
                 _elapsedAtSnapshot = snapshot.ActiveRoast?.ElapsedSeconds ?? 0;
-                await _displayWakeService.SetKeepScreenOnAsync(false);
+                await SetWakeForGenerationAsync(false, generation);
                 return;
             }
 
-            await ApplySnapshotAsync(snapshot);
+            await ApplySnapshotAsync(snapshot, generation);
+        }
+        catch (OperationCanceledException) when (cancellation.IsCancellationRequested)
+        {
+            // A newer lifecycle event owns the state now.
         }
         finally
         {
-            IsWindowStopped = false;
+            CompleteWindowResume(generation, cancellation);
         }
     }
 
@@ -659,8 +679,14 @@ public partial class RoastPageViewModel : ObservableObject, IQueryAttributable
         await SelectBeanAsync(bean);
     }
 
-    private async Task ApplySnapshotAsync(RoastSessionSnapshot snapshot)
+    private async Task ApplySnapshotAsync(RoastSessionSnapshot snapshot, long? lifecycleGeneration = null)
     {
+        long generation = lifecycleGeneration ?? CurrentLifecycleGeneration();
+        if (lifecycleGeneration is not null && !IsCurrentLifecycleGeneration(generation))
+        {
+            return;
+        }
+
         _snapshot = snapshot;
         _activeRoast = snapshot.ActiveRoast;
         _snapshotAtUtc = snapshot.AsOfUtc;
@@ -672,18 +698,20 @@ public partial class RoastPageViewModel : ObservableObject, IQueryAttributable
         if (snapshot.RequiresRecovery && snapshot.ActiveRoast is not null)
         {
             ApplyRecovery(snapshot.ActiveRoast);
-            await _displayWakeService.SetKeepScreenOnAsync(false);
+            await SetWakeForGenerationAsync(false, generation);
             return;
         }
 
         if (snapshot.ActiveRoast is not null)
         {
             ApplyActive(snapshot.ActiveRoast);
-            await _displayWakeService.SetKeepScreenOnAsync(snapshot.ActiveRoast.IsRunning);
+            await SetWakeForGenerationAsync(
+                snapshot.ActiveRoast.IsRunning && !IsWindowStopped,
+                generation);
             return;
         }
 
-        await _displayWakeService.SetKeepScreenOnAsync(false);
+        await SetWakeForGenerationAsync(false, generation);
         if (snapshot.HasSession && CurrentSessionWork().Count > 0)
         {
             ApplyHandoff(snapshot);
@@ -691,6 +719,101 @@ public partial class RoastPageViewModel : ObservableObject, IQueryAttributable
         else
         {
             PresentationState = RoastPresentationState.Setup;
+        }
+    }
+
+    private (long Generation, CancellationTokenSource? Cancellation) BeginWindowStopped()
+    {
+        lock (_lifecycleSync)
+        {
+            _lifecycleGeneration++;
+            CancellationTokenSource? cancellation = _lifecycleCancellation;
+            _lifecycleCancellation = null;
+            IsWindowStopped = true;
+            return (_lifecycleGeneration, cancellation);
+        }
+    }
+
+    private (long Generation, CancellationTokenSource Cancellation) BeginWindowResumed()
+    {
+        CancellationTokenSource? previous;
+        CancellationTokenSource current = new();
+        long generation;
+        lock (_lifecycleSync)
+        {
+            _lifecycleGeneration++;
+            generation = _lifecycleGeneration;
+            previous = _lifecycleCancellation;
+            _lifecycleCancellation = current;
+        }
+
+        previous?.Cancel();
+        return (generation, current);
+    }
+
+    private void CompleteWindowResume(long generation, CancellationTokenSource cancellation)
+    {
+        bool isCurrent;
+        lock (_lifecycleSync)
+        {
+            isCurrent = _lifecycleGeneration == generation &&
+                ReferenceEquals(_lifecycleCancellation, cancellation);
+            if (isCurrent)
+            {
+                _lifecycleCancellation = null;
+                IsWindowStopped = false;
+            }
+        }
+
+        cancellation.Dispose();
+    }
+
+    private bool TryMarkWindowResumed(long generation)
+    {
+        lock (_lifecycleSync)
+        {
+            if (_lifecycleGeneration != generation)
+            {
+                return false;
+            }
+
+            IsWindowStopped = false;
+            return true;
+        }
+    }
+
+    private long CurrentLifecycleGeneration()
+    {
+        lock (_lifecycleSync)
+        {
+            return _lifecycleGeneration;
+        }
+    }
+
+    private bool IsCurrentLifecycleGeneration(long generation)
+    {
+        lock (_lifecycleSync)
+        {
+            return _lifecycleGeneration == generation;
+        }
+    }
+
+    private async Task SetWakeForGenerationAsync(bool keepScreenOn, long generation)
+    {
+        await _lifecycleWakeGate.WaitAsync();
+        try
+        {
+            if (!IsCurrentLifecycleGeneration(generation) ||
+                (keepScreenOn && IsWindowStopped))
+            {
+                return;
+            }
+
+            await _displayWakeService.SetKeepScreenOnAsync(keepScreenOn);
+        }
+        finally
+        {
+            _lifecycleWakeGate.Release();
         }
     }
 
