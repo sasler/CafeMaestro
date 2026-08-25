@@ -38,6 +38,7 @@ public sealed class BackupStructureValidationTests : IDisposable
     [Theory]
     [InlineData("{\"AppVersion\":\"1.0\",\"LastModified\":\"2025-01-01T00:00:00Z\"}")]
     [InlineData("{\"DataSchemaVersion\":1}")]
+    [InlineData("{\"DataSchemaVersion\":1,\"dataSchemaVersion\":2,\"Beans\":[]}")]
     public async Task PreviewExternalBackupAsync_MetadataOnlyLegacyJsonIsRejectedAsWrongStructure(
         string json)
     {

@@ -101,15 +101,20 @@ internal static class AppDataJsonReader
         }
 
         JsonProperty[] properties = root.EnumerateObject().ToArray();
-        bool hasSchemaVersion = properties.Any(property => string.Equals(
-            property.Name,
-            nameof(AppData.DataSchemaVersion),
-            StringComparison.OrdinalIgnoreCase));
-        int? declaredSchemaVersion = properties
+        JsonProperty[] schemaVersionProperties = properties
             .Where(property => string.Equals(
                 property.Name,
                 nameof(AppData.DataSchemaVersion),
                 StringComparison.OrdinalIgnoreCase))
+            .ToArray();
+        if (schemaVersionProperties.Length > 1)
+        {
+            throw new InvalidDataException(
+                "The selected file has an invalid CafeMaestro data structure because it contains duplicate DataSchemaVersion properties.");
+        }
+
+        bool hasSchemaVersion = schemaVersionProperties.Length == 1;
+        int? declaredSchemaVersion = schemaVersionProperties
             .Select(property => property.Value.TryGetInt32(out int version)
                 ? version
                 : (int?)null)
