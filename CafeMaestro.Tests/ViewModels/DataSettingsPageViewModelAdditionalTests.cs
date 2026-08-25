@@ -191,88 +191,25 @@ public sealed class DataSettingsPageViewModelAdditionalTests
         viewModel.LastModifiedDisplay.Should().Contain("Share Backup");
     }
 
-    [Fact]
-    public async Task ResetRoastLevelsToDefaultsCommand_WhenConfirmed_SavesDefaultLevels()
-    {
-        var roastLevels = new Mock<IRoastLevelService>();
-        roastLevels
-            .Setup(service => service.SaveRoastLevelsAsync(It.IsAny<List<RoastLevelData>>()))
-            .ReturnsAsync(true);
-        roastLevels.Setup(service => service.GetRoastLevelsAsync()).ReturnsAsync([]);
-        var alerts = new Mock<IAlertService>();
-        alerts
-            .Setup(service => service.ShowConfirmationAsync(
-                It.IsAny<string>(),
-                It.IsAny<string>(),
-                It.IsAny<string>(),
-                It.IsAny<string>()))
-            .ReturnsAsync(true);
-        DataSettingsPageViewModel viewModel = CreateViewModel(
-            new Mock<IDataBackupService>(),
-            new Mock<IUserFileService>(),
-            roastLevels: roastLevels,
-            alerts: alerts);
-
-        await viewModel.ResetRoastLevelsToDefaultsCommand.ExecuteAsync(null);
-
-        roastLevels.Verify(
-            service => service.SaveRoastLevelsAsync(
-                It.Is<List<RoastLevelData>>(levels => levels.Count == 7)),
-            Times.Once);
-    }
-
-    [Fact]
-    public async Task SaveRoastLevelCommand_WithInvalidRange_DoesNotPersist()
-    {
-        var roastLevels = new Mock<IRoastLevelService>();
-        var alerts = new Mock<IAlertService>();
-        DataSettingsPageViewModel viewModel = CreateViewModel(
-            new Mock<IDataBackupService>(),
-            new Mock<IUserFileService>(),
-            roastLevels: roastLevels,
-            alerts: alerts);
-        viewModel.AddRoastLevelCommand.Execute(null);
-        viewModel.RoastLevelName = "Invalid";
-        viewModel.MinWeightLossText = "15.0";
-        viewModel.MaxWeightLossText = "10.0";
-
-        await viewModel.SaveRoastLevelCommand.ExecuteAsync(null);
-
-        roastLevels.Verify(
-            service => service.AddRoastLevelAsync(It.IsAny<RoastLevelData>()),
-            Times.Never);
-        alerts.Verify(
-            service => service.ShowAlertAsync(
-                "Invalid Roast Level",
-                It.IsAny<string>(),
-                "OK"),
-            Times.Once);
-    }
-
     private static DataSettingsPageViewModel CreateViewModel(
         Mock<IDataBackupService> backupService,
         Mock<IUserFileService> userFiles,
-        Mock<IRoastLevelService>? roastLevels = null,
         Mock<IAlertService>? alerts = null,
         AppData? currentData = null,
-        bool recoveryRequired = false)
+        bool recoveryRequired = false,
+        Mock<IRoastSessionService>? session = null)
     {
         var appData = new Mock<IAppDataService>();
         appData.SetupGet(service => service.CurrentData).Returns(currentData ?? CreateData(1, 0));
         appData.SetupGet(service => service.DataFilePath).Returns("cafemaestro_data.json");
         appData.SetupGet(service => service.IsRecoveryRequired).Returns(recoveryRequired);
-        var preferences = new Mock<IPreferencesService>();
-        preferences.Setup(service => service.GetThemePreferenceAsync()).ReturnsAsync(ThemePreference.System);
-        roastLevels ??= new Mock<IRoastLevelService>();
-        roastLevels.Setup(service => service.GetRoastLevelsAsync()).ReturnsAsync([]);
 
         return new DataSettingsPageViewModel(
-            preferences.Object,
             appData.Object,
             backupService.Object,
             userFiles.Object,
             Mock.Of<IRoastDataService>(),
-            roastLevels.Object,
+            (session ?? SettingsTestFactory.IdleSession()).Object,
             Mock.Of<INavigationService>(),
             Mock.Of<IShareService>(),
             alerts?.Object ?? Mock.Of<IAlertService>());

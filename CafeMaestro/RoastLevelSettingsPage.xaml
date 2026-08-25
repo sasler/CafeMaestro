@@ -1,0 +1,121 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<ContentPage xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
+             xmlns:controls="clr-namespace:CafeMaestro.Controls"
+             xmlns:vm="clr-namespace:CafeMaestro.ViewModels"
+             x:Class="CafeMaestro.RoastLevelSettingsPage"
+             x:Name="RootPage"
+             x:DataType="vm:RoastLevelSettingsPageViewModel"
+             BackgroundColor="{DynamicResource SurfaceColor}"
+             Title="Roast Levels">
+
+    <Grid>
+        <Grid RowDefinitions="Auto,Auto,*,Auto" Padding="{StaticResource PagePadding}" RowSpacing="{StaticResource SpaceMd}">
+            <Label Grid.Row="0" Text="LEVELS" Style="{StaticResource SectionHeaderStyle}" />
+            <Label Grid.Row="1"
+                   Text="Roast levels name a result from its weight loss. Ranges are shown in the order they apply."
+                   Style="{StaticResource CardCaptionStyle}"
+                   LineBreakMode="WordWrap" />
+
+            <CollectionView Grid.Row="2" ItemsSource="{Binding RoastLevels}" SelectionMode="None">
+                <CollectionView.ItemsLayout>
+                    <LinearItemsLayout Orientation="Vertical" ItemSpacing="12" />
+                </CollectionView.ItemsLayout>
+                <CollectionView.ItemTemplate>
+                    <DataTemplate x:DataType="vm:RoastLevelViewModel">
+                        <Border Style="{StaticResource CardStyle}">
+                            <Grid ColumnDefinitions="*,Auto,Auto" ColumnSpacing="{StaticResource SpaceSm}">
+                                <VerticalStackLayout Spacing="{StaticResource SpaceXs}">
+                                    <Label Text="{Binding Name}" Style="{StaticResource CardTitleStyle}" LineBreakMode="WordWrap" />
+                                    <Label Text="{Binding DisplayRange}" Style="{StaticResource CardMetaStyle}" />
+                                </VerticalStackLayout>
+                                <Grid Grid.Column="1" VerticalOptions="Center">
+                                    <Button Style="{StaticResource IconButtonStyle}"
+                                            Command="{Binding Source={x:Reference RootPage}, Path=BindingContext.EditRoastLevelCommand}"
+                                            CommandParameter="{Binding .}"
+                                            SemanticProperties.Description="Edit roast level" />
+                                    <controls:IconView Data="{StaticResource IconEditData}" InputTransparent="True"
+                                                       HorizontalOptions="Center" VerticalOptions="Center" />
+                                </Grid>
+                                <Grid Grid.Column="2" VerticalOptions="Center">
+                                    <Button Style="{StaticResource IconButtonStyle}"
+                                            Command="{Binding Source={x:Reference RootPage}, Path=BindingContext.DeleteRoastLevelCommand}"
+                                            CommandParameter="{Binding .}"
+                                            SemanticProperties.Description="Delete roast level" />
+                                    <controls:IconView Data="{StaticResource IconDeleteData}"
+                                                       IconColor="{DynamicResource DangerColor}"
+                                                       InputTransparent="True"
+                                                       HorizontalOptions="Center" VerticalOptions="Center" />
+                                </Grid>
+                            </Grid>
+                        </Border>
+                    </DataTemplate>
+                </CollectionView.ItemTemplate>
+            </CollectionView>
+
+            <VerticalStackLayout Grid.Row="2" Style="{StaticResource EmptyStateStyle}" IsVisible="{Binding HasNoRoastLevels}">
+                <Label Text="No roast levels yet" Style="{StaticResource EmptyStateTitleStyle}" />
+                <Label Text="Add a level, or restore the defaults to start from the usual five." Style="{StaticResource EmptyStateBodyStyle}" />
+            </VerticalStackLayout>
+
+            <Grid Grid.Row="3" ColumnDefinitions="*,*" ColumnSpacing="{StaticResource SpaceSm}">
+                <Button Grid.Column="0"
+                        Text="ADD LEVEL"
+                        Style="{StaticResource PrimaryActionStyle}"
+                        Command="{Binding AddRoastLevelCommand}" />
+                <Button Grid.Column="1"
+                        Text="RESET DEFAULTS"
+                        Style="{StaticResource SecondaryActionStyle}"
+                        Command="{Binding ResetRoastLevelsToDefaultsCommand}" />
+            </Grid>
+        </Grid>
+
+        <!-- Focused editing sheet with inline validation, unchanged in behavior. -->
+        <Grid IsVisible="{Binding IsEditRoastLevelPopupVisible}"
+              BackgroundColor="{DynamicResource ScrimColor}"
+              InputTransparent="False">
+            <Border Style="{StaticResource RaisedCardStyle}"
+                    WidthRequest="320"
+                    HorizontalOptions="Center"
+                    VerticalOptions="Center">
+                <VerticalStackLayout Spacing="{StaticResource SpaceMd}">
+                    <Label Text="{Binding EditPopupTitle}" Style="{StaticResource CardTitleStyle}" HorizontalOptions="Center" />
+
+                    <VerticalStackLayout Spacing="{StaticResource SpaceXs}">
+                        <Label Text="Name" Style="{StaticResource FieldLabelStyle}" />
+                        <Border Style="{StaticResource FieldContainerStyle}">
+                            <Entry Text="{Binding RoastLevelName}"
+                                   Placeholder="Enter roast level name"
+                                   Style="{StaticResource FieldEntryStyle}" />
+                        </Border>
+                    </VerticalStackLayout>
+
+                    <VerticalStackLayout Spacing="{StaticResource SpaceXs}">
+                        <Label Text="Min weight loss (%)" Style="{StaticResource FieldLabelStyle}" />
+                        <Border Style="{StaticResource FieldContainerStyle}">
+                            <Entry Text="{Binding MinWeightLossText}"
+                                   Placeholder="0.0"
+                                   Keyboard="Numeric"
+                                   Style="{StaticResource FieldEntryStyle}" />
+                        </Border>
+                    </VerticalStackLayout>
+
+                    <VerticalStackLayout Spacing="{StaticResource SpaceXs}">
+                        <Label Text="Max weight loss (%)" Style="{StaticResource FieldLabelStyle}" />
+                        <Border Style="{StaticResource FieldContainerStyle}">
+                            <Entry Text="{Binding MaxWeightLossText}"
+                                   Placeholder="100.0"
+                                   Keyboard="Numeric"
+                                   Style="{StaticResource FieldEntryStyle}" />
+                        </Border>
+                    </VerticalStackLayout>
+
+                    <Grid ColumnDefinitions="*,*" ColumnSpacing="{StaticResource SpaceSm}">
+                        <Button Grid.Column="0" Text="SAVE" Style="{StaticResource PrimaryActionStyle}" Command="{Binding SaveRoastLevelCommand}" />
+                        <Button Grid.Column="1" Text="CANCEL" Style="{StaticResource SecondaryActionStyle}" Command="{Binding CancelRoastLevelCommand}" />
+                    </Grid>
+                </VerticalStackLayout>
+            </Border>
+        </Grid>
+    </Grid>
+</ContentPage>

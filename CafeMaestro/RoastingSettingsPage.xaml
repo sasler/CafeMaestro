@@ -1,0 +1,103 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<ContentPage xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
+             xmlns:vm="clr-namespace:CafeMaestro.ViewModels"
+             x:Class="CafeMaestro.RoastingSettingsPage"
+             x:DataType="vm:RoastingSettingsPageViewModel"
+             BackgroundColor="{DynamicResource SurfaceColor}"
+             Title="Roasting">
+
+    <ScrollView>
+        <VerticalStackLayout Padding="{StaticResource PagePadding}" Spacing="{StaticResource SpaceMd}">
+            <Label Text="PREFERENCES" Style="{StaticResource SectionHeaderStyle}" />
+            <Label Text="These apply to roasts you start from now on. A roast already running keeps the settings it started with."
+                   Style="{StaticResource CardCaptionStyle}"
+                   LineBreakMode="WordWrap" />
+
+            <Border Style="{StaticResource CardStyle}">
+                <Grid ColumnDefinitions="*,Auto" ColumnSpacing="{StaticResource SpaceMd}">
+                    <VerticalStackLayout Spacing="{StaticResource SpaceXs}">
+                        <Label Text="Track First Crack" Style="{StaticResource CardTitleStyle}" />
+                        <Label Text="{Binding FirstCrackSummary}" Style="{StaticResource CardMetaStyle}" LineBreakMode="WordWrap" />
+                    </VerticalStackLayout>
+                    <Switch Grid.Column="1"
+                            IsToggled="{Binding FirstCrackEnabled, Mode=TwoWay}"
+                            OnColor="{DynamicResource RoastColor}"
+                            ThumbColor="{DynamicResource PrimaryTextColor}"
+                            VerticalOptions="Center"
+                            MinimumHeightRequest="{StaticResource TouchTargetMin}"
+                            SemanticProperties.Description="Track First Crack on future roasts" />
+                </Grid>
+            </Border>
+
+            <Border Style="{StaticResource CardStyle}">
+                <VerticalStackLayout Spacing="{StaticResource SpaceSm}">
+                    <Label Text="Cooling duration" Style="{StaticResource CardTitleStyle}" />
+                    <Label Text="How long a dropped batch counts down before it is ready to weigh."
+                           Style="{StaticResource CardMetaStyle}"
+                           LineBreakMode="WordWrap" />
+                    <Picker ItemsSource="{Binding CoolingDurationChoices}"
+                            SelectedIndex="{Binding SelectedCoolingDurationIndex, Mode=TwoWay}"
+                            Title="Cooling duration"
+                            TextColor="{DynamicResource PrimaryTextColor}"
+                            TitleColor="{DynamicResource SecondaryTextColor}"
+                            BackgroundColor="{DynamicResource ElevatedSurfaceColor}"
+                            MinimumHeightRequest="{StaticResource ControlHeightMin}"
+                            SemanticProperties.Description="Cooling duration in minutes" />
+                </VerticalStackLayout>
+            </Border>
+
+            <Border Style="{StaticResource CardStyle}">
+                <Grid ColumnDefinitions="*,Auto" ColumnSpacing="{StaticResource SpaceMd}">
+                    <VerticalStackLayout Spacing="{StaticResource SpaceXs}">
+                        <Label Text="Weight precision" Style="{StaticResource CardTitleStyle}" />
+                        <Label Text="Batch and final weights are captured and shown at this precision."
+                               Style="{StaticResource CardMetaStyle}"
+                               LineBreakMode="WordWrap" />
+                    </VerticalStackLayout>
+                    <Label Grid.Column="1"
+                           Text="{Binding WeightPrecisionDisplay}"
+                           Style="{StaticResource NumericValueStyle}"
+                           VerticalOptions="Center" />
+                </Grid>
+            </Border>
+
+            <Border Style="{StaticResource CardStyle}">
+                <VerticalStackLayout Spacing="{StaticResource SpaceSm}">
+                    <Grid ColumnDefinitions="*,Auto" ColumnSpacing="{StaticResource SpaceMd}">
+                        <VerticalStackLayout Spacing="{StaticResource SpaceXs}">
+                            <Label Text="Cooling notifications" Style="{StaticResource CardTitleStyle}" />
+                            <Label Text="Notify me when a batch is ready to weigh."
+                                   Style="{StaticResource CardMetaStyle}"
+                                   LineBreakMode="WordWrap" />
+                        </VerticalStackLayout>
+                        <Switch Grid.Column="1"
+                                IsToggled="{Binding CoolingNotificationsEnabled, Mode=TwoWay}"
+                                IsEnabled="{Binding CanChangeNotificationPreference}"
+                                OnColor="{DynamicResource CoolingColor}"
+                                ThumbColor="{DynamicResource PrimaryTextColor}"
+                                VerticalOptions="Center"
+                                MinimumHeightRequest="{StaticResource TouchTargetMin}"
+                                SemanticProperties.Description="Notify when a batch is ready to weigh" />
+                    </Grid>
+
+                    <!-- The OS state is reported separately from the preference above it. -->
+                    <Label Text="{Binding NotificationStatusMessage}"
+                           Style="{StaticResource CardCaptionStyle}"
+                           LineBreakMode="WordWrap" />
+
+                    <Border Style="{StaticResource AttentionChipStyle}"
+                            IsVisible="{Binding HasNotificationConflict}"
+                            HorizontalOptions="Start">
+                        <Label Text="Blocked by system settings" Style="{StaticResource AttentionChipLabelStyle}" />
+                    </Border>
+                </VerticalStackLayout>
+            </Border>
+
+            <Label Text="An active roast always keeps the screen awake."
+                   Style="{StaticResource CardCaptionStyle}"
+                   HorizontalOptions="Center"
+                   LineBreakMode="WordWrap" />
+        </VerticalStackLayout>
+    </ScrollView>
+</ContentPage>
