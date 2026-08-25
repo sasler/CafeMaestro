@@ -48,6 +48,15 @@ public static class MauiProgram
         builder.Services.AddSingleton<IUserFileService, UserFileService>();
         builder.Services.AddSingleton<IDataBackupService, DataBackupService>();
 
+        // Roast session domain: the single writer of active-session and roast-workflow state
+        builder.Services.AddSingleton<Microsoft.Maui.Storage.IPreferences>(
+            Microsoft.Maui.Storage.Preferences.Default);
+        builder.Services.AddSingleton<IClock, SystemClock>();
+        builder.Services.AddSingleton<IRoastPreferencesService, RoastPreferencesService>();
+        builder.Services.AddSingleton<ICoolingNotificationService, NoOpCoolingNotificationService>();
+        builder.Services.AddSingleton<IRoastSessionService, RoastSessionService>();
+        builder.Services.AddSingleton<IRoastQueryService, RoastQueryService>();
+
         // Register Pages for DI - changing to transient to avoid state retention
         builder.Services.AddTransient<AppShell>();
         builder.Services.AddTransient<LoadingPage>();
