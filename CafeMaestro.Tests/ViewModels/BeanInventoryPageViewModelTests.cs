@@ -37,6 +37,28 @@ public class BeanInventoryPageViewModelTests
     }
 
     [Fact]
+    public async Task InventoryFilter_SeparatesLowAndOutOfStockWithoutChangingSourceOrder()
+    {
+        BeanData available = new() { Id = Guid.NewGuid(), Country = "Brazil", CoffeeName = "Catuai", Quantity = 2, RemainingQuantity = 1.2, PurchaseDate = new DateTime(2025, 3, 1) };
+        BeanData low = new() { Id = Guid.NewGuid(), Country = "Kenya", CoffeeName = "Nyeri", Quantity = 1, RemainingQuantity = 0.18, PurchaseDate = new DateTime(2025, 2, 1) };
+        BeanData outOfStock = new() { Id = Guid.NewGuid(), Country = "Colombia", CoffeeName = "Huila", Quantity = 1, RemainingQuantity = 0, PurchaseDate = new DateTime(2025, 1, 1) };
+
+        Mock<IBeanDataService> beanService = new();
+        beanService.Setup(service => service.GetAllBeansAsync()).ReturnsAsync([outOfStock, low, available]);
+        BeanInventoryPageViewModel viewModel = CreateViewModel(beanService: beanService);
+
+        await viewModel.RefreshCommand.ExecuteAsync(null);
+        await viewModel.SelectFilterCommand.ExecuteAsync(BeanInventoryFilter.Low);
+        viewModel.Beans.Should().ContainSingle().Which.Should().BeSameAs(low);
+
+        await viewModel.SelectFilterCommand.ExecuteAsync(BeanInventoryFilter.OutOfStock);
+        viewModel.Beans.Should().ContainSingle().Which.Should().BeSameAs(outOfStock);
+
+        await viewModel.SelectFilterCommand.ExecuteAsync(BeanInventoryFilter.All);
+        viewModel.Beans.Should().Equal(available, low, outOfStock);
+    }
+
+    [Fact]
     public async Task DeleteBeanCommand_DeletesBeanAndRefreshesCollection()
     {
         var beanToDelete = new BeanData
@@ -150,6 +172,82 @@ public class BeanInventoryPageViewModelTests
     }
 
     [Fact]
+    public async Task DataChanged_InvalidatesOlderRefreshResult()
+    {
+        BeanData staleBean = new() { Id = Guid.NewGuid(), Country = "Brazil", CoffeeName = "Stale", Variety = "Catuai" };
+        BeanData currentBean = new() { Id = Guid.NewGuid(), Country = "Rwanda", CoffeeName = "Current", Variety = "Bourbon" };
+        TaskCompletionSource<List<BeanData>> pendingRefresh = new(TaskCreationOptions.RunContinuationsAsynchronously);
+
+        Mock<IBeanDataService> beanService = new();
+        beanService.Setup(service => service.GetAllBeansAsync()).Returns(pendingRefresh.Task);
+        Mock<IAppDataService> appDataService = CreateAppDataServiceMock();
+        BeanInventoryPageViewModel viewModel = CreateViewModel(beanService: beanService, appDataService: appDataService);
+
+        Task refresh = viewModel.OnAppearingAsync();
+        appDataService.Raise(service => service.DataChanged += null, appDataService.Object, new AppData
+        {
+            Beans = [currentBean],
+            RoastLogs = []
+        });
+        pendingRefresh.SetResult([staleBean]);
+        await refresh;
+
+        viewModel.Beans.Should().ContainSingle().Which.Should().BeSameAs(currentBean);
+        viewModel.IsLoading.Should().BeFalse();
+    }
+
+    [Fact]
+    public async Task RefreshFailure_RetainsRowsAndRetryCanApplyGenuineEmptySuccess()
+    {
+        BeanData cachedBean = new() { Id = Guid.NewGuid(), Country = "Kenya", CoffeeName = "Cached", Variety = "SL28" };
+        Mock<IBeanDataService> beanService = new();
+        beanService.SetupSequence(service => service.GetAllBeansAsync())
+            .ReturnsAsync([cachedBean])
+            .ThrowsAsync(new IOException("Read failed"))
+            .ReturnsAsync([]);
+        BeanInventoryPageViewModel viewModel = CreateViewModel(beanService: beanService);
+
+        await viewModel.RefreshCommand.ExecuteAsync(null);
+        await viewModel.RefreshCommand.ExecuteAsync(null);
+
+        viewModel.Beans.Should().ContainSingle().Which.Should().BeSameAs(cachedBean);
+        viewModel.HasLoadError.Should().BeTrue();
+        viewModel.IsEmptyInventory.Should().BeFalse();
+
+        await viewModel.RefreshCommand.ExecuteAsync(null);
+
+        viewModel.Beans.Should().BeEmpty();
+        viewModel.HasLoadError.Should().BeFalse();
+        viewModel.IsEmptyInventory.Should().BeTrue();
+    }
+
+    [Fact]
+    public async Task WideDetail_StartRoast_AllowsOutOfStockBeanByStableId()
+    {
+        BeanData bean = new()
+        {
+            Id = Guid.NewGuid(), Country = "Colombia", CoffeeName = "Huila", Variety = "Caturra",
+            Quantity = 1, RemainingQuantity = 0
+        };
+        Mock<IBeanDataService> beanService = new();
+        beanService.Setup(service => service.GetAllBeansAsync()).ReturnsAsync([bean]);
+        Mock<INavigationService> navigation = new();
+        navigation.Setup(service => service.GoToAsync(It.IsAny<string>(), It.IsAny<IDictionary<string, object>>()))
+            .Returns(Task.CompletedTask);
+        BeanInventoryPageViewModel viewModel = CreateViewModel(beanService: beanService, navigationService: navigation);
+        viewModel.SetWideLayout(true);
+        await viewModel.RefreshCommand.ExecuteAsync(null);
+        await viewModel.OpenBeanCommand.ExecuteAsync(bean);
+
+        await viewModel.StartSelectedRoastCommand.ExecuteAsync(null);
+
+        navigation.Verify(service => service.GoToAsync(
+            Routes.Roast,
+            It.Is<IDictionary<string, object>>(parameters => parameters["BeanId"].ToString() == bean.Id.ToString())),
+            Times.Once);
+    }
+
+    [Fact]
     public void SearchText_RaisesPropertyChangedNotification()
     {
         var viewModel = CreateViewModel();
@@ -172,23 +270,36 @@ public class BeanInventoryPageViewModelTests
         Mock<IBeanDataService>? beanService = null,
         Mock<IAppDataService>? appDataService = null,
         Mock<IPreferencesService>? preferencesService = null,
-        Mock<INavigationService>? navigationService = null)
+        Mock<INavigationService>? navigationService = null,
+        Mock<IAlertService>? alertService = null,
+        Mock<IRoastQueryService>? roastQueryService = null)
     {
         beanService ??= new Mock<IBeanDataService>();
         appDataService ??= CreateAppDataServiceMock();
         preferencesService ??= new Mock<IPreferencesService>();
         navigationService ??= new Mock<INavigationService>();
+        alertService ??= new Mock<IAlertService>();
+        roastQueryService ??= new Mock<IRoastQueryService>();
 
         preferencesService.Setup(service => service.GetAppDataFilePathAsync()).ReturnsAsync((string?)null);
         navigationService.Setup(service => service.GoToAsync(It.IsAny<string>())).Returns(Task.CompletedTask);
         navigationService.Setup(service => service.GoToAsync(It.IsAny<string>(), It.IsAny<IDictionary<string, object>>()))
             .Returns(Task.CompletedTask);
+        alertService.Setup(service => service.ShowConfirmationAsync(
+                It.IsAny<string>(), It.IsAny<string>(), It.IsAny<string>(), It.IsAny<string>()))
+            .ReturnsAsync(true);
+        alertService.Setup(service => service.ShowAlertAsync(It.IsAny<string>(), It.IsAny<string>(), It.IsAny<string>()))
+            .Returns(Task.CompletedTask);
+        roastQueryService.Setup(service => service.GetRoastsForBeanAsync(It.IsAny<Guid>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync([]);
 
         return new BeanInventoryPageViewModel(
             beanService.Object,
             appDataService.Object,
             preferencesService.Object,
-            navigationService.Object);
+            navigationService.Object,
+            alertService.Object,
+            roastQueryService.Object);
     }
 
     private static Mock<IAppDataService> CreateAppDataServiceMock()

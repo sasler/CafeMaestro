@@ -272,7 +272,7 @@ namespace CafeMaestro.Services
             catch (Exception ex)
             {
                 System.Diagnostics.Debug.WriteLine($"Error loading beans: {ex.Message}");
-                return new List<BeanData>();
+                throw;
             }
         }
 
@@ -344,9 +344,9 @@ namespace CafeMaestro.Services
                     return new List<BeanData>();
                 }
 
-                // Filter beans with remaining quantity > 0 and sort by purchase date (newest first) and then by display name
+                // Inventory is advisory during roast setup. Keep every bean selectable so stale or
+                // short quantity bookkeeping can surface as a non-blocking warning instead of a gate.
                 var sortedBeans = appData.Beans
-                    .Where(b => b.RemainingQuantity > 0)
                     .OrderByDescending(b => b.PurchaseDate)
                     .ThenBy(b => b.DisplayName)
                     .ToList();

@@ -7,6 +7,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased] - Complete Architecture Refactor
 ### Added
+- Responsive Beans inventory with in-memory search, availability filters, quantity-first low/out-of-stock states, cached-row retry behavior, and a 600 dp list/detail layout
+- Bean detail with inventory facts, the newest completed roast, recent incomplete work, stable-identity Edit/Delete actions, and Start Roast navigation into the prefilled confirmation flow
+- Grouped Add/Edit Bean cards for identity, details, inventory, and notes using the shared Direction B visual system
 - `IRoastSessionService`: the single writer of roast-session state, owning Start, Pause, Resume, Mark 1C, Drop, Discard, weigh-in, Mark Unweighed, Finish session and recovery as lock-scoped atomic mutations
 - Bean inventory now moves inside the same mutation that appends the roast, so a failed write can never consume beans without a matching log entry, and a retried or double-tapped Drop applies exactly once
 - `IRoastQueryService` projections: carry-forward setup values, the newest **completed** result as the reference roast, and the open-work queue ordered oldest drop first
@@ -57,6 +60,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Invalid backup JSON is rejected without modifying active data or the selected source
 
 ### Changed
+- Version bumped to 1.7.0
+- Bean-to-roast setup now passes a stable `BeanId` and performs final carry-forward lookup through `IRoastQueryService`, so renames never break historical linkage
 - Version bumped to 1.5.0
 - Legacy roast records now preserve display snapshots, link exact unique beans, and distinguish completed from awaiting-weight results during migration
 - Windows test hosts now restore the app's Windows graph directly while the app keeps Android and host-appropriate Apple targets

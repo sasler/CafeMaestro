@@ -1,5 +1,6 @@
 using System.Collections.ObjectModel;
 using System.Diagnostics;
+using System.Globalization;
 using System.IO;
 using System.Text;
 using CafeMaestro.Models;
@@ -23,6 +24,7 @@ public partial class RoastPageViewModel : ObservableObject, IQueryAttributable
     private readonly IRoastLevelService _roastLevelService;
     private readonly INavigationService _navigationService;
     private readonly IAlertService _alertService;
+    private readonly IRoastQueryService _roastQueryService;
 
     private RoastData? _roastToEdit;
     private RoastData? _previousRoast;
@@ -31,6 +33,7 @@ public partial class RoastPageViewModel : ObservableObject, IQueryAttributable
     private bool _editLoadPending;
     private bool _dataFilePathInitialized;
     private bool _suppressBeanSelectionChanged;
+    private Guid _requestedBeanId;
 
     [ObservableProperty]
     public partial string PageTitle { get; set; } = "Roast Coffee";
@@ -121,7 +124,8 @@ public partial class RoastPageViewModel : ObservableObject, IQueryAttributable
         IPreferencesService preferencesService,
         IRoastLevelService roastLevelService,
         INavigationService navigationService,
-        IAlertService alertService)
+        IAlertService alertService,
+        IRoastQueryService roastQueryService)
     {
         _timerService = timerService ?? throw new ArgumentNullException(nameof(timerService));
         _roastDataService = roastDataService ?? throw new ArgumentNullException(nameof(roastDataService));
@@ -131,6 +135,7 @@ public partial class RoastPageViewModel : ObservableObject, IQueryAttributable
         _roastLevelService = roastLevelService ?? throw new ArgumentNullException(nameof(roastLevelService));
         _navigationService = navigationService ?? throw new ArgumentNullException(nameof(navigationService));
         _alertService = alertService ?? throw new ArgumentNullException(nameof(alertService));
+        _roastQueryService = roastQueryService ?? throw new ArgumentNullException(nameof(roastQueryService));
 
         _timerService.TimeUpdated += OnTimeUpdated;
     }
@@ -195,6 +200,13 @@ public partial class RoastPageViewModel : ObservableObject, IQueryAttributable
         {
             EditRoastId = editId?.ToString() ?? string.Empty;
         }
+
+        if (query.TryGetValue("BeanId", out object? beanIdValue) &&
+            Guid.TryParse(beanIdValue?.ToString(), out Guid beanId) &&
+            beanId != Guid.Empty)
+        {
+            _requestedBeanId = beanId;
+        }
     }
 
     public async Task OnAppearingAsync()
@@ -211,6 +223,12 @@ public partial class RoastPageViewModel : ObservableObject, IQueryAttributable
         }
 
         await LoadAvailableBeansAsync();
+
+        if (!IsEditMode && _requestedBeanId != Guid.Empty)
+        {
+            await ApplyRequestedBeanSetupAsync(_requestedBeanId);
+            _requestedBeanId = Guid.Empty;
+        }
 
         if (_editLoadPending || (IsEditMode && _roastToEdit is null && _editRoastGuid != Guid.Empty))
         {
@@ -428,7 +446,17 @@ public partial class RoastPageViewModel : ObservableObject, IQueryAttributable
 
                 if (!IsEditMode)
                 {
-                    SelectedBean = beans[0];
+                    if (_requestedBeanId != Guid.Empty)
+                    {
+                        BeanData? requestedBean = beans.FirstOrDefault(bean => bean.Id == _requestedBeanId);
+                        _suppressBeanSelectionChanged = true;
+                        SelectedBean = requestedBean;
+                        _suppressBeanSelectionChanged = false;
+                    }
+                    else
+                    {
+                        SelectedBean = beans[0];
+                    }
                 }
             }
             else
@@ -459,6 +487,30 @@ public partial class RoastPageViewModel : ObservableObject, IQueryAttributable
         }
 
         await LoadPreviousRoastDataAsync(bean.DisplayName);
+        ValidateBatchWeight();
+    }
+
+    private async Task ApplyRequestedBeanSetupAsync(Guid beanId)
+    {
+        BeanData? bean = AvailableBeans.FirstOrDefault(candidate => candidate.Id == beanId);
+        if (bean is null)
+        {
+            await _alertService.ShowAlertAsync(
+                "Bean unavailable",
+                "The selected bean is no longer in inventory.",
+                "OK");
+            return;
+        }
+
+        _suppressBeanSelectionChanged = true;
+        SelectedBean = bean;
+        _suppressBeanSelectionChanged = false;
+
+        RoastSetupSuggestion suggestion = await _roastQueryService.GetSetupSuggestionAsync(beanId);
+        _previousRoast = suggestion.LastCompletedRoast;
+        UpdatePreviousRoastDisplay();
+        TemperatureText = suggestion.Temperature?.ToString("0.#", CultureInfo.CurrentCulture) ?? string.Empty;
+        BatchWeightText = suggestion.BatchWeight?.ToString("0.#", CultureInfo.CurrentCulture) ?? string.Empty;
         ValidateBatchWeight();
     }
 
@@ -529,7 +581,12 @@ public partial class RoastPageViewModel : ObservableObject, IQueryAttributable
     {
         if (SelectedBean is null || string.IsNullOrWhiteSpace(BatchWeightText))
         {
-            IsBatchWeightWarningVisible = false;
+            double recordedGrams = SelectedBean?.RemainingQuantity * 1000.0 ?? 0;
+            IsBatchWeightWarningVisible = SelectedBean is not null && recordedGrams <= 0;
+            if (IsBatchWeightWarningVisible)
+            {
+                BatchWeightWarningText = "Only 0 g recorded in inventory";
+            }
             CanStartTimer = !IsTimerRunning;
             return;
         }
@@ -540,7 +597,7 @@ public partial class RoastPageViewModel : ObservableObject, IQueryAttributable
 
             if (batchWeight > availableBeans)
             {
-                BatchWeightWarningText = $"Insufficient beans available! (only {availableBeans:F1} g remaining)";
+                BatchWeightWarningText = $"Only {availableBeans:0.#} g recorded in inventory";
                 IsBatchWeightWarningVisible = true;
                 CanStartTimer = !IsTimerRunning;
                 return;
@@ -783,7 +840,7 @@ public partial class RoastPageViewModel : ObservableObject, IQueryAttributable
     private void ApplyStoppedTimerState(bool canStop)
     {
         IsTimerRunning = false;
-        CanStartTimer = !IsBatchWeightWarningVisible;
+        CanStartTimer = true;
         CanPauseTimer = false;
         CanStopTimer = canStop;
         IsTimeEntryEnabled = true;

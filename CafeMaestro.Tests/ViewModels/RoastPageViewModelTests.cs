@@ -1,3 +1,4 @@
+using System.Globalization;
 using CafeMaestro.Models;
 using CafeMaestro.Services;
 using CafeMaestro.ViewModels;
@@ -8,6 +9,114 @@ namespace CafeMaestro.Tests.ViewModels;
 
 public class RoastPageViewModelTests
 {
+    [Fact]
+    public async Task BeanIdQuery_SelectsStableBeanAndUsesSessionQueryCarryForward()
+    {
+        BeanData other = CreateBean();
+        BeanData requested = CreateBean();
+        requested.CoffeeName = "Guji";
+        requested.RemainingQuantity = 0;
+        MockBundle mocks = new();
+        RoastPageViewModel viewModel = CreateViewModel(mocks, bundle =>
+        {
+            bundle.BeanDataService.Setup(service => service.GetSortedAvailableBeansAsync())
+                .ReturnsAsync([other, requested]);
+            bundle.RoastQueryService.Setup(service => service.GetSetupSuggestionAsync(
+                    requested.Id, It.IsAny<CancellationToken>()))
+                .ReturnsAsync(new RoastSetupSuggestion
+                {
+                    BeanId = requested.Id,
+                    Temperature = 218,
+                    BatchWeight = 240,
+                    LastCompletedRoast = null,
+                    NewerAwaitingWeightCount = 1
+                });
+        });
+
+        viewModel.ApplyQueryAttributes(new Dictionary<string, object>
+        {
+            ["NewRoast"] = bool.TrueString,
+            ["BeanId"] = requested.Id.ToString()
+        });
+        await viewModel.OnAppearingAsync();
+
+        viewModel.SelectedBean.Should().BeSameAs(requested);
+        viewModel.TemperatureText.Should().Be("218");
+        viewModel.BatchWeightText.Should().Be("240");
+        viewModel.IsBatchWeightWarningVisible.Should().BeTrue();
+        viewModel.BatchWeightWarningText.Should().Be("Only 0 g recorded in inventory");
+        viewModel.CanStartTimer.Should().BeTrue();
+
+        await viewModel.StartTimerCommand.ExecuteAsync(null);
+        mocks.TimerService.Verify(service => service.Start(), Times.Once);
+    }
+
+    [Fact]
+    public async Task BeanIdQuery_FormatsFractionalSuggestionForCurrentInputCulture()
+    {
+        CultureInfo originalCulture = CultureInfo.CurrentCulture;
+        try
+        {
+            CultureInfo.CurrentCulture = CultureInfo.GetCultureInfo("de-DE");
+            BeanData bean = CreateBean();
+            MockBundle mocks = new();
+            RoastPageViewModel viewModel = CreateViewModel(mocks, bundle =>
+            {
+                bundle.BeanDataService.Setup(service => service.GetSortedAvailableBeansAsync())
+                    .ReturnsAsync([bean]);
+                bundle.RoastQueryService.Setup(service => service.GetSetupSuggestionAsync(
+                        bean.Id, It.IsAny<CancellationToken>()))
+                    .ReturnsAsync(new RoastSetupSuggestion
+                    {
+                        BeanId = bean.Id,
+                        Temperature = 218.5,
+                        BatchWeight = 240.5,
+                        NewerAwaitingWeightCount = 0
+                    });
+            });
+
+            viewModel.ApplyQueryAttributes(new Dictionary<string, object>
+            {
+                ["NewRoast"] = bool.TrueString,
+                ["BeanId"] = bean.Id.ToString()
+            });
+            await viewModel.OnAppearingAsync();
+
+            viewModel.TemperatureText.Should().Be("218,5");
+            viewModel.BatchWeightText.Should().Be("240,5");
+        }
+        finally
+        {
+            CultureInfo.CurrentCulture = originalCulture;
+        }
+    }
+
+    [Fact]
+    public async Task BeanIdQuery_MissingRequestedBeanDoesNotSelectAnotherBean()
+    {
+        BeanData other = CreateBean();
+        Guid missingId = Guid.NewGuid();
+        MockBundle mocks = new();
+        RoastPageViewModel viewModel = CreateViewModel(mocks, bundle =>
+        {
+            bundle.BeanDataService.Setup(service => service.GetSortedAvailableBeansAsync())
+                .ReturnsAsync([other]);
+        });
+
+        viewModel.ApplyQueryAttributes(new Dictionary<string, object>
+        {
+            ["NewRoast"] = bool.TrueString,
+            ["BeanId"] = missingId.ToString()
+        });
+        await viewModel.OnAppearingAsync();
+
+        viewModel.SelectedBean.Should().BeNull();
+        mocks.AlertService.Verify(service => service.ShowAlertAsync(
+            "Bean unavailable",
+            It.IsAny<string>(),
+            "OK"), Times.Once);
+    }
+
     [Fact]
     public async Task TimerCommands_UpdateTimerState()
     {
@@ -542,7 +651,8 @@ public class RoastPageViewModelTests
             mocks.PreferencesService.Object,
             mocks.RoastLevelService.Object,
             mocks.NavigationService.Object,
-            mocks.AlertService.Object);
+            mocks.AlertService.Object,
+            mocks.RoastQueryService.Object);
     }
 
     private static async Task EventuallyAsync(Func<bool> condition, int timeoutMs = 500)
@@ -572,5 +682,6 @@ public class RoastPageViewModelTests
         public Mock<IRoastLevelService> RoastLevelService { get; } = new();
         public Mock<INavigationService> NavigationService { get; } = new();
         public Mock<IAlertService> AlertService { get; } = new();
+        public Mock<IRoastQueryService> RoastQueryService { get; } = new();
     }
 }

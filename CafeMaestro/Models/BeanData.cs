@@ -1,12 +1,14 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Globalization;
 using System.Text.Json.Serialization;
 
 namespace CafeMaestro.Models
 {
     public class BeanData
     {
+        public const double LowInventoryThresholdKg = 0.25;
         public Guid Id { get; set; } = Guid.NewGuid();
         public DateTime PurchaseDate { get; set; } = DateTime.Now;
         public string Country { get; set; } = "";
@@ -27,6 +29,30 @@ namespace CafeMaestro.Models
 
         [JsonIgnore]
         public string QuantityDisplay => $"{RemainingQuantity:F2}kg / {Quantity:F2}kg";
+
+        [JsonIgnore]
+        public string RemainingQuantityDisplay => FormatQuantity(RemainingQuantity);
+
+        [JsonIgnore]
+        public string TotalQuantityDisplay => FormatQuantity(Quantity);
+
+        [JsonIgnore]
+        public string InventoryStatusDisplay => IsOutOfStock
+            ? "Out of stock"
+            : IsLowStock
+                ? $"Low · {RemainingQuantityDisplay}"
+                : RemainingQuantityDisplay;
+
+        [JsonIgnore]
+        public bool IsLowStock => !IsOutOfStock && RemainingQuantity <= LowInventoryThresholdKg;
+
+        [JsonIgnore]
+        public bool IsAvailable => RemainingQuantity > 0;
+
+        [JsonIgnore]
+        public string DetailMetadataDisplay => string.Join(
+            " · ",
+            new[] { Process, Variety }.Where(value => !string.IsNullOrWhiteSpace(value)));
 
         [JsonIgnore]
         public string PriceDisplay => Price.HasValue ? $"${Price:F2}" : "Price not set";
@@ -86,6 +112,16 @@ namespace CafeMaestro.Models
                 
             RemainingQuantity -= amount;
             return true;
+        }
+
+        private static string FormatQuantity(double kilograms)
+        {
+            if (kilograms < 1)
+            {
+                return $"{kilograms * 1000:0} g";
+            }
+
+            return $"{kilograms.ToString("0.##", CultureInfo.InvariantCulture)} kg";
         }
     }
 }
