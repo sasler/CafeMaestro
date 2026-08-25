@@ -1,0 +1,89 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<ContentPage xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
+             xmlns:controls="clr-namespace:CafeMaestro.Controls"
+             xmlns:vm="clr-namespace:CafeMaestro.ViewModels"
+             x:Class="CafeMaestro.RoastDetailPage"
+             x:DataType="vm:RoastDetailPageViewModel"
+             Title="Roast details"
+             BackgroundColor="{DynamicResource SurfaceColor}">
+    <Grid RowDefinitions="*,Auto">
+        <ScrollView Grid.Row="0">
+            <VerticalStackLayout Padding="{StaticResource PagePadding}" Spacing="{StaticResource SpaceLg}">
+                <Grid ColumnDefinitions="*,Auto" ColumnSpacing="{StaticResource SpaceSm}">
+                    <VerticalStackLayout>
+                        <Label Text="Roast details"
+                               FontFamily="{StaticResource FontFamilyEmphasis}"
+                               FontSize="{StaticResource FontSizeHeadline}"
+                               TextColor="{DynamicResource PrimaryTextColor}" />
+                        <Label Text="Recorded batch facts and result" Style="{StaticResource CardMetaStyle}" />
+                    </VerticalStackLayout>
+                    <Grid Grid.Column="1">
+                        <Button Style="{StaticResource IconButtonStyle}"
+                                Command="{Binding DeleteCommand}"
+                                SemanticProperties.Description="Delete this roast" />
+                        <controls:IconView Data="{StaticResource IconDeleteData}"
+                                           IconColor="{DynamicResource DangerColor}"
+                                           HorizontalOptions="Center" VerticalOptions="Center" />
+                    </Grid>
+                </Grid>
+
+                <Border Style="{StaticResource ErrorBannerStyle}" IsVisible="{Binding HasLoadError}">
+                    <Grid ColumnDefinitions="*,Auto" ColumnSpacing="{StaticResource SpaceSm}">
+                        <Label Text="{Binding LoadErrorMessage}" Style="{StaticResource ErrorBannerTextStyle}" />
+                        <Button Grid.Column="1" Text="Retry" Style="{StaticResource SecondaryActionStyle}"
+                                Command="{Binding RefreshCommand}" />
+                    </Grid>
+                </Border>
+
+                <ActivityIndicator IsVisible="{Binding IsLoading}" IsRunning="{Binding IsLoading}"
+                                   Style="{StaticResource LoadingIndicatorStyle}" />
+
+                <controls:RoastStatusCard Card="{Binding Card}" IsVisible="{Binding HasCard}" />
+
+                <VerticalStackLayout IsVisible="{Binding HasCard}" Spacing="{StaticResource SpaceSm}">
+                    <Label Text="RESULT DETAILS" Style="{StaticResource SectionHeaderStyle}" />
+                    <Border Style="{StaticResource CardStyle}">
+                        <Grid ColumnDefinitions="*,*" RowDefinitions="Auto,Auto" ColumnSpacing="{StaticResource SpaceLg}" RowSpacing="{StaticResource SpaceMd}">
+                            <VerticalStackLayout>
+                                <Label Text="ROAST LEVEL" Style="{StaticResource SectionHeaderStyle}" />
+                                <Label Text="{Binding Card.LevelDisplay}" Style="{StaticResource NumericValueStyle}" />
+                            </VerticalStackLayout>
+                            <VerticalStackLayout Grid.Column="1">
+                                <Label Text="FIRST CRACK" Style="{StaticResource SectionHeaderStyle}" />
+                                <Label Text="{Binding Card.FirstCrackDisplay}" Style="{StaticResource NumericValueStyle}" />
+                            </VerticalStackLayout>
+                            <VerticalStackLayout Grid.Row="1">
+                                <Label Text="TEMPERATURE" Style="{StaticResource SectionHeaderStyle}" />
+                                <Label Text="{Binding Card.TemperatureDisplay}" Style="{StaticResource NumericValueStyle}" />
+                            </VerticalStackLayout>
+                            <VerticalStackLayout Grid.Row="1" Grid.Column="1">
+                                <Label Text="ROAST TIME" Style="{StaticResource SectionHeaderStyle}" />
+                                <Label Text="{Binding Card.RoastTimeDisplay}" Style="{StaticResource NumericValueStyle}" />
+                            </VerticalStackLayout>
+                        </Grid>
+                    </Border>
+                </VerticalStackLayout>
+
+                <VerticalStackLayout IsVisible="{Binding HasCard}" Spacing="{StaticResource SpaceSm}">
+                    <Label Text="NOTES" Style="{StaticResource SectionHeaderStyle}" />
+                    <Border Style="{StaticResource CardStyle}">
+                        <Label Text="{Binding NotesDisplay}" Style="{StaticResource CardMetaStyle}" LineBreakMode="WordWrap" />
+                    </Border>
+                </VerticalStackLayout>
+            </VerticalStackLayout>
+        </ScrollView>
+
+        <VerticalStackLayout Grid.Row="1" Style="{StaticResource ActionBarStyle}" IsVisible="{Binding HasCard}">
+            <Button Text="{Binding FinalWeightActionText}"
+                    Style="{StaticResource ConfirmActionStyle}"
+                    IsVisible="{Binding CanEditFinalWeight}"
+                    Command="{Binding EditFinalWeightCommand}" />
+            <Button Text="EDIT ROAST DETAILS"
+                    Style="{StaticResource SecondaryActionStyle}"
+                    IsVisible="{Binding CanEditRoast}"
+                    Command="{Binding EditRoastCommand}"
+                    SemanticProperties.Hint="Edits notes, roast time, temperature, and First Crack; final weight uses Weigh In" />
+        </VerticalStackLayout>
+    </Grid>
+</ContentPage>

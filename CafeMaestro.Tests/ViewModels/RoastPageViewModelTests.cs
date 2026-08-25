@@ -421,7 +421,7 @@ public class RoastPageViewModelTests
         public RoastWorkItem Work(int batch, double remaining) => new()
         {
             RoastId = Guid.NewGuid(), SessionId = Guid.NewGuid(), BatchNumber = batch,
-            BeanId = Bean.Id, BeanDisplaySnapshot = Bean.DisplayName, BatchWeight = 240,
+            BeanId = Bean.Id, BeanDisplaySnapshot = Bean.DisplayName, Temperature = 218, BatchWeight = 240,
             DroppedAtUtc = FixedClock.Now.AddSeconds(-(300 - remaining)),
             ReadyToWeighAtUtc = FixedClock.Now.AddSeconds(remaining),
             RemainingCoolingSeconds = remaining,

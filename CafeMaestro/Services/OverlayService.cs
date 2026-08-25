@@ -1,82 +1,88 @@
 using CafeMaestro.Models;
 using CafeMaestro.ViewModels.Popups;
+using CafeMaestro.Views.Popups;
 using CommunityToolkit.Maui;
+using CommunityToolkit.Maui.Core;
+using CommunityToolkit.Maui.Extensions;
+using Microsoft.Extensions.DependencyInjection;
 
 namespace CafeMaestro.Services;
 
-/// <summary>The only Roast Console service permitted to access the current Shell for overlays.</summary>
-public sealed class OverlayService(IPopupService popupService) : IOverlayService
+/// <summary>
+/// The only Roast Console service permitted to access the current Shell for overlays.
+/// The view and its ViewModel are resolved and bound here rather than through popup
+/// query attributes: a trimmed Release build leaves that implicit wiring unbound, which shows
+/// up on device as an overlay with no batch, no title and dead buttons.
+/// </summary>
+public sealed class OverlayService(IServiceProvider services) : IOverlayService
 {
     public async Task<WeighInOutcome> ShowWeighInAsync(
         WeighInRequest request,
         CancellationToken cancellationToken = default)
     {
-        var result = await popupService.ShowPopupAsync<WeighInViewModel, WeighInOutcome>(
-            GetShell(), PopupOptions.Empty, Parameters(nameof(WeighInViewModel.Request), request), cancellationToken);
-        return result.WasDismissedByTappingOutsideOfPopup || result.Result is null
-            ? WeighInOutcome.Cancelled
-            : result.Result;
+        WeighInOutcome? result = await ShowAsync<WeighInPopup, WeighInViewModel, WeighInOutcome>(
+            viewModel => viewModel.Request = request, cancellationToken);
+        return result ?? WeighInOutcome.Cancelled;
     }
 
     public async Task<BatchChoiceOutcome> ChooseBatchAsync(
         IReadOnlyList<BatchChoice> choices,
         CancellationToken cancellationToken = default)
     {
-        var result = await popupService.ShowPopupAsync<ChooseBatchViewModel, BatchChoiceOutcome>(
-            GetShell(), PopupOptions.Empty, Parameters(nameof(ChooseBatchViewModel.Choices), choices), cancellationToken);
-        return result.WasDismissedByTappingOutsideOfPopup || result.Result is null
-            ? BatchChoiceOutcome.Cancelled
-            : result.Result;
+        BatchChoiceOutcome? result = await ShowAsync<ChooseBatchPopup, ChooseBatchViewModel, BatchChoiceOutcome>(
+            viewModel => viewModel.SetChoices(choices), cancellationToken);
+        return result ?? BatchChoiceOutcome.Cancelled;
     }
 
     public async Task<DiscardOutcome> ShowDiscardAsync(
         DiscardRequest request,
         CancellationToken cancellationToken = default)
     {
-        var result = await popupService.ShowPopupAsync<DiscardRoastViewModel, DiscardOutcome>(
-            GetShell(), PopupOptions.Empty, Parameters(nameof(DiscardRoastViewModel.Request), request), cancellationToken);
-        return result.WasDismissedByTappingOutsideOfPopup || result.Result is null
-            ? DiscardOutcome.Cancelled
-            : result.Result;
+        DiscardOutcome? result = await ShowAsync<DiscardRoastPopup, DiscardRoastViewModel, DiscardOutcome>(
+            viewModel => viewModel.Request = request, cancellationToken);
+        return result ?? DiscardOutcome.Cancelled;
     }
 
     public async Task<NavigationChoice> ConfirmNavigationAsync(CancellationToken cancellationToken = default)
     {
-        var result = await popupService.ShowPopupAsync<ConfirmNavigationViewModel, NavigationChoice>(
-            GetShell(), PopupOptions.Empty, null, cancellationToken);
-        return result.WasDismissedByTappingOutsideOfPopup
-            ? NavigationChoice.KeepRoasting
-            : result.Result;
+        NavigationChoice result = await ShowAsync<ConfirmNavigationPopup, ConfirmNavigationViewModel, NavigationChoice>(
+            _ => { }, cancellationToken);
+        return result;
     }
 
-    public async Task<bool> ConfirmResetAsync(bool hasFirstCrack, CancellationToken cancellationToken = default)
-    {
-        var result = await popupService.ShowPopupAsync<ConfirmResetViewModel, bool>(
-            GetShell(), PopupOptions.Empty,
-            Parameters(nameof(ConfirmResetViewModel.HasFirstCrack), hasFirstCrack), cancellationToken);
-        return !result.WasDismissedByTappingOutsideOfPopup && result.Result;
-    }
+    public async Task<bool> ConfirmResetAsync(bool hasFirstCrack, CancellationToken cancellationToken = default) =>
+        await ShowAsync<ConfirmResetPopup, ConfirmResetViewModel, bool>(
+            viewModel => viewModel.HasFirstCrack = hasFirstCrack, cancellationToken);
 
     public async Task<TimeCorrectionOutcome> ShowTimeCorrectionAsync(
         TimeCorrectionRequest request,
         CancellationToken cancellationToken = default)
     {
-        var result = await popupService.ShowPopupAsync<TimeCorrectionViewModel, TimeCorrectionOutcome>(
-            GetShell(), PopupOptions.Empty,
-            Parameters(nameof(TimeCorrectionViewModel.Request), request), cancellationToken);
-        return result.WasDismissedByTappingOutsideOfPopup || result.Result is null
-            ? TimeCorrectionOutcome.Cancelled
-            : result.Result;
+        TimeCorrectionOutcome? result =
+            await ShowAsync<TimeCorrectionPopup, TimeCorrectionViewModel, TimeCorrectionOutcome>(
+                viewModel => viewModel.Request = request, cancellationToken);
+        return result ?? TimeCorrectionOutcome.Cancelled;
     }
 
     public Task CloseAsync<T>(T result, CancellationToken cancellationToken = default) =>
-        popupService.ClosePopupAsync(GetShell(), result, cancellationToken);
+        services.GetRequiredService<IPopupService>().ClosePopupAsync(GetShell(), result, cancellationToken);
+
+    private async Task<TResult?> ShowAsync<TView, TViewModel, TResult>(
+        Action<TViewModel> configure,
+        CancellationToken cancellationToken)
+        where TView : View
+        where TViewModel : notnull
+    {
+        TViewModel viewModel = services.GetRequiredService<TViewModel>();
+        configure(viewModel);
+        TView view = services.GetRequiredService<TView>();
+        view.BindingContext = viewModel;
+
+        IPopupResult<TResult> result =
+            await GetShell().ShowPopupAsync<TResult>(view, PopupOptions.Empty, null, cancellationToken);
+        return result.WasDismissedByTappingOutsideOfPopup ? default : result.Result;
+    }
 
     private static Shell GetShell() =>
         Shell.Current ?? throw new InvalidOperationException("Shell.Current is not available for an overlay.");
-
-    private static Dictionary<string, object> Parameters(string key, object value) => new()
-    {
-        [key] = value
-    };
 }

@@ -7,6 +7,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased] - Complete Architecture Refactor
 ### Added
+- Roast Log work queue with Cooling and Needs weight batches pinned above searchable Complete, Unweighed, and Discarded history
+- Accessible shared roast status cards, a focused roast-detail route, explicit multi-batch weigh-in selection, and honest missing-result values
 - Responsive Beans inventory with in-memory search, availability filters, quantity-first low/out-of-stock states, cached-row retry behavior, and a 600 dp list/detail layout
 - Bean detail with inventory facts, the newest completed roast, recent incomplete work, stable-identity Edit/Delete actions, and Start Roast navigation into the prefilled confirmation flow
 - Grouped Add/Edit Bean cards for identity, details, inventory, and notes using the shared Direction B visual system
@@ -17,7 +19,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Focused Roast Console tests for representative presentation transitions, repeating elapsed/cooling geometry boundaries, weight validation, reset, and drop-time correction
 - `IRoastSessionService`: the single writer of roast-session state, owning Start, Pause, Resume, Mark 1C, Drop, Discard, weigh-in, Mark Unweighed, Finish session and recovery as lock-scoped atomic mutations
 - Bean inventory now moves inside the same mutation that appends the roast, so a failed write can never consume beans without a matching log entry, and a retried or double-tapped Drop applies exactly once
-- `IRoastQueryService` projections: carry-forward setup values, the newest **completed** result as the reference roast, and the open-work queue ordered oldest drop first
+- `IRoastQueryService` projections: carry-forward setup values, the newest **completed** result as the reference roast, and status-prioritized open work ordered oldest first within each state
 - `IClock` abstraction so every transition, elapsed-time projection and recovery path is deterministic and testable without sleeping
 - Elapsed time derived from persisted UTC anchors rather than an in-memory ticker, so pause/resume, backgrounding, process death and time-zone changes all recompute the same value
 - Cooling and Needs weight derived from the drop timestamp plus the roast's own cooling snapshot, so no write is required when cooling reaches zero
@@ -55,6 +57,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - 8 new unit tests covering share commands and flexible roast saving
 
 ### Fixed
+- Roast overlays now resolve and bind their own view and ViewModel: popup query attributes left the Weigh In and batch-choice sheets unbound in Release builds, so they appeared with no batch, no title, and unresponsive buttons on device
 - Persistence change notifications now return to the app synchronization context before updating UI-bound subscribers
 - Loading screen referenced `cafemaestro_logo.svg` and a non-existent `Primary` colour, so the logo and spinner never picked up their intended appearance
 - Repeated theme switches no longer stack theme dictionaries: dictionaries added in code have no `Source`, so they were never removed again
@@ -65,6 +68,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Invalid backup JSON is rejected without modifying active data or the selected source
 
 ### Changed
+- Version bumped to 1.8.0
+- Final-weight entry and corrections now use the focused Weigh In flow; generic roast editing is limited to mutable recorded details
 - Version bumped to 1.7.0
 - Bean-to-roast setup now passes a stable `BeanId` and performs final carry-forward lookup through `IRoastQueryService`, so renames never break historical linkage
 - The Roast page now consumes immutable `IRoastSessionService` snapshots instead of owning timer or persistence truth; final weight is captured only through focused weigh-in after cooling

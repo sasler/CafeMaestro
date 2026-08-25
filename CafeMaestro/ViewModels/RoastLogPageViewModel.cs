@@ -7,48 +7,113 @@ using CommunityToolkit.Mvvm.Input;
 
 namespace CafeMaestro.ViewModels;
 
+public enum RoastLogFilter
+{
+    All,
+    Complete,
+    NeedsWeight,
+    Unweighed
+}
+
 public partial class RoastLogPageViewModel : ObservableObject
 {
     private readonly IRoastDataService _roastDataService;
+    private readonly IRoastQueryService _roastQueryService;
     private readonly IAppDataService _appDataService;
-    private readonly IPreferencesService _preferencesService;
     private readonly INavigationService _navigationService;
-    private readonly List<RoastData> _allRoasts = [];
+    private readonly IOverlayService _overlayService;
+    private readonly IAlertService _alertService;
+    private readonly IUserFileService _userFileService;
+    private readonly List<RoastLogCard> _allOpenWork = [];
+    private readonly List<RoastLogCard> _allHistory = [];
+    private CancellationTokenSource? _searchCancellation;
     private bool _isSubscribed;
 
     [ObservableProperty]
-    public partial ObservableCollection<RoastData> Roasts { get; set; } = [];
+    public partial ObservableCollection<RoastLogCard> OpenWork { get; set; } = [];
+
+    [ObservableProperty]
+    public partial ObservableCollection<RoastLogCard> History { get; set; } = [];
 
     [ObservableProperty]
     public partial string SearchText { get; set; } = string.Empty;
 
     [ObservableProperty]
-    public partial RoastData? SelectedRoast { get; set; }
+    public partial bool IsLoading { get; set; }
 
     [ObservableProperty]
-    public partial bool IsLoading { get; set; }
+    public partial bool HasLoadError { get; set; }
+
+    [ObservableProperty]
+    public partial string LoadErrorMessage { get; set; } = string.Empty;
 
     [ObservableProperty]
     public partial int RecordCount { get; set; }
 
+    [ObservableProperty]
+    public partial RoastLogFilter SelectedFilter { get; set; }
+
+    public bool HasOpenWork => OpenWork.Count > 0;
+    public bool HasHistory => History.Count > 0;
+    public bool IsEmpty => !HasOpenWork && !HasHistory && !IsLoading;
+    public bool HasSearch => !string.IsNullOrWhiteSpace(SearchText);
+    public bool IsAllSelected => SelectedFilter == RoastLogFilter.All;
+    public bool IsCompleteSelected => SelectedFilter == RoastLogFilter.Complete;
+    public bool IsNeedsWeightSelected => SelectedFilter == RoastLogFilter.NeedsWeight;
+    public bool IsUnweighedSelected => SelectedFilter == RoastLogFilter.Unweighed;
+    public string EmptyTitle => HasSearch
+        ? $"No roasts match “{SearchText.Trim()}”"
+        : SelectedFilter == RoastLogFilter.All
+            ? "No roasts yet"
+            : $"No {FilterDisplay(SelectedFilter)} roasts";
+    public string EmptyBody => HasSearch || SelectedFilter != RoastLogFilter.All
+        ? "Clear the search or choose All to see the full log."
+        : "Start your first roast to build a searchable history.";
+    public bool CanClearEmptyState => HasSearch || SelectedFilter != RoastLogFilter.All;
+    public bool ShowStartEmptyState => !CanClearEmptyState;
+
+    /// <summary>Exposed for deterministic lifecycle tests; UI callers never need to await event handlers.</summary>
+    public Task LastRefreshTask { get; private set; } = Task.CompletedTask;
+
     public RoastLogPageViewModel(
         IRoastDataService roastDataService,
+        IRoastQueryService roastQueryService,
         IAppDataService appDataService,
-        IPreferencesService preferencesService,
-        INavigationService navigationService)
+        INavigationService navigationService,
+        IOverlayService overlayService,
+        IAlertService alertService,
+        IUserFileService userFileService)
     {
         _roastDataService = roastDataService ?? throw new ArgumentNullException(nameof(roastDataService));
+        _roastQueryService = roastQueryService ?? throw new ArgumentNullException(nameof(roastQueryService));
         _appDataService = appDataService ?? throw new ArgumentNullException(nameof(appDataService));
-        _preferencesService = preferencesService ?? throw new ArgumentNullException(nameof(preferencesService));
         _navigationService = navigationService ?? throw new ArgumentNullException(nameof(navigationService));
+        _overlayService = overlayService ?? throw new ArgumentNullException(nameof(overlayService));
+        _alertService = alertService ?? throw new ArgumentNullException(nameof(alertService));
+        _userFileService = userFileService ?? throw new ArgumentNullException(nameof(userFileService));
     }
-
-    public Func<string, string, string, Task>? AlertAsync { get; set; }
-
-    public Func<string, string, string?, string[], Task<string>>? ActionSheetAsync { get; set; }
 
     partial void OnSearchTextChanged(string value)
     {
+        OnPropertyChanged(nameof(HasSearch));
+        NotifyEmptyState();
+        _searchCancellation?.Cancel();
+        _searchCancellation?.Dispose();
+        _searchCancellation = new CancellationTokenSource();
+        _ = DebounceSearchAsync(_searchCancellation.Token);
+    }
+
+    partial void OnOpenWorkChanged(ObservableCollection<RoastLogCard> value) => NotifyCollectionState();
+    partial void OnHistoryChanged(ObservableCollection<RoastLogCard> value) => NotifyCollectionState();
+    partial void OnIsLoadingChanged(bool value) => OnPropertyChanged(nameof(IsEmpty));
+
+    partial void OnSelectedFilterChanged(RoastLogFilter value)
+    {
+        OnPropertyChanged(nameof(IsAllSelected));
+        OnPropertyChanged(nameof(IsCompleteSelected));
+        OnPropertyChanged(nameof(IsNeedsWeightSelected));
+        OnPropertyChanged(nameof(IsUnweighedSelected));
+        NotifyEmptyState();
         ApplyFilter();
     }
 
@@ -60,6 +125,7 @@ public partial class RoastLogPageViewModel : ObservableObject
 
     public void OnDisappearing()
     {
+        _searchCancellation?.Cancel();
         if (!_isSubscribed)
         {
             return;
@@ -69,107 +135,155 @@ public partial class RoastLogPageViewModel : ObservableObject
         _isSubscribed = false;
     }
 
-    public Task NavigateHomeAsync()
+    /// <summary>Called by the one page-owned ticker; cells never own timers or subscriptions.</summary>
+    public async Task RefreshTimeProjectionAsync()
     {
-        return _navigationService.GoToAsync(Routes.Main);
+        if (_allOpenWork.Count == 0)
+        {
+            return;
+        }
+
+        try
+        {
+            IReadOnlyList<RoastWorkItem> openWork = await _roastQueryService.GetOpenWorkAsync();
+            SetOpenWork(openWork);
+        }
+        catch
+        {
+            // The full refresh surface owns read errors; a transient ticker failure keeps cached rows.
+        }
     }
 
     [RelayCommand]
     private Task SearchAsync()
     {
+        _searchCancellation?.Cancel();
         ApplyFilter();
         return Task.CompletedTask;
     }
 
     [RelayCommand]
-    private async Task AddRoastAsync()
+    private Task ClearSearchAsync()
     {
-        try
-        {
-            await _navigationService.GoToAsync(
-                Routes.Roast,
-                new Dictionary<string, object>
-                {
-                    ["NewRoast"] = "true"
-                });
-        }
-        catch (Exception ex)
-        {
-            await ShowAlertAsync("Error", $"Could not navigate to roast page: {ex.Message}", "OK");
-        }
-    }
-
-    [RelayCommand]
-    private async Task EditRoastAsync(RoastData? roast)
-    {
-        roast ??= SelectedRoast;
-
-        if (roast is null)
-        {
-            return;
-        }
-
-        try
-        {
-            await _navigationService.GoToAsync(
-                Routes.RoastEdit,
-                new Dictionary<string, object>
-                {
-                    ["EditRoastId"] = roast.Id.ToString()
-                });
-        }
-        catch
-        {
-            await ShowAlertAsync("Error", "Error preparing to edit roast", "OK");
-        }
-    }
-
-    [RelayCommand]
-    private async Task DeleteRoastAsync(RoastData? roast)
-    {
-        roast ??= SelectedRoast;
-
-        if (roast is null)
-        {
-            return;
-        }
-
-        try
-        {
-            bool success = await _roastDataService.DeleteRoastLogAsync(roast.Id);
-
-            if (success)
-            {
-                await RefreshAsync();
-                return;
-            }
-
-            await ShowAlertAsync("Error", "Failed to delete roast log", "OK");
-        }
-        catch (Exception ex)
-        {
-            await ShowAlertAsync("Error", $"Failed to delete roast log: {ex.Message}", "OK");
-        }
-    }
-
-    [RelayCommand]
-    private Task ExportLogAsync()
-    {
+        SearchText = string.Empty;
+        ApplyFilter();
         return Task.CompletedTask;
     }
 
     [RelayCommand]
-    private async Task NavigateToImportAsync()
+    private void SelectFilter(RoastLogFilter filter) => SelectedFilter = filter;
+
+    [RelayCommand]
+    private void ClearEmptyState()
+    {
+        SearchText = string.Empty;
+        SelectedFilter = RoastLogFilter.All;
+        ApplyFilter();
+    }
+
+    [RelayCommand]
+    private Task AddRoastAsync() => _navigationService.GoToAsync(
+        Routes.Roast,
+        new Dictionary<string, object> { ["NewRoast"] = bool.TrueString });
+
+    [RelayCommand]
+    private Task OpenDetailAsync(RoastLogCard? card) => card is null
+        ? Task.CompletedTask
+        : _navigationService.GoToAsync(
+            Routes.RoastDetail,
+            new Dictionary<string, object> { ["RoastId"] = card.RoastId.ToString() });
+
+    [RelayCommand]
+    private Task EditRoastAsync(RoastLogCard? card) => card?.Roast is null
+        ? Task.CompletedTask
+        : _navigationService.GoToAsync(
+            Routes.RoastEdit,
+            new Dictionary<string, object> { ["EditRoastId"] = card.RoastId.ToString() });
+
+    [RelayCommand]
+    private async Task WeighAsync(RoastLogCard? requestedCard)
+    {
+        List<RoastWorkItem> ready = _allOpenWork
+            .Where(card => card.IsNeedsWeight && card.WorkItem is not null)
+            .Select(card => card.WorkItem!)
+            .ToList();
+        if (ready.Count == 0)
+        {
+            return;
+        }
+
+        RoastWorkItem? selected;
+        if (ready.Count > 1)
+        {
+            BatchChoiceOutcome outcome = await _overlayService.ChooseBatchAsync(ready.Select(ToBatchChoice).ToList());
+            selected = outcome.Choice is null
+                ? null
+                : ready.FirstOrDefault(item => item.RoastId == outcome.Choice.RoastId);
+        }
+        else
+        {
+            selected = requestedCard?.WorkItem?.IsReadyToWeigh == true
+                ? requestedCard.WorkItem
+                : ready[0];
+        }
+
+        if (selected is null)
+        {
+            return;
+        }
+
+        await _overlayService.ShowWeighInAsync(ToWeighInRequest(selected, ready.Count > 1));
+    }
+
+    [RelayCommand]
+    private async Task DeleteRoastAsync(RoastLogCard? card)
+    {
+        if (card is null)
+        {
+            return;
+        }
+
+        bool confirmed = await _alertService.ShowConfirmationAsync(
+            "Delete roast?",
+            $"Delete {card.BeanDisplay}, {card.DateDisplay}? This cannot be undone.",
+            "Delete",
+            "Cancel");
+        if (!confirmed)
+        {
+            return;
+        }
+
+        if (!await _roastDataService.DeleteRoastLogAsync(card.RoastId))
+        {
+            await _alertService.ShowAlertAsync("Delete roast", "The roast could not be deleted.", "OK");
+        }
+    }
+
+    [RelayCommand]
+    private async Task ExportLogAsync()
     {
         try
         {
-            await _navigationService.GoToAsync(Routes.RoastImport);
+            await using var stream = new MemoryStream();
+            await _roastDataService.ExportRoastLogAsync(stream);
+            stream.Position = 0;
+            DocumentSaveResult result = await _userFileService.SaveFileAsync(
+                $"CafeMaestro_RoastLog_{DateTime.Now:yyyy-MM-dd}.csv",
+                "text/csv",
+                stream);
+            if (!result.IsCanceled && !result.IsSuccessful)
+            {
+                throw result.Exception ?? new IOException("The roast log could not be saved.");
+            }
         }
-        catch (Exception ex)
+        catch
         {
-            await ShowAlertAsync("Error", $"Could not navigate to import page: {ex.Message}", "OK");
+            await _alertService.ShowAlertAsync("Export roast log", "CafeMaestro could not export the roast log.", "OK");
         }
     }
+
+    [RelayCommand]
+    private Task NavigateToImportAsync() => _navigationService.GoToAsync(Routes.RoastImport);
 
     [RelayCommand]
     private async Task RefreshAsync()
@@ -182,12 +296,18 @@ public partial class RoastLogPageViewModel : ObservableObject
         try
         {
             IsLoading = true;
-            var roasts = await _roastDataService.GetAllRoastLogsAsync();
-            SetRoasts(roasts);
+            Task<IReadOnlyList<RoastWorkItem>> openTask = _roastQueryService.GetOpenWorkAsync();
+            Task<IReadOnlyList<RoastData>> historyTask = _roastQueryService.GetHistoryAsync();
+            await Task.WhenAll(openTask, historyTask);
+            SetOpenWork(await openTask);
+            SetHistory(await historyTask);
+            HasLoadError = false;
+            LoadErrorMessage = string.Empty;
         }
-        catch (Exception ex)
+        catch
         {
-            await ShowAlertAsync("Error", $"Failed to load roast logs: {ex.Message}", "OK");
+            HasLoadError = true;
+            LoadErrorMessage = "Roast Log could not be refreshed. Your last loaded rows are still shown.";
         }
         finally
         {
@@ -195,33 +315,16 @@ public partial class RoastLogPageViewModel : ObservableObject
         }
     }
 
-    [RelayCommand]
-    private async Task ShowRoastActionsAsync(RoastData? roast)
+    private async Task DebounceSearchAsync(CancellationToken cancellationToken)
     {
-        if (roast is null || ActionSheetAsync is null)
+        try
         {
-            return;
+            await Task.Delay(250, cancellationToken);
+            ApplyFilter();
         }
-
-        SelectedRoast = roast;
-
-        string action = await ActionSheetAsync(
-            $"Roast from {roast.RoastDate:MM/dd/yyyy}",
-            "Cancel",
-            null,
-            ["Edit", "Delete"]);
-
-        switch (action)
+        catch (OperationCanceledException)
         {
-            case "Edit":
-                await EditRoastAsync(roast);
-                break;
-            case "Delete":
-                await DeleteRoastAsync(roast);
-                break;
         }
-
-        SelectedRoast = null;
     }
 
     private void EnsureSubscribed()
@@ -237,39 +340,101 @@ public partial class RoastLogPageViewModel : ObservableObject
 
     private void HandleAppDataChanged(object? sender, AppData appData)
     {
-        SetRoasts(appData.RoastLogs);
+        LastRefreshTask = RefreshAsync();
     }
 
-    private void SetRoasts(IEnumerable<RoastData>? roasts)
+    private void SetOpenWork(IEnumerable<RoastWorkItem> items)
     {
-        _allRoasts.Clear();
-        _allRoasts.AddRange(
-            (roasts ?? [])
-                .Where(roast => roast is not null && roast.Id != Guid.Empty)
-                .OrderByDescending(roast => roast.RoastDate));
+        _allOpenWork.Clear();
+        _allOpenWork.AddRange(items.Select(item => RoastLogCard.FromWork(item)));
+        ApplyOpenWorkFilter();
+    }
 
-        ApplyFilter();
+    private void SetHistory(IEnumerable<RoastData> roasts)
+    {
+        _allHistory.Clear();
+        _allHistory.AddRange(roasts.Select(RoastLogCard.FromHistory));
+        ApplyHistoryFilter();
     }
 
     private void ApplyFilter()
     {
-        IEnumerable<RoastData> filteredRoasts = _allRoasts;
-
-        if (!string.IsNullOrWhiteSpace(SearchText))
-        {
-            filteredRoasts = filteredRoasts.Where(roast =>
-                roast.BeanType.Contains(SearchText, StringComparison.OrdinalIgnoreCase) ||
-                roast.Notes.Contains(SearchText, StringComparison.OrdinalIgnoreCase) ||
-                roast.Summary.Contains(SearchText, StringComparison.OrdinalIgnoreCase) ||
-                roast.RoastLevelName.Contains(SearchText, StringComparison.OrdinalIgnoreCase));
-        }
-
-        Roasts = new ObservableCollection<RoastData>(filteredRoasts);
-        RecordCount = Roasts.Count;
+        ApplyOpenWorkFilter();
+        ApplyHistoryFilter();
     }
 
-    private Task ShowAlertAsync(string title, string message, string cancel)
+    private void ApplyOpenWorkFilter()
     {
-        return AlertAsync?.Invoke(title, message, cancel) ?? Task.CompletedTask;
+        IEnumerable<RoastLogCard> open = SelectedFilter switch
+        {
+            RoastLogFilter.All => _allOpenWork,
+            RoastLogFilter.NeedsWeight => _allOpenWork.Where(card => card.IsNeedsWeight),
+            _ => []
+        };
+        OpenWork = new ObservableCollection<RoastLogCard>(open.Where(card => card.Matches(SearchText)));
+        UpdateRecordCount();
     }
+
+    private void ApplyHistoryFilter()
+    {
+        IEnumerable<RoastLogCard> history = SelectedFilter switch
+        {
+            RoastLogFilter.All => _allHistory,
+            RoastLogFilter.Complete => _allHistory.Where(card => card.IsComplete),
+            RoastLogFilter.Unweighed => _allHistory.Where(card => card.IsUnweighed),
+            _ => []
+        };
+        History = new ObservableCollection<RoastLogCard>(history.Where(card => card.Matches(SearchText)));
+        UpdateRecordCount();
+    }
+
+    private void UpdateRecordCount()
+    {
+        RecordCount = OpenWork.Count + History.Count;
+        NotifyEmptyState();
+    }
+
+    private void NotifyCollectionState()
+    {
+        OnPropertyChanged(nameof(HasOpenWork));
+        OnPropertyChanged(nameof(HasHistory));
+        OnPropertyChanged(nameof(IsEmpty));
+    }
+
+    private void NotifyEmptyState()
+    {
+        OnPropertyChanged(nameof(EmptyTitle));
+        OnPropertyChanged(nameof(EmptyBody));
+        OnPropertyChanged(nameof(CanClearEmptyState));
+        OnPropertyChanged(nameof(ShowStartEmptyState));
+    }
+
+    private static string FilterDisplay(RoastLogFilter filter) => filter switch
+    {
+        RoastLogFilter.Complete => "complete",
+        RoastLogFilter.NeedsWeight => "needs weight",
+        RoastLogFilter.Unweighed => "unweighed",
+        _ => string.Empty
+    };
+
+    private static BatchChoice ToBatchChoice(RoastWorkItem item) => new()
+    {
+        RoastId = item.RoastId,
+        BatchNumber = item.BatchNumber,
+        BeanDisplaySnapshot = item.BeanDisplaySnapshot,
+        BatchWeight = item.BatchWeight,
+        DroppedAtUtc = item.DroppedAtUtc,
+        TotalSeconds = item.TotalSeconds
+    };
+
+    private static WeighInRequest ToWeighInRequest(RoastWorkItem item, bool hasAnother) => new()
+    {
+        RoastId = item.RoastId,
+        BatchNumber = item.BatchNumber,
+        BeanDisplaySnapshot = item.BeanDisplaySnapshot,
+        BatchWeight = item.BatchWeight,
+        DroppedAtUtc = item.DroppedAtUtc,
+        TotalSeconds = item.TotalSeconds,
+        HasAnotherBatchWaiting = hasAnother
+    };
 }

@@ -16,7 +16,7 @@ CafeMaestro is a comprehensive tool designed for coffee enthusiasts and professi
 
 - **Bean Inventory Management**: Search and filter green coffee inventory, see low/out-of-stock quantities at a glance, and open a responsive detail view with the latest completed roast.
 - **Roast Console**: Prefilled bean, temperature, and batch weight setup; a persisted elapsed instrument; one-tap Drop; and a two-batch cooling/weigh-in handoff.
-- **Roast Logging**: Record all aspects of each roast including temperature, batch weight, final weight, and calculated weight loss.
+- **Roast Log Work Queue**: Keep Cooling and Needs weight batches pinned above searchable history, then open focused details or weigh an explicitly selected batch.
 - **Optional First Crack Tracking**: When enabled in roasting preferences, mark or correct First Crack for live development-time analysis; the default console stays uncluttered.
 - **Roast Level Analysis**: Automatic classification of roast levels based on weight loss percentage.
 - **Custom Roast Levels**: Define and customize your own roast levels based on weight loss percentages.
@@ -149,10 +149,14 @@ See [Roast Console architecture and behavior](docs/roast-console.md) for the sta
 ### Reviewing Roast Logs
 
 The Roast Log section allows you to:
-- View history of all recorded roasts
-- Filter and search by bean type
-- Edit or delete existing roast records
-- Export roast data to CSV
+- Track Cooling countdowns and ready-to-weigh batches above history
+- Search beans, notes, summaries, and roast levels without reloading storage
+- Distinguish same-bean batches by batch number, drop time, and input weight
+- Review honest Complete, Unweighed, and Discarded details without fabricated zero values
+- Correct final weights through the focused Weigh In sheet and edit other allowed details separately
+- Delete confirmed records, import roast CSV contextually, or export the log to CSV
+
+See [Roast Log work queue](docs/roast-log.md) for projection, ticker, editing, and accessibility behavior.
 
 ### Data and Backups
 

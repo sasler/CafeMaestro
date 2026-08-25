@@ -1,0 +1,70 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<ContentView xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
+             xmlns:controls="clr-namespace:CafeMaestro.Controls"
+             xmlns:vm="clr-namespace:CafeMaestro.ViewModels"
+             x:Class="CafeMaestro.Controls.RoastStatusCard"
+             x:Name="Root">
+    <Border x:Name="CardBorder"
+            x:DataType="vm:RoastLogCard"
+            BindingContext="{Binding Card, Source={x:Reference Root}}"
+            Style="{StaticResource CardStyle}"
+            SemanticProperties.Description="{Binding SemanticDescription}">
+        <Border.Triggers>
+            <DataTrigger TargetType="Border" Binding="{Binding IsCooling}" Value="True">
+                <Setter Property="Style" Value="{StaticResource CoolingCardStyle}" />
+            </DataTrigger>
+            <DataTrigger TargetType="Border" Binding="{Binding IsNeedsWeight}" Value="True">
+                <Setter Property="Style" Value="{StaticResource ReadyCardStyle}" />
+            </DataTrigger>
+            <DataTrigger TargetType="Border" Binding="{Binding IsDiscarded}" Value="True">
+                <Setter Property="Style" Value="{StaticResource DangerCardStyle}" />
+            </DataTrigger>
+        </Border.Triggers>
+        <Grid ColumnDefinitions="Auto,*"
+              ColumnSpacing="{StaticResource SpaceMd}">
+            <BoxView Grid.Column="0" Style="{StaticResource ChannelEdgeStyle}">
+                <BoxView.Triggers>
+                    <DataTrigger TargetType="BoxView" Binding="{Binding IsCooling}" Value="True">
+                        <Setter Property="Color" Value="{DynamicResource CoolingColor}" />
+                    </DataTrigger>
+                    <DataTrigger TargetType="BoxView" Binding="{Binding IsNeedsWeight}" Value="True">
+                        <Setter Property="Color" Value="{DynamicResource ReadyColor}" />
+                    </DataTrigger>
+                    <DataTrigger TargetType="BoxView" Binding="{Binding IsDiscarded}" Value="True">
+                        <Setter Property="Color" Value="{DynamicResource DangerColor}" />
+                    </DataTrigger>
+                </BoxView.Triggers>
+            </BoxView>
+
+            <VerticalStackLayout Grid.Column="1" Spacing="{StaticResource SpaceSm}">
+                <VerticalStackLayout Spacing="{StaticResource SpaceXs}">
+                    <Label Text="{Binding BeanDisplay}" Style="{StaticResource CardTitleStyle}" />
+                    <Label Text="{Binding BatchDisplay}" Style="{StaticResource CardMetaStyle}" />
+                    <HorizontalStackLayout Spacing="{StaticResource SpaceSm}">
+                        <Label Text="{Binding StatusDisplay}" Style="{StaticResource StatusChipLabelStyle}" />
+                        <Label Text="{Binding StatusDetail}" Style="{StaticResource CardCaptionStyle}"
+                               VerticalTextAlignment="Center" />
+                    </HorizontalStackLayout>
+                </VerticalStackLayout>
+
+                <Label Text="{Binding DateDisplay}" Style="{StaticResource CardCaptionStyle}" />
+
+                <Grid ColumnDefinitions="Auto,*" RowDefinitions="Auto,Auto,Auto"
+                      ColumnSpacing="{StaticResource SpaceMd}" RowSpacing="{StaticResource SpaceXs}">
+                    <Label Text="IN" Style="{StaticResource SectionHeaderStyle}" VerticalTextAlignment="Center" />
+                    <Label Grid.Column="1" Text="{Binding InputDisplay}" Style="{StaticResource NumericValueStyle}" />
+                    <Label Grid.Row="1" Text="OUT" Style="{StaticResource SectionHeaderStyle}" VerticalTextAlignment="Center" />
+                    <Label Grid.Row="1" Grid.Column="1" Text="{Binding OutputDisplay}" Style="{StaticResource NumericValueStyle}" />
+                    <Label Grid.Row="2" Text="LOSS" Style="{StaticResource SectionHeaderStyle}" VerticalTextAlignment="Center" />
+                    <Label Grid.Row="2" Grid.Column="1" Text="{Binding LossDisplay}" Style="{StaticResource NumericValueStyle}" />
+                </Grid>
+
+                <Label Text="{Binding TemperatureDisplay, StringFormat='Roasted at {0}'}"
+                       Style="{StaticResource CardMetaStyle}" />
+                <Label Text="{Binding RoastTimeDisplay, StringFormat='Roast time {0}'}"
+                       Style="{StaticResource CardMetaStyle}" />
+            </VerticalStackLayout>
+        </Grid>
+    </Border>
+</ContentView>

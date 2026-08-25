@@ -112,7 +112,7 @@ public sealed class RoastQueryServiceTests
     }
 
     [Fact]
-    public async Task GetOpenWork_OrdersTheQueueOldestDropFirst()
+    public async Task GetOpenWork_PinsCoolingThenNeedsWeight_OldestFirstWithinStatus()
     {
         using RoastSessionTestHarness harness = await RoastSessionTestHarness.CreateAsync(Start);
         BeanData bean = await harness.AddBeanAsync();
@@ -126,9 +126,27 @@ public sealed class RoastQueryServiceTests
 
         IReadOnlyList<RoastWorkItem> queue = await harness.Query.GetOpenWorkAsync();
 
-        queue.Select(item => item.RoastId).Should().Equal(older.Id, newer.Id);
-        queue[0].Status.Should().Be(RoastEffectiveStatus.NeedsWeight);
-        queue[1].Status.Should().Be(RoastEffectiveStatus.Cooling);
+        queue.Select(item => item.RoastId).Should().Equal(newer.Id, older.Id);
+        queue[0].Status.Should().Be(RoastEffectiveStatus.Cooling);
+        queue[1].Status.Should().Be(RoastEffectiveStatus.NeedsWeight);
+    }
+
+    [Fact]
+    public async Task GetHistory_ExcludesOpenWork_AndSortsNewestFirst()
+    {
+        using RoastSessionTestHarness harness = await RoastSessionTestHarness.CreateAsync(Start);
+        BeanData bean = await harness.AddBeanAsync();
+        RoastData complete = Completed(bean, Start.AddDays(-3), 218, 240, 206);
+        RoastData unweighed = Unweighed(bean, Start.AddDays(-2), 218, 240);
+        RoastData discarded = Discarded(bean, Start.AddDays(-1), 218, 240);
+        RoastData open = AwaitingWeight(bean, Start.AddMinutes(-2), 218, 240);
+        await AddRoastsAsync(harness, complete, open, discarded, unweighed);
+
+        IReadOnlyList<RoastData> history = await harness.Query.GetHistoryAsync();
+
+        history.Select(roast => roast.Id).Should().Equal(discarded.Id, unweighed.Id, complete.Id);
+        history.Should().OnlyContain(roast => roast.CompletionStatus != RoastCompletionStatus.AwaitingWeight);
+        (await harness.Query.GetRoastAsync(unweighed.Id)).Should().BeSameAs(unweighed);
     }
 
     private static async Task AddRoastsAsync(

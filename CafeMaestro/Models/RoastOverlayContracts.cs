@@ -13,6 +13,9 @@ public sealed record WeighInRequest
     public required DateTimeOffset DroppedAtUtc { get; init; }
     public required int TotalSeconds { get; init; }
 
+    /// <summary>Existing result when the focused sheet is editing a completed roast.</summary>
+    public double? InitialFinalWeight { get; init; }
+
     /// <summary>True when another batch still needs a weight after this one is resolved.</summary>
     public bool HasAnotherBatchWaiting { get; init; }
 }

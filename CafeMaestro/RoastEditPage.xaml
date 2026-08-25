@@ -9,12 +9,25 @@
     <ScrollView>
         <VerticalStackLayout Padding="{StaticResource PagePadding}" Spacing="{StaticResource SpaceMd}">
             <Label Text="EDIT ROAST" Style="{StaticResource SectionHeaderStyle}" />
-            <Label Text="Correct a completed roast log" FontSize="{StaticResource FontSizeHeadline}"
+            <Label Text="Correct notes and recorded roast events" FontSize="{StaticResource FontSizeHeadline}"
                    FontAttributes="Bold" TextColor="{DynamicResource PrimaryTextColor}" />
 
-            <Label Text="BEAN" Style="{StaticResource CardMetaStyle}" />
-            <Picker ItemsSource="{Binding AvailableBeans}" SelectedItem="{Binding SelectedBean}"
-                    ItemDisplayBinding="{Binding DisplayName}" Title="Choose a bean" />
+            <Border Style="{StaticResource CardStyle}">
+                <Grid ColumnDefinitions="*,Auto" ColumnSpacing="{StaticResource SpaceLg}">
+                    <VerticalStackLayout>
+                        <Label Text="{Binding SelectedBean.DisplayName, TargetNullValue='Historical roast'}"
+                               Style="{StaticResource CardTitleStyle}" />
+                        <Label Text="Batch identity and weights are read-only here"
+                               Style="{StaticResource CardCaptionStyle}" />
+                    </VerticalStackLayout>
+                    <VerticalStackLayout Grid.Column="1" HorizontalOptions="End">
+                        <Label Text="{Binding BatchWeightText, StringFormat='{0} g in'}"
+                               Style="{StaticResource NumericValueStyle}" HorizontalTextAlignment="End" />
+                        <Label Text="{Binding FinalWeightDisplay}"
+                               Style="{StaticResource CardMetaStyle}" HorizontalTextAlignment="End" />
+                    </VerticalStackLayout>
+                </Grid>
+            </Border>
 
             <Grid ColumnDefinitions="*,*" ColumnSpacing="{StaticResource SpaceMd}">
                 <VerticalStackLayout>
@@ -22,21 +35,13 @@
                     <Entry Text="{Binding TemperatureText}" Keyboard="Numeric" />
                 </VerticalStackLayout>
                 <VerticalStackLayout Grid.Column="1">
-                    <Label Text="BATCH WEIGHT (g)" Style="{StaticResource CardMetaStyle}" />
-                    <Entry Text="{Binding BatchWeightText}" Keyboard="Numeric" />
-                </VerticalStackLayout>
-            </Grid>
-
-            <Grid ColumnDefinitions="*,*" ColumnSpacing="{StaticResource SpaceMd}">
-                <VerticalStackLayout>
-                    <Label Text="FINAL WEIGHT (g)" Style="{StaticResource CardMetaStyle}" />
-                    <Entry Text="{Binding FinalWeightText}" Keyboard="Numeric" Placeholder="Still needs weight" />
-                </VerticalStackLayout>
-                <VerticalStackLayout Grid.Column="1">
                     <Label Text="TOTAL TIME (mm:ss)" Style="{StaticResource CardMetaStyle}" />
                     <Entry Text="{Binding RoastTimeText}" Keyboard="Numeric" Placeholder="10:42" />
                 </VerticalStackLayout>
             </Grid>
+
+            <Label Text="Bean, batch identity, input weight, and final weight are edited only in their focused workflows."
+                   Style="{StaticResource FieldHintStyle}" />
 
             <Label Text="FIRST CRACK (mm:ss, optional)" Style="{StaticResource CardMetaStyle}" />
             <Entry Text="{Binding FirstCrackTimeText}" Keyboard="Numeric" Placeholder="Leave blank when unmarked" />

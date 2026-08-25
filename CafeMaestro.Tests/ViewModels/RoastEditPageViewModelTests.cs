@@ -26,14 +26,14 @@ public class RoastEditPageViewModelTests
     {
         Harness harness = new();
         await harness.ViewModel.OnAppearingAsync();
-        harness.ViewModel.FinalWeightText = "205";
+        harness.ViewModel.FinalWeightText = "205"; // Generic edit must ignore final-weight changes.
         harness.ViewModel.Notes = "  sweeter  ";
 
         await harness.ViewModel.SaveCommand.ExecuteAsync(null);
 
         harness.Roasts.Verify(service => service.UpdateRoastLogAsync(It.Is<RoastData>(roast =>
             roast.Id == harness.Roast.Id &&
-            roast.FinalWeight == 205 &&
+            roast.FinalWeight == 206 &&
             roast.Notes == "sweeter" &&
             roast.CompletionStatus == RoastCompletionStatus.Complete)), Times.Once);
         harness.Navigation.Verify(service => service.GoBackAsync(), Times.Once);
