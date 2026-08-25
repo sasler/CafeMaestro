@@ -9,6 +9,41 @@ namespace CafeMaestro.Tests.ViewModels;
 public class RoastPageViewModelTests
 {
     [Fact]
+    public async Task BeanIdQuery_SelectsStableBeanAndUsesSessionQueryCarryForward()
+    {
+        BeanData other = CreateBean();
+        BeanData requested = CreateBean();
+        requested.CoffeeName = "Guji";
+        MockBundle mocks = new();
+        RoastPageViewModel viewModel = CreateViewModel(mocks, bundle =>
+        {
+            bundle.BeanDataService.Setup(service => service.GetSortedAvailableBeansAsync())
+                .ReturnsAsync([other, requested]);
+            bundle.RoastQueryService.Setup(service => service.GetSetupSuggestionAsync(
+                    requested.Id, It.IsAny<CancellationToken>()))
+                .ReturnsAsync(new RoastSetupSuggestion
+                {
+                    BeanId = requested.Id,
+                    Temperature = 218,
+                    BatchWeight = 240,
+                    LastCompletedRoast = null,
+                    NewerAwaitingWeightCount = 1
+                });
+        });
+
+        viewModel.ApplyQueryAttributes(new Dictionary<string, object>
+        {
+            ["NewRoast"] = bool.TrueString,
+            ["BeanId"] = requested.Id.ToString()
+        });
+        await viewModel.OnAppearingAsync();
+
+        viewModel.SelectedBean.Should().BeSameAs(requested);
+        viewModel.TemperatureText.Should().Be("218");
+        viewModel.BatchWeightText.Should().Be("240");
+    }
+
+    [Fact]
     public async Task TimerCommands_UpdateTimerState()
     {
         BeanData bean = CreateBean();
@@ -542,7 +577,8 @@ public class RoastPageViewModelTests
             mocks.PreferencesService.Object,
             mocks.RoastLevelService.Object,
             mocks.NavigationService.Object,
-            mocks.AlertService.Object);
+            mocks.AlertService.Object,
+            mocks.RoastQueryService.Object);
     }
 
     private static async Task EventuallyAsync(Func<bool> condition, int timeoutMs = 500)
@@ -572,5 +608,6 @@ public class RoastPageViewModelTests
         public Mock<IRoastLevelService> RoastLevelService { get; } = new();
         public Mock<INavigationService> NavigationService { get; } = new();
         public Mock<IAlertService> AlertService { get; } = new();
+        public Mock<IRoastQueryService> RoastQueryService { get; } = new();
     }
 }

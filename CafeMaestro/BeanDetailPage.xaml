@@ -1,0 +1,174 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<ContentPage xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
+             xmlns:controls="clr-namespace:CafeMaestro.Controls"
+             xmlns:models="clr-namespace:CafeMaestro.Models"
+             xmlns:vm="clr-namespace:CafeMaestro.ViewModels"
+             x:Class="CafeMaestro.BeanDetailPage"
+             x:DataType="vm:BeanDetailPageViewModel"
+             Title="Bean details"
+             BackgroundColor="{DynamicResource SurfaceColor}">
+
+    <Grid RowDefinitions="*,Auto">
+        <ScrollView Grid.Row="0">
+            <VerticalStackLayout Padding="{StaticResource PagePadding}"
+                                 Spacing="{StaticResource SpaceLg}">
+                <Grid ColumnDefinitions="*,Auto,Auto"
+                      ColumnSpacing="{StaticResource SpaceSm}">
+                    <VerticalStackLayout Grid.Column="0" Spacing="{StaticResource SpaceXs}">
+                        <Label Text="Bean details"
+                               FontFamily="{StaticResource FontFamilyEmphasis}"
+                               FontSize="{StaticResource FontSizeHeadline}"
+                               TextColor="{DynamicResource PrimaryTextColor}" />
+                        <Label Text="Inventory and roast history"
+                               Style="{StaticResource CardMetaStyle}" />
+                    </VerticalStackLayout>
+                    <Grid Grid.Column="1">
+                        <Button Style="{StaticResource IconButtonStyle}"
+                                Command="{Binding EditCommand}"
+                                SemanticProperties.Description="Edit bean" />
+                        <controls:IconView Data="{StaticResource IconEditData}"
+                                           InputTransparent="True"
+                                           HorizontalOptions="Center"
+                                           VerticalOptions="Center" />
+                    </Grid>
+                    <Grid Grid.Column="2">
+                        <Button Style="{StaticResource IconButtonStyle}"
+                                Command="{Binding DeleteCommand}"
+                                SemanticProperties.Description="Delete bean" />
+                        <controls:IconView Data="{StaticResource IconDeleteData}"
+                                           IconColor="{DynamicResource DangerColor}"
+                                           InputTransparent="True"
+                                           HorizontalOptions="Center"
+                                           VerticalOptions="Center" />
+                    </Grid>
+                </Grid>
+
+                <Border Style="{StaticResource ErrorBannerStyle}"
+                        IsVisible="{Binding HasLoadError}">
+                    <Grid ColumnDefinitions="*,Auto" ColumnSpacing="{StaticResource SpaceSm}">
+                        <Label Text="{Binding LoadErrorMessage}"
+                               Style="{StaticResource ErrorBannerTextStyle}"
+                               VerticalOptions="Center" />
+                        <Button Grid.Column="1"
+                                Text="Retry"
+                                Style="{StaticResource SecondaryActionStyle}"
+                                Command="{Binding RefreshCommand}" />
+                    </Grid>
+                </Border>
+
+                <ActivityIndicator Style="{StaticResource LoadingIndicatorStyle}"
+                                   IsRunning="{Binding IsLoading}"
+                                   IsVisible="{Binding IsLoading}" />
+
+                <Border Style="{StaticResource CardStyle}"
+                        IsVisible="{Binding HasBean}">
+                    <VerticalStackLayout Spacing="{StaticResource SpaceMd}">
+                        <Grid ColumnDefinitions="*,Auto" ColumnSpacing="{StaticResource SpaceLg}">
+                            <VerticalStackLayout Grid.Column="0" Spacing="{StaticResource SpaceXs}">
+                                <Label Text="{Binding Bean.CoffeeName}"
+                                       Style="{StaticResource CardTitleStyle}"
+                                       FontSize="{StaticResource FontSizeHeadline}"
+                                       LineBreakMode="WordWrap" />
+                                <Label Text="{Binding Bean.Country}"
+                                       Style="{StaticResource CardMetaStyle}" />
+                                <Label Text="{Binding Bean.DetailMetadataDisplay}"
+                                       Style="{StaticResource CardCaptionStyle}"
+                                       LineBreakMode="WordWrap" />
+                            </VerticalStackLayout>
+                            <VerticalStackLayout Grid.Column="1"
+                                                 Spacing="{StaticResource SpaceXs}"
+                                                 HorizontalOptions="End">
+                                <Label Text="{Binding Bean.RemainingQuantityDisplay}"
+                                       Style="{StaticResource NumericValueStyle}"
+                                       HorizontalTextAlignment="End" />
+                                <Label Text="remaining"
+                                       Style="{StaticResource CardCaptionStyle}"
+                                       HorizontalTextAlignment="End" />
+                            </VerticalStackLayout>
+                        </Grid>
+
+                        <Border Style="{StaticResource AttentionChipStyle}"
+                                IsVisible="{Binding Bean.IsLowStock}">
+                            <Label Text="{Binding Bean.InventoryStatusDisplay}"
+                                   Style="{StaticResource AttentionChipLabelStyle}" />
+                        </Border>
+                        <Border Style="{StaticResource StatusChipStyle}"
+                                IsVisible="{Binding Bean.IsOutOfStock}">
+                            <Label Text="Out of stock"
+                                   Style="{StaticResource StatusChipLabelStyle}" />
+                        </Border>
+
+                        <Grid ColumnDefinitions="*,*" ColumnSpacing="{StaticResource SpaceLg}">
+                            <VerticalStackLayout>
+                                <Label Text="TOTAL" Style="{StaticResource SectionHeaderStyle}" />
+                                <Label Text="{Binding Bean.TotalQuantityDisplay}" Style="{StaticResource CardMetaStyle}" />
+                            </VerticalStackLayout>
+                            <VerticalStackLayout Grid.Column="1">
+                                <Label Text="PURCHASED" Style="{StaticResource SectionHeaderStyle}" />
+                                <Label Text="{Binding Bean.PurchaseDate, StringFormat='{0:d MMM yyyy}'}" Style="{StaticResource CardMetaStyle}" />
+                            </VerticalStackLayout>
+                        </Grid>
+                    </VerticalStackLayout>
+                </Border>
+
+                <VerticalStackLayout IsVisible="{Binding HasBean}" Spacing="{StaticResource SpaceSm}">
+                    <Label Text="LATEST COMPLETE ROAST" Style="{StaticResource SectionHeaderStyle}" />
+                    <Border Style="{StaticResource CardStyle}"
+                            IsVisible="{Binding HasLatestCompletedRoast}">
+                        <Grid ColumnDefinitions="*,Auto" ColumnSpacing="{StaticResource SpaceMd}">
+                            <VerticalStackLayout Spacing="{StaticResource SpaceXs}">
+                                <Label Text="{Binding LatestCompletedRoast.ResultHeadline}" Style="{StaticResource CardTitleStyle}" />
+                                <Label Text="{Binding LatestCompletedRoast.ResultMetrics}" Style="{StaticResource CardMetaStyle}" LineBreakMode="WordWrap" />
+                            </VerticalStackLayout>
+                            <Label Grid.Column="1"
+                                   Text="{Binding LatestCompletedRoast.RoastDate, StringFormat='{0:d MMM}'}"
+                                   Style="{StaticResource CardCaptionStyle}" />
+                        </Grid>
+                    </Border>
+                    <Label Text="No completed roast yet. Your first finished result will appear here."
+                           Style="{StaticResource CardMetaStyle}"
+                           IsVisible="{Binding HasNoLatestCompletedRoast}" />
+                </VerticalStackLayout>
+
+                <VerticalStackLayout IsVisible="{Binding HasRecentIncompleteRoasts}"
+                                     Spacing="{StaticResource SpaceSm}">
+                    <Label Text="RECENT INCOMPLETE WORK" Style="{StaticResource SectionHeaderStyle}" />
+                    <VerticalStackLayout BindableLayout.ItemsSource="{Binding RecentIncompleteRoasts}"
+                                         Spacing="{StaticResource SpaceSm}">
+                        <BindableLayout.ItemTemplate>
+                            <DataTemplate x:DataType="models:RoastData">
+                                <Border Style="{StaticResource CardStyle}">
+                                    <Grid ColumnDefinitions="*,Auto" ColumnSpacing="{StaticResource SpaceMd}">
+                                        <VerticalStackLayout>
+                                            <Label Text="{Binding ResultHeadline}" Style="{StaticResource CardTitleStyle}" />
+                                            <Label Text="{Binding ResultMetrics}" Style="{StaticResource CardMetaStyle}" LineBreakMode="WordWrap" />
+                                        </VerticalStackLayout>
+                                        <Label Grid.Column="1" Text="{Binding RoastDate, StringFormat='{0:d MMM}'}" Style="{StaticResource CardCaptionStyle}" />
+                                    </Grid>
+                                </Border>
+                            </DataTemplate>
+                        </BindableLayout.ItemTemplate>
+                    </VerticalStackLayout>
+                </VerticalStackLayout>
+
+                <VerticalStackLayout IsVisible="{Binding HasBean}" Spacing="{StaticResource SpaceSm}">
+                    <Label Text="NOTES" Style="{StaticResource SectionHeaderStyle}" />
+                    <Border Style="{StaticResource CardStyle}">
+                        <Label Text="{Binding Bean.Notes, TargetNullValue='No notes yet.'}"
+                               Style="{StaticResource CardMetaStyle}"
+                               LineBreakMode="WordWrap" />
+                    </Border>
+                </VerticalStackLayout>
+            </VerticalStackLayout>
+        </ScrollView>
+
+        <VerticalStackLayout Grid.Row="1" Style="{StaticResource ActionBarStyle}">
+            <Button Text="START ROAST"
+                    Style="{StaticResource PrimaryActionStyle}"
+                    Command="{Binding StartRoastCommand}"
+                    IsEnabled="{Binding CanStartRoast}"
+                    SemanticProperties.Hint="Opens the three-field roast confirmation with this bean selected" />
+        </VerticalStackLayout>
+    </Grid>
+</ContentPage>

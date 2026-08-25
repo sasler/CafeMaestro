@@ -2,11 +2,11 @@ using CafeMaestro.ViewModels;
 
 namespace CafeMaestro;
 
-public partial class BeanEditPage : ContentPage
+public partial class BeanDetailPage : ContentPage
 {
-    private readonly BeanEditPageViewModel _viewModel;
+    private readonly BeanDetailPageViewModel _viewModel;
 
-    public BeanEditPage(BeanEditPageViewModel viewModel)
+    public BeanDetailPage(BeanDetailPageViewModel viewModel)
     {
         InitializeComponent();
         BindingContext = _viewModel = viewModel;
@@ -18,9 +18,9 @@ public partial class BeanEditPage : ContentPage
         await _viewModel.OnAppearingAsync();
     }
 
-    protected override bool OnBackButtonPressed()
+    protected override void OnDisappearing()
     {
-        _ = _viewModel.CancelCommand.ExecuteAsync(null);
-        return true;
+        _viewModel.OnDisappearing();
+        base.OnDisappearing();
     }
 }

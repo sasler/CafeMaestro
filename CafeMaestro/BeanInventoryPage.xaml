@@ -1,184 +1,183 @@
 <?xml version="1.0" encoding="utf-8" ?>
 <ContentPage xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
              xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
+             xmlns:controls="clr-namespace:CafeMaestro.Controls"
              xmlns:models="clr-namespace:CafeMaestro.Models"
              xmlns:vm="clr-namespace:CafeMaestro.ViewModels"
              x:Class="CafeMaestro.BeanInventoryPage"
              x:DataType="vm:BeanInventoryPageViewModel"
-             BackgroundColor="{DynamicResource PageBackgroundColor}"
-             Title="Bean Inventory">
+             BackgroundColor="{DynamicResource SurfaceColor}"
+             Title="Beans"
+             SizeChanged="OnPageSizeChanged">
 
-    <Grid RowDefinitions="Auto,Auto,*"
-          Padding="0"
-          Margin="0">
-        <!-- Header Area -->
-        <Grid Grid.Row="0"
-              ColumnDefinitions="Auto,*,Auto"
-              Padding="20,20"
-              HeightRequest="100"
-              HorizontalOptions="Fill"
-              Margin="0">
-            <!-- Logo and Title -->
-            <Image Grid.Column="0"
-                   Source="beans_icon.png"
-                   HeightRequest="60"
-                   WidthRequest="60"
-                   Aspect="AspectFit"
-                   VerticalOptions="Center"/>
-            <Label Grid.Column="1"
-                   Text="Coffee Beans"
-                   FontSize="28"
-                   FontAttributes="Bold"
-                   HorizontalOptions="Start"
-                   VerticalOptions="Center"
-                   TextColor="{DynamicResource PrimaryColor}"
-                   Margin="16,0,0,0"/>
-            <!-- Action buttons and record count in the top right -->
-            <HorizontalStackLayout Grid.Column="2"
-                                   Spacing="10"
-                                   VerticalOptions="Center">
-                <ImageButton x:Name="AddBeanButton"
-                             Source="add_icon.png"
-                             Command="{Binding AddBeanCommand}"
-                             BackgroundColor="{DynamicResource PrimaryColor}"
-                             WidthRequest="50"
-                             HeightRequest="50"
-                             Padding="5"
-                             CornerRadius="25"/>
+    <Grid RowDefinitions="Auto,Auto,Auto,Auto,*" Padding="{StaticResource PagePadding}" RowSpacing="{StaticResource SpaceMd}">
+        <Grid Grid.Row="0" ColumnDefinitions="*,Auto,Auto,Auto" ColumnSpacing="{StaticResource SpaceSm}">
+            <VerticalStackLayout Grid.Column="0" Spacing="{StaticResource SpaceXs}" VerticalOptions="Center">
+                <Label Text="Beans"
+                       FontFamily="{StaticResource FontFamilyEmphasis}"
+                       FontSize="{StaticResource FontSizeHeadline}"
+                       TextColor="{DynamicResource PrimaryTextColor}" />
+                <Label Text="{Binding InventorySummary}" Style="{StaticResource CardMetaStyle}" />
+            </VerticalStackLayout>
 
-                <ImageButton x:Name="ImportButton"
-                             Source="import_icon.png"
-                             Command="{Binding NavigateToImportCommand}"
-                             BackgroundColor="{DynamicResource TertiaryColor}"
-                             WidthRequest="50"
-                             HeightRequest="50"
-                             Padding="5"
-                             CornerRadius="25"/>
-
-                <Border BackgroundColor="{DynamicResource PrimaryColor}"
-                        WidthRequest="50"
-                        HeightRequest="50"
-                        Stroke="{DynamicResource BorderColor}"
-                        StrokeThickness="0"
-                        StrokeShape="RoundRectangle 25">
-                    <Label x:Name="RecordCountLabel"
-                           Text="{Binding RecordCount}"
-                           FontSize="20"
-                           FontAttributes="Bold"
-                           TextColor="{DynamicResource ButtonTextColor}"
-                           HorizontalOptions="Center"
-                           VerticalOptions="Center"/>
-                </Border>
-            </HorizontalStackLayout>
+            <Grid Grid.Column="1">
+                <Button Style="{StaticResource IconButtonStyle}"
+                        Command="{Binding SearchCommand}"
+                        SemanticProperties.Description="Search beans" />
+                <controls:IconView Data="{StaticResource IconSearchData}" InputTransparent="True" HorizontalOptions="Center" VerticalOptions="Center" />
+            </Grid>
+            <Grid Grid.Column="2">
+                <Button Style="{StaticResource IconButtonStyle}"
+                        Command="{Binding NavigateToImportCommand}"
+                        SemanticProperties.Description="Import beans from CSV" />
+                <controls:IconView Data="{StaticResource IconImportData}" InputTransparent="True" HorizontalOptions="Center" VerticalOptions="Center" />
+            </Grid>
+            <Grid Grid.Column="3">
+                <Button Style="{StaticResource AccentIconButtonStyle}"
+                        Command="{Binding AddBeanCommand}"
+                        SemanticProperties.Description="Add bean" />
+                <controls:IconView Data="{StaticResource IconAddData}"
+                                   IconColor="{DynamicResource OnRoastColor}"
+                                   InputTransparent="True"
+                                   HorizontalOptions="Center"
+                                   VerticalOptions="Center" />
+            </Grid>
         </Grid>
 
         <SearchBar Grid.Row="1"
-                   Margin="20,0,20,0"
-                   Placeholder="Search beans"
-                   Text="{Binding SearchText}"
-                   SearchCommand="{Binding SearchCommand}" />
+                   Placeholder="Search name, origin, variety, process, or notes"
+                   Text="{Binding SearchText, Mode=TwoWay}"
+                   SearchCommand="{Binding SearchCommand}"
+                   BackgroundColor="{DynamicResource ElevatedSurfaceColor}"
+                   TextColor="{DynamicResource PrimaryTextColor}"
+                   PlaceholderColor="{DynamicResource SecondaryTextColor}"
+                   CancelButtonColor="{DynamicResource SecondaryTextColor}"
+                   MinimumHeightRequest="{StaticResource ControlHeightMin}" />
 
-        <!-- Content Area with CollectionView -->
-        <RefreshView x:Name="BeansRefreshView"
-                     Grid.Row="2"
-                     IsRefreshing="{Binding IsLoading}"
-                     Command="{Binding RefreshCommand}">
-            <!-- Direct child of RefreshView should be CollectionView -->
-            <CollectionView x:Name="BeansCollection"
-                            ItemsSource="{Binding Beans}"
-                            SelectionMode="None"
-                            Margin="20,10,20,10">
-                <CollectionView.ItemsLayout>
-                    <LinearItemsLayout Orientation="Vertical"
-                                       ItemSpacing="16"/>
-                </CollectionView.ItemsLayout>
-                <CollectionView.EmptyView>
-                    <StackLayout HorizontalOptions="Center"
-                                 VerticalOptions="Center">
-                        <Label Text="No beans in inventory"
-                               FontSize="18"
-                               TextColor="{DynamicResource TertiaryTextColor}"/>
-                        <Label Text="Click '+' to add new beans"
-                               FontSize="14"
-                               TextColor="{DynamicResource TertiaryTextColor}"/>
-                    </StackLayout>
-                </CollectionView.EmptyView>
-                <CollectionView.ItemTemplate>
-                    <DataTemplate x:DataType="models:BeanData">
-                        <SwipeView>
-                            <SwipeView.LeftItems>
-                                <SwipeItems>
-                                    <SwipeItem IconImageSource="delete_icon.png"
-                                               BackgroundColor="{DynamicResource SwipeDeleteColor}"
-                                               Command="{Binding Source={RelativeSource AncestorType={x:Type ContentPage}}, Path=BindingContext.DeleteBeanCommand}"
-                                               CommandParameter="{Binding .}"/>
-                                </SwipeItems>
-                            </SwipeView.LeftItems>
-                            <SwipeView.RightItems>
-                                <SwipeItems>
-                                    <SwipeItem IconImageSource="edit_icon.png"
-                                               BackgroundColor="{DynamicResource SwipeEditColor}"
-                                               Command="{Binding Source={RelativeSource AncestorType={x:Type ContentPage}}, Path=BindingContext.EditBeanCommand}"
-                                               CommandParameter="{Binding .}"/>
-                                </SwipeItems>
-                            </SwipeView.RightItems>
-                            <Border Margin="0,6"
-                                    Padding="16"
-                                    StrokeShape="RoundRectangle 12"
-                                    Stroke="{DynamicResource BorderColor}"
-                                    StrokeThickness="0.5"
-                                    BackgroundColor="{DynamicResource NeutralColor}"
-                                    Style="{StaticResource ItemCardStyle}">
-                                <Border.Shadow>
-                                    <Shadow Brush="{DynamicResource CardShadowColor}"
-                                            Offset="0,3"
-                                            Radius="6"
-                                            Opacity="0.2"/>
-                                </Border.Shadow>
-                                <Border.GestureRecognizers>
-                                    <TapGestureRecognizer
-                                        Command="{Binding Source={RelativeSource AncestorType={x:Type ContentPage}}, Path=BindingContext.ShowBeanActionsCommand}"
-                                        CommandParameter="{Binding .}"/>
-                                </Border.GestureRecognizers>
-                                <Grid RowDefinitions="Auto,Auto,Auto"
-                                      ColumnDefinitions="*,Auto">
-                                    <Label Grid.Row="0"
-                                           Grid.Column="0"
-                                           Text="{Binding DisplayName}"
-                                           FontSize="18"
-                                           FontAttributes="Bold"
-                                           TextColor="{DynamicResource PrimaryTextColor}"/>
-                                    <Label Grid.Row="0"
-                                           Grid.Column="1"
-                                           Text="{Binding PurchaseDate, StringFormat='{0:MM/dd/yyyy}'}"
-                                           FontSize="14"
-                                           TextColor="{DynamicResource ItemTimestampTextColor}"/>
+        <ScrollView Grid.Row="2" Orientation="Horizontal" HorizontalScrollBarVisibility="Never">
+            <HorizontalStackLayout Spacing="{StaticResource SpaceSm}">
+                <Button Text="All" Style="{StaticResource SecondaryActionStyle}" Command="{Binding SelectFilterCommand}" CommandParameter="{x:Static vm:BeanInventoryFilter.All}" />
+                <Button Text="Available" Style="{StaticResource SecondaryActionStyle}" Command="{Binding SelectFilterCommand}" CommandParameter="{x:Static vm:BeanInventoryFilter.Available}" />
+                <Button Text="Low" Style="{StaticResource SecondaryActionStyle}" Command="{Binding SelectFilterCommand}" CommandParameter="{x:Static vm:BeanInventoryFilter.Low}" />
+                <Button Text="Out of stock" Style="{StaticResource SecondaryActionStyle}" Command="{Binding SelectFilterCommand}" CommandParameter="{x:Static vm:BeanInventoryFilter.OutOfStock}" />
+            </HorizontalStackLayout>
+        </ScrollView>
 
-                                    <Label Grid.Row="1"
-                                           Grid.Column="0"
-                                           Grid.ColumnSpan="2"
-                                           Text="{Binding ProcessAndVarietyDisplay}"
-                                           TextColor="{DynamicResource PrimaryTextColor}"
-                                           FontSize="16"/>
+        <Border Grid.Row="3" Style="{StaticResource ErrorBannerStyle}" IsVisible="{Binding HasLoadError}">
+            <Grid ColumnDefinitions="*,Auto" ColumnSpacing="{StaticResource SpaceSm}">
+                <Label Text="{Binding LoadErrorMessage}" Style="{StaticResource ErrorBannerTextStyle}" VerticalOptions="Center" />
+                <Button Grid.Column="1" Text="Retry" Style="{StaticResource SecondaryActionStyle}" Command="{Binding RefreshCommand}" />
+            </Grid>
+        </Border>
 
-                                    <HorizontalStackLayout Grid.Row="2"
-                                                           Grid.Column="0"
-                                                           Grid.ColumnSpan="2"
-                                                           Spacing="15"
-                                                           Margin="0,5,0,0">
-                                        <Label Text="{Binding QuantityDisplay}"
-                                               FontSize="14"
-                                               TextColor="{DynamicResource ItemDetailTextColor}"/>
-                                        <Label Text="{Binding PriceDisplay}"
-                                               FontSize="14"
-                                               TextColor="{DynamicResource ItemDetailTextColor}"/>
-                                    </HorizontalStackLayout>
-                                </Grid>
+        <Grid x:Name="InventoryBody" Grid.Row="4" ColumnDefinitions="*,0" ColumnSpacing="{StaticResource SpaceLg}">
+            <Grid Grid.Column="0" RowDefinitions="Auto,*">
+                <Grid Grid.Row="0" ColumnDefinitions="*,Auto" Margin="0,0,0,8">
+                    <Label Text="INVENTORY" Style="{StaticResource SectionHeaderStyle}" />
+                    <Label Grid.Column="1" Text="{Binding FilterSummary}" Style="{StaticResource CardCaptionStyle}" />
+                </Grid>
+
+                <RefreshView Grid.Row="1" IsRefreshing="{Binding IsLoading}" Command="{Binding RefreshCommand}">
+                    <CollectionView ItemsSource="{Binding Beans}" SelectionMode="None">
+                        <CollectionView.ItemsLayout>
+                            <LinearItemsLayout Orientation="Vertical" ItemSpacing="12" />
+                        </CollectionView.ItemsLayout>
+                        <CollectionView.ItemTemplate>
+                            <DataTemplate x:DataType="models:BeanData">
+                                <SwipeView>
+                                    <SwipeView.LeftItems>
+                                        <SwipeItems Mode="Reveal">
+                                            <SwipeItem Text="Edit"
+                                                       BackgroundColor="{DynamicResource ElevatedSurfaceColor}"
+                                                       Command="{Binding Source={RelativeSource AncestorType={x:Type ContentPage}}, Path=BindingContext.EditBeanCommand}"
+                                                       CommandParameter="{Binding .}" />
+                                        </SwipeItems>
+                                    </SwipeView.LeftItems>
+                                    <SwipeView.RightItems>
+                                        <SwipeItems Mode="Reveal">
+                                            <SwipeItem Text="Delete"
+                                                       BackgroundColor="{DynamicResource DangerColor}"
+                                                       Command="{Binding Source={RelativeSource AncestorType={x:Type ContentPage}}, Path=BindingContext.DeleteBeanCommand}"
+                                                       CommandParameter="{Binding .}" />
+                                        </SwipeItems>
+                                    </SwipeView.RightItems>
+                                    <Border Style="{StaticResource CardStyle}">
+                                        <Border.GestureRecognizers>
+                                            <TapGestureRecognizer Command="{Binding Source={RelativeSource AncestorType={x:Type ContentPage}}, Path=BindingContext.OpenBeanCommand}"
+                                                                  CommandParameter="{Binding .}" />
+                                        </Border.GestureRecognizers>
+                                        <Grid ColumnDefinitions="*,Auto,Auto" ColumnSpacing="{StaticResource SpaceMd}">
+                                            <VerticalStackLayout Grid.Column="0" Spacing="{StaticResource SpaceXs}">
+                                                <Label Text="{Binding CoffeeName}" Style="{StaticResource CardTitleStyle}" LineBreakMode="WordWrap" />
+                                                <Label Text="{Binding Country}" Style="{StaticResource CardMetaStyle}" />
+                                                <Label Text="{Binding DetailMetadataDisplay}" Style="{StaticResource CardCaptionStyle}" LineBreakMode="WordWrap" />
+                                            </VerticalStackLayout>
+                                            <VerticalStackLayout Grid.Column="1" Spacing="{StaticResource SpaceXs}" HorizontalOptions="End">
+                                                <Label Text="{Binding RemainingQuantityDisplay}" Style="{StaticResource NumericValueStyle}" HorizontalTextAlignment="End" />
+                                                <Border Style="{StaticResource AttentionChipStyle}" IsVisible="{Binding IsLowStock}" HorizontalOptions="End">
+                                                    <Label Text="Low" Style="{StaticResource AttentionChipLabelStyle}" />
+                                                </Border>
+                                                <Border Style="{StaticResource StatusChipStyle}" IsVisible="{Binding IsOutOfStock}" HorizontalOptions="End">
+                                                    <Label Text="Out" Style="{StaticResource StatusChipLabelStyle}" />
+                                                </Border>
+                                            </VerticalStackLayout>
+                                            <Grid Grid.Column="2" VerticalOptions="Center">
+                                                <Button Style="{StaticResource IconButtonStyle}"
+                                                        Command="{Binding Source={RelativeSource AncestorType={x:Type ContentPage}}, Path=BindingContext.ShowBeanActionsCommand}"
+                                                        CommandParameter="{Binding .}"
+                                                        SemanticProperties.Description="Bean actions" />
+                                                <controls:IconView Data="{StaticResource IconMoreData}" InputTransparent="True" HorizontalOptions="Center" VerticalOptions="Center" />
+                                            </Grid>
+                                        </Grid>
+                                    </Border>
+                                </SwipeView>
+                            </DataTemplate>
+                        </CollectionView.ItemTemplate>
+                    </CollectionView>
+                </RefreshView>
+
+                <VerticalStackLayout Grid.Row="1" Style="{StaticResource EmptyStateStyle}" IsVisible="{Binding IsEmptyInventory}">
+                    <Label Text="No beans yet" Style="{StaticResource EmptyStateTitleStyle}" />
+                    <Label Text="Add your first green coffee to begin tracking inventory." Style="{StaticResource EmptyStateBodyStyle}" />
+                    <Button Text="ADD YOUR FIRST BEAN" Style="{StaticResource PrimaryActionStyle}" Command="{Binding AddBeanCommand}" />
+                </VerticalStackLayout>
+                <VerticalStackLayout Grid.Row="1" Style="{StaticResource EmptyStateStyle}" IsVisible="{Binding IsSearchNoResults}">
+                    <Label Text="No beans match your search" Style="{StaticResource EmptyStateTitleStyle}" />
+                    <Label Text="Try another name, origin, variety, process, or note." Style="{StaticResource EmptyStateBodyStyle}" />
+                    <Button Text="CLEAR SEARCH" Style="{StaticResource SecondaryActionStyle}" Command="{Binding ClearSearchCommand}" />
+                </VerticalStackLayout>
+                <VerticalStackLayout Grid.Row="1" Style="{StaticResource EmptyStateStyle}" IsVisible="{Binding IsFilterNoResults}">
+                    <Label Text="No beans in this state" Style="{StaticResource EmptyStateTitleStyle}" />
+                    <Label Text="Choose All to return to the full inventory." Style="{StaticResource EmptyStateBodyStyle}" />
+                    <Button Text="SHOW ALL" Style="{StaticResource SecondaryActionStyle}" Command="{Binding SelectFilterCommand}" CommandParameter="{x:Static vm:BeanInventoryFilter.All}" />
+                </VerticalStackLayout>
+            </Grid>
+
+            <Border x:Name="DetailPane" Grid.Column="1" Style="{StaticResource RaisedCardStyle}" IsVisible="False">
+                <ScrollView>
+                    <VerticalStackLayout Spacing="{StaticResource SpaceLg}">
+                        <VerticalStackLayout Style="{StaticResource EmptyStateStyle}" IsVisible="{Binding HasNoSelectedBean}">
+                            <Label Text="Select a bean" Style="{StaticResource EmptyStateTitleStyle}" />
+                            <Label Text="Inventory facts and recent roast results appear here." Style="{StaticResource EmptyStateBodyStyle}" />
+                        </VerticalStackLayout>
+                        <VerticalStackLayout IsVisible="{Binding HasSelectedBean}" Spacing="{StaticResource SpaceMd}">
+                            <Label Text="{Binding SelectedBean.CoffeeName}" Style="{StaticResource CardTitleStyle}" FontSize="{StaticResource FontSizeHeadline}" LineBreakMode="WordWrap" />
+                            <Label Text="{Binding SelectedBean.Country}" Style="{StaticResource CardMetaStyle}" />
+                            <Label Text="{Binding SelectedBean.DetailMetadataDisplay}" Style="{StaticResource CardCaptionStyle}" LineBreakMode="WordWrap" />
+                            <Label Text="{Binding SelectedBean.RemainingQuantityDisplay}" Style="{StaticResource NumericValueStyle}" />
+                            <Label Text="LATEST COMPLETE ROAST" Style="{StaticResource SectionHeaderStyle}" />
+                            <Border Style="{StaticResource CardStyle}" IsVisible="{Binding HasSelectedLatestCompletedRoast}">
+                                <VerticalStackLayout>
+                                    <Label Text="{Binding SelectedLatestCompletedRoast.ResultHeadline}" Style="{StaticResource CardTitleStyle}" />
+                                    <Label Text="{Binding SelectedLatestCompletedRoast.ResultMetrics}" Style="{StaticResource CardMetaStyle}" LineBreakMode="WordWrap" />
+                                </VerticalStackLayout>
                             </Border>
-                        </SwipeView>
-                    </DataTemplate>
-                </CollectionView.ItemTemplate>
-            </CollectionView>
-        </RefreshView>
+                            <Button Text="START ROAST" Style="{StaticResource PrimaryActionStyle}" Command="{Binding StartSelectedRoastCommand}" IsEnabled="{Binding SelectedBean.IsAvailable}" />
+                            <Button Text="OPEN FULL DETAILS" Style="{StaticResource SecondaryActionStyle}" Command="{Binding OpenSelectedDetailCommand}" />
+                        </VerticalStackLayout>
+                    </VerticalStackLayout>
+                </ScrollView>
+            </Border>
+        </Grid>
     </Grid>
 </ContentPage>
