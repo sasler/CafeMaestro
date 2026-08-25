@@ -22,6 +22,12 @@ public sealed record RoastChannelPresentation
     public required bool IsReady { get; init; }
 }
 
+/// <summary>
+/// The exact user-visible instant captured when Drop is pressed. A persistence retry reuses
+/// both values so waiting on the error screen cannot extend the roast or move its cooling anchor.
+/// </summary>
+public sealed record DropProposal(DateTimeOffset DroppedAtUtc, double ElapsedSeconds);
+
 public sealed record BatchChoiceOutcome(BatchChoice? Choice)
 {
     public static readonly BatchChoiceOutcome Cancelled = new((BatchChoice?)null);

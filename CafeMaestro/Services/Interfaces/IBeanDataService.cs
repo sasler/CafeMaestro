@@ -16,7 +16,7 @@ public interface IBeanDataService
     /// Adjusts remaining quantity in kilograms for inventory corrections.
     /// </summary>
     /// <remarks>
-    /// Roasting no longer decrements here: <see cref="IRoastSessionService.DropAsync"/> moves
+    /// Roasting no longer decrements here: <see cref="IRoastSessionService.DropAsync(DropProposal, CancellationToken)"/> moves
     /// inventory inside the same atomic mutation that appends the roast, so a failed write can
     /// never leave beans consumed without a matching log entry.
     /// </remarks>

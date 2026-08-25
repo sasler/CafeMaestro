@@ -39,6 +39,11 @@ public interface IRoastSessionService
         DateTimeOffset? correctedDropUtc = null,
         CancellationToken cancellationToken = default);
 
+    /// <summary>Commits a previously captured Drop proposal without projecting time again.</summary>
+    Task<TransitionResult> DropAsync(
+        DropProposal proposal,
+        CancellationToken cancellationToken = default);
+
     Task<TransitionResult> CorrectDropAsync(
         Guid roastId,
         DateTimeOffset correctedDropUtc,

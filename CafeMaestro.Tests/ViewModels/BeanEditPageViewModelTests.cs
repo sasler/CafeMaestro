@@ -58,12 +58,8 @@ public class BeanEditPageViewModelTests
         navigationService.Setup(service => service.GoBackAsync()).Returns(Task.CompletedTask);
 
         var alerts = new List<string>();
-        var viewModel = CreateViewModel(beanService: beanService, navigationService: navigationService);
-        viewModel.AlertAsync = (title, message, cancel) =>
-        {
-            alerts.Add($"{title}:{message}");
-            return Task.CompletedTask;
-        };
+        var alertService = CreateAlertService(alerts);
+        var viewModel = CreateViewModel(beanService: beanService, navigationService: navigationService, alertService: alertService);
 
         viewModel.ApplyQueryAttributes(new Dictionary<string, object> { ["IsNewBean"] = true });
         await viewModel.OnAppearingAsync();
@@ -100,12 +96,7 @@ public class BeanEditPageViewModelTests
     {
         var beanService = new Mock<IBeanDataService>();
         var alerts = new List<string>();
-        var viewModel = CreateViewModel(beanService: beanService);
-        viewModel.AlertAsync = (title, message, cancel) =>
-        {
-            alerts.Add($"{title}:{message}");
-            return Task.CompletedTask;
-        };
+        var viewModel = CreateViewModel(beanService: beanService, alertService: CreateAlertService(alerts));
 
         viewModel.CoffeeName = string.Empty;
         viewModel.Country = "Colombia";
@@ -140,11 +131,27 @@ public class BeanEditPageViewModelTests
 
     private static BeanEditPageViewModel CreateViewModel(
         Mock<IBeanDataService>? beanService = null,
-        Mock<INavigationService>? navigationService = null)
+        Mock<INavigationService>? navigationService = null,
+        Mock<IAlertService>? alertService = null)
     {
         beanService ??= new Mock<IBeanDataService>();
         navigationService ??= new Mock<INavigationService>();
+        if (alertService is null)
+        {
+            alertService = new Mock<IAlertService>();
+            alertService.Setup(service => service.ShowAlertAsync(It.IsAny<string>(), It.IsAny<string>(), It.IsAny<string>()))
+                .Returns(Task.CompletedTask);
+        }
         navigationService.Setup(service => service.GoBackAsync()).Returns(Task.CompletedTask);
-        return new BeanEditPageViewModel(beanService.Object, navigationService.Object);
+        return new BeanEditPageViewModel(beanService.Object, navigationService.Object, alertService.Object);
+    }
+
+    private static Mock<IAlertService> CreateAlertService(List<string> alerts)
+    {
+        Mock<IAlertService> alertService = new();
+        alertService.Setup(service => service.ShowAlertAsync(It.IsAny<string>(), It.IsAny<string>(), It.IsAny<string>()))
+            .Callback<string, string, string>((title, message, _) => alerts.Add($"{title}:{message}"))
+            .Returns(Task.CompletedTask);
+        return alertService;
     }
 }

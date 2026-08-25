@@ -10,6 +10,7 @@ public partial class BeanEditPageViewModel : ObservableObject, IQueryAttributabl
 {
     private readonly IBeanDataService _beanService;
     private readonly INavigationService _navigationService;
+    private readonly IAlertService _alertService;
     private Guid _beanId = Guid.Empty;
     private bool _isNewBean = true;
 
@@ -49,13 +50,15 @@ public partial class BeanEditPageViewModel : ObservableObject, IQueryAttributabl
     [ObservableProperty]
     public partial string PageHeading { get; set; } = "Add New Bean";
 
-    public BeanEditPageViewModel(IBeanDataService beanService, INavigationService navigationService)
+    public BeanEditPageViewModel(
+        IBeanDataService beanService,
+        INavigationService navigationService,
+        IAlertService alertService)
     {
         _beanService = beanService ?? throw new ArgumentNullException(nameof(beanService));
         _navigationService = navigationService ?? throw new ArgumentNullException(nameof(navigationService));
+        _alertService = alertService ?? throw new ArgumentNullException(nameof(alertService));
     }
-
-    public Func<string, string, string, Task>? AlertAsync { get; set; }
 
     public Task InitializationTask { get; private set; } = Task.CompletedTask;
 
@@ -253,6 +256,6 @@ public partial class BeanEditPageViewModel : ObservableObject, IQueryAttributabl
 
     private Task ShowAlertAsync(string title, string message, string cancel)
     {
-        return AlertAsync?.Invoke(title, message, cancel) ?? Task.CompletedTask;
+        return _alertService.ShowAlertAsync(title, message, cancel);
     }
 }

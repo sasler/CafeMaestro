@@ -7,6 +7,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased] - Complete Architecture Refactor
 ### Added
+- Responsive Beans inventory with in-memory search, availability filters, quantity-first low/out-of-stock states, cached-row retry behavior, and a 600 dp list/detail layout
+- Bean detail with inventory facts, the newest completed roast, recent incomplete work, stable-identity Edit/Delete actions, and Start Roast navigation into the prefilled confirmation flow
+- Grouped Add/Edit Bean cards for identity, details, inventory, and notes using the shared Direction B visual system
 - Direction B Roast Console vertical slice with three-field prefilled setup, previous completed-result reference, persisted elapsed sweep, Pause/Resume, one-tap Drop, cooling handoff, and back-to-back Batch 2 setup
 - Typed Setup, Active, Handoff, Recovery, and Persistence Error roast views plus MVVM popup flows for explicit batch selection, 0.1 g weigh-in, discard, navigation confirmation, reset, and time correction
 - Five-minute cooling channels that become Ready to weigh without negative countdowns, with first-drop Batch 2 and second-drop Batch 1 action priority
@@ -63,6 +66,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changed
 - Version bumped to 1.7.0
+- Bean-to-roast setup now passes a stable `BeanId` and performs final carry-forward lookup through `IRoastQueryService`, so renames never break historical linkage
 - The Roast page now consumes immutable `IRoastSessionService` snapshots instead of owning timer or persistence truth; final weight is captured only through focused weigh-in after cooling
 - Version bumped to 1.5.0
 - Legacy roast records now preserve display snapshots, link exact unique beans, and distinguish completed from awaiting-weight results during migration

@@ -29,7 +29,8 @@ public partial class ActiveRoastView : ContentView
         {
             TrackColor = ResourceColor("BorderColor"),
             RoastColor = ResourceColor("RoastColor"),
-            PausedColor = ResourceColor("MutedTextColor")
+            PausedColor = ResourceColor("MutedTextColor"),
+            CoolingColor = ResourceColor("CoolingColor")
         };
         Instrument.Drawable = _drawable;
         Subscribe();

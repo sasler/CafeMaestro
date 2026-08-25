@@ -2,14 +2,16 @@ using System.Collections.ObjectModel;
 using System.Globalization;
 using CafeMaestro.Drawing;
 using CafeMaestro.Models;
+using CafeMaestro.Navigation;
 using CafeMaestro.Services;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
 using Microsoft.Maui.ApplicationModel;
+using Microsoft.Maui.Controls;
 
 namespace CafeMaestro.ViewModels;
 
-public partial class RoastPageViewModel : ObservableObject
+public partial class RoastPageViewModel : ObservableObject, IQueryAttributable
 {
     private readonly IRoastSessionService _sessionService;
     private readonly IRoastQueryService _queryService;
@@ -17,6 +19,8 @@ public partial class RoastPageViewModel : ObservableObject
     private readonly IOverlayService _overlayService;
     private readonly IDisplayWakeService _displayWakeService;
     private readonly IRoastRecoveryAdapter _recoveryAdapter;
+    private readonly INavigationService _navigationService;
+    private readonly IAlertService _alertService;
     private readonly IClock _clock;
 
     private RoastSessionSnapshot? _snapshot;
@@ -24,7 +28,10 @@ public partial class RoastPageViewModel : ObservableObject
     private double _elapsedAtSnapshot;
     private DateTimeOffset _snapshotAtUtc;
     private bool _subscribed;
+    private bool _suppressBeanSelectionChanged;
+    private Guid _requestedBeanId;
     private Func<Task>? _retryAction;
+    private DropProposal? _pendingDropProposal;
 
     [ObservableProperty]
     public partial RoastPresentationState PresentationState { get; set; } = RoastPresentationState.Setup;
@@ -70,6 +77,9 @@ public partial class RoastPageViewModel : ObservableObject
 
     [ObservableProperty]
     public partial string ElapsedDisplay { get; set; } = "00:00";
+
+    [ObservableProperty]
+    public partial string ActiveTimerSemanticDescription { get; set; } = "Roasting, 0 seconds";
 
     [ObservableProperty]
     public partial double ElapsedSweep { get; set; }
@@ -134,6 +144,7 @@ public partial class RoastPageViewModel : ObservableObject
     public string PauseResumeText => IsPaused ? "RESUME" : "PAUSE";
     public string ActiveStateLabel => IsPaused ? "PAUSED" : "ROASTING";
     public bool HasInventoryWarning => !string.IsNullOrWhiteSpace(InventoryWarning);
+    public bool HasChannels => Channels.Count > 0;
     public bool CanMarkFirstCrack => IsFirstCrackVisible;
     public bool CanKeepRoastingAfterRecovery => !RecoveryRequiresCorrectedTime;
 
@@ -144,6 +155,8 @@ public partial class RoastPageViewModel : ObservableObject
         IOverlayService overlayService,
         IDisplayWakeService displayWakeService,
         IRoastRecoveryAdapter recoveryAdapter,
+        INavigationService navigationService,
+        IAlertService alertService,
         IClock clock)
     {
         _sessionService = sessionService ?? throw new ArgumentNullException(nameof(sessionService));
@@ -152,6 +165,8 @@ public partial class RoastPageViewModel : ObservableObject
         _overlayService = overlayService ?? throw new ArgumentNullException(nameof(overlayService));
         _displayWakeService = displayWakeService ?? throw new ArgumentNullException(nameof(displayWakeService));
         _recoveryAdapter = recoveryAdapter ?? throw new ArgumentNullException(nameof(recoveryAdapter));
+        _navigationService = navigationService ?? throw new ArgumentNullException(nameof(navigationService));
+        _alertService = alertService ?? throw new ArgumentNullException(nameof(alertService));
         _clock = clock ?? throw new ArgumentNullException(nameof(clock));
     }
 
@@ -168,7 +183,10 @@ public partial class RoastPageViewModel : ObservableObject
     {
         OnPropertyChanged(nameof(CanStart));
         StartCommand.NotifyCanExecuteChanged();
-        _ = SelectBeanAsync(value);
+        if (!_suppressBeanSelectionChanged)
+        {
+            _ = SelectBeanAsync(value);
+        }
     }
 
     partial void OnTemperatureTextChanged(string value)
@@ -187,6 +205,9 @@ public partial class RoastPageViewModel : ObservableObject
     }
 
     partial void OnInventoryWarningChanged(string value) => OnPropertyChanged(nameof(HasInventoryWarning));
+
+    partial void OnChannelsChanged(ObservableCollection<RoastChannelPresentation> value) =>
+        OnPropertyChanged(nameof(HasChannels));
 
     partial void OnIsFirstCrackVisibleChanged(bool value)
     {
@@ -207,12 +228,27 @@ public partial class RoastPageViewModel : ObservableObject
     {
         OnPropertyChanged(nameof(PauseResumeText));
         OnPropertyChanged(nameof(ActiveStateLabel));
+        UpdateActiveTimerSemantic(CurrentElapsedSeconds());
+    }
+
+    public void ApplyQueryAttributes(IDictionary<string, object> query)
+    {
+        if (query.TryGetValue("BeanId", out object? beanIdValue) &&
+            Guid.TryParse(beanIdValue?.ToString(), out Guid beanId) && beanId != Guid.Empty)
+        {
+            _requestedBeanId = beanId;
+        }
     }
 
     public async Task OnAppearingAsync()
     {
         Subscribe();
         await LoadBeansAsync();
+        if (_requestedBeanId != Guid.Empty)
+        {
+            await SelectRequestedBeanAsync(_requestedBeanId);
+            _requestedBeanId = Guid.Empty;
+        }
         await RefreshAsync();
     }
 
@@ -220,6 +256,24 @@ public partial class RoastPageViewModel : ObservableObject
     {
         Unsubscribe();
         await _displayWakeService.SetKeepScreenOnAsync(false);
+    }
+
+    public Task OnWindowStoppedAsync() => _displayWakeService.SetKeepScreenOnAsync(false);
+
+    public async Task OnWindowResumedAsync()
+    {
+        RoastSessionSnapshot snapshot = await _sessionService.GetSnapshotAsync();
+        if (PresentationState == RoastPresentationState.PersistenceError && _retryAction is not null)
+        {
+            _snapshot = snapshot;
+            _activeRoast = snapshot.ActiveRoast;
+            _snapshotAtUtc = snapshot.AsOfUtc;
+            _elapsedAtSnapshot = snapshot.ActiveRoast?.ElapsedSeconds ?? 0;
+            await _displayWakeService.SetKeepScreenOnAsync(false);
+            return;
+        }
+
+        await ApplySnapshotAsync(snapshot);
     }
 
     [RelayCommand]
@@ -346,8 +400,8 @@ public partial class RoastPageViewModel : ObservableObject
     [RelayCommand]
     public async Task DropAsync()
     {
-        TransitionResult result = await _sessionService.DropAsync();
-        await HandleTransitionAsync(result, DropAsync);
+        _pendingDropProposal ??= new DropProposal(_clock.UtcNow, CurrentElapsedSeconds());
+        await CommitDropProposalAsync(_pendingDropProposal);
     }
 
     [RelayCommand]
@@ -358,8 +412,8 @@ public partial class RoastPageViewModel : ObservableObject
             return;
         }
 
-        RoastWorkItem? readyOldest = _snapshot.OpenWork
-            .Where(item => item.IsReadyToWeigh)
+        RoastWorkItem? readyOldest = CurrentSessionWork()
+            .Where(IsReadyNow)
             .OrderBy(item => item.BatchNumber ?? int.MaxValue)
             .FirstOrDefault();
         if (_snapshot.NextBatchNumber >= 3 && readyOldest is not null)
@@ -383,7 +437,7 @@ public partial class RoastPageViewModel : ObservableObject
     [RelayCommand]
     public async Task AdjustDropTimeAsync()
     {
-        RoastWorkItem? newest = _snapshot?.OpenWork
+        RoastWorkItem? newest = CurrentSessionWork()
             .OrderByDescending(item => item.BatchNumber ?? 0)
             .FirstOrDefault();
         if (newest is null)
@@ -418,9 +472,8 @@ public partial class RoastPageViewModel : ObservableObject
             return;
         }
 
-        RoastWorkItem? item = _snapshot.OpenWork.FirstOrDefault(work => work.RoastId == channel.RoastId);
-        if (item is not null &&
-            (item.IsReadyToWeigh || item.ReadyToWeighAtUtc <= _clock.UtcNow))
+        RoastWorkItem? item = CurrentSessionWork().FirstOrDefault(work => work.RoastId == channel.RoastId);
+        if (item is not null && IsReadyNow(item))
         {
             await ShowWeighInAsync(item);
         }
@@ -433,6 +486,19 @@ public partial class RoastPageViewModel : ObservableObject
         {
             await _retryAction();
         }
+    }
+
+    [RelayCommand]
+    public async Task OpenDataSettingsAsync()
+    {
+        if (PresentationState != RoastPresentationState.PersistenceError)
+        {
+            return;
+        }
+
+        await _navigationService.GoToAsync(Routes.Settings);
+        _pendingDropProposal = null;
+        _retryAction = null;
     }
 
     [RelayCommand]
@@ -470,6 +536,10 @@ public partial class RoastPageViewModel : ObservableObject
         if (_activeRoast is null || PresentationState != RoastPresentationState.Active)
         {
             UpdateChannels();
+            if (PresentationState == RoastPresentationState.Handoff)
+            {
+                UpdateHandoffActions();
+            }
             return;
         }
 
@@ -492,6 +562,11 @@ public partial class RoastPageViewModel : ObservableObject
 
     public async Task<bool> HandleBackNavigationAsync()
     {
+        if (PresentationState == RoastPresentationState.PersistenceError)
+        {
+            return true;
+        }
+
         if (PresentationState is not RoastPresentationState.Active and not RoastPresentationState.Recovery)
         {
             return false;
@@ -499,6 +574,7 @@ public partial class RoastPageViewModel : ObservableObject
 
         if (PresentationState == RoastPresentationState.Recovery)
         {
+            await ConfirmAndDiscardAsync();
             return true;
         }
 
@@ -508,16 +584,18 @@ public partial class RoastPageViewModel : ObservableObject
             return true;
         }
 
-        await DiscardAsync();
+        await ConfirmAndDiscardAsync();
         return true;
     }
 
     [RelayCommand]
-    private async Task DiscardAsync()
+    public async Task DiscardRecoveryAsync() => await ConfirmAndDiscardAsync();
+
+    private async Task<bool> ConfirmAndDiscardAsync()
     {
         if (_activeRoast is null)
         {
-            return;
+            return false;
         }
 
         DiscardOutcome outcome = await _overlayService.ShowDiscardAsync(new DiscardRequest
@@ -528,18 +606,43 @@ public partial class RoastPageViewModel : ObservableObject
         });
         if (!outcome.ShouldDiscard)
         {
-            return;
+            return false;
         }
 
-        await HandleTransitionAsync(
-            await _sessionService.DiscardAsync(outcome.BeansWereUsed, outcome.KeepLog),
-            DiscardAsync);
+        TransitionResult result = await _sessionService.DiscardAsync(outcome.BeansWereUsed, outcome.KeepLog);
+        await HandleTransitionAsync(result, ConfirmAndDiscardRetryAsync);
+        return result.Success;
     }
+
+    private async Task ConfirmAndDiscardRetryAsync() => await ConfirmAndDiscardAsync();
 
     private async Task LoadBeansAsync()
     {
         IReadOnlyList<BeanData> beans = await _beanService.GetSortedAvailableBeansAsync();
         AvailableBeans = new ObservableCollection<BeanData>(beans);
+    }
+
+    private async Task SelectRequestedBeanAsync(Guid beanId)
+    {
+        BeanData? bean = AvailableBeans.FirstOrDefault(candidate => candidate.Id == beanId)
+            ?? await _beanService.GetBeanByIdAsync(beanId);
+        if (bean is null)
+        {
+            _suppressBeanSelectionChanged = true;
+            SelectedBean = null;
+            _suppressBeanSelectionChanged = false;
+            await _alertService.ShowAlertAsync(
+                "Bean unavailable",
+                "The selected bean is no longer in inventory.",
+                "OK");
+            return;
+        }
+
+        EnsureBeanAvailable(bean);
+        _suppressBeanSelectionChanged = true;
+        SelectedBean = bean;
+        _suppressBeanSelectionChanged = false;
+        await SelectBeanAsync(bean);
     }
 
     private async Task ApplySnapshotAsync(RoastSessionSnapshot snapshot)
@@ -549,6 +652,7 @@ public partial class RoastPageViewModel : ObservableObject
         _snapshotAtUtc = snapshot.AsOfUtc;
         _elapsedAtSnapshot = snapshot.ActiveRoast?.ElapsedSeconds ?? 0;
         _retryAction = null;
+        _pendingDropProposal = null;
         ErrorMessage = string.Empty;
 
         if (snapshot.RequiresRecovery && snapshot.ActiveRoast is not null)
@@ -566,7 +670,7 @@ public partial class RoastPageViewModel : ObservableObject
         }
 
         await _displayWakeService.SetKeepScreenOnAsync(false);
-        if (snapshot.HasSession && snapshot.OpenWork.Count > 0)
+        if (snapshot.HasSession && CurrentSessionWork().Count > 0)
         {
             ApplyHandoff(snapshot);
         }
@@ -600,11 +704,21 @@ public partial class RoastPageViewModel : ObservableObject
     {
         PresentationState = RoastPresentationState.Handoff;
         UpdateChannels();
-        RoastWorkItem? readyOldest = snapshot.OpenWork
-            .Where(item => item.IsReadyToWeigh)
+        UpdateHandoffActions();
+    }
+
+    private void UpdateHandoffActions()
+    {
+        if (_snapshot is null)
+        {
+            return;
+        }
+
+        RoastWorkItem? readyOldest = CurrentSessionWork()
+            .Where(IsReadyNow)
             .OrderBy(item => item.BatchNumber ?? int.MaxValue)
             .FirstOrDefault();
-        if (snapshot.NextBatchNumber == 2)
+        if (_snapshot.NextBatchNumber == 2)
         {
             PrimaryActionText = "SET UP BATCH 2";
             SecondaryActionText = "DONE FOR NOW";
@@ -617,7 +731,7 @@ public partial class RoastPageViewModel : ObservableObject
         else
         {
             PrimaryActionText = "FINISH SESSION";
-            SecondaryActionText = "SET UP ANOTHER BATCH";
+            SecondaryActionText = "DONE FOR NOW";
         }
     }
 
@@ -643,10 +757,10 @@ public partial class RoastPageViewModel : ObservableObject
         }
 
         var channels = new ObservableCollection<RoastChannelPresentation>();
-        foreach (RoastWorkItem item in _snapshot.OpenWork.OrderBy(work => work.BatchNumber ?? int.MaxValue))
+        foreach (RoastWorkItem item in CurrentSessionWork().OrderBy(work => work.BatchNumber ?? int.MaxValue))
         {
             double remaining = Math.Max(0, (item.ReadyToWeighAtUtc - _clock.UtcNow).TotalSeconds);
-            bool ready = item.Status == RoastEffectiveStatus.NeedsWeight || remaining <= 0;
+            bool ready = IsReadyNow(item);
             channels.Add(new RoastChannelPresentation
             {
                 RoastId = item.RoastId,
@@ -681,28 +795,33 @@ public partial class RoastPageViewModel : ObservableObject
             return;
         }
 
-        BeanData? bean = AvailableBeans.FirstOrDefault(candidate => candidate.Id == beanId);
+        BeanData? bean = AvailableBeans.FirstOrDefault(candidate => candidate.Id == beanId)
+            ?? await _beanService.GetBeanByIdAsync(beanId);
         if (bean is null)
         {
             PresentationState = RoastPresentationState.Setup;
             return;
         }
 
+        EnsureBeanAvailable(bean);
+
         IReadOnlyList<RoastData> roasts = await _queryService.GetRoastsForBeanAsync(beanId);
         RoastData? dropped = roasts.FirstOrDefault(roast => roast.Id == source.RoastId);
         RoastSetupSuggestion suggestion = await _queryService.GetSetupSuggestionAsync(beanId);
+        _suppressBeanSelectionChanged = true;
         SelectedBean = bean;
+        _suppressBeanSelectionChanged = false;
         TemperatureText = (dropped?.Temperature ?? suggestion.Temperature)
             ?.ToString("0.#", CultureInfo.CurrentCulture) ?? string.Empty;
         BatchWeightText = source.BatchWeight.ToString("0.#", CultureInfo.CurrentCulture);
         ApplyPreviousResult(suggestion);
+        UpdateInventoryWarning();
         PresentationState = RoastPresentationState.Setup;
     }
 
     private async Task ShowWeighInAsync(RoastWorkItem item)
     {
-        IReadOnlyList<RoastWorkItem> ready = _snapshot?.OpenWork.Where(work =>
-            work.IsReadyToWeigh || work.ReadyToWeighAtUtc <= _clock.UtcNow).ToList() ?? [];
+        IReadOnlyList<RoastWorkItem> ready = CurrentSessionWork().Where(IsReadyNow).ToList();
         RoastWorkItem selected = item;
         if (ready.Count > 1)
         {
@@ -740,6 +859,12 @@ public partial class RoastPageViewModel : ObservableObject
         }
 
         await HandleTransitionAsync(await _sessionService.FinishSessionAsync(), FinishSessionAsync);
+    }
+
+    private async Task CommitDropProposalAsync(DropProposal proposal)
+    {
+        TransitionResult result = await _sessionService.DropAsync(proposal);
+        await HandleTransitionAsync(result, () => CommitDropProposalAsync(proposal));
     }
 
     private async Task HandleTransitionAsync(TransitionResult result, Func<Task> retryAction)
@@ -831,6 +956,21 @@ public partial class RoastPageViewModel : ObservableObject
         double safe = double.IsFinite(elapsed) ? Math.Max(0, elapsed) : 0;
         ElapsedDisplay = FormatElapsed(safe);
         ElapsedSweep = RoastInstrumentGeometry.ElapsedSweep(safe);
+        UpdateActiveTimerSemantic(safe);
+    }
+
+    private void UpdateActiveTimerSemantic(double seconds)
+    {
+        int wholeSeconds = Math.Max(0, (int)Math.Floor(double.IsFinite(seconds) ? seconds : 0));
+        int minutes = wholeSeconds / 60;
+        int remainingSeconds = wholeSeconds % 60;
+        string duration = minutes switch
+        {
+            > 0 when remainingSeconds > 0 => $"{minutes} {(minutes == 1 ? "minute" : "minutes")} {remainingSeconds} {(remainingSeconds == 1 ? "second" : "seconds")}",
+            > 0 => $"{minutes} {(minutes == 1 ? "minute" : "minutes")}",
+            _ => $"{remainingSeconds} {(remainingSeconds == 1 ? "second" : "seconds")}"
+        };
+        ActiveTimerSemanticDescription = $"{(IsPaused ? "Paused" : "Roasting")}, {duration}";
     }
 
     private double CurrentElapsedSeconds()
@@ -893,6 +1033,25 @@ public partial class RoastPageViewModel : ObservableObject
         TotalSeconds = item.TotalSeconds
     };
 
+    private IReadOnlyList<RoastWorkItem> CurrentSessionWork()
+    {
+        Guid? sessionId = _snapshot?.SessionId ?? _activeRoast?.SessionId;
+        return sessionId is Guid current
+            ? _snapshot?.OpenWork.Where(item => item.SessionId == current).ToList() ?? []
+            : [];
+    }
+
+    private bool IsReadyNow(RoastWorkItem item) =>
+        item.IsReadyToWeigh || item.ReadyToWeighAtUtc <= _clock.UtcNow;
+
+    private void EnsureBeanAvailable(BeanData bean)
+    {
+        if (AvailableBeans.All(candidate => candidate.Id != bean.Id))
+        {
+            AvailableBeans.Add(bean);
+        }
+    }
+
     private static bool TryParseNumber(string? text, out double value) =>
         double.TryParse(text, NumberStyles.Number, CultureInfo.CurrentCulture, out value) ||
         double.TryParse(text, NumberStyles.Number, CultureInfo.InvariantCulture, out value);
@@ -930,6 +1089,11 @@ public partial class RoastPageViewModel : ObservableObject
 
     private void OnSnapshotChanged(object? sender, RoastSessionSnapshot snapshot)
     {
+        if (PresentationState == RoastPresentationState.PersistenceError && _retryAction is not null)
+        {
+            return;
+        }
+
         MainThread.BeginInvokeOnMainThread(async () => await ApplySnapshotAsync(snapshot));
     }
 }

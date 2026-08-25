@@ -27,6 +27,8 @@
                 </Border>
                 <Button Text="RECORD DROP" Command="{Binding RecordRecoveryEndCommand}"
                         Style="{StaticResource SecondaryActionStyle}" />
+                <Button Text="DISCARD BATCH" Command="{Binding DiscardRecoveryCommand}"
+                        Style="{StaticResource DestructiveActionStyle}" />
                 <Label Text="{Binding ErrorMessage}" Style="{StaticResource FieldErrorStyle}" />
             </VerticalStackLayout>
         </Border>

@@ -70,6 +70,18 @@ namespace CafeMaestro.Models
             : $"Pending roast of {BeanType} at {Temperature}°C for {FormattedTime}";
 
         [JsonIgnore]
+        public string ResultHeadline => HasFinalWeight
+            ? $"{RoastLevelName} · {WeightLossPercentage:F1}% loss"
+            : CompletionStatus == RoastCompletionStatus.Unweighed
+                ? "Unweighed"
+                : "Needs final weight";
+
+        [JsonIgnore]
+        public string ResultMetrics => HasFinalWeight
+            ? $"{Temperature:0} °C · {BatchWeight:0.#} → {FinalWeight:0.#} g · {FormattedTime}"
+            : $"{Temperature:0} °C · {BatchWeight:0.#} g in · {FormattedTime}";
+
+        [JsonIgnore]
         public bool IsValid => !Validate().Any();
 
         public List<string> Validate()

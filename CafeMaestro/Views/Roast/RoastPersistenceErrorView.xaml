@@ -14,6 +14,8 @@
                 <Label Text="Your bean, elapsed time, and captured drop remain available for Retry."
                        Style="{StaticResource CardMetaStyle}" />
                 <Button Text="RETRY" Command="{Binding RetryCommand}" Style="{StaticResource PrimaryActionStyle}" />
+                <Button Text="OPEN DATA SETTINGS" Command="{Binding OpenDataSettingsCommand}"
+                        Style="{StaticResource SecondaryActionStyle}" />
             </VerticalStackLayout>
         </Border>
     </Grid>

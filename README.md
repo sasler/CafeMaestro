@@ -14,7 +14,7 @@ CafeMaestro is a comprehensive tool designed for coffee enthusiasts and professi
 
 ## Features
 
-- **Bean Inventory Management**: Track green coffee beans, including origin, variety, processing method, and remaining quantity.
+- **Bean Inventory Management**: Search and filter green coffee inventory, see low/out-of-stock quantities at a glance, and open a responsive detail view with the latest completed roast.
 - **Roast Console**: Prefilled bean, temperature, and batch weight setup; a persisted elapsed instrument; one-tap Drop; and a two-batch cooling/weigh-in handoff.
 - **Roast Logging**: Record all aspects of each roast including temperature, batch weight, final weight, and calculated weight loss.
 - **Optional First Crack Tracking**: When enabled in roasting preferences, mark or correct First Crack for live development-time analysis; the default console stays uncluttered.
@@ -127,6 +127,11 @@ Use the Beans section to add, edit, and track your green coffee beans. Record:
 - Quantity in kilograms
 - Purchase price and supplier links
 - Cupping notes and characteristics
+
+Inventory cards keep quantity first and identify Low or Out of stock in text as well as colour. Open a
+bean to review its newest completed roast and recent incomplete work, then choose **Start Roast** to
+enter the three-field confirmation with that stable bean identity selected. Historical roast labels
+remain unchanged when a bean is renamed. See [Beans inventory and detail](docs/beans-inventory.md).
 
 ### Recording Roasts
 

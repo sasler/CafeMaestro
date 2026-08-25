@@ -259,6 +259,14 @@ public sealed class RoastSessionService : IRoastSessionService, IDisposable
         CancellationToken cancellationToken = default) =>
         DropAsyncCore(correctedDropUtc, correctedElapsedSeconds: null, cancellationToken);
 
+    public Task<TransitionResult> DropAsync(
+        DropProposal proposal,
+        CancellationToken cancellationToken = default)
+    {
+        ArgumentNullException.ThrowIfNull(proposal);
+        return DropAsyncCore(proposal.DroppedAtUtc, proposal.ElapsedSeconds, cancellationToken);
+    }
+
     private async Task<TransitionResult> DropAsyncCore(
         DateTimeOffset? correctedDropUtc,
         double? correctedElapsedSeconds,

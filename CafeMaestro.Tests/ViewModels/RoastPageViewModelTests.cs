@@ -21,6 +21,24 @@ public class RoastPageViewModelTests
     }
 
     [Fact]
+    public async Task BeanIdQuery_SelectsStableDepletedBeanFromFullStore()
+    {
+        Harness harness = new();
+        harness.Bean.RemainingQuantity = 0;
+        harness.Beans.Setup(service => service.GetSortedAvailableBeansAsync()).ReturnsAsync([]);
+        harness.ViewModel.ApplyQueryAttributes(new Dictionary<string, object>
+        {
+            ["BeanId"] = harness.Bean.Id.ToString()
+        });
+
+        await harness.ViewModel.OnAppearingAsync();
+
+        harness.ViewModel.SelectedBean.Should().BeSameAs(harness.Bean);
+        harness.ViewModel.BatchWeightText.Should().Be("240");
+        harness.ViewModel.InventoryWarning.Should().Contain("you can still start");
+    }
+
+    [Fact]
     public async Task Start_ThenPause_ProjectsPersistedSnapshotWithoutOwningTimerTruth()
     {
         Harness harness = new();
@@ -159,6 +177,155 @@ public class RoastPageViewModelTests
         harness.ViewModel.BatchWeightText.Should().Be("240");
     }
 
+    [Fact]
+    public async Task FailedDrop_RetryReusesCapturedTimestampAndElapsed()
+    {
+        Harness harness = new();
+        RoastSessionSnapshot active = harness.ActiveSnapshot(ActiveRoastPhase.Roasting, elapsed: 90);
+        RoastSessionSnapshot dropped = harness.HandoffSnapshot(nextBatch: 2, harness.Work(1, 300));
+        harness.SetSnapshot(active);
+        var proposals = new List<DropProposal>();
+        harness.Session.Setup(service => service.DropAsync(
+                It.IsAny<DropProposal>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync((DropProposal proposal, CancellationToken _) =>
+            {
+                proposals.Add(proposal);
+                return proposals.Count == 1
+                    ? TransitionResult.Fail(RoastTransitionError.PersistenceFailed, "write failed", active)
+                    : TransitionResult.Ok(dropped);
+            });
+        await harness.ViewModel.OnAppearingAsync();
+
+        await harness.ViewModel.DropAsync();
+        harness.Clock.Advance(TimeSpan.FromSeconds(30));
+        await harness.ViewModel.RetryAsync();
+
+        proposals.Should().HaveCount(2);
+        proposals[1].Should().Be(proposals[0]);
+        proposals[0].ElapsedSeconds.Should().Be(90);
+    }
+
+    [Fact]
+    public async Task ActiveBatchTwo_ShowsOnlyCurrentSessionChannelsAndAllowsReadyWeighIn()
+    {
+        Harness harness = new();
+        Guid sessionId = Guid.NewGuid();
+        RoastWorkItem current = harness.Work(1, 0) with { SessionId = sessionId };
+        RoastWorkItem older = harness.Work(9, 0) with { SessionId = Guid.NewGuid() };
+        RoastSessionSnapshot snapshot = harness.ActiveSnapshot(ActiveRoastPhase.Roasting, 20) with
+        {
+            SessionId = sessionId,
+            ActiveRoast = harness.ActiveSnapshot(ActiveRoastPhase.Roasting, 20).ActiveRoast! with
+            {
+                SessionId = sessionId,
+                BatchNumber = 2
+            },
+            OpenWork = [older, current]
+        };
+        harness.SetSnapshot(snapshot);
+        await harness.ViewModel.OnAppearingAsync();
+
+        harness.ViewModel.Channels.Should().ContainSingle(channel => channel.RoastId == current.RoastId);
+        await harness.ViewModel.WeighChannelAsync(harness.ViewModel.Channels.Single());
+        harness.Overlay.Verify(service => service.ShowWeighInAsync(
+            It.Is<WeighInRequest>(request => request.RoastId == current.RoastId),
+            It.IsAny<CancellationToken>()), Times.Once);
+    }
+
+    [Fact]
+    public async Task HandoffTick_ReprojectsPrimaryActionWhenCoolingExpires()
+    {
+        Harness harness = new();
+        RoastWorkItem cooling = harness.Work(1, 1) with { Status = RoastEffectiveStatus.Cooling };
+        harness.SetSnapshot(harness.HandoffSnapshot(3, cooling));
+        await harness.ViewModel.OnAppearingAsync();
+        harness.ViewModel.PrimaryActionText.Should().Be("FINISH SESSION");
+
+        harness.Clock.Advance(TimeSpan.FromSeconds(2));
+        harness.ViewModel.Tick();
+
+        harness.ViewModel.PrimaryActionText.Should().Be("WEIGH BATCH 1");
+    }
+
+    [Fact]
+    public async Task BatchTwoSetup_ResolvesDepletedBeanFromFullStoreAndKeepsStartNonBlocking()
+    {
+        Harness harness = new();
+        harness.Bean.RemainingQuantity = 0;
+        harness.Beans.Setup(service => service.GetSortedAvailableBeansAsync()).ReturnsAsync([]);
+        harness.SetSnapshot(harness.HandoffSnapshot(2, harness.Work(1, 200)));
+        await harness.ViewModel.OnAppearingAsync();
+
+        await harness.ViewModel.PrimaryHandoffActionAsync();
+
+        harness.ViewModel.SelectedBean.Should().BeSameAs(harness.Bean);
+        harness.ViewModel.AvailableBeans.Should().Contain(harness.Bean);
+        harness.ViewModel.InventoryWarning.Should().Contain("you can still start");
+        harness.ViewModel.CanStart.Should().BeTrue();
+    }
+
+    [Fact]
+    public async Task RecoveryBack_OffersConfirmedDiscardAndStaysWhenCancelled()
+    {
+        Harness harness = new();
+        RoastSessionSnapshot recovery = harness.ActiveSnapshot(ActiveRoastPhase.Roasting, 45) with
+        {
+            RequiresRecovery = true
+        };
+        RoastSessionSnapshot setup = harness.HandoffSnapshot(1);
+        harness.SetSnapshot(recovery);
+        harness.Overlay.SetupSequence(service => service.ShowDiscardAsync(
+                It.IsAny<DiscardRequest>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync(DiscardOutcome.Cancelled)
+            .ReturnsAsync(new DiscardOutcome(DiscardOutcomeKind.Discard));
+        harness.Session.Setup(service => service.DiscardAsync(true, false, It.IsAny<CancellationToken>()))
+            .ReturnsAsync(TransitionResult.Ok(setup));
+        await harness.ViewModel.OnAppearingAsync();
+
+        (await harness.ViewModel.HandleBackNavigationAsync()).Should().BeTrue();
+        harness.ViewModel.PresentationState.Should().Be(RoastPresentationState.Recovery);
+        await harness.ViewModel.DiscardRecoveryAsync();
+        harness.ViewModel.PresentationState.Should().Be(RoastPresentationState.Setup);
+    }
+
+    [Fact]
+    public async Task PersistenceError_GuardsBackAndDataSettingsEndsRetainedRetry()
+    {
+        Harness harness = new();
+        RoastSessionSnapshot active = harness.ActiveSnapshot(ActiveRoastPhase.Roasting, 30);
+        harness.SetSnapshot(active);
+        harness.Session.Setup(service => service.DropAsync(
+                It.IsAny<DropProposal>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync(TransitionResult.Fail(RoastTransitionError.PersistenceFailed, "write failed", active));
+        await harness.ViewModel.OnAppearingAsync();
+        await harness.ViewModel.DropAsync();
+
+        (await harness.ViewModel.HandleBackNavigationAsync()).Should().BeTrue();
+        await harness.ViewModel.OnWindowResumedAsync();
+        await harness.ViewModel.RetryAsync();
+        await harness.ViewModel.OpenDataSettingsAsync();
+        await harness.ViewModel.RetryAsync();
+
+        harness.Navigation.Verify(service => service.GoToAsync(CafeMaestro.Navigation.Routes.Settings), Times.Once);
+        harness.Session.Verify(service => service.DropAsync(
+            It.IsAny<DropProposal>(), It.IsAny<CancellationToken>()), Times.Exactly(2));
+    }
+
+    [Fact]
+    public async Task WindowLifecycle_ReleasesWakeThenRefreshesAndRestoresIt()
+    {
+        Harness harness = new();
+        harness.SetSnapshot(harness.ActiveSnapshot(ActiveRoastPhase.Roasting, 62));
+        await harness.ViewModel.OnAppearingAsync();
+
+        await harness.ViewModel.OnWindowStoppedAsync();
+        await harness.ViewModel.OnWindowResumedAsync();
+
+        harness.Wake.Verify(service => service.SetKeepScreenOnAsync(false), Times.Once);
+        harness.Wake.Verify(service => service.SetKeepScreenOnAsync(true), Times.Exactly(2));
+        harness.ViewModel.ActiveTimerSemanticDescription.Should().Be("Roasting, 1 minute 2 seconds");
+    }
+
     private sealed class Harness
     {
         private RoastSessionSnapshot _snapshot;
@@ -170,26 +337,28 @@ public class RoastPageViewModelTests
 
         public Mock<IDisplayWakeService> Wake { get; } = new();
         public Mock<IOverlayService> Overlay { get; } = new();
+        public Mock<INavigationService> Navigation { get; } = new();
         public FixedClock Clock { get; } = new();
         public RoastPageViewModel ViewModel { get; }
 
-        private readonly Mock<IRoastSessionService> _session = new();
+        public Mock<IRoastSessionService> Session { get; } = new();
+        public Mock<IBeanDataService> Beans { get; } = new();
         private readonly Mock<IRoastQueryService> _query = new();
 
         public Harness()
         {
             _snapshot = HandoffSnapshot(nextBatch: 1);
-            _session.Setup(service => service.GetSnapshotAsync(It.IsAny<CancellationToken>()))
+            Session.Setup(service => service.GetSnapshotAsync(It.IsAny<CancellationToken>()))
                 .ReturnsAsync(() => _snapshot);
-            _session.Setup(service => service.StartAsync(It.IsAny<RoastSetup>(), It.IsAny<CancellationToken>()))
+            Session.Setup(service => service.StartAsync(It.IsAny<RoastSetup>(), It.IsAny<CancellationToken>()))
                 .ReturnsAsync(() => TransitionResult.Ok(_snapshot));
-            _session.Setup(service => service.PauseAsync(It.IsAny<CancellationToken>()))
+            Session.Setup(service => service.PauseAsync(It.IsAny<CancellationToken>()))
                 .ReturnsAsync(() => TransitionResult.Ok(_snapshot));
-            _session.Setup(service => service.ResumeAsync(It.IsAny<CancellationToken>()))
+            Session.Setup(service => service.ResumeAsync(It.IsAny<CancellationToken>()))
                 .ReturnsAsync(() => TransitionResult.Ok(_snapshot));
 
-            Mock<IBeanDataService> beans = new();
-            beans.Setup(service => service.GetSortedAvailableBeansAsync()).ReturnsAsync([Bean]);
+            Beans.Setup(service => service.GetSortedAvailableBeansAsync()).ReturnsAsync([Bean]);
+            Beans.Setup(service => service.GetBeanByIdAsync(Bean.Id)).ReturnsAsync(Bean);
             _query.Setup(service => service.GetSetupSuggestionAsync(Bean.Id, It.IsAny<CancellationToken>()))
                 .ReturnsAsync(new RoastSetupSuggestion
                 {
@@ -203,12 +372,14 @@ public class RoastPageViewModelTests
                 .ReturnsAsync(WeighInOutcome.Cancelled);
 
             ViewModel = new RoastPageViewModel(
-                _session.Object,
+                Session.Object,
                 _query.Object,
-                beans.Object,
+                Beans.Object,
                 Overlay.Object,
                 Wake.Object,
                 Mock.Of<IRoastRecoveryAdapter>(),
+                Navigation.Object,
+                Mock.Of<IAlertService>(),
                 Clock);
         }
 
