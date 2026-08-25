@@ -1,4 +1,4 @@
-using CafeMaestro.Models;
+﻿using CafeMaestro.Models;
 using CafeMaestro.Services;
 using FluentAssertions;
 using Moq;
@@ -24,27 +24,27 @@ internal sealed class FakeRoastPreferencesService : IRoastPreferencesService
 
     public Task<int> GetCoolingDurationSecondsAsync() => Task.FromResult(CoolingDurationSeconds);
 
-    public Task SetCoolingDurationSecondsAsync(int seconds)
+    public Task<bool> SetCoolingDurationSecondsAsync(int seconds)
     {
         CoolingDurationSeconds = seconds;
-        return Task.CompletedTask;
+        return Task.FromResult(true);
     }
 
     public Task<bool> GetFirstCrackEnabledAsync() => Task.FromResult(FirstCrackEnabled);
 
-    public Task SetFirstCrackEnabledAsync(bool enabled)
+    public Task<bool> SetFirstCrackEnabledAsync(bool enabled)
     {
         FirstCrackEnabled = enabled;
-        return Task.CompletedTask;
+        return Task.FromResult(true);
     }
 
     public Task<bool> GetCoolingNotificationsEnabledAsync() =>
         Task.FromResult(CoolingNotificationsEnabled);
 
-    public Task SetCoolingNotificationsEnabledAsync(bool enabled)
+    public Task<bool> SetCoolingNotificationsEnabledAsync(bool enabled)
     {
         CoolingNotificationsEnabled = enabled;
-        return Task.CompletedTask;
+        return Task.FromResult(true);
     }
 }
 
@@ -140,6 +140,13 @@ internal sealed class RoastSessionTestHarness : IDisposable
     /// <summary>Rebuilds the in-memory services over the same file, as a cold launch would.</summary>
     public Task<RoastSessionTestHarness> RelaunchAsync(DateTimeOffset? nowUtc = null) =>
         CreateCoreAsync(CanonicalPath, ownsDirectory: false, nowUtc ?? Clock.UtcNow, null);
+
+    /// <summary>A cold launch over an existing file whose writes can be made to fail.</summary>
+    public static Task<RoastSessionTestHarness> ReopenAsync(
+        string canonicalPath,
+        DateTimeOffset nowUtc,
+        Func<AppData, CancellationToken, Task>? writeOverride) =>
+        CreateCoreAsync(canonicalPath, ownsDirectory: false, nowUtc, writeOverride);
 
     private static async Task<RoastSessionTestHarness> CreateCoreAsync(
         string canonicalPath,

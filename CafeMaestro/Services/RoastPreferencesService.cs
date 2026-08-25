@@ -1,4 +1,4 @@
-using Microsoft.Maui.Storage;
+﻿using Microsoft.Maui.Storage;
 
 namespace CafeMaestro.Services;
 
@@ -32,31 +32,22 @@ public sealed class RoastPreferencesService : IRoastPreferencesService
         return Task.FromResult(ClampCoolingDuration(stored));
     }
 
-    public Task SetCoolingDurationSecondsAsync(int seconds)
-    {
-        Set(CoolingDurationKey, ClampCoolingDuration(seconds));
-        return Task.CompletedTask;
-    }
+    public Task<bool> SetCoolingDurationSecondsAsync(int seconds) =>
+        Task.FromResult(Set(CoolingDurationKey, ClampCoolingDuration(seconds)));
 
     public Task<bool> GetFirstCrackEnabledAsync() =>
         Task.FromResult(Get(FirstCrackEnabledKey, RoastPreferenceDefaults.FirstCrackEnabled));
 
-    public Task SetFirstCrackEnabledAsync(bool enabled)
-    {
-        Set(FirstCrackEnabledKey, enabled);
-        return Task.CompletedTask;
-    }
+    public Task<bool> SetFirstCrackEnabledAsync(bool enabled) =>
+        Task.FromResult(Set(FirstCrackEnabledKey, enabled));
 
     public Task<bool> GetCoolingNotificationsEnabledAsync() =>
         Task.FromResult(Get(
             CoolingNotificationsKey,
             RoastPreferenceDefaults.CoolingNotificationsEnabled));
 
-    public Task SetCoolingNotificationsEnabledAsync(bool enabled)
-    {
-        Set(CoolingNotificationsKey, enabled);
-        return Task.CompletedTask;
-    }
+    public Task<bool> SetCoolingNotificationsEnabledAsync(bool enabled) =>
+        Task.FromResult(Set(CoolingNotificationsKey, enabled));
 
     private static int ClampCoolingDuration(int seconds) => Math.Clamp(
         seconds,
@@ -76,15 +67,17 @@ public sealed class RoastPreferencesService : IRoastPreferencesService
         }
     }
 
-    private void Set<T>(string key, T value)
+    private bool Set<T>(string key, T value)
     {
         try
         {
             _preferences.Set(key, value);
+            return true;
         }
         catch (Exception ex)
         {
             System.Diagnostics.Debug.WriteLine($"Unable to write preference '{key}': {ex.Message}");
+            return false;
         }
     }
 }

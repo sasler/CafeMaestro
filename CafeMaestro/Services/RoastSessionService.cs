@@ -1,4 +1,4 @@
-using System.Diagnostics;
+﻿using System.Diagnostics;
 using CafeMaestro.Models;
 
 namespace CafeMaestro.Services;
@@ -15,7 +15,13 @@ public sealed class RoastSessionService : IRoastSessionService, IDisposable
     private readonly ICoolingNotificationService _coolingNotificationService;
     private readonly IClock _clock;
     private readonly SemaphoreSlim _commandLock = new(1, 1);
-    private bool _recoveryAcknowledged;
+    /// <summary>
+    /// The draft this process has already put in front of the user, so a persisted draft that
+    /// arrives from anywhere else — a cold launch, or a restored backup — still asks first.
+    /// Assigned inside the mutation, because the data service publishes its change event before
+    /// the update call returns.
+    /// </summary>
+    private Guid? _acknowledgedDraftId;
 
     /// <summary>The batch this process dropped most recently, used to answer a repeated tap.</summary>
     private Guid? _lastDroppedRoastId;
@@ -108,9 +114,9 @@ public sealed class RoastSessionService : IRoastSessionService, IDisposable
                     CoolingDurationSeconds = coolingDurationSeconds
                 };
 
+                _acknowledgedDraftId = session.ActiveRoast.Id;
                 return true;
             },
-            onCommitted: () => _recoveryAcknowledged = true,
             cancellationToken);
     }
 
@@ -134,9 +140,9 @@ public sealed class RoastSessionService : IRoastSessionService, IDisposable
                 draft.AccumulatedElapsedSeconds = RoastProjection.ElapsedSeconds(draft, now);
                 draft.RunningSinceUtc = null;
                 draft.Phase = ActiveRoastPhase.Paused;
+                _acknowledgedDraftId = draft.Id;
                 return true;
             },
-            onCommitted: () => _recoveryAcknowledged = true,
             cancellationToken);
 
     public Task<TransitionResult> ResumeAsync(CancellationToken cancellationToken = default) =>
@@ -160,9 +166,9 @@ public sealed class RoastSessionService : IRoastSessionService, IDisposable
                 // produce a running interval that precedes the roast itself.
                 draft.RunningSinceUtc = now < draft.StartedAtUtc ? draft.StartedAtUtc : now;
                 draft.Phase = ActiveRoastPhase.Roasting;
+                _acknowledgedDraftId = draft.Id;
                 return true;
             },
-            onCommitted: () => _recoveryAcknowledged = true,
             cancellationToken);
 
     public Task<TransitionResult> MarkFirstCrackAsync(CancellationToken cancellationToken = default) =>
@@ -191,9 +197,9 @@ public sealed class RoastSessionService : IRoastSessionService, IDisposable
 
                 draft.FirstCrackElapsedSeconds =
                     (int)Math.Floor(RoastProjection.ElapsedSeconds(draft, now));
+                _acknowledgedDraftId = draft.Id;
                 return true;
             },
-            onCommitted: () => _recoveryAcknowledged = true,
             cancellationToken);
 
     public async Task<TransitionResult> DropAsync(
@@ -245,7 +251,6 @@ public sealed class RoastSessionService : IRoastSessionService, IDisposable
                 droppedRoast = roast;
                 return true;
             },
-            onCommitted: () => _recoveryAcknowledged = true,
             cancellationToken);
 
         if (result.Success && droppedRoast is not null)
@@ -310,7 +315,6 @@ public sealed class RoastSessionService : IRoastSessionService, IDisposable
                 session!.ActiveRoast = null;
                 return true;
             },
-            onCommitted: () => _recoveryAcknowledged = true,
             cancellationToken);
 
     public async Task<TransitionResult> SaveFinalWeightAsync(
@@ -382,7 +386,6 @@ public sealed class RoastSessionService : IRoastSessionService, IDisposable
                 roast.RoastLevelName = roastLevelName;
                 return true;
             },
-            onCommitted: null,
             cancellationToken);
 
         if (result.Success)
@@ -422,7 +425,6 @@ public sealed class RoastSessionService : IRoastSessionService, IDisposable
                 roast.RoastLevelName = "Unweighed";
                 return true;
             },
-            onCommitted: null,
             cancellationToken);
 
         if (result.Success)
@@ -455,7 +457,6 @@ public sealed class RoastSessionService : IRoastSessionService, IDisposable
                 data.ActiveRoastSession = null;
                 return true;
             },
-            onCommitted: null,
             cancellationToken);
 
     public async Task<TransitionResult> RecoverAsync(
@@ -467,7 +468,8 @@ public sealed class RoastSessionService : IRoastSessionService, IDisposable
         switch (decision.Kind)
         {
             case RecoveryDecisionKind.Discard:
-                _recoveryAcknowledged = true;
+                // Acknowledgement is not set here: if the discard fails, the draft is still
+                // stored and the user must still be offered recovery.
                 return await DiscardAsync(
                     decision.BeansWereUsed,
                     decision.KeepLog,
@@ -482,7 +484,7 @@ public sealed class RoastSessionService : IRoastSessionService, IDisposable
                         BuildSnapshot(_appDataService.CurrentData));
                 }
 
-                _recoveryAcknowledged = true;
+                // As above: a rejected or unsaved corrected drop leaves recovery outstanding.
                 return await DropAsync(decision.EndedAtUtc.Value, cancellationToken);
 
             default:
@@ -530,9 +532,9 @@ public sealed class RoastSessionService : IRoastSessionService, IDisposable
                                 (int)Math.Floor(draft.AccumulatedElapsedSeconds);
                         }
 
+                        _acknowledgedDraftId = draft.Id;
                         return true;
                     },
-                    onCommitted: () => _recoveryAcknowledged = true,
                     cancellationToken);
         }
     }
@@ -635,7 +637,6 @@ public sealed class RoastSessionService : IRoastSessionService, IDisposable
 
     private async Task<TransitionResult> ExecuteAsync(
         Func<AppData, DateTimeOffset, RejectionContext, bool> mutation,
-        Action? onCommitted,
         CancellationToken cancellationToken)
     {
         await _commandLock.WaitAsync(cancellationToken);
@@ -649,7 +650,6 @@ public sealed class RoastSessionService : IRoastSessionService, IDisposable
 
             if (committed)
             {
-                onCommitted?.Invoke();
                 return TransitionResult.Ok(BuildSnapshot(_appDataService.CurrentData));
             }
 
@@ -679,7 +679,7 @@ public sealed class RoastSessionService : IRoastSessionService, IDisposable
             NextBatchNumber = session?.NextBatchNumber ?? 1,
             ActiveRoast = draft is null ? null : RoastProjection.ToSnapshot(draft, now),
             OpenWork = RoastProjection.OpenWork(data, now),
-            RequiresRecovery = draft is not null && !_recoveryAcknowledged
+            RequiresRecovery = draft is not null && draft.Id != _acknowledgedDraftId
         };
     }
 

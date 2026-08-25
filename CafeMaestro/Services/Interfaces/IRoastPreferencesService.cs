@@ -1,4 +1,4 @@
-namespace CafeMaestro.Services;
+﻿namespace CafeMaestro.Services;
 
 /// <summary>
 /// Roasting preferences. Values are snapshotted into a roast when it starts or drops, so
@@ -8,15 +8,24 @@ public interface IRoastPreferencesService
 {
     /// <summary>Cooling window applied to a new roast. Defaults to five minutes.</summary>
     Task<int> GetCoolingDurationSecondsAsync();
-    Task SetCoolingDurationSecondsAsync(int seconds);
+
+    /// <summary>
+    /// Returns false when the value could not be stored, so a settings screen can restore the
+    /// previous choice rather than display a preference that was never persisted.
+    /// </summary>
+    Task<bool> SetCoolingDurationSecondsAsync(int seconds);
 
     /// <summary>Whether First Crack tracking is offered. Off by default.</summary>
     Task<bool> GetFirstCrackEnabledAsync();
-    Task SetFirstCrackEnabledAsync(bool enabled);
+
+    /// <inheritdoc cref="SetCoolingDurationSecondsAsync"/>
+    Task<bool> SetFirstCrackEnabledAsync(bool enabled);
 
     /// <summary>Whether an Android cooling-ready notification should be scheduled after a drop.</summary>
     Task<bool> GetCoolingNotificationsEnabledAsync();
-    Task SetCoolingNotificationsEnabledAsync(bool enabled);
+
+    /// <inheritdoc cref="SetCoolingDurationSecondsAsync"/>
+    Task<bool> SetCoolingNotificationsEnabledAsync(bool enabled);
 }
 
 public static class RoastPreferenceDefaults

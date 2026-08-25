@@ -490,6 +490,88 @@ public sealed class RoastSessionServiceTests
         result.Error.Should().Be(RoastTransitionError.InvalidDropTime);
         relaunched.Current.RoastLogs.Should().BeEmpty();
         relaunched.Current.ActiveRoastSession!.ActiveRoast.Should().NotBeNull();
+        // A refused answer must leave recovery outstanding, or the roast becomes unreachable.
+        result.Snapshot.RequiresRecovery.Should().BeTrue();
+        (await relaunched.Session.GetSnapshotAsync()).RequiresRecovery.Should().BeTrue();
+    }
+
+    [Fact]
+    public async Task RecoverAsync_WhenTheCorrectedDropCannotBeSaved_LeavesRecoveryOutstanding()
+    {
+        using RoastSessionTestHarness original = await RoastSessionTestHarness.CreateAsync(Start);
+        BeanData bean = await original.AddBeanAsync();
+        (await original.Session.StartAsync(new RoastSetup(bean.Id, 218, 240))).Success
+            .Should().BeTrue();
+
+        // Relaunch onto a data service whose next write — the drop commit — fails.
+        using var relaunched = await RoastSessionTestHarness.ReopenAsync(
+            original.CanonicalPath,
+            Start.AddSeconds(900),
+            (data, _) => data.RoastLogs.Count == 1
+                ? throw new IOException("Injected recovery drop failure.")
+                : Task.CompletedTask);
+
+        TransitionResult result = await relaunched.Session.RecoverAsync(
+            RecoveryDecision.EndedAt(Start.AddSeconds(700)));
+
+        result.Success.Should().BeFalse();
+        result.Snapshot.RequiresRecovery.Should().BeTrue();
+        (await relaunched.Session.GetSnapshotAsync()).RequiresRecovery.Should().BeTrue();
+        relaunched.Current.ActiveRoastSession!.ActiveRoast.Should().NotBeNull();
+    }
+
+    [Fact]
+    public async Task StartAsync_PublishesASnapshotEventThatAgreesWithTheCommandResult()
+    {
+        using RoastSessionTestHarness harness = await RoastSessionTestHarness.CreateAsync(Start);
+        BeanData bean = await harness.AddBeanAsync();
+        var published = new List<RoastSessionSnapshot>();
+        harness.Session.SnapshotChanged += (_, snapshot) => published.Add(snapshot);
+
+        TransitionResult result = await harness.Session.StartAsync(
+            new RoastSetup(bean.Id, 218, 240));
+
+        result.Snapshot.RequiresRecovery.Should().BeFalse();
+        published.Should().ContainSingle();
+        published[0].ActiveRoast!.Id.Should().Be(result.Snapshot.ActiveRoast!.Id);
+        published[0].RequiresRecovery.Should().BeFalse();
+    }
+
+    [Fact]
+    public async Task ADifferentDraftArrivingAfterAnAcknowledgement_StillRequiresRecovery()
+    {
+        using RoastSessionTestHarness harness = await RoastSessionTestHarness.CreateAsync(Start);
+        BeanData bean = await harness.AddBeanAsync();
+        (await harness.Session.StartAsync(new RoastSetup(bean.Id, 218, 240))).Success
+            .Should().BeTrue();
+        harness.Clock.AdvanceSeconds(600);
+        (await harness.Session.DropAsync()).Success.Should().BeTrue();
+
+        // A restore replaces the session without restarting the process. The draft it carries
+        // was never confirmed by this user, so it must not inherit the acknowledgement.
+        var restoredSessionId = Guid.NewGuid();
+        (await harness.AppDataService.UpdateAsync(data => data.ActiveRoastSession =
+            new RoastSessionData
+            {
+                Id = restoredSessionId,
+                StartedAtUtc = Start,
+                NextBatchNumber = 1,
+                ActiveRoast = new ActiveRoastDraft
+                {
+                    Id = Guid.NewGuid(),
+                    SessionId = restoredSessionId,
+                    BatchNumber = 1,
+                    BeanId = bean.Id,
+                    BeanDisplaySnapshot = bean.DisplayName,
+                    Temperature = 210,
+                    BatchWeight = 200,
+                    Phase = ActiveRoastPhase.Roasting,
+                    StartedAtUtc = Start,
+                    RunningSinceUtc = Start
+                }
+            })).Should().BeTrue();
+
+        (await harness.Session.GetSnapshotAsync()).RequiresRecovery.Should().BeTrue();
     }
 
     [Fact]
