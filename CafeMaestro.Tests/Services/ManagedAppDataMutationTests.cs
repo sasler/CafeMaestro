@@ -436,7 +436,11 @@ public sealed class ManagedAppDataMutationTests : IDisposable
             .GetValue(service)!;
         int eventCount = 0;
         service.DataChanged += (_, _) => eventCount++;
-        long originalRevision = service.CurrentData.PersistenceRevision;
+        var dataAccessLock = (SemaphoreSlim)typeof(ManagedAppDataService)
+            .GetField(
+                "_dataAccessLock",
+                System.Reflection.BindingFlags.Instance | System.Reflection.BindingFlags.NonPublic)!
+            .GetValue(service)!;
         Task<AppData> reloadTask;
         IDisposable? suspension = null;
 
@@ -445,7 +449,7 @@ public sealed class ManagedAppDataMutationTests : IDisposable
         {
             reloadTask = Task.Run(service.ReloadDataAsync);
             SpinWait.SpinUntil(
-                    () => service.CurrentData.PersistenceRevision > originalRevision,
+                    () => dataAccessLock.CurrentCount == 0,
                     TimeSpan.FromSeconds(2))
                 .Should().BeTrue();
             suspension = service.SuspendNotifications();
@@ -477,14 +481,31 @@ public sealed class ManagedAppDataMutationTests : IDisposable
             .GetValue(service)!;
         var payloadBeanCounts = new List<int>();
         service.DataChanged += (_, data) => payloadBeanCounts.Add(data.Beans.Count);
-        long originalRevision = service.CurrentData.PersistenceRevision;
+        object queueLock = typeof(ManagedAppDataService)
+            .GetField(
+                "_notificationQueueLock",
+                System.Reflection.BindingFlags.Instance | System.Reflection.BindingFlags.NonPublic)!
+            .GetValue(service)!;
+        object pendingQueue = typeof(ManagedAppDataService)
+            .GetField(
+                "_pendingDataChanges",
+                System.Reflection.BindingFlags.Instance | System.Reflection.BindingFlags.NonPublic)!
+            .GetValue(service)!;
         await dispatchLock.WaitAsync();
 
         try
         {
             Task<AppData> reload = Task.Run(service.ReloadDataAsync);
             SpinWait.SpinUntil(
-                    () => service.CurrentData.PersistenceRevision > originalRevision,
+                    () =>
+                    {
+                        lock (queueLock)
+                        {
+                            return (int)pendingQueue.GetType()
+                                .GetProperty("Count")!
+                                .GetValue(pendingQueue)! > 0;
+                        }
+                    },
                     TimeSpan.FromSeconds(2))
                 .Should().BeTrue();
             Thread.Sleep(50);
@@ -698,6 +719,22 @@ public sealed class ManagedAppDataMutationTests : IDisposable
         service.CurrentData.Beans.Should().ContainSingle(bean => bean.CoffeeName == "Imported");
         (await service.LoadAppDataAsync()).Beans
             .Should().ContainSingle(bean => bean.CoffeeName == "Imported");
+    }
+
+    [Fact]
+    public async Task LoadAppDataAsync_ReadOnlyReloadKeepsRevisionAndEarlierCopyCanSave()
+    {
+        ManagedAppDataService service = await CreateInitializedServiceAsync();
+        AppData earlierCopy = await service.LoadAppDataAsync();
+        long originalRevision = earlierCopy.PersistenceRevision;
+
+        AppData refreshed = await service.LoadAppDataAsync();
+        earlierCopy.Beans.Add(CreateBean("Saved after refresh"));
+
+        refreshed.PersistenceRevision.Should().Be(originalRevision);
+        (await service.SaveAppDataAsync(earlierCopy)).Should().BeTrue();
+        service.CurrentData.Beans.Should().ContainSingle(bean =>
+            bean.CoffeeName == "Saved after refresh");
     }
 
     private async Task<ManagedAppDataService> CreateInitializedServiceAsync()

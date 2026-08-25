@@ -26,7 +26,8 @@ identifies the persisted contract; files without that property are treated as sc
   validates the canonical file instead of exporting the empty fallback; Share Backup remains the
   direct raw-file preservation path. Save and Update operations are blocked until a canonical read
   succeeds or the recovery flow deliberately replaces the file, preventing a cached graph from
-  overwriting data that still needs recovery.
+  overwriting data that still needs recovery. Explicit Restore and Start New operations preserve the
+  unreadable canonical bytes atomically before activating validated replacement data.
 - Current-schema loads validate cooling anchors, completion fields, and the full active-session
   storage graph without applying legacy workflow repair before the data can enter the cache. Cooling
   projections must remain inside the supported date range. Active-draft temperatures and weights
@@ -64,9 +65,10 @@ after releasing it so handlers can safely request another mutation.
 An uninitialized service also rejects a full save when the canonical file already exists. Callers
 must load through the schema and migration gate first; backup replacement does this before creating
 its safety copy, so unsupported data cannot be replaced by the fallback default graph.
-Every disk reload or legacy import advances the in-memory revision. Backup replacement carries the
-loaded revision into its save, providing compare-and-swap behavior: a concurrent commit makes the
-replacement fail instead of losing data that was not present in the safety copy.
+Every disk reload or legacy import that changes persisted content advances the in-memory revision;
+read-only reloads retain it. Backup replacement carries the loaded revision into its save, providing
+compare-and-swap behavior: a concurrent commit makes the replacement fail instead of losing data
+that was not present in the safety copy.
 Successful replacement returns a freshly loaded committed graph, including its current revision,
 timestamp, and app version.
 

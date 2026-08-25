@@ -283,6 +283,61 @@ public sealed class ManagedAppDataService : IAppDataService
         return UpdateCoreAsync(mutation, cancellationToken);
     }
 
+    public async Task<AppData> ReplaceAppDataForRecoveryAsync(
+        AppData appData,
+        CancellationToken cancellationToken = default)
+    {
+        ArgumentNullException.ThrowIfNull(appData);
+        AppData committedData;
+        PendingDataChange? pendingNotification;
+
+        await _dataAccessLock.WaitAsync(cancellationToken);
+        try
+        {
+            if (!_isRecoveryRequired)
+            {
+                throw new InvalidOperationException(
+                    "Recovery replacement is only available after a failed canonical load.");
+            }
+
+            AppData candidate = Clone(appData);
+            AppDataNormalizer.Normalize(candidate, allowLegacyRepairs: false);
+            List<string> errors = AppDataNormalizer.GetValidationErrors(candidate);
+            if (errors.Count > 0)
+            {
+                throw new InvalidDataException(
+                    $"The replacement data is invalid. {errors[0]}");
+            }
+
+            if (File.Exists(_canonicalFilePath))
+            {
+                await SafetyBackupFile.CopyOriginalAsync(
+                    _canonicalFilePath,
+                    _backupDirectory,
+                    cancellationToken);
+            }
+
+            candidate.LastModified = DateTime.UtcNow;
+            candidate.AppVersion = _appVersionProvider();
+            await WriteAtomicAsync(candidate, cancellationToken);
+            CacheCommittedData(candidate);
+            _isRecoveryRequired = false;
+            committedData = Clone(candidate);
+            pendingNotification = EnqueueDataChanged(committedData);
+        }
+        finally
+        {
+            _dataAccessLock.Release();
+        }
+
+        if (pendingNotification is not null)
+        {
+            await PublishPendingDataChangesAsync(pendingNotification);
+        }
+
+        return committedData;
+    }
+
     private async Task<bool> UpdateCoreAsync(
         Func<AppData, bool> mutation,
         CancellationToken cancellationToken)
@@ -648,10 +703,19 @@ public sealed class ManagedAppDataService : IAppDataService
 
     private void CacheLoadedData(AppData data)
     {
-        _persistenceRevision = checked(_persistenceRevision + 1);
+        if (_cachedData is null || !PersistedDataEquals(_cachedData, data))
+        {
+            _persistenceRevision = checked(_persistenceRevision + 1);
+        }
+
         data.PersistenceRevision = _persistenceRevision;
         _cachedData = data;
     }
+
+    private bool PersistedDataEquals(AppData left, AppData right) =>
+        JsonSerializer.SerializeToUtf8Bytes(left, _cloneOptions)
+            .AsSpan()
+            .SequenceEqual(JsonSerializer.SerializeToUtf8Bytes(right, _cloneOptions));
 
     private void CacheCommittedData(AppData data)
     {

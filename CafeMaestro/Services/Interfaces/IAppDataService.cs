@@ -24,6 +24,12 @@ public interface IAppDataService
     Task<bool> TryUpdateAsync(
         Func<AppData, bool> mutation,
         CancellationToken cancellationToken = default);
+    /// <summary>
+    /// Deliberately replaces data after a failed canonical load, preserving the raw source first.
+    /// </summary>
+    Task<AppData> ReplaceAppDataForRecoveryAsync(
+        AppData appData,
+        CancellationToken cancellationToken = default);
     bool DataFileExists();
     Task<AppData> ReloadDataAsync();
 }

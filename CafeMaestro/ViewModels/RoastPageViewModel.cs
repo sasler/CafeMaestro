@@ -707,11 +707,11 @@ public partial class RoastPageViewModel : ObservableObject, IQueryAttributable
         }
     }
 
-    private async Task SelectBeanAsync(Guid? beanId, string beanType)
+    private Task SelectBeanAsync(Guid? beanId, string beanType)
     {
         if (string.IsNullOrWhiteSpace(beanType) || AvailableBeans.Count == 0)
         {
-            return;
+            return Task.CompletedTask;
         }
 
         BeanData? bean;
@@ -734,7 +734,7 @@ public partial class RoastPageViewModel : ObservableObject, IQueryAttributable
         _suppressBeanSelectionChanged = true;
         SelectedBean = bean;
         _suppressBeanSelectionChanged = false;
-        await Task.CompletedTask;
+        return Task.CompletedTask;
     }
 
     private void ResetPageForNewRoast()

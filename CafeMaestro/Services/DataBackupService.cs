@@ -161,7 +161,27 @@ public sealed class DataBackupService : IDataBackupService
         await _operationLock.WaitAsync(cancellationToken);
         try
         {
-            AppData currentData = await _appDataService.LoadAppDataAsync();
+            if (_appDataService.IsRecoveryRequired)
+            {
+                return await _appDataService.ReplaceAppDataForRecoveryAsync(
+                    replacement,
+                    cancellationToken);
+            }
+
+            AppData currentData;
+            try
+            {
+                currentData = await _appDataService.LoadAppDataAsync();
+            }
+            catch (Exception ex) when (
+                ex is InvalidDataException or IOException or UnauthorizedAccessException &&
+                _appDataService.IsRecoveryRequired)
+            {
+                return await _appDataService.ReplaceAppDataForRecoveryAsync(
+                    replacement,
+                    cancellationToken);
+            }
+
             replacement.PersistenceRevision = currentData.PersistenceRevision;
             await CreateSafetyBackupAsync(currentData, cancellationToken);
             bool saved = await _appDataService.SaveAppDataAsync(replacement);

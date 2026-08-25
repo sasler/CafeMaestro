@@ -84,7 +84,7 @@ public sealed class DataBackupServiceTests : IDisposable
     }
 
     [Fact]
-    public async Task StartNewDataAsync_ColdForwardCanonical_RejectsWithoutReplacingOrBackingUpFallback()
+    public async Task StartNewDataAsync_ColdForwardCanonical_PreservesRawAndReplacesDeliberately()
     {
         string canonicalPath = Path.Combine(_testDirectory, "cafemaestro_data.json");
         string originalJson = $$"""
@@ -101,12 +101,18 @@ public sealed class DataBackupServiceTests : IDisposable
             appData,
             Path.Combine(_testDirectory, "Backups"));
 
-        Func<Task> action = () => service.StartNewDataAsync();
+        AppData replacement = await service.StartNewDataAsync();
 
-        await action.Should().ThrowAsync<InvalidDataException>().WithMessage("*newer*recovery*");
-        (await File.ReadAllTextAsync(canonicalPath)).Should().Be(originalJson);
-        appData.IsRecoveryRequired.Should().BeTrue();
-        Directory.Exists(Path.Combine(_testDirectory, "Backups")).Should().BeFalse();
+        replacement.DataSchemaVersion.Should().Be(AppDataSchema.CurrentVersion);
+        replacement.Beans.Should().BeEmpty();
+        appData.IsRecoveryRequired.Should().BeFalse();
+        AppData persisted = JsonSerializer.Deserialize<AppData>(
+            await File.ReadAllTextAsync(canonicalPath))!;
+        persisted.DataSchemaVersion.Should().Be(AppDataSchema.CurrentVersion);
+        string rawBackup = Directory.EnumerateFiles(
+            Path.Combine(_testDirectory, "Backups"),
+            SafetyBackupFile.SearchPattern).Should().ContainSingle().Subject;
+        (await File.ReadAllTextAsync(rawBackup)).Should().Be(originalJson);
     }
 
     [Fact]

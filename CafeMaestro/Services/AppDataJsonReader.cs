@@ -101,9 +101,15 @@ internal static class AppDataJsonReader
         }
 
         JsonProperty[] properties = root.EnumerateObject().ToArray();
+        bool hasSchemaVersion = properties.Any(property => string.Equals(
+            property.Name,
+            nameof(AppData.DataSchemaVersion),
+            StringComparison.OrdinalIgnoreCase));
+        bool hasDataCollection = properties.Any(property =>
+            CollectionProperties.Contains(property.Name, StringComparer.OrdinalIgnoreCase));
         bool hasKnownProperty = properties.Any(property =>
             KnownProperties.Contains(property.Name, StringComparer.OrdinalIgnoreCase));
-        if (!hasKnownProperty)
+        if (!hasKnownProperty || (!hasSchemaVersion && !hasDataCollection))
         {
             throw new InvalidDataException(
                 "The selected file does not have the required CafeMaestro data structure.");

@@ -36,6 +36,27 @@ public sealed class BackupStructureValidationTests : IDisposable
     }
 
     [Fact]
+    public async Task PreviewExternalBackupAsync_MetadataOnlyLegacyJsonIsRejectedAsWrongStructure()
+    {
+        string sourcePath = Path.Combine(_testDirectory, "metadata-only.json");
+        await File.WriteAllTextAsync(
+            sourcePath,
+            "{\"AppVersion\":\"1.0\",\"LastModified\":\"2025-01-01T00:00:00Z\"}");
+        var appDataService = new Mock<IAppDataService>();
+        var service = new DataBackupService(
+            appDataService.Object,
+            Path.Combine(_testDirectory, "Backups"));
+
+        Func<Task> action = () => service.PreviewExternalBackupAsync(sourcePath);
+
+        await action.Should().ThrowAsync<InvalidDataException>()
+            .WithMessage("*structure*");
+        appDataService.Verify(
+            candidate => candidate.SaveAppDataAsync(It.IsAny<AppData>()),
+            Times.Never);
+    }
+
+    [Fact]
     public async Task RestoreExternalBackupAsync_LegacyJsonWithoutRoastLevelsAddsDefaults()
     {
         string sourcePath = Path.Combine(_testDirectory, "legacy.json");
