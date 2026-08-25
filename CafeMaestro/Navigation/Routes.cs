@@ -23,6 +23,7 @@ public static class Routes
 
     // Detail routes (no // prefix)
     public const string BeanEdit = "BeanEditPage";
+    public const string RoastEdit = "RoastEditPage";
     public const string BeanImport = "BeanImportPage";
     public const string RoastImport = "RoastImportPage";
 }

@@ -75,6 +75,7 @@ public static class MauiProgram
         builder.Services.AddTransient<MainPageViewModel>();
         builder.Services.AddTransient<DataSettingsPageViewModel>();
         builder.Services.AddTransient<RoastPageViewModel>();
+        builder.Services.AddTransient<RoastEditPageViewModel>();
         builder.Services.AddTransient<BeanInventoryPageViewModel>();
         builder.Services.AddTransient<BeanEditPageViewModel>();
         builder.Services.AddTransient<RoastLogPageViewModel>();
@@ -82,6 +83,7 @@ public static class MauiProgram
         builder.Services.AddTransient<RoastImportPageViewModel>();
         builder.Services.AddTransient<MainPage>();
         builder.Services.AddTransient<RoastPage>();
+        builder.Services.AddTransient<RoastEditPage>();
         builder.Services.AddTransient<BeanInventoryPage>();
         builder.Services.AddTransient<BeanEditPage>();
         builder.Services.AddTransient<RoastLogPage>();

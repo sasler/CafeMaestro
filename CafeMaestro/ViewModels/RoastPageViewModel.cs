@@ -419,7 +419,8 @@ public partial class RoastPageViewModel : ObservableObject
         }
 
         RoastWorkItem? item = _snapshot.OpenWork.FirstOrDefault(work => work.RoastId == channel.RoastId);
-        if (item?.IsReadyToWeigh == true)
+        if (item is not null &&
+            (item.IsReadyToWeigh || item.ReadyToWeighAtUtc <= _clock.UtcNow))
         {
             await ShowWeighInAsync(item);
         }
@@ -479,6 +480,13 @@ public partial class RoastPageViewModel : ObservableObject
         }
 
         ApplyElapsed(elapsed);
+        if (_activeRoast.FirstCrackElapsedSeconds is int firstCrackSeconds)
+        {
+            double developmentSeconds = Math.Max(0, elapsed - firstCrackSeconds);
+            DevelopmentDisplay = FormatElapsed(developmentSeconds);
+            DtrDisplay = elapsed > 0 ? $"{developmentSeconds / elapsed * 100:0.0}%" : "0.0%";
+        }
+
         UpdateChannels();
     }
 
@@ -664,6 +672,7 @@ public partial class RoastPageViewModel : ObservableObject
         }
 
         RoastWorkItem? source = _snapshot.OpenWork
+            .Where(item => item.SessionId == _snapshot.SessionId)
             .OrderByDescending(item => item.BatchNumber ?? 0)
             .FirstOrDefault();
         if (source?.BeanId is not Guid beanId)

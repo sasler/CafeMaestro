@@ -95,6 +95,70 @@ public class RoastPageViewModelTests
         harness.ViewModel.RecoveryRequiresCorrectedTime.Should().BeTrue();
     }
 
+    [Fact]
+    public async Task ChannelThatBecameReadySinceSnapshot_OpensWeighIn()
+    {
+        Harness harness = new();
+        RoastWorkItem item = harness.Work(batch: 1, remaining: 0) with
+        {
+            Status = RoastEffectiveStatus.Cooling
+        };
+        harness.SetSnapshot(harness.HandoffSnapshot(nextBatch: 2, item));
+        await harness.ViewModel.OnAppearingAsync();
+
+        await harness.ViewModel.WeighChannelAsync(harness.ViewModel.Channels.Single());
+
+        harness.Overlay.Verify(service => service.ShowWeighInAsync(
+            It.Is<WeighInRequest>(request => request.RoastId == item.RoastId),
+            It.IsAny<CancellationToken>()), Times.Once);
+    }
+
+    [Fact]
+    public async Task Tick_AdvancesDevelopmentTimeAfterFirstCrack()
+    {
+        Harness harness = new();
+        RoastSessionSnapshot snapshot = harness.ActiveSnapshot(ActiveRoastPhase.Roasting, elapsed: 120) with
+        {
+            ActiveRoast = harness.ActiveSnapshot(ActiveRoastPhase.Roasting, elapsed: 120).ActiveRoast! with
+            {
+                FirstCrackElapsedSeconds = 60
+            }
+        };
+        harness.SetSnapshot(snapshot);
+        await harness.ViewModel.OnAppearingAsync();
+
+        harness.Clock.Advance(TimeSpan.FromSeconds(10));
+        harness.ViewModel.Tick();
+
+        harness.ViewModel.DevelopmentDisplay.Should().Be("01:10");
+        harness.ViewModel.DtrDisplay.Should().Be("53.8%");
+    }
+
+    [Fact]
+    public async Task BatchTwoSetup_IgnoresOlderSessionsOpenWork()
+    {
+        Harness harness = new();
+        Guid sessionId = Guid.NewGuid();
+        RoastWorkItem older = harness.Work(batch: 1, remaining: 0) with
+        {
+            SessionId = Guid.NewGuid(), BeanId = Guid.NewGuid(), BatchWeight = 999
+        };
+        RoastWorkItem current = harness.Work(batch: 1, remaining: 200) with { SessionId = sessionId };
+        harness.SetSnapshot(new RoastSessionSnapshot
+        {
+            AsOfUtc = FixedClock.Now,
+            SessionId = sessionId,
+            NextBatchNumber = 2,
+            RequiresRecovery = false,
+            OpenWork = [older, current]
+        });
+        await harness.ViewModel.OnAppearingAsync();
+
+        await harness.ViewModel.PrimaryHandoffActionAsync();
+
+        harness.ViewModel.BatchWeightText.Should().Be("240");
+    }
+
     private sealed class Harness
     {
         private RoastSessionSnapshot _snapshot;
@@ -105,6 +169,8 @@ public class RoastPageViewModelTests
         };
 
         public Mock<IDisplayWakeService> Wake { get; } = new();
+        public Mock<IOverlayService> Overlay { get; } = new();
+        public FixedClock Clock { get; } = new();
         public RoastPageViewModel ViewModel { get; }
 
         private readonly Mock<IRoastSessionService> _session = new();
@@ -132,15 +198,18 @@ public class RoastPageViewModelTests
                 });
             _query.Setup(service => service.GetRoastsForBeanAsync(Bean.Id, It.IsAny<CancellationToken>()))
                 .ReturnsAsync([CompletedRoast(), DroppedRoast()]);
+            Overlay.Setup(service => service.ShowWeighInAsync(
+                    It.IsAny<WeighInRequest>(), It.IsAny<CancellationToken>()))
+                .ReturnsAsync(WeighInOutcome.Cancelled);
 
             ViewModel = new RoastPageViewModel(
                 _session.Object,
                 _query.Object,
                 beans.Object,
-                Mock.Of<IOverlayService>(),
+                Overlay.Object,
                 Wake.Object,
                 Mock.Of<IRoastRecoveryAdapter>(),
-                new FixedClock());
+                Clock);
         }
 
         public void SetSnapshot(RoastSessionSnapshot snapshot) => _snapshot = snapshot;
@@ -164,15 +233,19 @@ public class RoastPageViewModelTests
             }
         };
 
-        public RoastSessionSnapshot HandoffSnapshot(int nextBatch, params RoastWorkItem[] work) => new()
+        public RoastSessionSnapshot HandoffSnapshot(int nextBatch, params RoastWorkItem[] work)
         {
-            AsOfUtc = FixedClock.Now,
-            SessionId = nextBatch > 1 ? Guid.NewGuid() : null,
-            NextBatchNumber = nextBatch,
-            RequiresRecovery = false,
-            OpenWork = work,
-            ActiveRoast = null
-        };
+            Guid? sessionId = nextBatch > 1 ? Guid.NewGuid() : null;
+            return new RoastSessionSnapshot
+            {
+                AsOfUtc = FixedClock.Now,
+                SessionId = sessionId,
+                NextBatchNumber = nextBatch,
+                RequiresRecovery = false,
+                OpenWork = work.Select(item => item with { SessionId = sessionId }).ToList(),
+                ActiveRoast = null
+            };
+        }
 
         public RoastWorkItem Work(int batch, double remaining) => new()
         {
@@ -207,6 +280,8 @@ public class RoastPageViewModelTests
     private sealed class FixedClock : IClock
     {
         public static readonly DateTimeOffset Now = new(2026, 8, 25, 8, 0, 0, TimeSpan.Zero);
-        public DateTimeOffset UtcNow => Now;
+        public DateTimeOffset UtcNow { get; private set; } = Now;
+
+        public void Advance(TimeSpan duration) => UtcNow += duration;
     }
 }

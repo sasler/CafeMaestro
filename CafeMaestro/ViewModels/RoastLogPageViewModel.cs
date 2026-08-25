@@ -112,7 +112,7 @@ public partial class RoastLogPageViewModel : ObservableObject
         try
         {
             await _navigationService.GoToAsync(
-                Routes.Roast,
+                Routes.RoastEdit,
                 new Dictionary<string, object>
                 {
                     ["EditRoastId"] = roast.Id.ToString()
