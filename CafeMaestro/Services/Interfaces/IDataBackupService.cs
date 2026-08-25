@@ -9,7 +9,12 @@ public sealed record DataBackupSummary(
     DateTime LastModified,
     string AppVersion,
     int BeanCount,
-    int RoastCount);
+    int RoastCount,
+    bool IsRestorable = true,
+    string? RecoveryMessage = null)
+{
+    public bool IsRawRecovery => !IsRestorable;
+}
 
 public interface IDataBackupService
 {
@@ -27,6 +32,10 @@ public interface IDataBackupService
         CancellationToken cancellationToken = default);
 
     Task<AppData> RestoreSafetyBackupAsync(
+        string backupId,
+        CancellationToken cancellationToken = default);
+
+    Task<Stream> CreateSafetyBackupExportStreamAsync(
         string backupId,
         CancellationToken cancellationToken = default);
 

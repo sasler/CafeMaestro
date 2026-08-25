@@ -8,6 +8,7 @@ public sealed class DataBackupService : IDataBackupService
     private const int MaximumSafetyBackups = 5;
     private readonly IAppDataService _appDataService;
     private readonly string _backupDirectory;
+    private readonly Func<AppData, CancellationToken, Task>? _safetyBackupOverride;
     private readonly JsonSerializerOptions _jsonOptions = new()
     {
         WriteIndented = true,
@@ -21,11 +22,20 @@ public sealed class DataBackupService : IDataBackupService
     }
 
     public DataBackupService(IAppDataService appDataService, string backupDirectory)
+        : this(appDataService, backupDirectory, null)
+    {
+    }
+
+    internal DataBackupService(
+        IAppDataService appDataService,
+        string backupDirectory,
+        Func<AppData, CancellationToken, Task>? safetyBackupOverride)
     {
         _appDataService = appDataService ?? throw new ArgumentNullException(nameof(appDataService));
         _backupDirectory = string.IsNullOrWhiteSpace(backupDirectory)
             ? throw new ArgumentException("Backup directory is required.", nameof(backupDirectory))
             : backupDirectory;
+        _safetyBackupOverride = safetyBackupOverride;
     }
 
     public async Task<DataBackupSummary> PreviewExternalBackupAsync(
@@ -63,7 +73,7 @@ public sealed class DataBackupService : IDataBackupService
 
         var summaries = new List<DataBackupSummary>();
         foreach (string filePath in Directory
-                     .EnumerateFiles(_backupDirectory, "cafemaestro_safety_*.json")
+                     .EnumerateFiles(_backupDirectory, SafetyBackupFile.SearchPattern)
                      .OrderByDescending(File.GetCreationTimeUtc))
         {
             cancellationToken.ThrowIfCancellationRequested();
@@ -77,9 +87,18 @@ public sealed class DataBackupService : IDataBackupService
                     File.GetCreationTimeUtc(filePath),
                     data));
             }
-            catch (InvalidDataException)
+            catch (InvalidDataException ex)
             {
-                // A broken safety backup must not hide valid backup history.
+                summaries.Add(new DataBackupSummary(
+                    Path.GetFileName(filePath),
+                    "Raw recovery copy",
+                    File.GetCreationTimeUtc(filePath).ToLocalTime(),
+                    File.GetLastWriteTimeUtc(filePath),
+                    "Unvalidated",
+                    0,
+                    0,
+                    IsRestorable: false,
+                    RecoveryMessage: ex.Message));
             }
         }
 
@@ -95,13 +114,40 @@ public sealed class DataBackupService : IDataBackupService
         return await ReplaceWithSafetyBackupAsync(data, cancellationToken);
     }
 
+    public async Task<Stream> CreateSafetyBackupExportStreamAsync(
+        string backupId,
+        CancellationToken cancellationToken = default)
+    {
+        string filePath = ResolveSafetyBackupPath(backupId);
+        var output = new MemoryStream();
+        try
+        {
+            await using var source = new FileStream(
+                filePath,
+                FileMode.Open,
+                FileAccess.Read,
+                FileShare.Read,
+                81920,
+                useAsync: true);
+            await source.CopyToAsync(output, cancellationToken);
+            output.Position = 0;
+            return output;
+        }
+        catch
+        {
+            await output.DisposeAsync();
+            throw;
+        }
+    }
+
     public async Task<Stream> CreateExportStreamAsync(
         CancellationToken cancellationToken = default)
     {
+        AppData currentData = await _appDataService.LoadAppDataAsync();
         var stream = new MemoryStream();
         await JsonSerializer.SerializeAsync(
             stream,
-            _appDataService.CurrentData,
+            currentData,
             _jsonOptions,
             cancellationToken);
         stream.Position = 0;
@@ -115,7 +161,9 @@ public sealed class DataBackupService : IDataBackupService
         await _operationLock.WaitAsync(cancellationToken);
         try
         {
-            await CreateSafetyBackupAsync(cancellationToken);
+            AppData currentData = await _appDataService.LoadAppDataAsync();
+            replacement.PersistenceRevision = currentData.PersistenceRevision;
+            await CreateSafetyBackupAsync(currentData, cancellationToken);
             bool saved = await _appDataService.SaveAppDataAsync(replacement);
             if (!saved)
             {
@@ -123,7 +171,7 @@ public sealed class DataBackupService : IDataBackupService
             }
 
             PruneSafetyBackups(cancellationToken);
-            return replacement;
+            return await _appDataService.LoadAppDataAsync();
         }
         finally
         {
@@ -131,32 +179,27 @@ public sealed class DataBackupService : IDataBackupService
         }
     }
 
-    private async Task CreateSafetyBackupAsync(CancellationToken cancellationToken)
+    private async Task CreateSafetyBackupAsync(
+        AppData currentData,
+        CancellationToken cancellationToken)
     {
-        Directory.CreateDirectory(_backupDirectory);
-        string filePath = Path.Combine(
-            _backupDirectory,
-            $"cafemaestro_safety_{DateTime.UtcNow:yyyyMMdd_HHmmss_fffffff}_{Guid.NewGuid():N}.json");
+        if (_safetyBackupOverride is not null)
+        {
+            await _safetyBackupOverride(currentData, cancellationToken);
+            return;
+        }
 
-        await using var stream = new FileStream(
-            filePath,
-            FileMode.CreateNew,
-            FileAccess.Write,
-            FileShare.None,
-            81920,
-            useAsync: true);
-        await JsonSerializer.SerializeAsync(
-            stream,
-            _appDataService.CurrentData,
+        await SafetyBackupFile.SerializeAsync(
+            currentData,
+            _backupDirectory,
             _jsonOptions,
             cancellationToken);
-        await stream.FlushAsync(cancellationToken);
     }
 
     private void PruneSafetyBackups(CancellationToken cancellationToken)
     {
         string[] backups = Directory
-            .EnumerateFiles(_backupDirectory, "cafemaestro_safety_*.json")
+            .EnumerateFiles(_backupDirectory, SafetyBackupFile.SearchPattern)
             .OrderByDescending(File.GetCreationTimeUtc)
             .ToArray();
 
@@ -184,8 +227,11 @@ public sealed class DataBackupService : IDataBackupService
                 stream,
                 _jsonOptions,
                 cancellationToken);
-
-            Normalize(data);
+            bool migrated = new AppDataMigrationPipeline().MigrateToCurrent(data);
+            if (migrated)
+            {
+                AppDataNormalizer.Normalize(data, allowLegacyRepairs: true);
+            }
             Validate(data);
             return data;
         }
@@ -207,32 +253,9 @@ public sealed class DataBackupService : IDataBackupService
         }
     }
 
-    private static void Normalize(AppData data)
-    {
-        data.Beans ??= [];
-        data.RoastLogs ??= [];
-        data.RoastLevels ??= [];
-        if (data.RoastLevels.Count == 0)
-        {
-            data.RoastLevels = AppDataFactory.CreateDefault().RoastLevels;
-        }
-
-        data.AppVersion = string.IsNullOrWhiteSpace(data.AppVersion)
-            ? "Unknown"
-            : data.AppVersion;
-    }
-
     private static void Validate(AppData data)
     {
-        List<string> errors =
-        [
-            .. data.Beans.SelectMany((bean, index) =>
-                bean.Validate().Select(error => $"Bean {index + 1}: {error}")),
-            .. data.RoastLogs.SelectMany((roast, index) =>
-                roast.Validate().Select(error => $"Roast {index + 1}: {error}")),
-            .. data.RoastLevels.SelectMany((level, index) =>
-                level.Validate().Select(error => $"Roast level {index + 1}: {error}"))
-        ];
+        List<string> errors = AppDataNormalizer.GetValidationErrors(data);
 
         if (errors.Count > 0)
         {

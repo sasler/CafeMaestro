@@ -40,8 +40,11 @@ public sealed class BackupStructureValidationTests : IDisposable
     {
         string sourcePath = Path.Combine(_testDirectory, "legacy.json");
         await File.WriteAllTextAsync(sourcePath, "{\"Beans\":[],\"RoastLogs\":[]}");
+        AppData currentData = AppDataFactory.CreateDefault();
+        currentData.PersistenceRevision = 1;
         var appDataService = new Mock<IAppDataService>();
-        appDataService.SetupGet(service => service.CurrentData).Returns(AppDataFactory.CreateDefault());
+        appDataService.SetupGet(service => service.CurrentData).Returns(currentData);
+        appDataService.Setup(service => service.LoadAppDataAsync()).ReturnsAsync(currentData);
         appDataService
             .Setup(service => service.SaveAppDataAsync(It.IsAny<AppData>()))
             .ReturnsAsync(true);

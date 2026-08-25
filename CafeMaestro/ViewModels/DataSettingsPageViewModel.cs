@@ -113,6 +113,7 @@ public partial class DataSettingsPageViewModel : ObservableObject
         RestoreFromBackupCommand.NotifyCanExecuteChanged();
         ShareBackupCommand.NotifyCanExecuteChanged();
         RestoreSafetyBackupCommand.NotifyCanExecuteChanged();
+        SaveRecoveryCopyCommand.NotifyCanExecuteChanged();
         ImportCoffeeBeansCommand.NotifyCanExecuteChanged();
         ImportRoastLogsCommand.NotifyCanExecuteChanged();
         ExportRoastLogCsvCommand.NotifyCanExecuteChanged();
@@ -266,7 +267,7 @@ public partial class DataSettingsPageViewModel : ObservableObject
     [RelayCommand(CanExecute = nameof(CanRunDataOperation))]
     private async Task RestoreSafetyBackupAsync(DataBackupSummary backup)
     {
-        if (backup is null)
+        if (backup is null || !backup.IsRestorable)
         {
             return;
         }
@@ -294,6 +295,39 @@ public partial class DataSettingsPageViewModel : ObservableObject
                 "The selected automatic backup is now active.",
                 "OK");
         }, "CafeMaestro could not restore the automatic backup.");
+    }
+
+    [RelayCommand(CanExecute = nameof(CanRunDataOperation))]
+    private async Task SaveRecoveryCopyAsync(DataBackupSummary backup)
+    {
+        if (backup is null || !backup.IsRawRecovery)
+        {
+            return;
+        }
+
+        await RunDataOperationAsync(async () =>
+        {
+            await using Stream stream =
+                await _dataBackupService.CreateSafetyBackupExportStreamAsync(backup.Id);
+            DocumentSaveResult result = await _userFileService.SaveFileAsync(
+                $"CafeMaestro_Raw_Recovery_{backup.CreatedAt:yyyy-MM-dd_HHmmss}.json",
+                "application/json",
+                stream);
+            if (result.IsCanceled)
+            {
+                return;
+            }
+
+            if (!result.IsSuccessful)
+            {
+                throw result.Exception ?? new IOException("The recovery copy could not be saved.");
+            }
+
+            await _alertService.ShowAlertAsync(
+                "Recovery Copy Saved",
+                "The original recovery JSON was saved unchanged for manual repair or support.",
+                "OK");
+        }, "CafeMaestro could not save the raw recovery copy.");
     }
 
     [RelayCommand(CanExecute = nameof(CanRunDataOperation))]
@@ -554,6 +588,14 @@ public partial class DataSettingsPageViewModel : ObservableObject
 
     private void RefreshDataStatus(AppData data)
     {
+        if (_appDataService.IsRecoveryRequired)
+        {
+            DataStatusDisplay = "Recovery required";
+            DataSummaryDisplay = "The active data file could not be loaded safely.";
+            LastModifiedDisplay = "Use Share Backup to preserve the original file before recovery.";
+            return;
+        }
+
         DataStatusDisplay = "Saved automatically on this device";
         DataSummaryDisplay =
             $"Beans: {data.Beans?.Count ?? 0}  •  Roasts: {data.RoastLogs?.Count ?? 0}";

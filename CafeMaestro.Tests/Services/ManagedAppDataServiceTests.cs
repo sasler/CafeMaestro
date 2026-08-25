@@ -21,22 +21,22 @@ public sealed class ManagedAppDataServiceTests : IDisposable
     {
         string legacyPath = Path.Combine(_testDirectory, "legacy.json");
         string canonicalPath = Path.Combine(_testDirectory, "cafemaestro_data.json");
-        var legacyData = new AppData
-        {
-            Beans =
-            [
-                new BeanData
+        const string originalJson = """
+            {
+              "Beans": [
                 {
-                    CoffeeName = "Legacy",
-                    Country = "Test",
-                    Quantity = 1,
-                    RemainingQuantity = 1
+                  "CoffeeName": "Legacy",
+                  "Country": "Test",
+                  "Quantity": 1,
+                  "RemainingQuantity": 1
                 }
-            ],
-            RoastLogs = [],
-            RoastLevels = [new RoastLevelData("All", 0, 100)]
-        };
-        string originalJson = JsonSerializer.Serialize(legacyData);
+              ],
+              "RoastLogs": [],
+              "RoastLevels": [
+                { "Name": "All", "MinWeightLossPercentage": 0, "MaxWeightLossPercentage": 100 }
+              ]
+            }
+            """;
         await File.WriteAllTextAsync(legacyPath, originalJson);
         var preferences = new Mock<IPreferencesService>();
         preferences.Setup(service => service.GetAppDataFilePathAsync()).ReturnsAsync(legacyPath);
@@ -54,13 +54,40 @@ public sealed class ManagedAppDataServiceTests : IDisposable
     }
 
     [Fact]
+    public async Task InitializeAsync_InvalidLegacyPath_PreservesDiscoverableRawRecovery()
+    {
+        string legacyPath = Path.Combine(_testDirectory, "invalid-legacy.json");
+        string canonicalPath = Path.Combine(_testDirectory, "cafemaestro_data.json");
+        const string originalJson = "{\"RoastLogs\":[null]}";
+        await File.WriteAllTextAsync(legacyPath, originalJson);
+        var preferences = new Mock<IPreferencesService>();
+        preferences.Setup(service => service.GetAppDataFilePathAsync()).ReturnsAsync(legacyPath);
+        var service = new ManagedAppDataService(canonicalPath);
+
+        await FluentActions.Invoking(() => service.InitializeAsync(preferences.Object))
+            .Should().ThrowAsync<InvalidDataException>();
+
+        string backupDirectory = Path.Combine(_testDirectory, "Backups");
+        string backup = Directory.EnumerateFiles(
+            backupDirectory,
+            SafetyBackupFile.SearchPattern).Should().ContainSingle().Subject;
+        (await File.ReadAllTextAsync(backup)).Should().Be(originalJson);
+        (await File.ReadAllTextAsync(legacyPath)).Should().Be(originalJson);
+        File.Exists(canonicalPath).Should().BeFalse();
+        service.IsRecoveryRequired.Should().BeFalse();
+        var backupService = new DataBackupService(service, backupDirectory);
+        (await backupService.GetSafetyBackupsAsync()).Should().ContainSingle(summary =>
+            !summary.IsRestorable && summary.DisplayName == "Raw recovery copy");
+    }
+
+    [Fact]
     public async Task SaveAppDataAsync_UsesCanonicalFileAndLeavesNoTemporaryFile()
     {
         string canonicalPath = Path.Combine(_testDirectory, "cafemaestro_data.json");
         var preferences = new Mock<IPreferencesService>();
         var service = new ManagedAppDataService(canonicalPath, () => "1.3.0");
         await service.InitializeAsync(preferences.Object);
-        AppData data = AppDataFactory.CreateDefault();
+        AppData data = await service.LoadAppDataAsync();
         data.Beans.Add(new BeanData
         {
             CoffeeName = "Saved",
@@ -94,6 +121,26 @@ public sealed class ManagedAppDataServiceTests : IDisposable
         preferences.Verify(
             candidate => candidate.SaveAppDataFilePathAsync(canonicalPath),
             Times.Once);
+    }
+
+    [Fact]
+    public async Task InitializeAsync_PostLoadPreferencesFailure_DoesNotMarkCanonicalRecovery()
+    {
+        string canonicalPath = Path.Combine(_testDirectory, "valid-canonical.json");
+        await File.WriteAllTextAsync(
+            canonicalPath,
+            JsonSerializer.Serialize(AppDataFactory.CreateDefault()));
+        var preferences = new Mock<IPreferencesService>();
+        preferences
+            .Setup(service => service.SaveAppDataFilePathAsync(canonicalPath))
+            .ThrowsAsync(new IOException("Preferences unavailable."));
+        var service = new ManagedAppDataService(canonicalPath);
+
+        Func<Task> action = () => service.InitializeAsync(preferences.Object);
+
+        await action.Should().ThrowAsync<IOException>();
+        service.IsRecoveryRequired.Should().BeFalse();
+        service.CurrentData.DataSchemaVersion.Should().Be(AppDataSchema.CurrentVersion);
     }
     public void Dispose()
     {

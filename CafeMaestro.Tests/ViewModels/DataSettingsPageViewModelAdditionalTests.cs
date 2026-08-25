@@ -107,6 +107,51 @@ public sealed class DataSettingsPageViewModelAdditionalTests
     }
 
     [Fact]
+    public async Task SaveRecoveryCopyCommand_ExportsRawArtifactWithoutRestoringIt()
+    {
+        byte[] raw = Encoding.UTF8.GetBytes("{ invalid but preserved }");
+        var backupService = new Mock<IDataBackupService>();
+        backupService
+            .Setup(service => service.CreateSafetyBackupExportStreamAsync(
+                "raw.json",
+                It.IsAny<CancellationToken>()))
+            .ReturnsAsync(() => new MemoryStream(raw));
+        var userFiles = new Mock<IUserFileService>();
+        userFiles
+            .Setup(service => service.SaveFileAsync(
+                It.IsAny<string>(),
+                "application/json",
+                It.IsAny<Stream>(),
+                It.IsAny<CancellationToken>()))
+            .ReturnsAsync(new DocumentSaveResult(true, false));
+        DataSettingsPageViewModel viewModel = CreateViewModel(backupService, userFiles);
+        var recovery = new DataBackupSummary(
+            "raw.json",
+            "Raw recovery copy",
+            DateTime.Now,
+            DateTime.UtcNow,
+            "Unvalidated",
+            0,
+            0,
+            IsRestorable: false);
+
+        await viewModel.SaveRecoveryCopyCommand.ExecuteAsync(recovery);
+
+        backupService.Verify(
+            service => service.RestoreSafetyBackupAsync(
+                It.IsAny<string>(),
+                It.IsAny<CancellationToken>()),
+            Times.Never);
+        userFiles.Verify(
+            service => service.SaveFileAsync(
+                It.Is<string>(name => name.Contains("Raw_Recovery", StringComparison.Ordinal)),
+                "application/json",
+                It.IsAny<Stream>(),
+                It.IsAny<CancellationToken>()),
+            Times.Once);
+    }
+
+    [Fact]
     public async Task OnAppearingAsync_ShowsCurrentCountsAndFiveItemSafetyHistory()
     {
         var backupService = new Mock<IDataBackupService>();
@@ -125,6 +170,25 @@ public sealed class DataSettingsPageViewModelAdditionalTests
         viewModel.DataStatusDisplay.Should().Be("Saved automatically on this device");
         viewModel.DataSummaryDisplay.Should().Be("Beans: 2  •  Roasts: 1");
         viewModel.AutomaticBackups.Should().HaveCount(5);
+    }
+
+    [Fact]
+    public async Task OnAppearingAsync_WhenCanonicalNeedsRecovery_ShowsRecoveryStatus()
+    {
+        var backupService = new Mock<IDataBackupService>();
+        backupService
+            .Setup(service => service.GetSafetyBackupsAsync(It.IsAny<CancellationToken>()))
+            .ReturnsAsync([]);
+        DataSettingsPageViewModel viewModel = CreateViewModel(
+            backupService,
+            new Mock<IUserFileService>(),
+            recoveryRequired: true);
+
+        await viewModel.OnAppearingAsync();
+
+        viewModel.DataStatusDisplay.Should().Be("Recovery required");
+        viewModel.DataSummaryDisplay.Should().Contain("could not be loaded");
+        viewModel.LastModifiedDisplay.Should().Contain("Share Backup");
     }
 
     [Fact]
@@ -190,11 +254,13 @@ public sealed class DataSettingsPageViewModelAdditionalTests
         Mock<IUserFileService> userFiles,
         Mock<IRoastLevelService>? roastLevels = null,
         Mock<IAlertService>? alerts = null,
-        AppData? currentData = null)
+        AppData? currentData = null,
+        bool recoveryRequired = false)
     {
         var appData = new Mock<IAppDataService>();
         appData.SetupGet(service => service.CurrentData).Returns(currentData ?? CreateData(1, 0));
         appData.SetupGet(service => service.DataFilePath).Returns("cafemaestro_data.json");
+        appData.SetupGet(service => service.IsRecoveryRequired).Returns(recoveryRequired);
         var preferences = new Mock<IPreferencesService>();
         preferences.Setup(service => service.GetThemePreferenceAsync()).ReturnsAsync(ThemePreference.System);
         roastLevels ??= new Mock<IRoastLevelService>();

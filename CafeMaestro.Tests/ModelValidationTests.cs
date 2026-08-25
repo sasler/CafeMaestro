@@ -155,6 +155,7 @@ public class ModelValidationTests
             Temperature = 205,
             BatchWeight = 250,
             FinalWeight = 210,
+            CompletionStatus = RoastCompletionStatus.Complete,
             RoastMinutes = 10,
             RoastSeconds = 30,
             FirstCrackMinutes = 8,
