@@ -23,7 +23,13 @@ public interface IRoastSessionService
 
     Task<TransitionResult> ResumeAsync(CancellationToken cancellationToken = default);
 
+    Task<TransitionResult> ResetAsync(CancellationToken cancellationToken = default);
+
     Task<TransitionResult> MarkFirstCrackAsync(CancellationToken cancellationToken = default);
+
+    Task<TransitionResult> CorrectFirstCrackAsync(
+        int elapsedSeconds,
+        CancellationToken cancellationToken = default);
 
     /// <summary>
     /// Appends the roast once, decrements the bean once, clears the draft and advances the batch
@@ -31,6 +37,16 @@ public interface IRoastSessionService
     /// </summary>
     Task<TransitionResult> DropAsync(
         DateTimeOffset? correctedDropUtc = null,
+        CancellationToken cancellationToken = default);
+
+    /// <summary>Commits a previously captured Drop proposal without projecting time again.</summary>
+    Task<TransitionResult> DropAsync(
+        DropProposal proposal,
+        CancellationToken cancellationToken = default);
+
+    Task<TransitionResult> CorrectDropAsync(
+        Guid roastId,
+        DateTimeOffset correctedDropUtc,
         CancellationToken cancellationToken = default);
 
     Task<TransitionResult> DiscardAsync(

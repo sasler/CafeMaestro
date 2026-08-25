@@ -1,0 +1,53 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<ContentPage xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
+             xmlns:vm="clr-namespace:CafeMaestro.ViewModels"
+             x:Class="CafeMaestro.RoastEditPage"
+             x:DataType="vm:RoastEditPageViewModel"
+             Title="Edit roast"
+             BackgroundColor="{DynamicResource SurfaceColor}">
+    <ScrollView>
+        <VerticalStackLayout Padding="{StaticResource PagePadding}" Spacing="{StaticResource SpaceMd}">
+            <Label Text="EDIT ROAST" Style="{StaticResource SectionHeaderStyle}" />
+            <Label Text="Correct a completed roast log" FontSize="{StaticResource FontSizeHeadline}"
+                   FontAttributes="Bold" TextColor="{DynamicResource PrimaryTextColor}" />
+
+            <Label Text="BEAN" Style="{StaticResource CardMetaStyle}" />
+            <Picker ItemsSource="{Binding AvailableBeans}" SelectedItem="{Binding SelectedBean}"
+                    ItemDisplayBinding="{Binding DisplayName}" Title="Choose a bean" />
+
+            <Grid ColumnDefinitions="*,*" ColumnSpacing="{StaticResource SpaceMd}">
+                <VerticalStackLayout>
+                    <Label Text="TEMPERATURE (°C)" Style="{StaticResource CardMetaStyle}" />
+                    <Entry Text="{Binding TemperatureText}" Keyboard="Numeric" />
+                </VerticalStackLayout>
+                <VerticalStackLayout Grid.Column="1">
+                    <Label Text="BATCH WEIGHT (g)" Style="{StaticResource CardMetaStyle}" />
+                    <Entry Text="{Binding BatchWeightText}" Keyboard="Numeric" />
+                </VerticalStackLayout>
+            </Grid>
+
+            <Grid ColumnDefinitions="*,*" ColumnSpacing="{StaticResource SpaceMd}">
+                <VerticalStackLayout>
+                    <Label Text="FINAL WEIGHT (g)" Style="{StaticResource CardMetaStyle}" />
+                    <Entry Text="{Binding FinalWeightText}" Keyboard="Numeric" Placeholder="Still needs weight" />
+                </VerticalStackLayout>
+                <VerticalStackLayout Grid.Column="1">
+                    <Label Text="TOTAL TIME (mm:ss)" Style="{StaticResource CardMetaStyle}" />
+                    <Entry Text="{Binding RoastTimeText}" Keyboard="Numeric" Placeholder="10:42" />
+                </VerticalStackLayout>
+            </Grid>
+
+            <Label Text="FIRST CRACK (mm:ss, optional)" Style="{StaticResource CardMetaStyle}" />
+            <Entry Text="{Binding FirstCrackTimeText}" Keyboard="Numeric" Placeholder="Leave blank when unmarked" />
+            <Label Text="NOTES" Style="{StaticResource CardMetaStyle}" />
+            <Editor Text="{Binding Notes}" AutoSize="TextChanges" MinimumHeightRequest="120" />
+
+            <Grid ColumnDefinitions="*,*" ColumnSpacing="{StaticResource SpaceMd}" Margin="0,24,0,0">
+                <Button Text="CANCEL" Command="{Binding CancelCommand}" Style="{StaticResource SecondaryActionStyle}" />
+                <Button Grid.Column="1" Text="SAVE CHANGES" Command="{Binding SaveCommand}"
+                        Style="{StaticResource PrimaryActionStyle}" />
+            </Grid>
+        </VerticalStackLayout>
+    </ScrollView>
+</ContentPage>

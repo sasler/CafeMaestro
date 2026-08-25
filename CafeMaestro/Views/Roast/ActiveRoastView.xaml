@@ -1,0 +1,99 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<ContentView xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
+             xmlns:vm="clr-namespace:CafeMaestro.ViewModels"
+             xmlns:models="clr-namespace:CafeMaestro.Models"
+             xmlns:roast="clr-namespace:CafeMaestro.Views.Roast"
+             x:Class="CafeMaestro.Views.Roast.ActiveRoastView"
+             x:Name="Root"
+             x:DataType="vm:RoastPageViewModel">
+    <Grid RowDefinitions="Auto,*,Auto" Padding="{StaticResource PagePadding}" RowSpacing="{StaticResource SpaceMd}">
+        <Grid Grid.Row="0" ColumnDefinitions="*,Auto">
+            <VerticalStackLayout>
+                <Label Text="{Binding ActiveBatchLabel}" Style="{StaticResource SectionHeaderStyle}" />
+                <Label Text="{Binding ActiveBeanName}" Style="{StaticResource CardTitleStyle}" />
+                <Label Text="{Binding ActiveSetupSummary}" Style="{StaticResource CardMetaStyle}" />
+            </VerticalStackLayout>
+            <Border Grid.Column="1" Style="{StaticResource RoastChipStyle}">
+                <Label Text="{Binding ActiveStateLabel}" Style="{StaticResource RoastChipLabelStyle}" />
+            </Border>
+        </Grid>
+
+        <ScrollView Grid.Row="1">
+            <VerticalStackLayout Spacing="{StaticResource SpaceLg}">
+                <Grid HeightRequest="270" HorizontalOptions="Fill"
+                      SemanticProperties.Description="{Binding ActiveTimerSemanticDescription}">
+                    <GraphicsView x:Name="Instrument" HeightRequest="270" WidthRequest="270"
+                                  HorizontalOptions="Center" AutomationProperties.IsInAccessibleTree="False" />
+                    <VerticalStackLayout HorizontalOptions="Center" VerticalOptions="Center" Spacing="0"
+                                         AutomationProperties.IsInAccessibleTree="False">
+                        <Label Text="TOTAL ELAPSED" Style="{StaticResource SectionHeaderStyle}" HorizontalTextAlignment="Center"
+                               AutomationProperties.IsInAccessibleTree="False" />
+                        <Label Text="{Binding ElapsedDisplay}" Style="{StaticResource InstrumentValueStyle}"
+                               FontSize="64" TextColor="{DynamicResource PrimaryTextColor}"
+                               AutomationProperties.IsInAccessibleTree="False" />
+                        <Label Text="{Binding ActiveStateLabel}" Style="{StaticResource CardMetaStyle}" HorizontalTextAlignment="Center"
+                               AutomationProperties.IsInAccessibleTree="False" />
+                    </VerticalStackLayout>
+                </Grid>
+
+                <VerticalStackLayout Spacing="{StaticResource SpaceSm}" IsVisible="{Binding HasChannels}">
+                    <Label Text="OTHER BATCHES" Style="{StaticResource SectionHeaderStyle}" />
+                    <CollectionView ItemsSource="{Binding Channels}" SelectionMode="None">
+                        <CollectionView.ItemTemplate>
+                            <DataTemplate x:DataType="models:RoastChannelPresentation">
+                                <Border Style="{StaticResource CoolingCardStyle}" Margin="0,0,0,8">
+                                    <Grid ColumnDefinitions="Auto,Auto,*,Auto" ColumnSpacing="{StaticResource SpaceSm}">
+                                        <roast:CoolingArcView Progress="{Binding CoolingProgress}" />
+                                        <Label Grid.Column="1" Text="{Binding BatchLabel}" Style="{StaticResource NumericValueStyle}" />
+                                        <VerticalStackLayout Grid.Column="2">
+                                            <Label Text="{Binding BeanDisplaySnapshot}" Style="{StaticResource CardTitleStyle}" />
+                                            <Label Text="{Binding StatusLabel}" Style="{StaticResource CardMetaStyle}" />
+                                        </VerticalStackLayout>
+                                        <Button Grid.Column="3" Text="{Binding TimeDisplay}"
+                                                Command="{Binding Source={x:Reference Root}, Path=BindingContext.WeighChannelCommand}"
+                                                CommandParameter="{Binding .}" IsEnabled="{Binding IsReady}"
+                                                Style="{StaticResource SecondaryActionStyle}" MinimumHeightRequest="48" />
+                                    </Grid>
+                                </Border>
+                            </DataTemplate>
+                        </CollectionView.ItemTemplate>
+                    </CollectionView>
+                </VerticalStackLayout>
+
+                <Border Style="{StaticResource RoastCardStyle}">
+                    <Grid ColumnDefinitions="*,Auto">
+                        <VerticalStackLayout>
+                            <Label Text="LAST ROAST" Style="{StaticResource SectionHeaderStyle}" />
+                            <Label Text="{Binding PreviousResultDetails}" Style="{StaticResource CardMetaStyle}" />
+                        </VerticalStackLayout>
+                        <Label Grid.Column="1" Text="{Binding PreviousResultTime}" Style="{StaticResource NumericValueStyle}" />
+                    </Grid>
+                </Border>
+
+                <Border Style="{StaticResource AttentionCardStyle}" IsVisible="{Binding IsFirstCrackVisible}">
+                    <Grid ColumnDefinitions="*,Auto" RowDefinitions="Auto,Auto,Auto">
+                        <Label Text="FIRST CRACK" Style="{StaticResource SectionHeaderStyle}" />
+                        <Button Grid.Column="1" Grid.RowSpan="3" Text="{Binding FirstCrackDisplay}"
+                                Command="{Binding MarkFirstCrackCommand}" IsEnabled="{Binding CanMarkFirstCrack}"
+                                Style="{StaticResource SecondaryActionStyle}" />
+                        <Label Grid.Row="1" Text="{Binding DevelopmentDisplay, StringFormat='DEV {0}'}" Style="{StaticResource CardMetaStyle}" />
+                        <Label Grid.Row="2" Text="{Binding DtrDisplay, StringFormat='DTR {0}'}" Style="{StaticResource CardMetaStyle}" />
+                    </Grid>
+                </Border>
+            </VerticalStackLayout>
+        </ScrollView>
+
+        <VerticalStackLayout Grid.Row="2" Spacing="{StaticResource SpaceSm}">
+            <Grid ColumnDefinitions="*,2*" ColumnSpacing="{StaticResource SpaceMd}">
+                <Button Text="{Binding PauseResumeText}" Command="{Binding PauseOrResumeCommand}"
+                        Style="{StaticResource SecondaryActionStyle}" MinimumHeightRequest="60" />
+                <Button Grid.Column="1" Text="DROP" Command="{Binding DropCommand}"
+                        Style="{StaticResource PrimaryActionStyle}" MinimumHeightRequest="66"
+                        SemanticProperties.Hint="Stops time immediately and records the drop" />
+            </Grid>
+            <Button Text="RESET TIMER" Command="{Binding ResetCommand}" IsVisible="{Binding IsPaused}"
+                    Style="{StaticResource DestructiveActionStyle}" />
+        </VerticalStackLayout>
+    </Grid>
+</ContentView>

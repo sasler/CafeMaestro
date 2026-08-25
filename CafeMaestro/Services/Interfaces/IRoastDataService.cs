@@ -18,7 +18,7 @@ public interface IRoastDataService
 
     /// <summary>
     /// Appends a roast without session semantics. Roasts produced by the console must go through
-    /// <see cref="IRoastSessionService.DropAsync"/> instead, so inventory moves exactly once.
+    /// <see cref="IRoastSessionService.DropAsync(DropProposal, CancellationToken)"/> instead, so inventory moves exactly once.
     /// </summary>
     Task<bool> SaveRoastDataAsync(RoastData roastData);
     Task<List<RoastData>> LoadRoastDataAsync();

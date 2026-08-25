@@ -1,0 +1,22 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<ContentView xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
+             xmlns:vm="clr-namespace:CafeMaestro.ViewModels"
+             x:Class="CafeMaestro.Views.Roast.RoastPersistenceErrorView"
+             x:DataType="vm:RoastPageViewModel">
+    <Grid Padding="{StaticResource PagePadding}">
+        <Border Style="{StaticResource DangerCardStyle}" VerticalOptions="Center">
+            <VerticalStackLayout Spacing="{StaticResource SpaceLg}">
+                <Label Text="ROAST DATA RETAINED" Style="{StaticResource SectionHeaderStyle}" />
+                <Label Text="CafeMaestro could not record that change" FontSize="{StaticResource FontSizeHeadline}"
+                       FontAttributes="Bold" TextColor="{DynamicResource PrimaryTextColor}" />
+                <Label Text="{Binding ErrorMessage}" Style="{StaticResource CardMetaStyle}" />
+                <Label Text="Your bean, elapsed time, and captured drop remain available for Retry."
+                       Style="{StaticResource CardMetaStyle}" />
+                <Button Text="RETRY" Command="{Binding RetryCommand}" Style="{StaticResource PrimaryActionStyle}" />
+                <Button Text="OPEN DATA SETTINGS" Command="{Binding OpenDataSettingsCommand}"
+                        Style="{StaticResource SecondaryActionStyle}" />
+            </VerticalStackLayout>
+        </Border>
+    </Grid>
+</ContentView>

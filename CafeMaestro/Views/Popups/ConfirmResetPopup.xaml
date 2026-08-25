@@ -1,0 +1,17 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<ContentView xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
+             xmlns:popupVm="clr-namespace:CafeMaestro.ViewModels.Popups"
+             x:Class="CafeMaestro.Views.Popups.ConfirmResetPopup"
+             x:DataType="popupVm:ConfirmResetViewModel"
+             WidthRequest="330" Padding="{StaticResource SpaceMd}">
+    <Border Style="{StaticResource AttentionCardStyle}">
+        <VerticalStackLayout Spacing="{StaticResource SpaceLg}">
+            <Label Text="RESET THIS TIMER?" Style="{StaticResource SectionHeaderStyle}" />
+            <Label Text="Elapsed time and First Crack data will be cleared."
+                   Style="{StaticResource CardMetaStyle}" />
+            <Button Text="KEEP CURRENT ROAST" Command="{Binding KeepCommand}" Style="{StaticResource PrimaryActionStyle}" />
+            <Button Text="RESET TIMER" Command="{Binding ResetCommand}" Style="{StaticResource DestructiveActionStyle}" />
+        </VerticalStackLayout>
+    </Border>
+</ContentView>

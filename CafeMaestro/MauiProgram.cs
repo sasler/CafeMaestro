@@ -5,6 +5,8 @@ using CommunityToolkit.Maui;
 using CommunityToolkit.Maui.Storage;
 using Microsoft.Maui.Controls;
 using Microsoft.Maui.Platform;
+using CafeMaestro.ViewModels.Popups;
+using CafeMaestro.Views.Popups;
 
 namespace CafeMaestro;
 
@@ -56,6 +58,16 @@ public static class MauiProgram
         builder.Services.AddSingleton<ICoolingNotificationService, NoOpCoolingNotificationService>();
         builder.Services.AddSingleton<IRoastSessionService, RoastSessionService>();
         builder.Services.AddSingleton<IRoastQueryService, RoastQueryService>();
+        builder.Services.AddSingleton<IDisplayWakeService, DisplayWakeService>();
+        builder.Services.AddSingleton<IRoastRecoveryAdapter, RoastRecoveryAdapter>();
+        builder.Services.AddSingleton<IOverlayService, OverlayService>();
+
+        builder.Services.AddTransientPopup<WeighInPopup, WeighInViewModel>();
+        builder.Services.AddTransientPopup<ChooseBatchPopup, ChooseBatchViewModel>();
+        builder.Services.AddTransientPopup<DiscardRoastPopup, DiscardRoastViewModel>();
+        builder.Services.AddTransientPopup<ConfirmNavigationPopup, ConfirmNavigationViewModel>();
+        builder.Services.AddTransientPopup<ConfirmResetPopup, ConfirmResetViewModel>();
+        builder.Services.AddTransientPopup<TimeCorrectionPopup, TimeCorrectionViewModel>();
 
         // Register Pages for DI - changing to transient to avoid state retention
         builder.Services.AddTransient<AppShell>();
@@ -63,6 +75,7 @@ public static class MauiProgram
         builder.Services.AddTransient<MainPageViewModel>();
         builder.Services.AddTransient<DataSettingsPageViewModel>();
         builder.Services.AddTransient<RoastPageViewModel>();
+        builder.Services.AddTransient<RoastEditPageViewModel>();
         builder.Services.AddTransient<BeanInventoryPageViewModel>();
         builder.Services.AddTransient<BeanDetailPageViewModel>();
         builder.Services.AddTransient<BeanEditPageViewModel>();
@@ -71,6 +84,7 @@ public static class MauiProgram
         builder.Services.AddTransient<RoastImportPageViewModel>();
         builder.Services.AddTransient<MainPage>();
         builder.Services.AddTransient<RoastPage>();
+        builder.Services.AddTransient<RoastEditPage>();
         builder.Services.AddTransient<BeanInventoryPage>();
         builder.Services.AddTransient<BeanDetailPage>();
         builder.Services.AddTransient<BeanEditPage>();

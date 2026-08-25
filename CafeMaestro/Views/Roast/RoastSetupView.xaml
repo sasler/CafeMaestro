@@ -1,0 +1,78 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<ContentView xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
+             xmlns:vm="clr-namespace:CafeMaestro.ViewModels"
+             x:Class="CafeMaestro.Views.Roast.RoastSetupView"
+             x:DataType="vm:RoastPageViewModel">
+    <Grid RowDefinitions="*,Auto">
+        <ScrollView Grid.Row="0">
+            <VerticalStackLayout Padding="{StaticResource PagePadding}" Spacing="{StaticResource SpaceLg}">
+                <Grid ColumnDefinitions="*,Auto">
+                    <VerticalStackLayout Spacing="2">
+                        <Label Text="ROAST CONSOLE" Style="{StaticResource SectionHeaderStyle}" />
+                        <Label Text="Set up a batch" FontSize="{StaticResource FontSizeHeadline}"
+                               FontAttributes="Bold" TextColor="{DynamicResource PrimaryTextColor}" />
+                    </VerticalStackLayout>
+                    <Border Grid.Column="1" Style="{StaticResource RoastChipStyle}">
+                        <Label Text="READY" Style="{StaticResource RoastChipLabelStyle}" />
+                    </Border>
+                </Grid>
+
+                <VerticalStackLayout Spacing="{StaticResource SpaceSm}">
+                    <Label Text="BEAN" Style="{StaticResource FieldLabelStyle}" />
+                    <Border Style="{StaticResource FieldContainerStyle}">
+                        <Picker ItemsSource="{Binding AvailableBeans}"
+                                SelectedItem="{Binding SelectedBean, Mode=TwoWay}"
+                                ItemDisplayBinding="{Binding DisplayName}"
+                                Title="Choose a bean"
+                                TextColor="{DynamicResource PrimaryTextColor}"
+                                BackgroundColor="{DynamicResource TransparentColor}"
+                                MinimumHeightRequest="48"
+                                SemanticProperties.Description="Bean selector" />
+                    </Border>
+                </VerticalStackLayout>
+
+                <Grid ColumnDefinitions="*,*" ColumnSpacing="{StaticResource SpaceMd}">
+                    <VerticalStackLayout Grid.Column="0" Spacing="{StaticResource SpaceSm}">
+                        <Label Text="TEMPERATURE" Style="{StaticResource FieldLabelStyle}" />
+                        <Border Style="{StaticResource FieldContainerStyle}">
+                            <Entry Text="{Binding TemperatureText, Mode=TwoWay}"
+                                   Style="{StaticResource FieldEntryStyle}" Keyboard="Numeric"
+                                   Placeholder="e.g. 218" SemanticProperties.Description="Roasting temperature in degrees Celsius" />
+                        </Border>
+                        <Label Text="{Binding TemperatureError}" Style="{StaticResource FieldErrorStyle}" />
+                    </VerticalStackLayout>
+                    <VerticalStackLayout Grid.Column="1" Spacing="{StaticResource SpaceSm}">
+                        <Label Text="BATCH WEIGHT" Style="{StaticResource FieldLabelStyle}" />
+                        <Border Style="{StaticResource FieldContainerStyle}">
+                            <Entry Text="{Binding BatchWeightText, Mode=TwoWay}"
+                                   Style="{StaticResource FieldEntryStyle}" Keyboard="Numeric"
+                                   Placeholder="e.g. 240" SemanticProperties.Description="Batch weight in grams" />
+                        </Border>
+                        <Label Text="{Binding BatchWeightError}" Style="{StaticResource FieldErrorStyle}" />
+                    </VerticalStackLayout>
+                </Grid>
+
+                <Border Style="{StaticResource AttentionCardStyle}" IsVisible="{Binding HasInventoryWarning}">
+                    <Label Text="{Binding InventoryWarning}" Style="{StaticResource CardMetaStyle}" />
+                </Border>
+
+                <Border Style="{StaticResource RoastCardStyle}">
+                    <Grid RowDefinitions="Auto,Auto,Auto" ColumnDefinitions="*,Auto" RowSpacing="{StaticResource SpaceSm}">
+                        <Label Text="{Binding PreviousResultTitle}" Style="{StaticResource SectionHeaderStyle}" />
+                        <Label Grid.Column="1" Grid.RowSpan="2" Text="{Binding PreviousResultTime}"
+                               Style="{StaticResource NumericValueStyle}" TextColor="{DynamicResource RoastColor}" />
+                        <Label Grid.Row="1" Text="{Binding PreviousResultDetails}" Style="{StaticResource CardMetaStyle}" />
+                        <Label Grid.Row="2" Grid.ColumnSpan="2" Text="{Binding NewerAwaitingWeightNote}"
+                               Style="{StaticResource FieldHintStyle}" />
+                    </Grid>
+                </Border>
+            </VerticalStackLayout>
+        </ScrollView>
+
+        <VerticalStackLayout Grid.Row="1" Style="{StaticResource ActionBarStyle}">
+            <Button Text="START ROAST" Command="{Binding StartCommand}" IsEnabled="{Binding CanStart}"
+                    Style="{StaticResource PrimaryActionStyle}" SemanticProperties.Hint="Creates the roast draft before starting time" />
+        </VerticalStackLayout>
+    </Grid>
+</ContentView>

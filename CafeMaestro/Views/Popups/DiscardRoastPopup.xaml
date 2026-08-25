@@ -1,0 +1,22 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<ContentView xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
+             xmlns:popupVm="clr-namespace:CafeMaestro.ViewModels.Popups"
+             x:Class="CafeMaestro.Views.Popups.DiscardRoastPopup"
+             x:DataType="popupVm:DiscardRoastViewModel"
+             WidthRequest="340" Padding="{StaticResource SpaceMd}">
+    <Border Style="{StaticResource DangerCardStyle}">
+        <VerticalStackLayout Spacing="{StaticResource SpaceLg}">
+            <Label Text="DISCARD BATCH?" Style="{StaticResource SectionHeaderStyle}" />
+            <Label Text="{Binding Request.BeanDisplaySnapshot}" Style="{StaticResource CardTitleStyle}" />
+            <Label Text="{Binding Request.ElapsedDisplay, StringFormat='Elapsed {0}'}" Style="{StaticResource NumericValueStyle}" />
+            <Grid ColumnDefinitions="*,Auto">
+                <Label Text="Were the beans used?" Style="{StaticResource CardMetaStyle}" VerticalOptions="Center" />
+                <Switch Grid.Column="1" IsToggled="{Binding BeansWereUsed}" />
+            </Grid>
+            <Button Text="DISCARD BATCH" Command="{Binding DiscardCommand}" Style="{StaticResource DestructiveActionStyle}" />
+            <Button Text="LOG IT ANYWAY" Command="{Binding KeepLogCommand}" Style="{StaticResource SecondaryActionStyle}" />
+            <Button Text="KEEP ROASTING" Command="{Binding CancelCommand}" Style="{StaticResource PrimaryActionStyle}" />
+        </VerticalStackLayout>
+    </Border>
+</ContentView>

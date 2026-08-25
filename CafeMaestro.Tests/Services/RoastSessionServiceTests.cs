@@ -122,6 +122,27 @@ public sealed class RoastSessionServiceTests
     }
 
     [Fact]
+    public async Task ResetAsync_WhilePaused_ClearsElapsedAndFirstCrackWithoutReplacingDraft()
+    {
+        using RoastSessionTestHarness harness = await RoastSessionTestHarness.CreateAsync(Start);
+        harness.Preferences.FirstCrackEnabled = true;
+        BeanData bean = await harness.AddBeanAsync();
+        ActiveRoastSnapshot started = (await harness.Session.StartAsync(new RoastSetup(bean.Id, 218, 240)))
+            .Snapshot.ActiveRoast!;
+        harness.Clock.AdvanceSeconds(90);
+        await harness.Session.MarkFirstCrackAsync();
+        await harness.Session.PauseAsync();
+
+        TransitionResult result = await harness.Session.ResetAsync();
+
+        result.Success.Should().BeTrue();
+        result.Snapshot.ActiveRoast!.Id.Should().Be(started.Id);
+        result.Snapshot.ActiveRoast.ElapsedSeconds.Should().Be(0);
+        result.Snapshot.ActiveRoast.FirstCrackElapsedSeconds.Should().BeNull();
+        result.Snapshot.ActiveRoast.Phase.Should().Be(ActiveRoastPhase.Paused);
+    }
+
+    [Fact]
     public async Task DropAsync_AppliedTwice_ProducesOneRoastAndOneInventoryDecrement()
     {
         using RoastSessionTestHarness harness = await RoastSessionTestHarness.CreateAsync(Start);
@@ -193,6 +214,27 @@ public sealed class RoastSessionServiceTests
 
         retried.Success.Should().BeTrue();
         harness.Current.RoastLogs.Should().ContainSingle(roast => roast.Id == draftId);
+        harness.RemainingQuantityOf(bean.Id).Should().Be(0.76);
+    }
+
+    [Fact]
+    public async Task CorrectDropAsync_ChangesDurationAndCoolingAnchorWithoutSecondInventoryUse()
+    {
+        using RoastSessionTestHarness harness = await RoastSessionTestHarness.CreateAsync(Start);
+        BeanData bean = await harness.AddBeanAsync(quantityKilograms: 1.0);
+        await harness.Session.StartAsync(new RoastSetup(bean.Id, 218, 240));
+        harness.Clock.AdvanceSeconds(665);
+        RoastWorkItem dropped = (await harness.Session.DropAsync()).Snapshot.OpenWork.Single();
+        harness.Clock.AdvanceSeconds(30);
+
+        TransitionResult result = await harness.Session.CorrectDropAsync(
+            dropped.RoastId,
+            dropped.DroppedAtUtc.AddSeconds(-5));
+
+        result.Success.Should().BeTrue();
+        RoastData roast = harness.Current.RoastLogs.Single();
+        roast.TotalSeconds.Should().Be(660);
+        roast.DroppedAtUtc.Should().Be(dropped.DroppedAtUtc.AddSeconds(-5));
         harness.RemainingQuantityOf(bean.Id).Should().Be(0.76);
     }
 

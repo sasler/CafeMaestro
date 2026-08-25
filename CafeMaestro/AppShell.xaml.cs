@@ -25,6 +25,7 @@ public partial class AppShell : Shell
 		Routing.RegisterRoute(Routes.BeanInventoryPage, typeof(BeanInventoryPage));
 		Routing.RegisterRoute(Routes.BeanEdit, typeof(BeanEditPage));
 		Routing.RegisterRoute(Routes.BeanDetail, typeof(BeanDetailPage));
+		Routing.RegisterRoute(Routes.RoastEdit, typeof(RoastEditPage));
 		Routing.RegisterRoute(Routes.BeanImport, typeof(BeanImportPage));
 		Routing.RegisterRoute(Routes.SettingsPage, typeof(SettingsPage));
 		Routing.RegisterRoute(Routes.RoastImport, typeof(RoastImportPage));

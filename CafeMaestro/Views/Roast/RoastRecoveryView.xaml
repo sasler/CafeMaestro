@@ -1,0 +1,36 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<ContentView xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
+             xmlns:vm="clr-namespace:CafeMaestro.ViewModels"
+             x:Class="CafeMaestro.Views.Roast.RoastRecoveryView"
+             x:DataType="vm:RoastPageViewModel">
+    <Grid Padding="{StaticResource PagePadding}">
+        <Border Style="{StaticResource AttentionCardStyle}" VerticalOptions="Center">
+            <VerticalStackLayout Spacing="{StaticResource SpaceLg}">
+                <Label Text="RECOVER ROAST" Style="{StaticResource SectionHeaderStyle}" />
+                <Label Text="{Binding RecoveryTitle}" FontSize="{StaticResource FontSizeHeadline}" FontAttributes="Bold"
+                       TextColor="{DynamicResource PrimaryTextColor}" />
+                <Label Text="{Binding RecoveryElapsedText}" Style="{StaticResource CardMetaStyle}" />
+                <VerticalStackLayout IsVisible="{Binding RecoveryRequiresCorrectedTime}" Spacing="{StaticResource SpaceSm}">
+                    <Label Text="ACTUAL ELAPSED (MM:SS)" Style="{StaticResource FieldLabelStyle}" />
+                    <Border Style="{StaticResource FieldContainerStyle}">
+                        <Entry Text="{Binding RecoveryCorrectedElapsedText, Mode=TwoWay}" Keyboard="Text"
+                               Style="{StaticResource FieldEntryStyle}" SemanticProperties.Description="Actual elapsed roast time" />
+                    </Border>
+                </VerticalStackLayout>
+                <Button Text="YES, KEEP ROASTING" Command="{Binding KeepRoastingAfterRecoveryCommand}"
+                        Style="{StaticResource PrimaryActionStyle}" />
+                <Label Text="It ended at…" Style="{StaticResource FieldLabelStyle}" />
+                <Border Style="{StaticResource FieldContainerStyle}">
+                    <Entry Text="{Binding RecoveryEndTimeText, Mode=TwoWay}" Placeholder="e.g. 10:42" Keyboard="Text"
+                           Style="{StaticResource FieldEntryStyle}" SemanticProperties.Description="Actual roast end clock time" />
+                </Border>
+                <Button Text="RECORD DROP" Command="{Binding RecordRecoveryEndCommand}"
+                        Style="{StaticResource SecondaryActionStyle}" />
+                <Button Text="DISCARD BATCH" Command="{Binding DiscardRecoveryCommand}"
+                        Style="{StaticResource DestructiveActionStyle}" />
+                <Label Text="{Binding ErrorMessage}" Style="{StaticResource FieldErrorStyle}" />
+            </VerticalStackLayout>
+        </Border>
+    </Grid>
+</ContentView>

@@ -60,7 +60,7 @@ public class RoastLogPageViewModelTests
 
         navigationService.Verify(
             service => service.GoToAsync(
-                Routes.Roast,
+                Routes.RoastEdit,
                 It.Is<IDictionary<string, object>>(parameters => parameters["EditRoastId"].ToString() == roast.Id.ToString())),
             Times.Once);
     }

@@ -1,4 +1,3 @@
-using System.Globalization;
 using CafeMaestro.Models;
 using CafeMaestro.Services;
 using CafeMaestro.ViewModels;
@@ -10,678 +9,450 @@ namespace CafeMaestro.Tests.ViewModels;
 public class RoastPageViewModelTests
 {
     [Fact]
-    public async Task BeanIdQuery_SelectsStableBeanAndUsesSessionQueryCarryForward()
+    public async Task OnAppearing_WithNoActiveDraft_ShowsSimpleSetup()
     {
-        BeanData other = CreateBean();
-        BeanData requested = CreateBean();
-        requested.CoffeeName = "Guji";
-        requested.RemainingQuantity = 0;
-        MockBundle mocks = new();
-        RoastPageViewModel viewModel = CreateViewModel(mocks, bundle =>
+        Harness harness = new();
+
+        await harness.ViewModel.OnAppearingAsync();
+
+        harness.ViewModel.PresentationState.Should().Be(RoastPresentationState.Setup);
+        harness.ViewModel.IsFirstCrackVisible.Should().BeFalse();
+        harness.ViewModel.AvailableBeans.Should().ContainSingle();
+    }
+
+    [Fact]
+    public async Task BeanIdQuery_SelectsStableDepletedBeanFromFullStore()
+    {
+        Harness harness = new();
+        harness.Bean.RemainingQuantity = 0;
+        harness.Beans.Setup(service => service.GetSortedAvailableBeansAsync()).ReturnsAsync([]);
+        harness.ViewModel.ApplyQueryAttributes(new Dictionary<string, object>
         {
-            bundle.BeanDataService.Setup(service => service.GetSortedAvailableBeansAsync())
-                .ReturnsAsync([other, requested]);
-            bundle.RoastQueryService.Setup(service => service.GetSetupSuggestionAsync(
-                    requested.Id, It.IsAny<CancellationToken>()))
+            ["BeanId"] = harness.Bean.Id.ToString()
+        });
+
+        await harness.ViewModel.OnAppearingAsync();
+
+        harness.ViewModel.SelectedBean.Should().BeSameAs(harness.Bean);
+        harness.ViewModel.BatchWeightText.Should().Be("240");
+        harness.ViewModel.InventoryWarning.Should().Contain("you can still start");
+    }
+
+    [Fact]
+    public async Task Start_ThenPause_ProjectsPersistedSnapshotWithoutOwningTimerTruth()
+    {
+        Harness harness = new();
+        await harness.ViewModel.OnAppearingAsync();
+        harness.ViewModel.SelectedBean = harness.Bean;
+        await harness.ViewModel.SelectBeanAsync(harness.Bean);
+        harness.ViewModel.TemperatureText = "218";
+        harness.ViewModel.BatchWeightText = "240";
+
+        await harness.ViewModel.StartAsync();
+        harness.SetSnapshot(harness.ActiveSnapshot(ActiveRoastPhase.Roasting, elapsed: 71));
+        await harness.ViewModel.RefreshAsync();
+        harness.ViewModel.PresentationState.Should().Be(RoastPresentationState.Active);
+        harness.ViewModel.ElapsedDisplay.Should().Be("01:11");
+
+        harness.SetSnapshot(harness.ActiveSnapshot(ActiveRoastPhase.Paused, elapsed: 71));
+        await harness.ViewModel.PauseOrResumeAsync();
+
+        harness.ViewModel.IsPaused.Should().BeTrue();
+        harness.Wake.Verify(service => service.SetKeepScreenOnAsync(false), Times.AtLeastOnce);
+    }
+
+    [Fact]
+    public async Task FirstDrop_PrioritizesCopiedBatchTwoSetup()
+    {
+        Harness harness = new();
+        RoastWorkItem batchOne = harness.Work(batch: 1, remaining: 240);
+        harness.SetSnapshot(harness.HandoffSnapshot(nextBatch: 2, batchOne));
+
+        await harness.ViewModel.OnAppearingAsync();
+
+        harness.ViewModel.PresentationState.Should().Be(RoastPresentationState.Handoff);
+        harness.ViewModel.PrimaryActionText.Should().Be("SET UP BATCH 2");
+        await harness.ViewModel.PrimaryHandoffActionAsync();
+        harness.ViewModel.PresentationState.Should().Be(RoastPresentationState.Setup);
+        harness.ViewModel.BatchWeightText.Should().Be("240");
+        harness.ViewModel.TemperatureText.Should().Be("218");
+    }
+
+    [Fact]
+    public async Task SecondDrop_WhenBatchOneReady_PrioritizesWeighIn()
+    {
+        Harness harness = new();
+        RoastWorkItem batchOne = harness.Work(batch: 1, remaining: 0);
+        RoastWorkItem batchTwo = harness.Work(batch: 2, remaining: 300);
+        harness.SetSnapshot(harness.HandoffSnapshot(nextBatch: 3, batchOne, batchTwo));
+
+        await harness.ViewModel.OnAppearingAsync();
+
+        harness.ViewModel.PrimaryActionText.Should().Be("WEIGH BATCH 1");
+        harness.ViewModel.Channels.First().IsReady.Should().BeTrue();
+    }
+
+    [Fact]
+    public async Task ImplausiblePersistedDraft_UsesIsolatedRecoveryPresentation()
+    {
+        Harness harness = new();
+        RoastSessionSnapshot snapshot = harness.ActiveSnapshot(ActiveRoastPhase.Roasting, elapsed: 0) with
+        {
+            RequiresRecovery = true,
+            ActiveRoast = harness.ActiveSnapshot(ActiveRoastPhase.Roasting, elapsed: 0).ActiveRoast! with
+            {
+                IsElapsedImplausible = true,
+                RequiresCorrectedElapsed = true
+            }
+        };
+        harness.SetSnapshot(snapshot);
+
+        await harness.ViewModel.OnAppearingAsync();
+
+        harness.ViewModel.PresentationState.Should().Be(RoastPresentationState.Recovery);
+        harness.ViewModel.RecoveryRequiresCorrectedTime.Should().BeTrue();
+    }
+
+    [Fact]
+    public async Task ChannelThatBecameReadySinceSnapshot_OpensWeighIn()
+    {
+        Harness harness = new();
+        RoastWorkItem item = harness.Work(batch: 1, remaining: 0) with
+        {
+            Status = RoastEffectiveStatus.Cooling
+        };
+        harness.SetSnapshot(harness.HandoffSnapshot(nextBatch: 2, item));
+        await harness.ViewModel.OnAppearingAsync();
+
+        await harness.ViewModel.WeighChannelAsync(harness.ViewModel.Channels.Single());
+
+        harness.Overlay.Verify(service => service.ShowWeighInAsync(
+            It.Is<WeighInRequest>(request => request.RoastId == item.RoastId),
+            It.IsAny<CancellationToken>()), Times.Once);
+    }
+
+    [Fact]
+    public async Task Tick_AdvancesDevelopmentTimeAfterFirstCrack()
+    {
+        Harness harness = new();
+        RoastSessionSnapshot snapshot = harness.ActiveSnapshot(ActiveRoastPhase.Roasting, elapsed: 120) with
+        {
+            ActiveRoast = harness.ActiveSnapshot(ActiveRoastPhase.Roasting, elapsed: 120).ActiveRoast! with
+            {
+                FirstCrackElapsedSeconds = 60
+            }
+        };
+        harness.SetSnapshot(snapshot);
+        await harness.ViewModel.OnAppearingAsync();
+
+        harness.Clock.Advance(TimeSpan.FromSeconds(10));
+        harness.ViewModel.Tick();
+
+        harness.ViewModel.DevelopmentDisplay.Should().Be("01:10");
+        harness.ViewModel.DtrDisplay.Should().Be("53.8%");
+    }
+
+    [Fact]
+    public async Task BatchTwoSetup_IgnoresOlderSessionsOpenWork()
+    {
+        Harness harness = new();
+        Guid sessionId = Guid.NewGuid();
+        RoastWorkItem older = harness.Work(batch: 1, remaining: 0) with
+        {
+            SessionId = Guid.NewGuid(), BeanId = Guid.NewGuid(), BatchWeight = 999
+        };
+        RoastWorkItem current = harness.Work(batch: 1, remaining: 200) with { SessionId = sessionId };
+        harness.SetSnapshot(new RoastSessionSnapshot
+        {
+            AsOfUtc = FixedClock.Now,
+            SessionId = sessionId,
+            NextBatchNumber = 2,
+            RequiresRecovery = false,
+            OpenWork = [older, current]
+        });
+        await harness.ViewModel.OnAppearingAsync();
+
+        await harness.ViewModel.PrimaryHandoffActionAsync();
+
+        harness.ViewModel.BatchWeightText.Should().Be("240");
+    }
+
+    [Fact]
+    public async Task FailedDrop_RetryReusesCapturedTimestampAndElapsed()
+    {
+        Harness harness = new();
+        RoastSessionSnapshot active = harness.ActiveSnapshot(ActiveRoastPhase.Roasting, elapsed: 90);
+        RoastSessionSnapshot dropped = harness.HandoffSnapshot(nextBatch: 2, harness.Work(1, 300));
+        harness.SetSnapshot(active);
+        var proposals = new List<DropProposal>();
+        harness.Session.Setup(service => service.DropAsync(
+                It.IsAny<DropProposal>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync((DropProposal proposal, CancellationToken _) =>
+            {
+                proposals.Add(proposal);
+                return proposals.Count == 1
+                    ? TransitionResult.Fail(RoastTransitionError.PersistenceFailed, "write failed", active)
+                    : TransitionResult.Ok(dropped);
+            });
+        await harness.ViewModel.OnAppearingAsync();
+
+        await harness.ViewModel.DropAsync();
+        harness.Clock.Advance(TimeSpan.FromSeconds(30));
+        await harness.ViewModel.RetryAsync();
+
+        proposals.Should().HaveCount(2);
+        proposals[1].Should().Be(proposals[0]);
+        proposals[0].ElapsedSeconds.Should().Be(90);
+    }
+
+    [Fact]
+    public async Task ActiveBatchTwo_ShowsOnlyCurrentSessionChannelsAndAllowsReadyWeighIn()
+    {
+        Harness harness = new();
+        Guid sessionId = Guid.NewGuid();
+        RoastWorkItem current = harness.Work(1, 0) with { SessionId = sessionId };
+        RoastWorkItem older = harness.Work(9, 0) with { SessionId = Guid.NewGuid() };
+        RoastSessionSnapshot snapshot = harness.ActiveSnapshot(ActiveRoastPhase.Roasting, 20) with
+        {
+            SessionId = sessionId,
+            ActiveRoast = harness.ActiveSnapshot(ActiveRoastPhase.Roasting, 20).ActiveRoast! with
+            {
+                SessionId = sessionId,
+                BatchNumber = 2
+            },
+            OpenWork = [older, current]
+        };
+        harness.SetSnapshot(snapshot);
+        await harness.ViewModel.OnAppearingAsync();
+
+        harness.ViewModel.Channels.Should().ContainSingle(channel => channel.RoastId == current.RoastId);
+        await harness.ViewModel.WeighChannelAsync(harness.ViewModel.Channels.Single());
+        harness.Overlay.Verify(service => service.ShowWeighInAsync(
+            It.Is<WeighInRequest>(request => request.RoastId == current.RoastId),
+            It.IsAny<CancellationToken>()), Times.Once);
+    }
+
+    [Fact]
+    public async Task HandoffTick_ReprojectsPrimaryActionWhenCoolingExpires()
+    {
+        Harness harness = new();
+        RoastWorkItem cooling = harness.Work(1, 1) with { Status = RoastEffectiveStatus.Cooling };
+        harness.SetSnapshot(harness.HandoffSnapshot(3, cooling));
+        await harness.ViewModel.OnAppearingAsync();
+        harness.ViewModel.PrimaryActionText.Should().Be("FINISH SESSION");
+
+        harness.Clock.Advance(TimeSpan.FromSeconds(2));
+        harness.ViewModel.Tick();
+
+        harness.ViewModel.PrimaryActionText.Should().Be("WEIGH BATCH 1");
+    }
+
+    [Fact]
+    public async Task BatchTwoSetup_ResolvesDepletedBeanFromFullStoreAndKeepsStartNonBlocking()
+    {
+        Harness harness = new();
+        harness.Bean.RemainingQuantity = 0;
+        harness.Beans.Setup(service => service.GetSortedAvailableBeansAsync()).ReturnsAsync([]);
+        harness.SetSnapshot(harness.HandoffSnapshot(2, harness.Work(1, 200)));
+        await harness.ViewModel.OnAppearingAsync();
+
+        await harness.ViewModel.PrimaryHandoffActionAsync();
+
+        harness.ViewModel.SelectedBean.Should().BeSameAs(harness.Bean);
+        harness.ViewModel.AvailableBeans.Should().Contain(harness.Bean);
+        harness.ViewModel.InventoryWarning.Should().Contain("you can still start");
+        harness.ViewModel.CanStart.Should().BeTrue();
+    }
+
+    [Fact]
+    public async Task RecoveryBack_OffersConfirmedDiscardAndStaysWhenCancelled()
+    {
+        Harness harness = new();
+        RoastSessionSnapshot recovery = harness.ActiveSnapshot(ActiveRoastPhase.Roasting, 45) with
+        {
+            RequiresRecovery = true
+        };
+        RoastSessionSnapshot setup = harness.HandoffSnapshot(1);
+        harness.SetSnapshot(recovery);
+        harness.Overlay.SetupSequence(service => service.ShowDiscardAsync(
+                It.IsAny<DiscardRequest>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync(DiscardOutcome.Cancelled)
+            .ReturnsAsync(new DiscardOutcome(DiscardOutcomeKind.Discard));
+        harness.Session.Setup(service => service.DiscardAsync(true, false, It.IsAny<CancellationToken>()))
+            .ReturnsAsync(TransitionResult.Ok(setup));
+        await harness.ViewModel.OnAppearingAsync();
+
+        (await harness.ViewModel.HandleBackNavigationAsync()).Should().BeTrue();
+        harness.ViewModel.PresentationState.Should().Be(RoastPresentationState.Recovery);
+        await harness.ViewModel.DiscardRecoveryAsync();
+        harness.ViewModel.PresentationState.Should().Be(RoastPresentationState.Setup);
+    }
+
+    [Fact]
+    public async Task PersistenceError_GuardsBackAndDataSettingsEndsRetainedRetry()
+    {
+        Harness harness = new();
+        RoastSessionSnapshot active = harness.ActiveSnapshot(ActiveRoastPhase.Roasting, 30);
+        harness.SetSnapshot(active);
+        harness.Session.Setup(service => service.DropAsync(
+                It.IsAny<DropProposal>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync(TransitionResult.Fail(RoastTransitionError.PersistenceFailed, "write failed", active));
+        await harness.ViewModel.OnAppearingAsync();
+        await harness.ViewModel.DropAsync();
+
+        (await harness.ViewModel.HandleBackNavigationAsync()).Should().BeTrue();
+        await harness.ViewModel.OnWindowResumedAsync();
+        await harness.ViewModel.RetryAsync();
+        await harness.ViewModel.OpenDataSettingsAsync();
+        await harness.ViewModel.RetryAsync();
+
+        harness.Navigation.Verify(service => service.GoToAsync(CafeMaestro.Navigation.Routes.Settings), Times.Once);
+        harness.Session.Verify(service => service.DropAsync(
+            It.IsAny<DropProposal>(), It.IsAny<CancellationToken>()), Times.Exactly(2));
+    }
+
+    [Fact]
+    public async Task WindowLifecycle_ReleasesWakeThenRefreshesAndRestoresIt()
+    {
+        Harness harness = new();
+        harness.SetSnapshot(harness.ActiveSnapshot(ActiveRoastPhase.Roasting, 62));
+        await harness.ViewModel.OnAppearingAsync();
+
+        await harness.ViewModel.OnWindowStoppedAsync();
+        await harness.ViewModel.OnWindowResumedAsync();
+
+        harness.Wake.Verify(service => service.SetKeepScreenOnAsync(false), Times.Once);
+        harness.Wake.Verify(service => service.SetKeepScreenOnAsync(true), Times.Exactly(2));
+        harness.ViewModel.ActiveTimerSemanticDescription.Should().Be("Roasting, 1 minute 2 seconds");
+    }
+
+    private sealed class Harness
+    {
+        private RoastSessionSnapshot _snapshot;
+        public BeanData Bean { get; } = new()
+        {
+            Id = Guid.NewGuid(), Country = "Ethiopia", CoffeeName = "Guji", Variety = "Heirloom",
+            Quantity = 1, RemainingQuantity = 1
+        };
+
+        public Mock<IDisplayWakeService> Wake { get; } = new();
+        public Mock<IOverlayService> Overlay { get; } = new();
+        public Mock<INavigationService> Navigation { get; } = new();
+        public FixedClock Clock { get; } = new();
+        public RoastPageViewModel ViewModel { get; }
+
+        public Mock<IRoastSessionService> Session { get; } = new();
+        public Mock<IBeanDataService> Beans { get; } = new();
+        private readonly Mock<IRoastQueryService> _query = new();
+
+        public Harness()
+        {
+            _snapshot = HandoffSnapshot(nextBatch: 1);
+            Session.Setup(service => service.GetSnapshotAsync(It.IsAny<CancellationToken>()))
+                .ReturnsAsync(() => _snapshot);
+            Session.Setup(service => service.StartAsync(It.IsAny<RoastSetup>(), It.IsAny<CancellationToken>()))
+                .ReturnsAsync(() => TransitionResult.Ok(_snapshot));
+            Session.Setup(service => service.PauseAsync(It.IsAny<CancellationToken>()))
+                .ReturnsAsync(() => TransitionResult.Ok(_snapshot));
+            Session.Setup(service => service.ResumeAsync(It.IsAny<CancellationToken>()))
+                .ReturnsAsync(() => TransitionResult.Ok(_snapshot));
+
+            Beans.Setup(service => service.GetSortedAvailableBeansAsync()).ReturnsAsync([Bean]);
+            Beans.Setup(service => service.GetBeanByIdAsync(Bean.Id)).ReturnsAsync(Bean);
+            _query.Setup(service => service.GetSetupSuggestionAsync(Bean.Id, It.IsAny<CancellationToken>()))
                 .ReturnsAsync(new RoastSetupSuggestion
                 {
-                    BeanId = requested.Id,
-                    Temperature = 218,
-                    BatchWeight = 240,
-                    LastCompletedRoast = null,
-                    NewerAwaitingWeightCount = 1
+                    BeanId = Bean.Id, Temperature = 218, BatchWeight = 240,
+                    LastCompletedRoast = CompletedRoast(), NewerAwaitingWeightCount = 0
                 });
-        });
+            _query.Setup(service => service.GetRoastsForBeanAsync(Bean.Id, It.IsAny<CancellationToken>()))
+                .ReturnsAsync([CompletedRoast(), DroppedRoast()]);
+            Overlay.Setup(service => service.ShowWeighInAsync(
+                    It.IsAny<WeighInRequest>(), It.IsAny<CancellationToken>()))
+                .ReturnsAsync(WeighInOutcome.Cancelled);
 
-        viewModel.ApplyQueryAttributes(new Dictionary<string, object>
-        {
-            ["NewRoast"] = bool.TrueString,
-            ["BeanId"] = requested.Id.ToString()
-        });
-        await viewModel.OnAppearingAsync();
-
-        viewModel.SelectedBean.Should().BeSameAs(requested);
-        viewModel.TemperatureText.Should().Be("218");
-        viewModel.BatchWeightText.Should().Be("240");
-        viewModel.IsBatchWeightWarningVisible.Should().BeTrue();
-        viewModel.BatchWeightWarningText.Should().Be("Only 0 g recorded in inventory");
-        viewModel.CanStartTimer.Should().BeTrue();
-
-        await viewModel.StartTimerCommand.ExecuteAsync(null);
-        mocks.TimerService.Verify(service => service.Start(), Times.Once);
-    }
-
-    [Fact]
-    public async Task BeanIdQuery_FormatsFractionalSuggestionForCurrentInputCulture()
-    {
-        CultureInfo originalCulture = CultureInfo.CurrentCulture;
-        try
-        {
-            CultureInfo.CurrentCulture = CultureInfo.GetCultureInfo("de-DE");
-            BeanData bean = CreateBean();
-            MockBundle mocks = new();
-            RoastPageViewModel viewModel = CreateViewModel(mocks, bundle =>
-            {
-                bundle.BeanDataService.Setup(service => service.GetSortedAvailableBeansAsync())
-                    .ReturnsAsync([bean]);
-                bundle.RoastQueryService.Setup(service => service.GetSetupSuggestionAsync(
-                        bean.Id, It.IsAny<CancellationToken>()))
-                    .ReturnsAsync(new RoastSetupSuggestion
-                    {
-                        BeanId = bean.Id,
-                        Temperature = 218.5,
-                        BatchWeight = 240.5,
-                        NewerAwaitingWeightCount = 0
-                    });
-            });
-
-            viewModel.ApplyQueryAttributes(new Dictionary<string, object>
-            {
-                ["NewRoast"] = bool.TrueString,
-                ["BeanId"] = bean.Id.ToString()
-            });
-            await viewModel.OnAppearingAsync();
-
-            viewModel.TemperatureText.Should().Be("218,5");
-            viewModel.BatchWeightText.Should().Be("240,5");
-        }
-        finally
-        {
-            CultureInfo.CurrentCulture = originalCulture;
-        }
-    }
-
-    [Fact]
-    public async Task BeanIdQuery_MissingRequestedBeanDoesNotSelectAnotherBean()
-    {
-        BeanData other = CreateBean();
-        Guid missingId = Guid.NewGuid();
-        MockBundle mocks = new();
-        RoastPageViewModel viewModel = CreateViewModel(mocks, bundle =>
-        {
-            bundle.BeanDataService.Setup(service => service.GetSortedAvailableBeansAsync())
-                .ReturnsAsync([other]);
-        });
-
-        viewModel.ApplyQueryAttributes(new Dictionary<string, object>
-        {
-            ["NewRoast"] = bool.TrueString,
-            ["BeanId"] = missingId.ToString()
-        });
-        await viewModel.OnAppearingAsync();
-
-        viewModel.SelectedBean.Should().BeNull();
-        mocks.AlertService.Verify(service => service.ShowAlertAsync(
-            "Bean unavailable",
-            It.IsAny<string>(),
-            "OK"), Times.Once);
-    }
-
-    [Fact]
-    public async Task TimerCommands_UpdateTimerState()
-    {
-        BeanData bean = CreateBean();
-        RoastPageViewModel viewModel = CreateViewModel(
-            setup: mocks =>
-            {
-                mocks.BeanDataService.Setup(service => service.GetSortedAvailableBeansAsync())
-                    .ReturnsAsync(new List<BeanData> { bean });
-            });
-
-        await viewModel.OnAppearingAsync();
-        await viewModel.StartTimerCommand.ExecuteAsync(null);
-        await viewModel.PauseTimerCommand.ExecuteAsync(null);
-        await viewModel.StopTimerCommand.ExecuteAsync(null);
-        await viewModel.ResetTimerCommand.ExecuteAsync(null);
-
-        viewModel.TimerDisplay.Should().Be("00:00");
-        viewModel.CanStartTimer.Should().BeTrue();
-        viewModel.CanPauseTimer.Should().BeFalse();
-        viewModel.CanStopTimer.Should().BeFalse();
-        viewModel.IsTimeEntryEnabled.Should().BeTrue();
-        viewModel.CanMarkFirstCrack.Should().BeFalse();
-    }
-
-    [Fact]
-    public async Task SelectingBean_LoadsPreviousRoastData()
-    {
-        BeanData bean = CreateBean();
-        RoastData previousRoast = new()
-        {
-            BeanType = bean.DisplayName,
-            BatchWeight = 100,
-            FinalWeight = 85,
-            Temperature = 205,
-            RoastMinutes = 11,
-            RoastSeconds = 30,
-            RoastDate = new DateTime(2025, 1, 10),
-            RoastLevelName = "City",
-            FirstCrackMinutes = 8,
-            FirstCrackSeconds = 15
-        };
-
-        RoastPageViewModel viewModel = CreateViewModel(
-            setup: mocks =>
-            {
-                mocks.BeanDataService.Setup(service => service.GetSortedAvailableBeansAsync())
-                    .ReturnsAsync(new List<BeanData> { bean });
-                mocks.RoastDataService.Setup(service => service.GetLastRoastForBeanTypeAsync(bean.DisplayName))
-                    .ReturnsAsync(previousRoast);
-            });
-
-        await viewModel.OnAppearingAsync();
-        await EventuallyAsync(() => viewModel.HasPreviousRoast);
-
-        viewModel.SelectedBean.Should().Be(bean);
-        viewModel.HasPreviousRoast.Should().BeTrue();
-        viewModel.PreviousRoastSummary.Should().Contain("City roast");
-        viewModel.PreviousRoastDetails.Should().Contain("First Crack: 08:15");
-    }
-
-    [Fact]
-    public async Task WeightLossCalculation_UpdatesDisplay()
-    {
-        RoastPageViewModel viewModel = CreateViewModel(
-            setup: mocks =>
-            {
-                mocks.RoastLevelService.Setup(service => service.GetRoastLevelNameAsync(15))
-                    .ReturnsAsync("City");
-            });
-
-        viewModel.BatchWeightText = "100";
-        viewModel.FinalWeightText = "85";
-
-        await EventuallyAsync(() => viewModel.LossPercentLabel.Contains("15.0%"));
-
-        viewModel.LossPercentLabel.Should().Be("Weight loss 15.0% (City roast)");
-    }
-
-    [Fact]
-    public async Task SaveCommand_InvalidForm_ShowsValidationAlert()
-    {
-        MockBundle mocks = new();
-        RoastPageViewModel viewModel = CreateViewModel(mocks);
-
-        await viewModel.SaveCommand.ExecuteAsync(null);
-
-        viewModel.IsEditMode.Should().BeFalse();
-        mocks.AlertService.Verify(
-            service => service.ShowAlertAsync(
-                "Validation Error",
-                "Please select a bean type or add beans to your inventory.",
-                "OK"),
-            Times.Once);
-        mocks.RoastDataService.Verify(service => service.SaveRoastDataAsync(It.IsAny<RoastData>()), Times.Never);
-    }
-
-    [Theory]
-    [InlineData("BatchWeight", "NaN")]
-    [InlineData("BatchWeight", "Infinity")]
-    [InlineData("FinalWeight", "NaN")]
-    [InlineData("FinalWeight", "Infinity")]
-    [InlineData("Temperature", "NaN")]
-    [InlineData("Temperature", "Infinity")]
-    public async Task SaveCommand_NonFiniteNumericInput_DoesNotPersist(
-        string field,
-        string value)
-    {
-        BeanData bean = CreateBean();
-        MockBundle mocks = new();
-        RoastPageViewModel viewModel = CreateViewModel(
-            mocks,
-            setup: bundle =>
-            {
-                bundle.BeanDataService.Setup(service => service.GetSortedAvailableBeansAsync())
-                    .ReturnsAsync(new List<BeanData> { bean });
-            });
-
-        await viewModel.OnAppearingAsync();
-        viewModel.BatchWeightText = "100";
-        viewModel.FinalWeightText = "85";
-        viewModel.TemperatureText = "210";
-        viewModel.SetManualTimerDisplay("10:30");
-
-        switch (field)
-        {
-            case "BatchWeight":
-                viewModel.BatchWeightText = value;
-                break;
-            case "FinalWeight":
-                viewModel.FinalWeightText = value;
-                break;
-            case "Temperature":
-                viewModel.TemperatureText = value;
-                break;
+            ViewModel = new RoastPageViewModel(
+                Session.Object,
+                _query.Object,
+                Beans.Object,
+                Overlay.Object,
+                Wake.Object,
+                Mock.Of<IRoastRecoveryAdapter>(),
+                Navigation.Object,
+                Mock.Of<IAlertService>(),
+                Clock);
         }
 
-        await viewModel.SaveCommand.ExecuteAsync(null);
+        public void SetSnapshot(RoastSessionSnapshot snapshot) => _snapshot = snapshot;
 
-        mocks.AlertService.Verify(service => service.ShowAlertAsync(
-            "Validation Error",
-            It.IsAny<string>(),
-            "OK"), Times.Once);
-        mocks.RoastDataService.Verify(
-            service => service.SaveRoastDataAsync(It.IsAny<RoastData>()),
-            Times.Never);
-    }
-
-    [Fact]
-    public async Task SaveCommand_ValidNewRoast_UpdatesServices()
-    {
-        BeanData bean = CreateBean();
-        RoastData? savedRoast = null;
-
-        RoastPageViewModel viewModel = CreateViewModel(
-            setup: mocks =>
+        public RoastSessionSnapshot ActiveSnapshot(ActiveRoastPhase phase, double elapsed) => new()
+        {
+            AsOfUtc = FixedClock.Now,
+            SessionId = Guid.NewGuid(),
+            NextBatchNumber = 2,
+            RequiresRecovery = false,
+            OpenWork = [],
+            ActiveRoast = new ActiveRoastSnapshot
             {
-                mocks.BeanDataService.Setup(service => service.GetSortedAvailableBeansAsync())
-                    .ReturnsAsync(new List<BeanData> { bean });
-                mocks.BeanDataService.Setup(service => service.UpdateBeanQuantityAsync(bean.Id, 0.1))
-                    .ReturnsAsync(true);
-                mocks.RoastDataService.Setup(service => service.SaveRoastDataAsync(It.IsAny<RoastData>()))
-                    .Callback<RoastData>(roast => savedRoast = roast)
-                    .ReturnsAsync(true);
-                mocks.RoastLevelService.Setup(service => service.GetRoastLevelNameAsync(15))
-                    .ReturnsAsync("City");
-            });
-
-        await viewModel.OnAppearingAsync();
-        viewModel.BatchWeightText = "100";
-        viewModel.FinalWeightText = "85";
-        viewModel.TemperatureText = "210";
-        viewModel.Notes = "Sweet finish";
-        viewModel.SetManualTimerDisplay("10:30");
-
-        await EventuallyAsync(() => viewModel.LossPercentLabel.Contains("15.0%"));
-        await viewModel.SaveCommand.ExecuteAsync(null);
-
-        savedRoast.Should().NotBeNull();
-        savedRoast!.BeanType.Should().Be(bean.DisplayName);
-        savedRoast.BeanId.Should().Be(bean.Id);
-        savedRoast.BeanDisplaySnapshot.Should().Be(bean.DisplayName);
-        savedRoast.BatchWeight.Should().Be(100);
-        savedRoast.FinalWeight.Should().Be(85);
-        savedRoast.RoastMinutes.Should().Be(10);
-        savedRoast.RoastSeconds.Should().Be(30);
-        savedRoast.Notes.Should().Be("Sweet finish");
-    }
-
-    [Fact]
-    public async Task EditMode_LoadsRoastData()
-    {
-        BeanData bean = CreateBean();
-        Guid roastId = Guid.NewGuid();
-        RoastData roastToEdit = new()
-        {
-            Id = roastId,
-            BeanType = bean.DisplayName,
-            BatchWeight = 120,
-            FinalWeight = 102,
-            Temperature = 208,
-            RoastMinutes = 12,
-            RoastSeconds = 5,
-            Notes = "Edit me",
-            RoastDate = new DateTime(2025, 2, 1),
-            FirstCrackMinutes = 8,
-            FirstCrackSeconds = 40
-        };
-
-        RoastPageViewModel viewModel = CreateViewModel(
-            setup: mocks =>
-            {
-                mocks.BeanDataService.Setup(service => service.GetSortedAvailableBeansAsync())
-                    .ReturnsAsync(new List<BeanData> { bean });
-                mocks.RoastDataService.Setup(service => service.GetRoastLogByIdAsync(roastId))
-                    .ReturnsAsync(roastToEdit);
-                mocks.RoastLevelService.Setup(service => service.GetRoastLevelNameAsync(15))
-                    .ReturnsAsync("City");
-            });
-
-        viewModel.ApplyQueryAttributes(new Dictionary<string, object>
-        {
-            ["EditRoastId"] = roastId.ToString()
-        });
-
-        await viewModel.OnAppearingAsync();
-        await EventuallyAsync(() => viewModel.SelectedBean == bean);
-
-        viewModel.IsEditMode.Should().BeTrue();
-        viewModel.PageTitle.Should().Be("Edit Roast");
-        viewModel.SelectedBean.Should().Be(bean);
-        viewModel.TimerDisplay.Should().Be("12:05");
-        viewModel.BatchWeightText.Should().Be("120.0");
-        viewModel.FinalWeightText.Should().Be("102.0");
-        viewModel.TemperatureText.Should().Be("208");
-        viewModel.Notes.Should().Be("Edit me");
-        viewModel.FirstCrackLabel.Should().Be("First Crack: 08:40");
-    }
-
-    [Fact]
-    public async Task EditMode_DuplicateDisplayNames_PreservesStoredBeanIdentityOnSave()
-    {
-        BeanData wrongBean = CreateBean();
-        BeanData linkedBean = CreateBean();
-        Guid roastId = Guid.NewGuid();
-        RoastData roastToEdit = new()
-        {
-            Id = roastId,
-            BeanId = linkedBean.Id,
-            BeanType = linkedBean.DisplayName,
-            BeanDisplaySnapshot = linkedBean.DisplayName,
-            BatchWeight = 120,
-            FinalWeight = 102,
-            Temperature = 208,
-            RoastMinutes = 12,
-            RoastSeconds = 5,
-            RoastDate = new DateTime(2025, 2, 1)
-        };
-        RoastData? submitted = null;
-        RoastPageViewModel viewModel = CreateViewModel(
-            setup: mocks =>
-            {
-                mocks.BeanDataService.Setup(service => service.GetSortedAvailableBeansAsync())
-                    .ReturnsAsync(new List<BeanData> { wrongBean, linkedBean });
-                mocks.RoastDataService.Setup(service => service.GetRoastLogByIdAsync(roastId))
-                    .ReturnsAsync(roastToEdit);
-                mocks.RoastDataService.Setup(service => service.UpdateRoastLogAsync(It.IsAny<RoastData>()))
-                    .Callback<RoastData>(roast => submitted = roast)
-                    .ReturnsAsync(true);
-            });
-        viewModel.ApplyQueryAttributes(new Dictionary<string, object>
-        {
-            ["EditRoastId"] = roastId.ToString()
-        });
-
-        await viewModel.OnAppearingAsync();
-        await EventuallyAsync(() => viewModel.SelectedBean is not null);
-        await viewModel.SaveCommand.ExecuteAsync(null);
-
-        viewModel.SelectedBean.Should().BeSameAs(linkedBean);
-        submitted.Should().NotBeNull();
-        submitted!.BeanId.Should().Be(linkedBean.Id);
-        submitted.BeanDisplaySnapshot.Should().Be(linkedBean.DisplayName);
-    }
-
-    [Fact]
-    public async Task EditMode_AmbiguousLegacyBean_RemainsUnselectedAndUnlinked()
-    {
-        BeanData firstBean = CreateBean();
-        BeanData secondBean = CreateBean();
-        Guid roastId = Guid.NewGuid();
-        RoastData legacyRoast = new()
-        {
-            Id = roastId,
-            BeanId = null,
-            BeanType = firstBean.DisplayName,
-            BeanDisplaySnapshot = firstBean.DisplayName,
-            BatchWeight = 120,
-            FinalWeight = 102,
-            Temperature = 208,
-            RoastMinutes = 12,
-            RoastSeconds = 5,
-            RoastDate = new DateTime(2025, 2, 1)
-        };
-        MockBundle mocks = new();
-        RoastPageViewModel viewModel = CreateViewModel(
-            mocks,
-            setup: bundle =>
-            {
-                bundle.BeanDataService.Setup(service => service.GetSortedAvailableBeansAsync())
-                    .ReturnsAsync(new List<BeanData> { firstBean, secondBean });
-                bundle.RoastDataService.Setup(service => service.GetRoastLogByIdAsync(roastId))
-                    .ReturnsAsync(legacyRoast);
-            });
-        viewModel.ApplyQueryAttributes(new Dictionary<string, object>
-        {
-            ["EditRoastId"] = roastId.ToString()
-        });
-
-        await viewModel.OnAppearingAsync();
-        await EventuallyAsync(() => viewModel.IsEditMode);
-        await viewModel.SaveCommand.ExecuteAsync(null);
-
-        viewModel.SelectedBean.Should().BeNull();
-        mocks.RoastDataService.Verify(
-            service => service.UpdateRoastLogAsync(It.IsAny<RoastData>()),
-            Times.Never);
-        mocks.AlertService.Verify(service => service.ShowAlertAsync(
-            "Validation Error",
-            It.IsAny<string>(),
-            "OK"), Times.Once);
-    }
-
-    [Fact]
-    public async Task MarkFirstCrack_StoresCurrentTimerValue()
-    {
-        BeanData bean = CreateBean();
-        RoastPageViewModel viewModel = CreateViewModel(
-            setup: mocks =>
-            {
-                mocks.BeanDataService.Setup(service => service.GetSortedAvailableBeansAsync())
-                    .ReturnsAsync(new List<BeanData> { bean });
-                mocks.TimerService.Setup(service => service.GetElapsedTime())
-                    .Returns(new TimeSpan(0, 3, 45));
-            });
-
-        await viewModel.OnAppearingAsync();
-        await viewModel.StartTimerCommand.ExecuteAsync(null);
-        await viewModel.MarkFirstCrackCommand.ExecuteAsync(null);
-
-        viewModel.FirstCrackMinutes.Should().Be(3);
-        viewModel.FirstCrackSeconds.Should().Be(45);
-        viewModel.FirstCrackLabel.Should().Be("First Crack: 03:45");
-        viewModel.CanMarkFirstCrack.Should().BeFalse();
-    }
-
-    [Fact]
-    public async Task SaveCommand_InsufficientBeans_SavesSuccessfully()
-    {
-        BeanData bean = new()
-        {
-            Id = Guid.NewGuid(),
-            Country = "Colombia",
-            CoffeeName = "Supremo",
-            Variety = "Caturra",
-            RemainingQuantity = 0.05,
-            Quantity = 1
-        };
-        RoastData? savedRoast = null;
-
-        RoastPageViewModel viewModel = CreateViewModel(
-            setup: mocks =>
-            {
-                mocks.BeanDataService.Setup(service => service.GetSortedAvailableBeansAsync())
-                    .ReturnsAsync(new List<BeanData> { bean });
-                mocks.BeanDataService.Setup(service => service.UpdateBeanQuantityAsync(bean.Id, 0.1))
-                    .ReturnsAsync(true);
-                mocks.RoastDataService.Setup(service => service.SaveRoastDataAsync(It.IsAny<RoastData>()))
-                    .Callback<RoastData>(roast => savedRoast = roast)
-                    .ReturnsAsync(true);
-                mocks.RoastLevelService.Setup(service => service.GetRoastLevelNameAsync(15))
-                    .ReturnsAsync("City");
-            });
-
-        await viewModel.OnAppearingAsync();
-        viewModel.BatchWeightText = "100";
-        viewModel.FinalWeightText = "85";
-        viewModel.TemperatureText = "210";
-        viewModel.SetManualTimerDisplay("10:30");
-
-        await EventuallyAsync(() => viewModel.LossPercentLabel.Contains("15.0%"));
-        viewModel.IsBatchWeightWarningVisible.Should().BeTrue();
-        viewModel.CanStartTimer.Should().BeTrue();
-
-        await viewModel.SaveCommand.ExecuteAsync(null);
-
-        savedRoast.Should().NotBeNull();
-        savedRoast!.BatchWeight.Should().Be(100);
-        savedRoast.FinalWeight.Should().Be(85);
-    }
-
-    [Fact]
-    public async Task SaveCommand_WithoutFinalWeight_SavesWithNullFinalWeight()
-    {
-        BeanData bean = CreateBean();
-        RoastData? savedRoast = null;
-
-        RoastPageViewModel viewModel = CreateViewModel(
-            setup: mocks =>
-            {
-                mocks.BeanDataService.Setup(service => service.GetSortedAvailableBeansAsync())
-                    .ReturnsAsync(new List<BeanData> { bean });
-                mocks.BeanDataService.Setup(service => service.UpdateBeanQuantityAsync(bean.Id, 0.1))
-                    .ReturnsAsync(true);
-                mocks.RoastDataService.Setup(service => service.SaveRoastDataAsync(It.IsAny<RoastData>()))
-                    .Callback<RoastData>(roast => savedRoast = roast)
-                    .ReturnsAsync(true);
-            });
-
-        await viewModel.OnAppearingAsync();
-        viewModel.BatchWeightText = "100";
-        viewModel.TemperatureText = "210";
-        viewModel.SetManualTimerDisplay("10:30");
-        // FinalWeightText left empty
-
-        await viewModel.SaveCommand.ExecuteAsync(null);
-
-        savedRoast.Should().NotBeNull();
-        savedRoast!.BatchWeight.Should().Be(100);
-        savedRoast.FinalWeight.Should().BeNull();
-    }
-
-    [Fact]
-    public void RoastData_PendingRoast_ShowsPendingLevel()
-    {
-        RoastData roast = new()
-        {
-            BeanType = "Ethiopia Yirgacheffe",
-            BatchWeight = 100,
-            FinalWeight = 0,
-            Temperature = 210,
-            RoastMinutes = 10,
-            RoastSeconds = 30,
-            RoastLevelName = "Pending"
-        };
-
-        roast.HasFinalWeight.Should().BeFalse();
-        roast.WeightLossPercentage.Should().Be(0);
-        roast.WeightLossDisplay.Should().Be("Pending");
-        roast.Summary.Should().Contain("Pending roast of");
-    }
-
-    [Fact]
-    public void RoastData_CompletedRoast_ShowsNormalLevel()
-    {
-        RoastData roast = new()
-        {
-            BeanType = "Ethiopia Yirgacheffe",
-            BatchWeight = 100,
-            FinalWeight = 85,
-            Temperature = 210,
-            RoastMinutes = 10,
-            RoastSeconds = 30,
-            RoastLevelName = "City"
-        };
-
-        roast.HasFinalWeight.Should().BeTrue();
-        roast.WeightLossPercentage.Should().Be(15);
-        roast.WeightLossDisplay.Should().Be("15.0%");
-        roast.Summary.Should().Contain("City roast of");
-    }
-
-    [Fact]
-    public void RoastData_NullFinalWeight_PassesValidation()
-    {
-        RoastData roast = new()
-        {
-            BeanType = "Ethiopia Yirgacheffe",
-            BatchWeight = 100,
-            FinalWeight = null,
-            Temperature = 210,
-            RoastMinutes = 10,
-            RoastSeconds = 30
-        };
-
-        roast.Validate().Should().BeEmpty();
-    }
-
-    private static BeanData CreateBean()
-    {
-        return new BeanData
-        {
-            Id = Guid.NewGuid(),
-            Country = "Ethiopia",
-            CoffeeName = "Yirgacheffe",
-            Variety = "Heirloom",
-            RemainingQuantity = 1.5,
-            Quantity = 2
-        };
-    }
-
-    private static RoastPageViewModel CreateViewModel(Action<MockBundle>? setup = null)
-    {
-        MockBundle mocks = new();
-        return CreateViewModel(mocks, setup);
-    }
-
-    private static RoastPageViewModel CreateViewModel(MockBundle mocks, Action<MockBundle>? setup = null)
-    {
-
-        mocks.PreferencesService.Setup(service => service.IsFirstRunAsync()).ReturnsAsync(false);
-        mocks.PreferencesService.Setup(service => service.GetAppDataFilePathAsync()).ReturnsAsync((string?)null);
-        mocks.BeanDataService.Setup(service => service.GetSortedAvailableBeansAsync()).ReturnsAsync(new List<BeanData>());
-        mocks.AlertService.Setup(service => service.ShowAlertAsync(It.IsAny<string>(), It.IsAny<string>(), It.IsAny<string>()))
-            .Returns(Task.CompletedTask);
-        mocks.NavigationService.Setup(service => service.GoToAsync(It.IsAny<string>())).Returns(Task.CompletedTask);
-        mocks.NavigationService.Setup(service => service.GoToAsync(It.IsAny<string>(), It.IsAny<IDictionary<string, object>>()))
-            .Returns(Task.CompletedTask);
-        mocks.TimerService.Setup(service => service.GetElapsedTime()).Returns(TimeSpan.Zero);
-        mocks.RoastDataService.Setup(service => service.SaveRoastDataAsync(It.IsAny<RoastData>())).ReturnsAsync(true);
-        mocks.RoastDataService.Setup(service => service.UpdateRoastLogAsync(It.IsAny<RoastData>())).ReturnsAsync(true);
-        mocks.RoastLevelService.Setup(service => service.GetRoastLevelNameAsync(It.IsAny<double>())).ReturnsAsync("Unknown");
-        mocks.BeanDataService.Setup(service => service.UpdateBeanQuantityAsync(It.IsAny<Guid>(), It.IsAny<double>())).ReturnsAsync(true);
-
-        setup?.Invoke(mocks);
-
-        return new RoastPageViewModel(
-            mocks.TimerService.Object,
-            mocks.RoastDataService.Object,
-            mocks.BeanDataService.Object,
-            mocks.AppDataService.Object,
-            mocks.PreferencesService.Object,
-            mocks.RoastLevelService.Object,
-            mocks.NavigationService.Object,
-            mocks.AlertService.Object,
-            mocks.RoastQueryService.Object);
-    }
-
-    private static async Task EventuallyAsync(Func<bool> condition, int timeoutMs = 500)
-    {
-        DateTime end = DateTime.UtcNow.AddMilliseconds(timeoutMs);
-
-        while (DateTime.UtcNow < end)
-        {
-            if (condition())
-            {
-                return;
+                Id = Guid.NewGuid(), SessionId = Guid.NewGuid(), BatchNumber = 1,
+                BeanId = Bean.Id, BeanDisplaySnapshot = Bean.DisplayName,
+                Temperature = 218, BatchWeight = 240, Phase = phase,
+                StartedAtUtc = FixedClock.Now.AddSeconds(-elapsed), ElapsedSeconds = elapsed,
+                FirstCrackEnabled = false, CoolingDurationSeconds = 300,
+                IsElapsedImplausible = false,
+                RequiresCorrectedElapsed = false
             }
+        };
 
-            await Task.Delay(20);
+        public RoastSessionSnapshot HandoffSnapshot(int nextBatch, params RoastWorkItem[] work)
+        {
+            Guid? sessionId = nextBatch > 1 ? Guid.NewGuid() : null;
+            return new RoastSessionSnapshot
+            {
+                AsOfUtc = FixedClock.Now,
+                SessionId = sessionId,
+                NextBatchNumber = nextBatch,
+                RequiresRecovery = false,
+                OpenWork = work.Select(item => item with { SessionId = sessionId }).ToList(),
+                ActiveRoast = null
+            };
         }
 
-        condition().Should().BeTrue();
+        public RoastWorkItem Work(int batch, double remaining) => new()
+        {
+            RoastId = Guid.NewGuid(), SessionId = Guid.NewGuid(), BatchNumber = batch,
+            BeanId = Bean.Id, BeanDisplaySnapshot = Bean.DisplayName, BatchWeight = 240,
+            DroppedAtUtc = FixedClock.Now.AddSeconds(-(300 - remaining)),
+            ReadyToWeighAtUtc = FixedClock.Now.AddSeconds(remaining),
+            RemainingCoolingSeconds = remaining,
+            Status = remaining <= 0 ? RoastEffectiveStatus.NeedsWeight : RoastEffectiveStatus.Cooling,
+            TotalSeconds = 665
+        };
+
+        private RoastData CompletedRoast() => new()
+        {
+            Id = Guid.NewGuid(), BeanId = Bean.Id, BeanType = Bean.DisplayName,
+            BeanDisplaySnapshot = Bean.DisplayName, Temperature = 218, BatchWeight = 240,
+            FinalWeight = 206, RoastMinutes = 11, RoastSeconds = 5, RoastDate = FixedClock.Now.UtcDateTime,
+            DroppedAtUtc = FixedClock.Now.AddDays(-1), CompletionStatus = RoastCompletionStatus.Complete,
+            RoastLevelName = "Medium"
+        };
+
+        private RoastData DroppedRoast() => new()
+        {
+            Id = Guid.NewGuid(), BeanId = Bean.Id, BeanType = Bean.DisplayName,
+            BeanDisplaySnapshot = Bean.DisplayName, Temperature = 218, BatchWeight = 240,
+            RoastMinutes = 11, RoastSeconds = 5, RoastDate = FixedClock.Now.UtcDateTime,
+            DroppedAtUtc = FixedClock.Now, CompletionStatus = RoastCompletionStatus.AwaitingWeight,
+            CoolingDurationSeconds = 300, BatchNumber = 1, SessionId = Guid.NewGuid()
+        };
     }
 
-    private sealed class MockBundle
+    private sealed class FixedClock : IClock
     {
-        public Mock<ITimerService> TimerService { get; } = new();
-        public Mock<IRoastDataService> RoastDataService { get; } = new();
-        public Mock<IBeanDataService> BeanDataService { get; } = new();
-        public Mock<IAppDataService> AppDataService { get; } = new();
-        public Mock<IPreferencesService> PreferencesService { get; } = new();
-        public Mock<IRoastLevelService> RoastLevelService { get; } = new();
-        public Mock<INavigationService> NavigationService { get; } = new();
-        public Mock<IAlertService> AlertService { get; } = new();
-        public Mock<IRoastQueryService> RoastQueryService { get; } = new();
+        public static readonly DateTimeOffset Now = new(2026, 8, 25, 8, 0, 0, TimeSpan.Zero);
+        public DateTimeOffset UtcNow { get; private set; } = Now;
+
+        public void Advance(TimeSpan duration) => UtcNow += duration;
     }
 }
