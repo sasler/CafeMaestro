@@ -70,8 +70,8 @@ CafeMaestro follows the **MVVM pattern** with constructor-based **dependency inj
 CafeMaestro/
 ├── Models/               # Data models (BeanData, RoastData, RoastLevelData, AppData)
 ├── ViewModels/           # MVVM ViewModels using CommunityToolkit.Mvvm source generators
-├── Services/             # Business logic services
-│   └── Interfaces/       # Service contracts (IAppDataService, IBeanDataService, etc.)
+├── Services/             # Business logic services - see docs/roast-session-domain.md
+│   └── Interfaces/       # Service contracts (IAppDataService, IRoastSessionService, etc.)
 ├── Controls/             # Reusable controls (IconView)
 ├── Navigation/           # Centralized route constants
 ├── Resources/

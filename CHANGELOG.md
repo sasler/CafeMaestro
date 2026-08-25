@@ -7,6 +7,17 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased] - Complete Architecture Refactor
 ### Added
+- `IRoastSessionService`: the single writer of roast-session state, owning Start, Pause, Resume, Mark 1C, Drop, Discard, weigh-in, Mark Unweighed, Finish session and recovery as lock-scoped atomic mutations
+- Bean inventory now moves inside the same mutation that appends the roast, so a failed write can never consume beans without a matching log entry, and a retried or double-tapped Drop applies exactly once
+- `IRoastQueryService` projections: carry-forward setup values, the newest **completed** result as the reference roast, and the open-work queue ordered oldest drop first
+- `IClock` abstraction so every transition, elapsed-time projection and recovery path is deterministic and testable without sleeping
+- Elapsed time derived from persisted UTC anchors rather than an in-memory ticker, so pause/resume, backgrounding, process death and time-zone changes all recompute the same value
+- Cooling and Needs weight derived from the drop timestamp plus the roast's own cooling snapshot, so no write is required when cooling reaches zero
+- Cold-launch recovery for a persisted roast: still going, ended at a corrected time, or discard, with a rolled-back device clock rebased instead of producing negative or stalled elapsed time
+- `IRoastPreferencesService` with the settled defaults — five-minute cooling, 0.1 g weight precision, First Crack off — snapshotted into a roast at Start so later preference changes never rewrite an active draft or history
+- `ICoolingNotificationService` contract with a cross-platform no-op implementation; scheduling happens after persistence and a failure downgrades to a non-blocking warning rather than rolling back a saved Drop
+- Carry-forward keyed by `BeanId`, with legacy rows matched by an exact display snapshot only when that name identifies exactly one bean; ambiguous rows stay unlinked
+- `docs/roast-session-domain.md` documenting the domain boundary, transition invariants and recovery rules
 - Versioned JSON persistence with sequential schema migrations and recovery copies before in-place upgrades
 - Lock-scoped atomic data mutations that validate and replace the complete dataset before publishing one change event
 - Durable roast-session and completion fields required by the back-to-back roasting workflow
