@@ -16,6 +16,7 @@ CafeMaestro is a comprehensive tool designed for coffee enthusiasts and professi
 
 - **Bean Inventory Management**: Search and filter green coffee inventory, see low/out-of-stock quantities at a glance, and open a responsive detail view with the latest completed roast.
 - **Roast Console**: Prefilled bean, temperature, and batch weight setup; a persisted elapsed instrument; one-tap Drop; and a two-batch cooling/weigh-in handoff.
+- **Focused Four-Tab Navigation**: Launch into Roast, with Log, Beans, and Settings always one tab away outside active/recovery roast states.
 - **Roast Logging**: Record all aspects of each roast including temperature, batch weight, final weight, and calculated weight loss.
 - **Optional First Crack Tracking**: When enabled in roasting preferences, mark or correct First Crack for live development-time analysis; the default console stays uncluttered.
 - **Roast Level Analysis**: Automatic classification of roast levels based on weight loss percentage.
@@ -63,6 +64,8 @@ dotnet test CafeMaestro.Tests\CafeMaestro.Tests.csproj
 ## Architecture
 
 CafeMaestro follows the **MVVM pattern** with constructor-based **dependency injection**, powered by [CommunityToolkit.Mvvm](https://learn.microsoft.com/dotnet/communitytoolkit/mvvm/).
+
+The app Shell has exactly four root destinations in launch order: **Roast**, **Log**, **Beans**, and **Settings**. Roast is the useful home state. Window lifecycle handling is registered once at app scope; stopping releases display wake and UI work without ending the persisted roast, while resuming refreshes its wall-clock-derived snapshot.
 
 ### Project Structure
 

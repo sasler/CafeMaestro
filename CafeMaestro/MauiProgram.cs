@@ -59,6 +59,8 @@ public static class MauiProgram
         builder.Services.AddSingleton<IRoastSessionService, RoastSessionService>();
         builder.Services.AddSingleton<IRoastQueryService, RoastQueryService>();
         builder.Services.AddSingleton<IDisplayWakeService, DisplayWakeService>();
+        builder.Services.AddSingleton<IAppActivationHandler, NoOpAppActivationHandler>();
+        builder.Services.AddSingleton<IAppActivationService, AppActivationService>();
         builder.Services.AddSingleton<IRoastRecoveryAdapter, RoastRecoveryAdapter>();
         builder.Services.AddSingleton<IOverlayService, OverlayService>();
 
@@ -72,9 +74,8 @@ public static class MauiProgram
         // Register Pages for DI - changing to transient to avoid state retention
         builder.Services.AddTransient<AppShell>();
         builder.Services.AddTransient<LoadingPage>();
-        builder.Services.AddTransient<MainPageViewModel>();
         builder.Services.AddTransient<DataSettingsPageViewModel>();
-        builder.Services.AddTransient<RoastPageViewModel>();
+        builder.Services.AddSingleton<RoastPageViewModel>();
         builder.Services.AddTransient<RoastEditPageViewModel>();
         builder.Services.AddTransient<BeanInventoryPageViewModel>();
         builder.Services.AddTransient<BeanDetailPageViewModel>();
@@ -82,7 +83,6 @@ public static class MauiProgram
         builder.Services.AddTransient<RoastLogPageViewModel>();
         builder.Services.AddTransient<BeanImportPageViewModel>();
         builder.Services.AddTransient<RoastImportPageViewModel>();
-        builder.Services.AddTransient<MainPage>();
         builder.Services.AddTransient<RoastPage>();
         builder.Services.AddTransient<RoastEditPage>();
         builder.Services.AddTransient<BeanInventoryPage>();

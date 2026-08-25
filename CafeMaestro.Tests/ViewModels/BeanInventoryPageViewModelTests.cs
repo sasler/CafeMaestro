@@ -10,6 +10,18 @@ namespace CafeMaestro.Tests.ViewModels;
 public class BeanInventoryPageViewModelTests
 {
     [Fact]
+    public async Task RootBackRoute_ReturnsToRoastTab()
+    {
+        Mock<INavigationService> navigation = new();
+        navigation.Setup(service => service.GoToAsync(It.IsAny<string>())).Returns(Task.CompletedTask);
+        BeanInventoryPageViewModel viewModel = CreateViewModel(navigationService: navigation);
+
+        await viewModel.NavigateToRoastAsync();
+
+        navigation.Verify(service => service.GoToAsync(Routes.Roast), Times.Once);
+    }
+
+    [Fact]
     public async Task RefreshCommand_LoadsBeansAndFiltersBySearchText()
     {
         var beans = new List<BeanData>

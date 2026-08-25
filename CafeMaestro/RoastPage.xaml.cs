@@ -1,4 +1,5 @@
 using System.ComponentModel;
+using CafeMaestro.Services;
 using CafeMaestro.ViewModels;
 
 namespace CafeMaestro;
@@ -7,15 +8,13 @@ public partial class RoastPage : ContentPage
 {
     private readonly RoastPageViewModel _viewModel;
     private readonly IDispatcherTimer _ticker;
-    private Window? _window;
     private bool _isAppeared;
-    private bool _isWindowStopped;
+    private bool _isObservingViewModel;
 
     public RoastPage(RoastPageViewModel viewModel)
     {
         InitializeComponent();
         BindingContext = _viewModel = viewModel ?? throw new ArgumentNullException(nameof(viewModel));
-        _viewModel.PropertyChanged += OnViewModelPropertyChanged;
         _ticker = Dispatcher.CreateTimer();
         _ticker.Interval = TimeSpan.FromMilliseconds(250);
         _ticker.Tick += OnTick;
@@ -25,7 +24,7 @@ public partial class RoastPage : ContentPage
     {
         base.OnAppearing();
         _isAppeared = true;
-        SubscribeWindowLifecycle();
+        SubscribeViewModel();
         await _viewModel.OnAppearingAsync();
         UpdateChrome();
         UpdateTicker();
@@ -34,7 +33,7 @@ public partial class RoastPage : ContentPage
     protected override async void OnDisappearing()
     {
         _isAppeared = false;
-        UnsubscribeWindowLifecycle();
+        UnsubscribeViewModel();
         _ticker.Stop();
         await _viewModel.OnDisappearingAsync();
         base.OnDisappearing();
@@ -66,19 +65,44 @@ public partial class RoastPage : ContentPage
             UpdateChrome();
             UpdateTicker();
         }
+        else if (e.PropertyName == nameof(RoastPageViewModel.IsWindowStopped))
+        {
+            UpdateTicker();
+        }
+    }
+
+    private void SubscribeViewModel()
+    {
+        if (_isObservingViewModel)
+        {
+            return;
+        }
+
+        _viewModel.PropertyChanged += OnViewModelPropertyChanged;
+        _isObservingViewModel = true;
+    }
+
+    private void UnsubscribeViewModel()
+    {
+        if (!_isObservingViewModel)
+        {
+            return;
+        }
+
+        _viewModel.PropertyChanged -= OnViewModelPropertyChanged;
+        _isObservingViewModel = false;
     }
 
     private void UpdateChrome()
     {
-        bool showTabs = _viewModel.PresentationState is
-            Models.RoastPresentationState.Setup or Models.RoastPresentationState.Handoff;
+        bool showTabs = RoastChromePolicy.IsTabBarVisible(_viewModel.PresentationState);
         Shell.SetTabBarIsVisible(this, showTabs);
         NavigationPage.SetHasNavigationBar(this, showTabs);
     }
 
     private void UpdateTicker()
     {
-        bool shouldRun = _isAppeared && !_isWindowStopped &&
+        bool shouldRun = _isAppeared && !_viewModel.IsWindowStopped &&
             _viewModel.PresentationState is Models.RoastPresentationState.Active or
                 Models.RoastPresentationState.Handoff;
         if (shouldRun)
@@ -91,43 +115,4 @@ public partial class RoastPage : ContentPage
         }
     }
 
-    private void SubscribeWindowLifecycle()
-    {
-        Window? window = Window;
-        if (ReferenceEquals(_window, window) || window is null)
-        {
-            return;
-        }
-
-        UnsubscribeWindowLifecycle();
-        _window = window;
-        _window.Stopped += OnWindowStopped;
-        _window.Resumed += OnWindowResumed;
-    }
-
-    private void UnsubscribeWindowLifecycle()
-    {
-        if (_window is null)
-        {
-            return;
-        }
-
-        _window.Stopped -= OnWindowStopped;
-        _window.Resumed -= OnWindowResumed;
-        _window = null;
-    }
-
-    private async void OnWindowStopped(object? sender, EventArgs e)
-    {
-        _isWindowStopped = true;
-        UpdateTicker();
-        await _viewModel.OnWindowStoppedAsync();
-    }
-
-    private async void OnWindowResumed(object? sender, EventArgs e)
-    {
-        _isWindowStopped = false;
-        await _viewModel.OnWindowResumedAsync();
-        UpdateTicker();
-    }
 }

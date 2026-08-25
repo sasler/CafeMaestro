@@ -69,9 +69,9 @@ public partial class RoastLogPageViewModel : ObservableObject
         _isSubscribed = false;
     }
 
-    public Task NavigateHomeAsync()
+    public Task NavigateToRoastAsync()
     {
-        return _navigationService.GoToAsync(Routes.Main);
+        return _navigationService.GoToAsync(Routes.Roast);
     }
 
     [RelayCommand]
