@@ -188,6 +188,8 @@ public class ModelValidationTests
     [Theory]
     [InlineData(0)]
     [InlineData(-1)]
+    [InlineData(double.NaN)]
+    [InlineData(double.PositiveInfinity)]
     public void RoastData_Validate_ReturnsError_WhenBatchWeightIsNotPositive(double batchWeight)
     {
         var roast = new RoastData
@@ -207,6 +209,8 @@ public class ModelValidationTests
     [Theory]
     [InlineData(-0.1, 200)]
     [InlineData(210, 200)]
+    [InlineData(double.NaN, 200)]
+    [InlineData(double.PositiveInfinity, 200)]
     public void RoastData_Validate_ReturnsError_WhenFinalWeightIsOutOfBounds(double finalWeight, double batchWeight)
     {
         var roast = new RoastData
@@ -229,6 +233,8 @@ public class ModelValidationTests
     [InlineData(0)]
     [InlineData(-10)]
     [InlineData(501)]
+    [InlineData(double.NaN)]
+    [InlineData(double.PositiveInfinity)]
     public void RoastData_Validate_ReturnsError_WhenTemperatureIsOutOfBounds(double temperature)
     {
         var roast = new RoastData

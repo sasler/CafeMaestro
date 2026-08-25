@@ -555,6 +555,8 @@ public partial class RoastPageViewModel : ObservableObject, IQueryAttributable
     {
         if (!double.TryParse(BatchWeightText, out double batchWeight) ||
             !double.TryParse(FinalWeightText, out double finalWeight) ||
+            !double.IsFinite(batchWeight) ||
+            !double.IsFinite(finalWeight) ||
             batchWeight <= 0 ||
             finalWeight <= 0 ||
             finalWeight > batchWeight)
@@ -586,7 +588,9 @@ public partial class RoastPageViewModel : ObservableObject, IQueryAttributable
             return null;
         }
 
-        if (!double.TryParse(BatchWeightText, out double batchWeight) || batchWeight <= 0)
+        if (!double.TryParse(BatchWeightText, out double batchWeight) ||
+            !double.IsFinite(batchWeight) ||
+            batchWeight <= 0)
         {
             await _alertService.ShowAlertAsync("Validation Error", "Please enter a valid batch weight in grams.", "OK");
             return null;
@@ -596,6 +600,7 @@ public partial class RoastPageViewModel : ObservableObject, IQueryAttributable
         if (!string.IsNullOrWhiteSpace(FinalWeightText))
         {
             if (!double.TryParse(FinalWeightText, out double parsedFinalWeight) ||
+                !double.IsFinite(parsedFinalWeight) ||
                 parsedFinalWeight <= 0)
             {
                 await _alertService.ShowAlertAsync("Validation Error", "Please enter a valid final weight in grams.", "OK");
@@ -611,7 +616,9 @@ public partial class RoastPageViewModel : ObservableObject, IQueryAttributable
             finalWeight = parsedFinalWeight;
         }
 
-        if (!double.TryParse(TemperatureText, out double temperature) || temperature <= 0)
+        if (!double.TryParse(TemperatureText, out double temperature) ||
+            !double.IsFinite(temperature) ||
+            temperature <= 0)
         {
             await _alertService.ShowAlertAsync("Validation Error", "Please enter a valid temperature in Celsius.", "OK");
             return null;

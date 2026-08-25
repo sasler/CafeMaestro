@@ -81,12 +81,13 @@ namespace CafeMaestro.Models
                 errors.Add("BeanType must not be empty.");
             }
 
-            if (BatchWeight <= 0)
+            if (!double.IsFinite(BatchWeight) || BatchWeight <= 0)
             {
                 errors.Add("BatchWeight must be greater than 0.");
             }
 
-            if (FinalWeight < 0)
+            if (FinalWeight is double finalWeight &&
+                (!double.IsFinite(finalWeight) || finalWeight < 0))
             {
                 errors.Add("FinalWeight must be greater than or equal to 0.");
             }
@@ -148,7 +149,7 @@ namespace CafeMaestro.Models
                 errors.Add("The roast readiness time exceeds the supported date range.");
             }
 
-            if (Temperature <= 0 || Temperature > 500)
+            if (!double.IsFinite(Temperature) || Temperature <= 0 || Temperature > 500)
             {
                 errors.Add("Temperature must be greater than 0 and less than or equal to 500.");
             }

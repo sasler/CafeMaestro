@@ -105,6 +105,57 @@ public class RoastPageViewModelTests
         mocks.RoastDataService.Verify(service => service.SaveRoastDataAsync(It.IsAny<RoastData>()), Times.Never);
     }
 
+    [Theory]
+    [InlineData("BatchWeight", "NaN")]
+    [InlineData("BatchWeight", "Infinity")]
+    [InlineData("FinalWeight", "NaN")]
+    [InlineData("FinalWeight", "Infinity")]
+    [InlineData("Temperature", "NaN")]
+    [InlineData("Temperature", "Infinity")]
+    public async Task SaveCommand_NonFiniteNumericInput_DoesNotPersist(
+        string field,
+        string value)
+    {
+        BeanData bean = CreateBean();
+        MockBundle mocks = new();
+        RoastPageViewModel viewModel = CreateViewModel(
+            mocks,
+            setup: bundle =>
+            {
+                bundle.BeanDataService.Setup(service => service.GetSortedAvailableBeansAsync())
+                    .ReturnsAsync(new List<BeanData> { bean });
+            });
+
+        await viewModel.OnAppearingAsync();
+        viewModel.BatchWeightText = "100";
+        viewModel.FinalWeightText = "85";
+        viewModel.TemperatureText = "210";
+        viewModel.SetManualTimerDisplay("10:30");
+
+        switch (field)
+        {
+            case "BatchWeight":
+                viewModel.BatchWeightText = value;
+                break;
+            case "FinalWeight":
+                viewModel.FinalWeightText = value;
+                break;
+            case "Temperature":
+                viewModel.TemperatureText = value;
+                break;
+        }
+
+        await viewModel.SaveCommand.ExecuteAsync(null);
+
+        mocks.AlertService.Verify(service => service.ShowAlertAsync(
+            "Validation Error",
+            It.IsAny<string>(),
+            "OK"), Times.Once);
+        mocks.RoastDataService.Verify(
+            service => service.SaveRoastDataAsync(It.IsAny<RoastData>()),
+            Times.Never);
+    }
+
     [Fact]
     public async Task SaveCommand_ValidNewRoast_UpdatesServices()
     {
