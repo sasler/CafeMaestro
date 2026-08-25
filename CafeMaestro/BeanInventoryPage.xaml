@@ -172,7 +172,33 @@
                                     <Label Text="{Binding SelectedLatestCompletedRoast.ResultMetrics}" Style="{StaticResource CardMetaStyle}" LineBreakMode="WordWrap" />
                                 </VerticalStackLayout>
                             </Border>
-                            <Button Text="START ROAST" Style="{StaticResource PrimaryActionStyle}" Command="{Binding StartSelectedRoastCommand}" IsEnabled="{Binding SelectedBean.IsAvailable}" />
+                            <VerticalStackLayout IsVisible="{Binding HasSelectedRecentIncompleteRoasts}" Spacing="{StaticResource SpaceSm}">
+                                <Label Text="RECENT INCOMPLETE WORK" Style="{StaticResource SectionHeaderStyle}" />
+                                <VerticalStackLayout BindableLayout.ItemsSource="{Binding SelectedRecentIncompleteRoasts}"
+                                                     Spacing="{StaticResource SpaceSm}">
+                                    <BindableLayout.ItemTemplate>
+                                        <DataTemplate x:DataType="models:RoastData">
+                                            <Border Style="{StaticResource CardStyle}"
+                                                    SemanticProperties.Description="{Binding ResultHeadline}">
+                                                <Grid ColumnDefinitions="*,Auto" ColumnSpacing="{StaticResource SpaceMd}">
+                                                    <VerticalStackLayout Spacing="{StaticResource SpaceXs}">
+                                                        <Label Text="{Binding ResultHeadline}"
+                                                               Style="{StaticResource CardTitleStyle}"
+                                                               LineBreakMode="WordWrap" />
+                                                        <Label Text="{Binding ResultMetrics}"
+                                                               Style="{StaticResource CardMetaStyle}"
+                                                               LineBreakMode="WordWrap" />
+                                                    </VerticalStackLayout>
+                                                    <Label Grid.Column="1"
+                                                           Text="{Binding RoastDate, StringFormat='{0:d MMM}'}"
+                                                           Style="{StaticResource CardCaptionStyle}" />
+                                                </Grid>
+                                            </Border>
+                                        </DataTemplate>
+                                    </BindableLayout.ItemTemplate>
+                                </VerticalStackLayout>
+                            </VerticalStackLayout>
+                            <Button Text="START ROAST" Style="{StaticResource PrimaryActionStyle}" Command="{Binding StartSelectedRoastCommand}" />
                             <Button Text="OPEN FULL DETAILS" Style="{StaticResource SecondaryActionStyle}" Command="{Binding OpenSelectedDetailCommand}" />
                         </VerticalStackLayout>
                     </VerticalStackLayout>

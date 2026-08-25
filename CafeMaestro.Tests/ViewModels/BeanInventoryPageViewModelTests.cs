@@ -172,6 +172,82 @@ public class BeanInventoryPageViewModelTests
     }
 
     [Fact]
+    public async Task DataChanged_InvalidatesOlderRefreshResult()
+    {
+        BeanData staleBean = new() { Id = Guid.NewGuid(), Country = "Brazil", CoffeeName = "Stale", Variety = "Catuai" };
+        BeanData currentBean = new() { Id = Guid.NewGuid(), Country = "Rwanda", CoffeeName = "Current", Variety = "Bourbon" };
+        TaskCompletionSource<List<BeanData>> pendingRefresh = new(TaskCreationOptions.RunContinuationsAsynchronously);
+
+        Mock<IBeanDataService> beanService = new();
+        beanService.Setup(service => service.GetAllBeansAsync()).Returns(pendingRefresh.Task);
+        Mock<IAppDataService> appDataService = CreateAppDataServiceMock();
+        BeanInventoryPageViewModel viewModel = CreateViewModel(beanService: beanService, appDataService: appDataService);
+
+        Task refresh = viewModel.OnAppearingAsync();
+        appDataService.Raise(service => service.DataChanged += null, appDataService.Object, new AppData
+        {
+            Beans = [currentBean],
+            RoastLogs = []
+        });
+        pendingRefresh.SetResult([staleBean]);
+        await refresh;
+
+        viewModel.Beans.Should().ContainSingle().Which.Should().BeSameAs(currentBean);
+        viewModel.IsLoading.Should().BeFalse();
+    }
+
+    [Fact]
+    public async Task RefreshFailure_RetainsRowsAndRetryCanApplyGenuineEmptySuccess()
+    {
+        BeanData cachedBean = new() { Id = Guid.NewGuid(), Country = "Kenya", CoffeeName = "Cached", Variety = "SL28" };
+        Mock<IBeanDataService> beanService = new();
+        beanService.SetupSequence(service => service.GetAllBeansAsync())
+            .ReturnsAsync([cachedBean])
+            .ThrowsAsync(new IOException("Read failed"))
+            .ReturnsAsync([]);
+        BeanInventoryPageViewModel viewModel = CreateViewModel(beanService: beanService);
+
+        await viewModel.RefreshCommand.ExecuteAsync(null);
+        await viewModel.RefreshCommand.ExecuteAsync(null);
+
+        viewModel.Beans.Should().ContainSingle().Which.Should().BeSameAs(cachedBean);
+        viewModel.HasLoadError.Should().BeTrue();
+        viewModel.IsEmptyInventory.Should().BeFalse();
+
+        await viewModel.RefreshCommand.ExecuteAsync(null);
+
+        viewModel.Beans.Should().BeEmpty();
+        viewModel.HasLoadError.Should().BeFalse();
+        viewModel.IsEmptyInventory.Should().BeTrue();
+    }
+
+    [Fact]
+    public async Task WideDetail_StartRoast_AllowsOutOfStockBeanByStableId()
+    {
+        BeanData bean = new()
+        {
+            Id = Guid.NewGuid(), Country = "Colombia", CoffeeName = "Huila", Variety = "Caturra",
+            Quantity = 1, RemainingQuantity = 0
+        };
+        Mock<IBeanDataService> beanService = new();
+        beanService.Setup(service => service.GetAllBeansAsync()).ReturnsAsync([bean]);
+        Mock<INavigationService> navigation = new();
+        navigation.Setup(service => service.GoToAsync(It.IsAny<string>(), It.IsAny<IDictionary<string, object>>()))
+            .Returns(Task.CompletedTask);
+        BeanInventoryPageViewModel viewModel = CreateViewModel(beanService: beanService, navigationService: navigation);
+        viewModel.SetWideLayout(true);
+        await viewModel.RefreshCommand.ExecuteAsync(null);
+        await viewModel.OpenBeanCommand.ExecuteAsync(bean);
+
+        await viewModel.StartSelectedRoastCommand.ExecuteAsync(null);
+
+        navigation.Verify(service => service.GoToAsync(
+            Routes.Roast,
+            It.Is<IDictionary<string, object>>(parameters => parameters["BeanId"].ToString() == bean.Id.ToString())),
+            Times.Once);
+    }
+
+    [Fact]
     public void SearchText_RaisesPropertyChangedNotification()
     {
         var viewModel = CreateViewModel();

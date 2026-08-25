@@ -40,7 +40,7 @@ public partial class BeanDetailPageViewModel : ObservableObject, IQueryAttributa
     public bool HasLatestCompletedRoast => LatestCompletedRoast is not null;
     public bool HasNoLatestCompletedRoast => LatestCompletedRoast is null;
     public bool HasRecentIncompleteRoasts => RecentIncompleteRoasts.Count > 0;
-    public bool CanStartRoast => Bean is { IsAvailable: true };
+    public bool CanStartRoast => Bean is not null;
 
     public BeanDetailPageViewModel(
         IBeanDataService beanService,
@@ -187,15 +187,6 @@ public partial class BeanDetailPageViewModel : ObservableObject, IQueryAttributa
     {
         if (Bean is null)
         {
-            return;
-        }
-
-        if (Bean.IsOutOfStock)
-        {
-            await _alertService.ShowAlertAsync(
-                "Out of stock",
-                "Add inventory before starting a roast with this bean.",
-                "OK");
             return;
         }
 

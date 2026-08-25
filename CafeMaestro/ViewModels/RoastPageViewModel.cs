@@ -446,11 +446,9 @@ public partial class RoastPageViewModel : ObservableObject, IQueryAttributable
 
                 if (!IsEditMode)
                 {
-                    BeanData? requestedBean = _requestedBeanId == Guid.Empty
-                        ? null
-                        : beans.FirstOrDefault(bean => bean.Id == _requestedBeanId);
-                    if (requestedBean is not null)
+                    if (_requestedBeanId != Guid.Empty)
                     {
+                        BeanData? requestedBean = beans.FirstOrDefault(bean => bean.Id == _requestedBeanId);
                         _suppressBeanSelectionChanged = true;
                         SelectedBean = requestedBean;
                         _suppressBeanSelectionChanged = false;
@@ -499,7 +497,7 @@ public partial class RoastPageViewModel : ObservableObject, IQueryAttributable
         {
             await _alertService.ShowAlertAsync(
                 "Bean unavailable",
-                "The selected bean is no longer available for roasting.",
+                "The selected bean is no longer in inventory.",
                 "OK");
             return;
         }
@@ -511,8 +509,8 @@ public partial class RoastPageViewModel : ObservableObject, IQueryAttributable
         RoastSetupSuggestion suggestion = await _roastQueryService.GetSetupSuggestionAsync(beanId);
         _previousRoast = suggestion.LastCompletedRoast;
         UpdatePreviousRoastDisplay();
-        TemperatureText = suggestion.Temperature?.ToString("0.#", CultureInfo.InvariantCulture) ?? string.Empty;
-        BatchWeightText = suggestion.BatchWeight?.ToString("0.#", CultureInfo.InvariantCulture) ?? string.Empty;
+        TemperatureText = suggestion.Temperature?.ToString("0.#", CultureInfo.CurrentCulture) ?? string.Empty;
+        BatchWeightText = suggestion.BatchWeight?.ToString("0.#", CultureInfo.CurrentCulture) ?? string.Empty;
         ValidateBatchWeight();
     }
 
@@ -583,7 +581,12 @@ public partial class RoastPageViewModel : ObservableObject, IQueryAttributable
     {
         if (SelectedBean is null || string.IsNullOrWhiteSpace(BatchWeightText))
         {
-            IsBatchWeightWarningVisible = false;
+            double recordedGrams = SelectedBean?.RemainingQuantity * 1000.0 ?? 0;
+            IsBatchWeightWarningVisible = SelectedBean is not null && recordedGrams <= 0;
+            if (IsBatchWeightWarningVisible)
+            {
+                BatchWeightWarningText = "Only 0 g recorded in inventory";
+            }
             CanStartTimer = !IsTimerRunning;
             return;
         }
@@ -594,7 +597,7 @@ public partial class RoastPageViewModel : ObservableObject, IQueryAttributable
 
             if (batchWeight > availableBeans)
             {
-                BatchWeightWarningText = $"Insufficient beans available! (only {availableBeans:F1} g remaining)";
+                BatchWeightWarningText = $"Only {availableBeans:0.#} g recorded in inventory";
                 IsBatchWeightWarningVisible = true;
                 CanStartTimer = !IsTimerRunning;
                 return;
@@ -837,7 +840,7 @@ public partial class RoastPageViewModel : ObservableObject, IQueryAttributable
     private void ApplyStoppedTimerState(bool canStop)
     {
         IsTimerRunning = false;
-        CanStartTimer = !IsBatchWeightWarningVisible;
+        CanStartTimer = true;
         CanPauseTimer = false;
         CanStopTimer = canStop;
         IsTimeEntryEnabled = true;

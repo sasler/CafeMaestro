@@ -66,6 +66,7 @@ public partial class BeanInventoryPageViewModel : ObservableObject
     public bool HasSelectedBean => SelectedBean is not null;
     public bool HasNoSelectedBean => SelectedBean is null;
     public bool HasSelectedLatestCompletedRoast => SelectedLatestCompletedRoast is not null;
+    public bool HasSelectedRecentIncompleteRoasts => SelectedRecentIncompleteRoasts.Count > 0;
     public bool HasSearch => !string.IsNullOrWhiteSpace(SearchText);
     public bool HasInventory => _allBeans.Count > 0;
     public bool HasVisibleBeans => Beans.Count > 0;
@@ -114,6 +115,11 @@ public partial class BeanInventoryPageViewModel : ObservableObject
     partial void OnSelectedLatestCompletedRoastChanged(RoastData? value)
     {
         OnPropertyChanged(nameof(HasSelectedLatestCompletedRoast));
+    }
+
+    partial void OnSelectedRecentIncompleteRoastsChanged(ObservableCollection<RoastData> value)
+    {
+        OnPropertyChanged(nameof(HasSelectedRecentIncompleteRoasts));
     }
 
     partial void OnSelectedFilterChanged(BeanInventoryFilter value)
@@ -202,7 +208,7 @@ public partial class BeanInventoryPageViewModel : ObservableObject
     [RelayCommand]
     private async Task StartSelectedRoastAsync()
     {
-        if (SelectedBean is null || SelectedBean.IsOutOfStock)
+        if (SelectedBean is null)
         {
             return;
         }
@@ -319,8 +325,11 @@ public partial class BeanInventoryPageViewModel : ObservableObject
         }
         catch
         {
-            HasLoadError = true;
-            LoadErrorMessage = "Beans could not be refreshed.";
+            if (refreshVersion == _refreshVersion)
+            {
+                HasLoadError = true;
+                LoadErrorMessage = "Beans could not be refreshed.";
+            }
         }
         finally
         {
@@ -364,7 +373,12 @@ public partial class BeanInventoryPageViewModel : ObservableObject
 
     private void HandleAppDataChanged(object? sender, AppData appData)
     {
+        Interlocked.Increment(ref _refreshVersion);
+        IsLoading = false;
         SetBeans(appData.Beans);
+        HasLoadError = false;
+        LoadErrorMessage = string.Empty;
+        RaiseStateProperties();
         if (SelectedBean is not null)
         {
             BeanData? selected = appData.Beans.FirstOrDefault(bean => bean.Id == SelectedBean.Id);

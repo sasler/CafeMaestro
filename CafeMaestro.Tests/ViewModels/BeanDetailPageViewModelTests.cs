@@ -39,6 +39,7 @@ public sealed class BeanDetailPageViewModelTests
     public async Task StartRoast_NavigatesWithStableBeanIdIntoConfirmationFlow()
     {
         BeanData bean = CreateBean();
+        bean.RemainingQuantity = 0;
         Mock<IBeanDataService> beans = new();
         beans.Setup(service => service.GetBeanByIdAsync(bean.Id)).ReturnsAsync(bean);
 
@@ -54,6 +55,7 @@ public sealed class BeanDetailPageViewModelTests
         viewModel.ApplyQueryAttributes(new Dictionary<string, object> { ["BeanId"] = bean.Id });
         await viewModel.OnAppearingAsync();
 
+        viewModel.CanStartRoast.Should().BeTrue();
         await viewModel.StartRoastCommand.ExecuteAsync(null);
 
         navigation.Verify(service => service.GoToAsync(
