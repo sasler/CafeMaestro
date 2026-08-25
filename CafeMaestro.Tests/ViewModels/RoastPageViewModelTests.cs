@@ -319,8 +319,10 @@ public class RoastPageViewModelTests
         await harness.ViewModel.OnAppearingAsync();
 
         await harness.ViewModel.OnWindowStoppedAsync();
+        harness.ViewModel.IsWindowStopped.Should().BeTrue();
         await harness.ViewModel.OnWindowResumedAsync();
 
+        harness.ViewModel.IsWindowStopped.Should().BeFalse();
         harness.Wake.Verify(service => service.SetKeepScreenOnAsync(false), Times.Once);
         harness.Wake.Verify(service => service.SetKeepScreenOnAsync(true), Times.Exactly(2));
         harness.ViewModel.ActiveTimerSemanticDescription.Should().Be("Roasting, 1 minute 2 seconds");

@@ -37,6 +37,9 @@ public partial class RoastPageViewModel : ObservableObject, IQueryAttributable
     public partial RoastPresentationState PresentationState { get; set; } = RoastPresentationState.Setup;
 
     [ObservableProperty]
+    public partial bool IsWindowStopped { get; set; }
+
+    [ObservableProperty]
     public partial ObservableCollection<BeanData> AvailableBeans { get; set; } = [];
 
     [ObservableProperty]
@@ -258,22 +261,33 @@ public partial class RoastPageViewModel : ObservableObject, IQueryAttributable
         await _displayWakeService.SetKeepScreenOnAsync(false);
     }
 
-    public Task OnWindowStoppedAsync() => _displayWakeService.SetKeepScreenOnAsync(false);
+    public async Task OnWindowStoppedAsync()
+    {
+        IsWindowStopped = true;
+        await _displayWakeService.SetKeepScreenOnAsync(false);
+    }
 
     public async Task OnWindowResumedAsync()
     {
-        RoastSessionSnapshot snapshot = await _sessionService.GetSnapshotAsync();
-        if (PresentationState == RoastPresentationState.PersistenceError && _retryAction is not null)
+        try
         {
-            _snapshot = snapshot;
-            _activeRoast = snapshot.ActiveRoast;
-            _snapshotAtUtc = snapshot.AsOfUtc;
-            _elapsedAtSnapshot = snapshot.ActiveRoast?.ElapsedSeconds ?? 0;
-            await _displayWakeService.SetKeepScreenOnAsync(false);
-            return;
-        }
+            RoastSessionSnapshot snapshot = await _sessionService.GetSnapshotAsync();
+            if (PresentationState == RoastPresentationState.PersistenceError && _retryAction is not null)
+            {
+                _snapshot = snapshot;
+                _activeRoast = snapshot.ActiveRoast;
+                _snapshotAtUtc = snapshot.AsOfUtc;
+                _elapsedAtSnapshot = snapshot.ActiveRoast?.ElapsedSeconds ?? 0;
+                await _displayWakeService.SetKeepScreenOnAsync(false);
+                return;
+            }
 
-        await ApplySnapshotAsync(snapshot);
+            await ApplySnapshotAsync(snapshot);
+        }
+        finally
+        {
+            IsWindowStopped = false;
+        }
     }
 
     [RelayCommand]

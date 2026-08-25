@@ -17,6 +17,19 @@ the reference card remains the newest completed result.
 - `IDisplayWakeService` keeps the display awake only while the effective phase is Roasting and the
   page is foregrounded.
 
+## Shell and lifecycle
+
+Roast is the first of exactly four root tabs: Roast, Log, Beans, and Settings. The tab bar is visible
+for Setup and Handoff, and hidden for Active, Recovery, and Persistence Error through one shared
+presentation policy. Root Back actions from the browsing tabs return to Roast; detail and import
+destinations remain registered routes rather than tabs.
+
+Window `Stopped` and `Resumed` handlers are registered once by `App` and target the stable
+`RoastPageViewModel`. Stopping marks UI work suspended and releases display wake without changing the
+persisted roast. Resuming refreshes the domain snapshot before UI ticking and wake ownership resume.
+Cold startup initializes and migrates data on `LoadingPage`, presents Shell, then hands any queued
+platform-neutral activation payload to its handler.
+
 ## Back-to-back flow
 
 The first Drop freezes and commits immediately, then prioritizes a prefilled Batch 2 setup. Batch 1

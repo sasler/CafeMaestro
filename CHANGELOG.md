@@ -7,6 +7,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased] - Complete Architecture Refactor
 ### Added
+- App-scoped Window stop/resume recovery that releases display wake, pauses UI ticking, and refreshes the persisted roast snapshot without retaining transient pages
+- A platform-neutral queued activation payload handoff that runs only after data initialization and Shell presentation, ready for Android cooling reminders
 - Responsive Beans inventory with in-memory search, availability filters, quantity-first low/out-of-stock states, cached-row retry behavior, and a 600 dp list/detail layout
 - Bean detail with inventory facts, the newest completed roast, recent incomplete work, stable-identity Edit/Delete actions, and Start Roast navigation into the prefilled confirmation flow
 - Grouped Add/Edit Bean cards for identity, details, inventory, and notes using the shared Direction B visual system
@@ -65,6 +67,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Invalid backup JSON is rejected without modifying active data or the selected source
 
 ### Changed
+- Version bumped to 1.8.0
+- Roast is now the launch/home destination in an exact four-tab Shell ordered Roast, Log, Beans, Settings; focused active/recovery states centrally hide the tab bar
 - Version bumped to 1.7.0
 - Bean-to-roast setup now passes a stable `BeanId` and performs final carry-forward lookup through `IRoastQueryService`, so renames never break historical linkage
 - The Roast page now consumes immutable `IRoastSessionService` snapshots instead of owning timer or persistence truth; final weight is captured only through focused weigh-in after cooling
@@ -88,6 +92,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - RoastDataService handles Pending roast level for roasts without final weight
 
 ### Removed
+- The redundant Home page, ViewModel, route, DI registrations, tests, and icon asset
 - Custom live-data file locations and the first-run storage-location prompt
 - Broad Android storage and media permissions that are unnecessary with the system document picker
 
