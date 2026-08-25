@@ -30,6 +30,7 @@ public sealed class ManagedAppDataService : IAppDataService
     private readonly object _dataChangedHandlerLock = new();
     private readonly Queue<PendingDataChange> _pendingDataChanges = new();
     private readonly AsyncLocal<bool> _isDispatchingDataChanged = new();
+    private readonly SynchronizationContext? _notificationContext;
     private EventHandler<AppData>? _dataChanged;
     private AppData? _cachedData;
     private long _persistenceRevision;
@@ -65,6 +66,7 @@ public sealed class ManagedAppDataService : IAppDataService
         _appVersionProvider = appVersionProvider ?? GetAppVersion;
         _writeOverride = writeOverride;
         _migrationPipeline = new AppDataMigrationPipeline(migrations);
+        _notificationContext = SynchronizationContext.Current;
     }
 
     public event EventHandler<AppData>? DataChanged
@@ -837,7 +839,7 @@ public sealed class ManagedAppDataService : IAppDataService
 
                 try
                 {
-                    InvokeDataChangedSafely(next.Data);
+                    await InvokeDataChangedSafelyAsync(next.Data);
                     next.Completion.TrySetResult();
                 }
                 catch (Exception ex)
@@ -852,6 +854,51 @@ public sealed class ManagedAppDataService : IAppDataService
             _isDispatchingDataChanged.Value = false;
             _notificationDispatchLock.Release();
         }
+    }
+
+    private Task InvokeDataChangedSafelyAsync(AppData data)
+    {
+        if (_notificationContext is null ||
+            ReferenceEquals(SynchronizationContext.Current, _notificationContext))
+        {
+            InvokeDataChangedSafely(data);
+            return Task.CompletedTask;
+        }
+
+        var completion = new TaskCompletionSource(
+            TaskCreationOptions.RunContinuationsAsynchronously);
+        try
+        {
+            _notificationContext.Post(
+                static state =>
+                {
+                    var invocation = ((ManagedAppDataService Service,
+                        AppData Data,
+                        TaskCompletionSource Completion))state!;
+                    bool wasDispatching = invocation.Service._isDispatchingDataChanged.Value;
+                    invocation.Service._isDispatchingDataChanged.Value = true;
+                    try
+                    {
+                        invocation.Service.InvokeDataChangedSafely(invocation.Data);
+                        invocation.Completion.TrySetResult();
+                    }
+                    catch (Exception ex)
+                    {
+                        invocation.Completion.TrySetException(ex);
+                    }
+                    finally
+                    {
+                        invocation.Service._isDispatchingDataChanged.Value = wasDispatching;
+                    }
+                },
+                (this, data, completion));
+        }
+        catch (Exception ex)
+        {
+            completion.TrySetException(ex);
+        }
+
+        return completion.Task;
     }
 
     private void InvokeDataChangedSafely(AppData data)

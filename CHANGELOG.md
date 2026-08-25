@@ -36,6 +36,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - 8 new unit tests covering share commands and flexible roast saving
 
 ### Fixed
+- Persistence change notifications now return to the app synchronization context before updating UI-bound subscribers
 - Loading screen referenced `cafemaestro_logo.svg` and a non-existent `Primary` colour, so the logo and spinner never picked up their intended appearance
 - Repeated theme switches no longer stack theme dictionaries: dictionaries added in code have no `Source`, so they were never removed again
 - Android system chrome now follows semantic theme tokens with contrast-safe status/navigation icons and no template purple

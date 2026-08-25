@@ -2,6 +2,7 @@ using CafeMaestro.Models;
 using CafeMaestro.Services;
 using FluentAssertions;
 using Moq;
+using System.Collections.Concurrent;
 using System.Text.Json;
 
 namespace CafeMaestro.Tests.Services;
@@ -178,6 +179,37 @@ public sealed class ManagedAppDataMutationTests : IDisposable
             .Should().BeTrue();
         await EventuallyAsync(() => Volatile.Read(ref eventCount) == 2);
         service.CurrentData.Beans.Should().HaveCount(2);
+    }
+
+    [Fact]
+    public async Task UpdateAsync_BackgroundMutation_DispatchesDataChangedOnCapturedContext()
+    {
+        using var notificationContext = new DedicatedThreadSynchronizationContext();
+        SynchronizationContext? originalContext = SynchronizationContext.Current;
+        ManagedAppDataService service;
+        try
+        {
+            SynchronizationContext.SetSynchronizationContext(notificationContext);
+            service = new ManagedAppDataService(
+                Path.Combine(_testDirectory, "captured-context.json"),
+                () => "2.0.0");
+        }
+        finally
+        {
+            SynchronizationContext.SetSynchronizationContext(originalContext);
+        }
+
+        await service.InitializeAsync(Mock.Of<IPreferencesService>());
+        var eventRaised = new TaskCompletionSource<int>(
+            TaskCreationOptions.RunContinuationsAsynchronously);
+        service.DataChanged += (_, _) =>
+            eventRaised.TrySetResult(Environment.CurrentManagedThreadId);
+
+        (await Task.Run(() => service.UpdateAsync(
+            data => data.Beans.Add(CreateBean("Background"))))).Should().BeTrue();
+
+        int handlerThreadId = await eventRaised.Task.WaitAsync(TimeSpan.FromSeconds(2));
+        handlerThreadId.Should().Be(notificationContext.ManagedThreadId);
     }
 
     [Fact]
@@ -778,6 +810,43 @@ public sealed class ManagedAppDataMutationTests : IDisposable
         }
 
         condition().Should().BeTrue();
+    }
+
+    private sealed class DedicatedThreadSynchronizationContext : SynchronizationContext, IDisposable
+    {
+        private readonly BlockingCollection<(SendOrPostCallback Callback, object? State)> _work = [];
+        private readonly Thread _thread;
+
+        public DedicatedThreadSynchronizationContext()
+        {
+            _thread = new Thread(Run)
+            {
+                IsBackground = true,
+                Name = "DataChanged test context"
+            };
+            _thread.Start();
+        }
+
+        public int ManagedThreadId => _thread.ManagedThreadId;
+
+        public override void Post(SendOrPostCallback callback, object? state) =>
+            _work.Add((callback, state));
+
+        private void Run()
+        {
+            SetSynchronizationContext(this);
+            foreach ((SendOrPostCallback callback, object? state) in _work.GetConsumingEnumerable())
+            {
+                callback(state);
+            }
+        }
+
+        public void Dispose()
+        {
+            _work.CompleteAdding();
+            _thread.Join(TimeSpan.FromSeconds(2));
+            _work.Dispose();
+        }
     }
 
     public void Dispose()
