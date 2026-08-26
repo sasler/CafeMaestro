@@ -4,31 +4,23 @@ namespace CafeMaestro;
 
 public partial class SettingsPage : ContentPage
 {
-    private readonly DataSettingsPageViewModel _viewModel;
+    private readonly SettingsIndexPageViewModel _viewModel;
 
-    public SettingsPage(DataSettingsPageViewModel viewModel)
+    public SettingsPage(SettingsIndexPageViewModel viewModel)
     {
         InitializeComponent();
         _viewModel = viewModel ?? throw new ArgumentNullException(nameof(viewModel));
         BindingContext = _viewModel;
     }
 
+    /// <summary>
+    /// Every return from a detail page re-reads the preferences, so the summaries below the
+    /// row titles are never stale.
+    /// </summary>
     protected override async void OnAppearing()
     {
         base.OnAppearing();
         await _viewModel.OnAppearingAsync();
-
-        if (_viewModel.ShouldHighlightDataFileSection)
-        {
-            await HighlightDataFileSectionAsync();
-            _viewModel.MarkDataFileSectionHighlighted();
-        }
-    }
-
-    protected override void OnDisappearing()
-    {
-        _viewModel.OnDisappearing();
-        base.OnDisappearing();
     }
 
     protected override bool OnBackButtonPressed()
@@ -37,27 +29,16 @@ public partial class SettingsPage : ContentPage
         return true;
     }
 
-    private async Task HighlightDataFileSectionAsync()
+    private void OnPageSizeChanged(object? sender, EventArgs e)
     {
-        var originalColor = DataFileSection.BackgroundColor;
-        DataFileSection.BackgroundColor = GetResourceColor("HighlightColor", originalColor);
-        DataFileSection.Scale = 0.97;
-        await DataFileSection.FadeToAsync(0.85, 250);
-        await DataFileSection.FadeToAsync(1, 250);
-        await DataFileSection.ScaleToAsync(1.02, 150);
-        await DataFileSection.ScaleToAsync(1.0, 150);
-        await Task.Delay(500);
-        DataFileSection.BackgroundColor = originalColor;
-    }
-
-    private static Color GetResourceColor(string key, Color fallback)
-    {
-        if (Application.Current?.Resources.TryGetValue(key, out object? value) == true &&
-            value is Color color)
-        {
-            return color;
-        }
-
-        return fallback;
+        bool isWide = Width >= 600;
+        SettingsBody.ColumnDefinitions[0].Width = isWide
+            ? new GridLength(2, GridUnitType.Star)
+            : GridLength.Star;
+        SettingsBody.ColumnDefinitions[1].Width = isWide
+            ? new GridLength(3, GridUnitType.Star)
+            : new GridLength(0);
+        WideDetailPane.IsVisible = isWide;
+        _viewModel.SetWideLayout(isWide);
     }
 }

@@ -29,4 +29,11 @@ public static class Routes
     /// to preselect Beans or Roasts.
     /// </summary>
     public const string Import = "ImportPage";
+
+    // Settings detail routes. The Settings tab is an index; every section is a pushed page.
+    public const string RoastingSettings = "RoastingSettingsPage";
+    public const string AppearanceSettings = "AppearanceSettingsPage";
+    public const string DataSettings = "DataSettingsPage";
+    public const string RoastLevelSettings = "RoastLevelSettingsPage";
+    public const string About = "AboutPage";
 }

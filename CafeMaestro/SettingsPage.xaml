@@ -1,533 +1,236 @@
 <?xml version="1.0" encoding="utf-8" ?>
 <ContentPage xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
              xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
+             xmlns:controls="clr-namespace:CafeMaestro.Controls"
              xmlns:vm="clr-namespace:CafeMaestro.ViewModels"
-             xmlns:services="clr-namespace:CafeMaestro.Services"
              x:Class="CafeMaestro.SettingsPage"
-             x:Name="RootPage"
-             x:DataType="vm:DataSettingsPageViewModel"
-             BackgroundColor="{DynamicResource PageBackgroundColor}"
+             x:DataType="vm:SettingsIndexPageViewModel"
+             BackgroundColor="{DynamicResource SurfaceColor}"
+             Shell.NavBarIsVisible="False"
+             SizeChanged="OnPageSizeChanged"
              Title="Settings">
-       <ContentPage.Resources>
-              <!-- Popup resources for roast level editing -->
-              <Style x:Key="EditEntryStyle"
-                     TargetType="Entry">
-                     <Setter Property="BackgroundColor"
-                             Value="{DynamicResource EntryBackgroundColor}"/>
-                     <Setter Property="TextColor"
-                             Value="{DynamicResource PrimaryTextColor}"/>
-                     <Setter Property="PlaceholderColor"
-                             Value="{DynamicResource SecondaryTextColor}"/>
-                     <Setter Property="HeightRequest"
-                             Value="50"/>
-                     <Setter Property="FontSize"
-                             Value="16"/>
-              </Style>
-       </ContentPage.Resources>
 
-       <Grid>
-              <!-- Main ScrollView content -->
-              <ScrollView Padding="0"
-                          Margin="0">
-                     <Grid RowDefinitions="Auto, *"
-                           Padding="0"
-                           Margin="0">
-                            <!-- Header Area - Clean Design -->
-                            <Grid Grid.Row="0"
-                                  ColumnDefinitions="Auto,*"
-                                  Padding="20,20"
-                                  HeightRequest="100"
-                                  HorizontalOptions="Fill"
-                                  Margin="0">
-                                   <!-- Logo and Title within Header -->
-                                   <Image Grid.Column="0"
-                                          Source="settings_icon.png"
-                                          HeightRequest="60"
-                                          WidthRequest="60"
-                                          Aspect="AspectFit"
-                                          VerticalOptions="Center"/>
-                                   <Label Grid.Column="1"
-                                          Text="Application Settings"
-                                          FontSize="28"
-                                          FontAttributes="Bold"
-                                          HorizontalOptions="Start"
-                                          VerticalOptions="Center"
-                                          TextColor="{DynamicResource PrimaryColor}"
-                                          Margin="16,0,0,0"/>
+    <ContentPage.Resources>
+        <!-- One row shape for every destination: name, current value, chevron. -->
+        <Style x:Key="SettingsRowStyle" TargetType="Border" BasedOn="{StaticResource CardStyle}">
+            <Setter Property="MinimumHeightRequest" Value="{StaticResource TouchTargetMin}" />
+        </Style>
+    </ContentPage.Resources>
+
+    <Grid RowDefinitions="Auto,*"
+          Padding="{StaticResource PagePadding}"
+          RowSpacing="{StaticResource SpaceMd}">
+        <Grid ColumnDefinitions="*,Auto" Margin="0,0,0,4">
+            <Label Text="Settings"
+                   FontFamily="{StaticResource FontFamilyEmphasis}"
+                   FontSize="{StaticResource FontSizeHeadline}"
+                   TextColor="{DynamicResource PrimaryTextColor}"
+                   VerticalOptions="Center" />
+            <controls:IconView Grid.Column="1"
+                               Data="{StaticResource IconSettingsData}"
+                               IconSize="{StaticResource IconSizeLg}"
+                               InputTransparent="True"
+                               VerticalOptions="Center" />
+        </Grid>
+
+        <Grid x:Name="SettingsBody"
+              Grid.Row="1"
+              ColumnDefinitions="*,0"
+              ColumnSpacing="{StaticResource SpaceLg}">
+            <ScrollView Grid.Column="0">
+                <VerticalStackLayout Spacing="{StaticResource SpaceMd}">
+                    <Border Style="{StaticResource SettingsRowStyle}"
+                            SemanticProperties.Description="Roasting preferences"
+                            SemanticProperties.Hint="{Binding RoastingSummary}">
+                        <Border.Triggers>
+                            <DataTrigger TargetType="Border" Binding="{Binding IsRoastingHighlighted}" Value="True">
+                                <Setter Property="Stroke" Value="{DynamicResource RoastColor}" />
+                                <Setter Property="BackgroundColor" Value="{DynamicResource RoastSurfaceColor}" />
+                            </DataTrigger>
+                        </Border.Triggers>
+                        <Border.GestureRecognizers>
+                            <TapGestureRecognizer Command="{Binding OpenRoastingCommand}" />
+                        </Border.GestureRecognizers>
+                        <Grid ColumnDefinitions="*,Auto" ColumnSpacing="{StaticResource SpaceMd}">
+                            <VerticalStackLayout Spacing="{StaticResource SpaceXs}">
+                                <Label Text="Roasting" Style="{StaticResource CardTitleStyle}" />
+                                <Label Text="{Binding RoastingSummary}" Style="{StaticResource CardMetaStyle}" LineBreakMode="WordWrap" />
+                            </VerticalStackLayout>
+                            <Grid Grid.Column="1" VerticalOptions="Center">
+                                <Button Style="{StaticResource IconButtonStyle}"
+                                        Command="{Binding OpenRoastingCommand}"
+                                        SemanticProperties.Description="Open roasting preferences" />
+                                <controls:IconView Data="{StaticResource IconChevronData}" InputTransparent="True"
+                                                   HorizontalOptions="Center" VerticalOptions="Center" />
                             </Grid>
+                        </Grid>
+                    </Border>
 
-                            <!-- Main Content Area -->
-                            <VerticalStackLayout Grid.Row="1"
-                                                 Padding="24,0,24,24"
-                                                 Spacing="15"
-                                                 BackgroundColor="{DynamicResource PageBackgroundColor}"
-                                                 Margin="0,10,0,0">
-                                   <!-- Data and Backups Section -->
-                                   <Border x:Name="DataFileSection"
-                                           Stroke="{DynamicResource BorderColor}"
-                                           BackgroundColor="{DynamicResource PageBackgroundColor}"
-                                           StrokeThickness="0.5"
-                                           StrokeShape="RoundRectangle 12">
-                                          <Border.Shadow>
-                                                 <Shadow Brush="{DynamicResource BorderColor}"
-                                                         Offset="0,2"
-                                                         Radius="4"
-                                                         Opacity="0.2"/>
-                                          </Border.Shadow>
-                                          <VerticalStackLayout Spacing="16" Padding="16">
-                                                 <Grid ColumnDefinitions="*,Auto">
-                                                        <VerticalStackLayout Spacing="3">
-                                                               <Label Text="Data &amp; Backups"
-                                                                      FontSize="20"
-                                                                      FontAttributes="Bold"
-                                                                      TextColor="{DynamicResource PrimaryTextColor}"/>
-                                                               <Label Text="Your working data stays private inside CafeMaestro."
-                                                                      FontSize="14"
-                                                                      TextColor="{DynamicResource SecondaryTextColor}"/>
-                                                        </VerticalStackLayout>
-                                                        <ActivityIndicator Grid.Column="1"
-                                                                           IsRunning="{Binding IsDataOperationInProgress}"
-                                                                           IsVisible="{Binding IsDataOperationInProgress}"
-                                                                           Color="{DynamicResource PrimaryColor}"
-                                                                           VerticalOptions="Center"/>
-                                                 </Grid>
-
-                                                 <Border BackgroundColor="{DynamicResource CardBackgroundColor}"
-                                                         Stroke="{DynamicResource BorderColor}"
-                                                         StrokeThickness="1"
-                                                         StrokeShape="RoundRectangle 10"
-                                                         Padding="12">
-                                                        <Grid ColumnDefinitions="Auto,*" ColumnSpacing="12">
-                                                               <Image Source="save_icon.png"
-                                                                      HeightRequest="34"
-                                                                      WidthRequest="34"
-                                                                      VerticalOptions="Center"
-                                                                      SemanticProperties.Description="Automatic save status"/>
-                                                               <VerticalStackLayout Grid.Column="1" Spacing="2">
-                                                                      <Label Text="{Binding DataStatusDisplay}"
-                                                                             FontAttributes="Bold"
-                                                                             TextColor="{DynamicResource SuccessColor}"/>
-                                                                      <Label Text="{Binding DataSummaryDisplay}"
-                                                                             TextColor="{DynamicResource PrimaryTextColor}"/>
-                                                                      <Label Text="{Binding LastModifiedDisplay}"
-                                                                             FontSize="13"
-                                                                             TextColor="{DynamicResource SecondaryTextColor}"/>
-                                                               </VerticalStackLayout>
-                                                        </Grid>
-                                                 </Border>
-
-                                                 <Label Text="Current Data"
-                                                        FontSize="16"
-                                                        FontAttributes="Bold"
-                                                        TextColor="{DynamicResource PrimaryTextColor}"/>
-                                                 <Label Text="Start fresh only after CafeMaestro saves an automatic recovery copy."
-                                                        FontSize="13"
-                                                        TextColor="{DynamicResource SecondaryTextColor}"/>
-                                                 <Button Text="Start New Data"
-                                                         Command="{Binding StartNewDataCommand}"
-                                                         IsEnabled="{Binding CanRunDataOperation}"
-                                                         BackgroundColor="{DynamicResource AccentColor}"
-                                                         TextColor="{DynamicResource ButtonTextColor}"
-                                                         MinimumHeightRequest="48"
-                                                         CornerRadius="12"
-                                                         SemanticProperties.Description="Start a new empty dataset after confirmation and automatic backup"/>
-
-                                                 <BoxView HeightRequest="1" BackgroundColor="{DynamicResource SeparatorColor}"/>
-
-                                                 <Label Text="Backups"
-                                                        FontSize="16"
-                                                        FontAttributes="Bold"
-                                                        TextColor="{DynamicResource PrimaryTextColor}"/>
-                                                 <Label Text="Saving creates a copy. Restoring validates and copies a backup; the selected source is never changed."
-                                                        FontSize="13"
-                                                        TextColor="{DynamicResource SecondaryTextColor}"/>
-                                                 <Grid ColumnDefinitions="*,*" RowDefinitions="Auto,Auto" ColumnSpacing="10" RowSpacing="10">
-                                                        <Button Grid.Row="0" Grid.Column="0"
-                                                                Text="Save Backup"
-                                                                Command="{Binding SaveBackupCommand}"
-                                                                IsEnabled="{Binding CanRunDataOperation}"
-                                                                BackgroundColor="{DynamicResource PrimaryColor}"
-                                                                TextColor="{DynamicResource ButtonTextColor}"
-                                                                MinimumHeightRequest="48"
-                                                                CornerRadius="12"
-                                                                SemanticProperties.Description="Save a JSON backup copy"/>
-                                                        <Button Grid.Row="0" Grid.Column="1"
-                                                                Text="Restore from Backup"
-                                                                Command="{Binding RestoreFromBackupCommand}"
-                                                                IsEnabled="{Binding CanRunDataOperation}"
-                                                                BackgroundColor="{DynamicResource SecondaryColor}"
-                                                                TextColor="{DynamicResource ButtonTextColor}"
-                                                                MinimumHeightRequest="48"
-                                                                CornerRadius="12"
-                                                                SemanticProperties.Description="Validate and restore a JSON backup without modifying the selected file"/>
-                                                        <Button Grid.Row="1" Grid.Column="0" Grid.ColumnSpan="2"
-                                                                Text="Share Backup"
-                                                                Command="{Binding ShareBackupCommand}"
-                                                                IsEnabled="{Binding CanRunDataOperation}"
-                                                                BackgroundColor="{DynamicResource TertiaryColor}"
-                                                                TextColor="{DynamicResource ButtonTextColor}"
-                                                                MinimumHeightRequest="48"
-                                                                CornerRadius="12"
-                                                                SemanticProperties.Description="Share a copy of the current CafeMaestro data"/>
-                                                 </Grid>
-
-                                                 <VerticalStackLayout IsVisible="{Binding HasAutomaticBackups}" Spacing="8">
-                                                        <Label Text="Automatic Backups"
-                                                               FontSize="15"
-                                                               FontAttributes="Bold"
-                                                               TextColor="{DynamicResource PrimaryTextColor}"/>
-                                                        <Label Text="The five most recent recovery copies are kept on this device."
-                                                               FontSize="13"
-                                                               TextColor="{DynamicResource SecondaryTextColor}"/>
-                                                        <VerticalStackLayout BindableLayout.ItemsSource="{Binding AutomaticBackups}" Spacing="8">
-                                                               <BindableLayout.ItemTemplate>
-                                                                      <DataTemplate x:DataType="services:DataBackupSummary">
-                                                                             <Border BackgroundColor="{DynamicResource CardBackgroundColor}"
-                                                                                     Stroke="{DynamicResource BorderColor}"
-                                                                                     StrokeShape="RoundRectangle 8"
-                                                                                     Padding="10">
-                                                                                    <Grid ColumnDefinitions="*,Auto" ColumnSpacing="10">
-                                                                                           <VerticalStackLayout Spacing="2">
-                                                                                                  <Label Text="{Binding CreatedAt, StringFormat='{}{0:g}'}"
-                                                                                                         FontAttributes="Bold"
-                                                                                                         TextColor="{DynamicResource PrimaryTextColor}"/>
-                                                                                                  <Label Text="{Binding BeanCount, StringFormat='Beans: {0}'}"
-                                                                                                         IsVisible="{Binding IsRestorable}"
-                                                                                                         FontSize="13"
-                                                                                                         TextColor="{DynamicResource SecondaryTextColor}"/>
-                                                                                                  <Label Text="{Binding RoastCount, StringFormat='Roasts: {0}'}"
-                                                                                                         IsVisible="{Binding IsRestorable}"
-                                                                                                         FontSize="13"
-                                                                                                         TextColor="{DynamicResource SecondaryTextColor}"/>
-                                                                                                  <Label Text="Original data needs manual recovery"
-                                                                                                         IsVisible="{Binding IsRawRecovery}"
-                                                                                                         FontSize="13"
-                                                                                                         TextColor="{DynamicResource AttentionColor}"/>
-                                                                                           </VerticalStackLayout>
-                                                                                           <Button Grid.Column="1"
-                                                                                                   Text="Restore"
-                                                                                                   IsVisible="{Binding IsRestorable}"
-                                                                                                   Command="{Binding Source={x:Reference RootPage}, Path=BindingContext.RestoreSafetyBackupCommand}"
-                                                                                                   CommandParameter="{Binding .}"
-                                                                                                   BackgroundColor="{DynamicResource SecondaryColor}"
-                                                                                                   TextColor="{DynamicResource ButtonTextColor}"
-                                                                                                   MinimumHeightRequest="48"
-                                                                                                   CornerRadius="12"
-                                                                                                   SemanticProperties.Description="Restore this automatic backup"/>
-                                                                                           <Button Grid.Column="1"
-                                                                                                   Text="Save copy"
-                                                                                                   IsVisible="{Binding IsRawRecovery}"
-                                                                                                   Command="{Binding Source={x:Reference RootPage}, Path=BindingContext.SaveRecoveryCopyCommand}"
-                                                                                                   CommandParameter="{Binding .}"
-                                                                                                   BackgroundColor="{DynamicResource SecondaryColor}"
-                                                                                                   TextColor="{DynamicResource ButtonTextColor}"
-                                                                                                   MinimumHeightRequest="48"
-                                                                                                   CornerRadius="12"
-                                                                                                   SemanticProperties.Description="Save the original raw recovery JSON"/>
-                                                                                    </Grid>
-                                                                             </Border>
-                                                                      </DataTemplate>
-                                                               </BindableLayout.ItemTemplate>
-                                                        </VerticalStackLayout>
-                                                 </VerticalStackLayout>
-
-                                                 <BoxView HeightRequest="1" BackgroundColor="{DynamicResource SeparatorColor}"/>
-
-                                                 <Label Text="CSV Transfer"
-                                                        FontSize="16"
-                                                        FontAttributes="Bold"
-                                                        TextColor="{DynamicResource PrimaryTextColor}"/>
-                                                 <Label Text="Import selected records or export a roast-log spreadsheet without replacing your CafeMaestro backup."
-                                                        FontSize="13"
-                                                        TextColor="{DynamicResource SecondaryTextColor}"/>
-                                                 <Grid ColumnDefinitions="*,*" RowDefinitions="Auto,Auto" ColumnSpacing="10" RowSpacing="10">
-                                                        <Button Grid.Row="0" Grid.Column="0"
-                                                                Text="Import Coffee Beans"
-                                                                Command="{Binding ImportCoffeeBeansCommand}"
-                                                                IsEnabled="{Binding CanRunDataOperation}"
-                                                                SemanticProperties.Description="Open the coffee bean CSV import screen"
-                                                                BackgroundColor="{DynamicResource SecondaryColor}"
-                                                                TextColor="{DynamicResource ButtonTextColor}"
-                                                                MinimumHeightRequest="48"
-                                                                CornerRadius="12"/>
-                                                        <Button Grid.Row="0" Grid.Column="1"
-                                                                Text="Import Roast Logs"
-                                                                Command="{Binding ImportRoastLogsCommand}"
-                                                                IsEnabled="{Binding CanRunDataOperation}"
-                                                                SemanticProperties.Description="Open the roast log CSV import screen"
-                                                                BackgroundColor="{DynamicResource SecondaryColor}"
-                                                                TextColor="{DynamicResource ButtonTextColor}"
-                                                                MinimumHeightRequest="48"
-                                                                CornerRadius="12"/>
-                                                        <Button Grid.Row="1" Grid.Column="0"
-                                                                Text="Export Roast Log CSV"
-                                                                Command="{Binding ExportRoastLogCsvCommand}"
-                                                                SemanticProperties.Description="Save the roast log as a CSV document"
-                                                                IsEnabled="{Binding CanRunDataOperation}"
-                                                                BackgroundColor="{DynamicResource PrimaryColor}"
-                                                                TextColor="{DynamicResource ButtonTextColor}"
-                                                                MinimumHeightRequest="48"
-                                                                CornerRadius="12"/>
-                                                        <Button Grid.Row="1" Grid.Column="1"
-                                                                Text="Share Roast Log CSV"
-                                                                Command="{Binding ShareRoastLogCsvCommand}"
-                                                                SemanticProperties.Description="Share the roast log as a CSV document"
-                                                                IsEnabled="{Binding CanRunDataOperation}"
-                                                                BackgroundColor="{DynamicResource TertiaryColor}"
-                                                                TextColor="{DynamicResource ButtonTextColor}"
-                                                                MinimumHeightRequest="48"
-                                                                CornerRadius="12"/>
-                                                 </Grid>
-                                          </VerticalStackLayout>
-                                   </Border>
-
-
-                                   <!-- Roast Levels Section -->
-                                   <Border Stroke="{DynamicResource BorderColor}"
-                                           BackgroundColor="{DynamicResource PageBackgroundColor}"
-                                           StrokeThickness="0.5"
-                                           StrokeShape="RoundRectangle 12">
-                                          <Border.Shadow>
-                                                 <Shadow Brush="{DynamicResource BorderColor}"
-                                                         Offset="0,2"
-                                                         Radius="4"
-                                                         Opacity="0.2"/>
-                                          </Border.Shadow>
-                                          <VerticalStackLayout Spacing="5"
-                                                               Padding="16,10">
-                                                 <Label Text="Roast Levels"
-                                                        FontSize="18"
-                                                        FontAttributes="Bold"
-                                                        TextColor="{DynamicResource PrimaryTextColor}"/>
-
-                                                 <Label Text="Configure custom roast levels based on weight loss percentage"
-                                                        FontSize="14"
-                                                        TextColor="{DynamicResource SecondaryTextColor}"/>
-
-                                                 <!-- List of roast levels -->
-                                                 <CollectionView ItemsSource="{Binding RoastLevels}"
-                                                                 EmptyView="No roast levels defined"
-                                                                 SelectionMode="None">
-                                                         <CollectionView.ItemTemplate>
-                                                               <DataTemplate x:DataType="vm:RoastLevelViewModel">
-                                                                      <Grid Padding="5"
-                                                                            ColumnDefinitions="*, Auto, Auto">
-                                                                            <Border Grid.Column="0"
-                                                                                    BackgroundColor="{DynamicResource NeutralColor}"
-                                                                                    StrokeShape="RoundRectangle 8"
-                                                                                    Padding="3">
-                                                                                   <VerticalStackLayout>
-                                                                                           <Label Text="{Binding Name}"
-                                                                                                  FontSize="16"
-                                                                                                  FontAttributes="Bold"
-                                                                                                  TextColor="{DynamicResource PrimaryTextColor}"/>
-                                                                                           <Label Text="{Binding DisplayRange}"
-                                                                                                  FontSize="14"
-                                                                                                  TextColor="{DynamicResource SecondaryTextColor}"/>
-                                                                                    </VerticalStackLayout>
-                                                                             </Border>
-
-                                                                            <ImageButton Grid.Column="1"
-                                                                                         Source="edit_icon.png"
-                                                                                          Command="{Binding Source={x:Reference RootPage}, Path=BindingContext.EditRoastLevelCommand}"
-                                                                                         CommandParameter="{Binding .}"
-                                                                                          BackgroundColor="{DynamicResource SwipeEditColor}"
-                                                                                         WidthRequest="40"
-                                                                                         HeightRequest="40"
-                                                                                         Padding="8"
-                                                                                          Margin="8,0,0,0"
-                                                                                          CornerRadius="20"/>
-
-                                                                            <ImageButton Grid.Column="2"
-                                                                                         Source="delete_icon.png"
-                                                                                          Command="{Binding Source={x:Reference RootPage}, Path=BindingContext.DeleteRoastLevelCommand}"
-                                                                                         CommandParameter="{Binding .}"
-                                                                                          BackgroundColor="{DynamicResource SwipeDeleteColor}"
-                                                                                         WidthRequest="40"
-                                                                                         HeightRequest="40"
-                                                                                         Padding="8"
-                                                                                          Margin="8,0,0,0"
-                                                                                          CornerRadius="20"/>
-                                                                      </Grid>
-                                                               </DataTemplate>
-                                                        </CollectionView.ItemTemplate>
-                                                 </CollectionView>
-
-                                                 <Grid ColumnDefinitions="*,*"
-                                                       ColumnSpacing="12">
-                                                        <Button Grid.Column="0"
-                                                                Text="Add New Roast Level"
-                                                                Command="{Binding AddRoastLevelCommand}"
-                                                                BackgroundColor="{DynamicResource SecondaryColor}"
-                                                                TextColor="{DynamicResource ButtonTextColor}"
-                                                                HeightRequest="50"
-                                                                CornerRadius="25"
-                                                                HorizontalOptions="Fill"/>
-                                                        <Button Grid.Column="1"
-                                                                Text="Reset Defaults"
-                                                                Command="{Binding ResetRoastLevelsToDefaultsCommand}"
-                                                                BackgroundColor="{DynamicResource AccentColor}"
-                                                                TextColor="{DynamicResource ButtonTextColor}"
-                                                                HeightRequest="50"
-                                                                CornerRadius="25"
-                                                                HorizontalOptions="Fill"/>
-                                                 </Grid>
-                                         </VerticalStackLayout>
-                                  </Border>
-
-                                   <!-- Theme Section -->
-                                   <Border Stroke="{DynamicResource BorderColor}"
-                                           StrokeThickness="0.5"
-                                           StrokeShape="RoundRectangle 12">
-                                          <Border.Shadow>
-                                                 <Shadow Brush="{DynamicResource BorderColor}"
-                                                         Offset="0,2"
-                                                         Radius="4"
-                                                         Opacity="0.2"/>
-                                          </Border.Shadow>
-                                          <VerticalStackLayout Spacing="16"
-                                                               Padding="16,10">
-                                                 <Label Text="App Theme"
-                                                        FontSize="18"
-                                                        FontAttributes="Bold"
-                                                        TextColor="{DynamicResource PrimaryTextColor}"/>
-
-                                                 <Picker Title="Select your preferred theme for the app"
-                                                         SelectedIndex="{Binding SelectedThemeIndex, Mode=TwoWay}"
-                                                         TextColor="{DynamicResource PrimaryTextColor}"
-                                                         TitleColor="{DynamicResource SecondaryTextColor}"
-                                                         BackgroundColor="{DynamicResource PickerBackgroundColor}"
-                                                         Margin="0,5,0,10">
-                                                        <Picker.Items>
-                                                               <x:String>System Theme</x:String>
-                                                               <x:String>Light Theme</x:String>
-                                                               <x:String>Dark Theme</x:String>
-                                                        </Picker.Items>
-                                                 </Picker>
-                                          </VerticalStackLayout>
-                                   </Border>
-
-                                   <!-- About Section -->
-                                   <Border Stroke="{DynamicResource BorderColor}"
-                                           BackgroundColor="{DynamicResource PageBackgroundColor}"
-                                           StrokeThickness="0.5"
-                                           StrokeShape="RoundRectangle 12">
-                                          <Border.Shadow>
-                                                 <Shadow Brush="{DynamicResource BorderColor}"
-                                                         Offset="0,2"
-                                                         Radius="4"
-                                                         Opacity="0.2"/>
-                                          </Border.Shadow>
-                                          <VerticalStackLayout Spacing="8"
-                                                               Padding="16,10">
-
-                                                 <Label Text="About"
-                                                        FontSize="18"
-                                                        FontAttributes="Bold"
-                                                        TextColor="{DynamicResource PrimaryTextColor}"/>
-
-                                                 <Label Text="CafeMaestro - Coffee Roasting App"
-                                                        FontSize="16"
-                                                        TextColor="{DynamicResource PrimaryTextColor}"/>
-
-                                                 <HorizontalStackLayout Spacing="5">
-                                                        <Label Text="Version:"
-                                                               FontSize="14"
-                                                               TextColor="{DynamicResource PrimaryTextColor}"/>
-                                                        <Label Text="{Binding VersionDisplay}"
-                                                               FontSize="14"
-                                                               TextColor="{DynamicResource PrimaryTextColor}"/>
-                                                 </HorizontalStackLayout>
-
-                                                  <!-- Version History Label -->
-                                                 <Label Text="{Binding VersionHistoryDisplay}"
-                                                        FontSize="14"
-                                                        TextColor="{DynamicResource SecondaryTextColor}"
-                                                        LineBreakMode="WordWrap"/>
-
-                                                  <Label Text="© 2025 CafeMaestro Team"
-                                                         FontSize="14"
-                                                         TextColor="{DynamicResource SecondaryTextColor}"/>
-                                         </VerticalStackLayout>
-                                  </Border>
-                           </VerticalStackLayout>
-                     </Grid>
-              </ScrollView>
-
-              <!-- Popup for editing roast levels -->
-              <Grid x:Name="EditRoastLevelPopup"
-                    IsVisible="{Binding IsEditRoastLevelPopupVisible}"
-                    BackgroundColor="{DynamicResource ModalOverlayColor}"
-                    InputTransparent="False">
-                     <Border BackgroundColor="{DynamicResource PageBackgroundColor}"
-                             WidthRequest="320"
-                             StrokeShape="RoundRectangle 12"
-                             Stroke="{DynamicResource BorderColor}"
-                             StrokeThickness="1"
-                             HorizontalOptions="Center"
-                             VerticalOptions="Center">
-                            <Grid RowDefinitions="Auto,*,Auto"
-                                  Padding="20">
-                                   <!-- Header -->
-                                   <Label Text="{Binding EditPopupTitle}"
-                                          Grid.Row="0"
-                                          FontSize="22"
-                                          FontAttributes="Bold"
-                                          HorizontalOptions="Center"
-                                          TextColor="{DynamicResource PrimaryTextColor}"
-                                          Margin="0,0,0,15"/>
-
-                                   <!-- Form fields -->
-                                   <VerticalStackLayout Grid.Row="1"
-                                                        Spacing="15">
-                                          <Label Text="Name"
-                                                 FontSize="16"
-                                                 TextColor="{DynamicResource PrimaryTextColor}"/>
-                                          <Entry Text="{Binding RoastLevelName}"
-                                                 Placeholder="Enter roast level name"
-                                                 Style="{StaticResource EditEntryStyle}"/>
-
-                                          <Label Text="Min Weight Loss (%)"
-                                                 FontSize="16"
-                                                 TextColor="{DynamicResource PrimaryTextColor}"/>
-                                          <Entry Text="{Binding MinWeightLossText}"
-                                                 Placeholder="0.0"
-                                                 Keyboard="Numeric"
-                                                 Style="{StaticResource EditEntryStyle}"/>
-
-                                          <Label Text="Max Weight Loss (%)"
-                                                 FontSize="16"
-                                                 TextColor="{DynamicResource PrimaryTextColor}"/>
-                                          <Entry Text="{Binding MaxWeightLossText}"
-                                                 Placeholder="100.0"
-                                                 Keyboard="Numeric"
-                                                 Style="{StaticResource EditEntryStyle}"/>
-                                   </VerticalStackLayout>
-
-                                   <!-- Action buttons -->
-                                   <HorizontalStackLayout Grid.Row="2"
-                                                          Spacing="10"
-                                                          HorizontalOptions="Center"
-                                                          Margin="0,15,0,0">
-                                          <Button Text="Save"
-                                                  Command="{Binding SaveRoastLevelCommand}"
-                                                  Style="{StaticResource ActionButtonStyle}"
-                                                  TextColor="{DynamicResource ButtonTextColor}"
-                                                  WidthRequest="120"
-                                                  HeightRequest="45"
-                                                  CornerRadius="22"/>
-
-                                          <Button Text="Cancel"
-                                                  Command="{Binding CancelRoastLevelCommand}"
-                                                  Style="{StaticResource ButtonStyle}"
-                                                  BackgroundColor="{DynamicResource NeutralColor}"
-                                                  TextColor="{DynamicResource PrimaryTextColor}"
-                                                  WidthRequest="120"
-                                                  HeightRequest="45"
-                                                  CornerRadius="22"/>
-                                   </HorizontalStackLayout>
+                    <Border Style="{StaticResource SettingsRowStyle}"
+                            SemanticProperties.Description="Appearance"
+                            SemanticProperties.Hint="{Binding AppearanceSummary}">
+                        <Border.Triggers>
+                            <DataTrigger TargetType="Border" Binding="{Binding IsAppearanceHighlighted}" Value="True">
+                                <Setter Property="Stroke" Value="{DynamicResource RoastColor}" />
+                                <Setter Property="BackgroundColor" Value="{DynamicResource RoastSurfaceColor}" />
+                            </DataTrigger>
+                        </Border.Triggers>
+                        <Border.GestureRecognizers>
+                            <TapGestureRecognizer Command="{Binding OpenAppearanceCommand}" />
+                        </Border.GestureRecognizers>
+                        <Grid ColumnDefinitions="*,Auto" ColumnSpacing="{StaticResource SpaceMd}">
+                            <VerticalStackLayout Spacing="{StaticResource SpaceXs}">
+                                <Label Text="Appearance" Style="{StaticResource CardTitleStyle}" />
+                                <Label Text="{Binding AppearanceSummary}" Style="{StaticResource CardMetaStyle}" LineBreakMode="WordWrap" />
+                            </VerticalStackLayout>
+                            <Grid Grid.Column="1" VerticalOptions="Center">
+                                <Button Style="{StaticResource IconButtonStyle}"
+                                        Command="{Binding OpenAppearanceCommand}"
+                                        SemanticProperties.Description="Open appearance settings" />
+                                <controls:IconView Data="{StaticResource IconChevronData}" InputTransparent="True"
+                                                   HorizontalOptions="Center" VerticalOptions="Center" />
                             </Grid>
-                     </Border>
-              </Grid>
-       </Grid>
+                        </Grid>
+                    </Border>
+
+                    <Border Style="{StaticResource SettingsRowStyle}"
+                            SemanticProperties.Description="Data and backups"
+                            SemanticProperties.Hint="{Binding DataSummary}">
+                        <Border.Triggers>
+                            <DataTrigger TargetType="Border" Binding="{Binding IsDataHighlighted}" Value="True">
+                                <Setter Property="Stroke" Value="{DynamicResource RoastColor}" />
+                                <Setter Property="BackgroundColor" Value="{DynamicResource RoastSurfaceColor}" />
+                            </DataTrigger>
+                        </Border.Triggers>
+                        <Border.GestureRecognizers>
+                            <TapGestureRecognizer Command="{Binding OpenDataCommand}" />
+                        </Border.GestureRecognizers>
+                        <Grid ColumnDefinitions="*,Auto" ColumnSpacing="{StaticResource SpaceMd}">
+                            <VerticalStackLayout Spacing="{StaticResource SpaceXs}">
+                                <Label Text="Data &amp; Backups" Style="{StaticResource CardTitleStyle}" />
+                                <Label Text="{Binding DataSummary}" Style="{StaticResource CardMetaStyle}" LineBreakMode="WordWrap" />
+                            </VerticalStackLayout>
+                            <Grid Grid.Column="1" VerticalOptions="Center">
+                                <Button Style="{StaticResource IconButtonStyle}"
+                                        Command="{Binding OpenDataCommand}"
+                                        SemanticProperties.Description="Open data and backup settings" />
+                                <controls:IconView Data="{StaticResource IconChevronData}" InputTransparent="True"
+                                                   HorizontalOptions="Center" VerticalOptions="Center" />
+                            </Grid>
+                        </Grid>
+                    </Border>
+
+                    <Border Style="{StaticResource SettingsRowStyle}"
+                            SemanticProperties.Description="Roast levels"
+                            SemanticProperties.Hint="{Binding RoastLevelSummary}">
+                        <Border.Triggers>
+                            <DataTrigger TargetType="Border" Binding="{Binding IsRoastLevelsHighlighted}" Value="True">
+                                <Setter Property="Stroke" Value="{DynamicResource RoastColor}" />
+                                <Setter Property="BackgroundColor" Value="{DynamicResource RoastSurfaceColor}" />
+                            </DataTrigger>
+                        </Border.Triggers>
+                        <Border.GestureRecognizers>
+                            <TapGestureRecognizer Command="{Binding OpenRoastLevelsCommand}" />
+                        </Border.GestureRecognizers>
+                        <Grid ColumnDefinitions="*,Auto" ColumnSpacing="{StaticResource SpaceMd}">
+                            <VerticalStackLayout Spacing="{StaticResource SpaceXs}">
+                                <Label Text="Roast Levels" Style="{StaticResource CardTitleStyle}" />
+                                <Label Text="{Binding RoastLevelSummary}" Style="{StaticResource CardMetaStyle}" LineBreakMode="WordWrap" />
+                            </VerticalStackLayout>
+                            <Grid Grid.Column="1" VerticalOptions="Center">
+                                <Button Style="{StaticResource IconButtonStyle}"
+                                        Command="{Binding OpenRoastLevelsCommand}"
+                                        SemanticProperties.Description="Open roast level settings" />
+                                <controls:IconView Data="{StaticResource IconChevronData}" InputTransparent="True"
+                                                   HorizontalOptions="Center" VerticalOptions="Center" />
+                            </Grid>
+                        </Grid>
+                    </Border>
+
+                    <Border Style="{StaticResource SettingsRowStyle}"
+                            SemanticProperties.Description="About CafeMaestro"
+                            SemanticProperties.Hint="{Binding AboutSummary}">
+                        <Border.Triggers>
+                            <DataTrigger TargetType="Border" Binding="{Binding IsAboutHighlighted}" Value="True">
+                                <Setter Property="Stroke" Value="{DynamicResource RoastColor}" />
+                                <Setter Property="BackgroundColor" Value="{DynamicResource RoastSurfaceColor}" />
+                            </DataTrigger>
+                        </Border.Triggers>
+                        <Border.GestureRecognizers>
+                            <TapGestureRecognizer Command="{Binding OpenAboutCommand}" />
+                        </Border.GestureRecognizers>
+                        <Grid ColumnDefinitions="*,Auto" ColumnSpacing="{StaticResource SpaceMd}">
+                            <VerticalStackLayout Spacing="{StaticResource SpaceXs}">
+                                <Label Text="About" Style="{StaticResource CardTitleStyle}" />
+                                <Label Text="{Binding AboutSummary}" Style="{StaticResource CardMetaStyle}" LineBreakMode="WordWrap" />
+                            </VerticalStackLayout>
+                            <Grid Grid.Column="1" VerticalOptions="Center">
+                                <Button Style="{StaticResource IconButtonStyle}"
+                                        Command="{Binding OpenAboutCommand}"
+                                        SemanticProperties.Description="Open About CafeMaestro" />
+                                <controls:IconView Data="{StaticResource IconChevronData}" InputTransparent="True"
+                                                   HorizontalOptions="Center" VerticalOptions="Center" />
+                            </Grid>
+                        </Grid>
+                    </Border>
+                </VerticalStackLayout>
+            </ScrollView>
+
+            <Border x:Name="WideDetailPane"
+                    Grid.Column="1"
+                    Style="{StaticResource RaisedCardStyle}"
+                    IsVisible="False">
+                <ScrollView>
+                    <VerticalStackLayout Spacing="{StaticResource SpaceLg}">
+                        <VerticalStackLayout IsVisible="{Binding IsRoastingSelected}" Spacing="{StaticResource SpaceMd}">
+                            <Label Text="ROASTING" Style="{StaticResource SectionHeaderStyle}" />
+                            <Label Text="Future-roast defaults" Style="{StaticResource CardTitleStyle}" />
+                            <Label Text="{Binding RoastingSummary}" Style="{StaticResource NumericValueStyle}" LineBreakMode="WordWrap" />
+                            <Label Text="First Crack remains optional. First Crack and cooling duration are captured when a roast starts; notification changes apply immediately."
+                                   Style="{StaticResource CardMetaStyle}" LineBreakMode="WordWrap" />
+                            <Button Text="EDIT ROASTING SETTINGS" Style="{StaticResource PrimaryActionStyle}"
+                                    Command="{Binding OpenSelectedSectionCommand}" />
+                        </VerticalStackLayout>
+
+                        <VerticalStackLayout IsVisible="{Binding IsAppearanceSelected}" Spacing="{StaticResource SpaceMd}">
+                            <Label Text="APPEARANCE" Style="{StaticResource SectionHeaderStyle}" />
+                            <Label Text="{Binding AppearanceSummary}" Style="{StaticResource CardTitleStyle}" />
+                            <Label Text="System, light, and dark all use the same status colours and accessible contrast."
+                                   Style="{StaticResource CardMetaStyle}" LineBreakMode="WordWrap" />
+                            <Button Text="CHOOSE THEME" Style="{StaticResource PrimaryActionStyle}"
+                                    Command="{Binding OpenSelectedSectionCommand}" />
+                        </VerticalStackLayout>
+
+                        <VerticalStackLayout IsVisible="{Binding IsDataSelected}" Spacing="{StaticResource SpaceMd}">
+                            <Label Text="DATA &amp; BACKUPS" Style="{StaticResource SectionHeaderStyle}" />
+                            <Label Text="{Binding DataSummary}" Style="{StaticResource CardTitleStyle}" LineBreakMode="WordWrap" />
+                            <Label Text="Back up, restore, import, export, or start a clean dataset from the guarded data tools."
+                                   Style="{StaticResource CardMetaStyle}" LineBreakMode="WordWrap" />
+                            <Button Text="OPEN DATA TOOLS" Style="{StaticResource PrimaryActionStyle}"
+                                    Command="{Binding OpenSelectedSectionCommand}" />
+                        </VerticalStackLayout>
+
+                        <VerticalStackLayout IsVisible="{Binding IsRoastLevelsSelected}" Spacing="{StaticResource SpaceMd}">
+                            <Label Text="ROAST LEVELS" Style="{StaticResource SectionHeaderStyle}" />
+                            <Label Text="{Binding RoastLevelSummary}" Style="{StaticResource CardTitleStyle}" />
+                            <Label Text="These weight-loss ranges name completed roast results."
+                                   Style="{StaticResource CardMetaStyle}" LineBreakMode="WordWrap" />
+                            <Button Text="EDIT ROAST LEVELS" Style="{StaticResource PrimaryActionStyle}"
+                                    Command="{Binding OpenSelectedSectionCommand}" />
+                        </VerticalStackLayout>
+
+                        <VerticalStackLayout IsVisible="{Binding IsAboutSelected}" Spacing="{StaticResource SpaceMd}">
+                            <Label Text="ABOUT" Style="{StaticResource SectionHeaderStyle}" />
+                            <Label Text="CafeMaestro" Style="{StaticResource CardTitleStyle}" FontSize="{StaticResource FontSizeHeadline}" />
+                            <Label Text="{Binding AboutSummary}" Style="{StaticResource NumericValueStyle}" />
+                            <Label Text="Your beans and roasts stay on this device. CafeMaestro has no account, cloud sync, or analytics."
+                                   Style="{StaticResource CardMetaStyle}" LineBreakMode="WordWrap" />
+                            <Button Text="VERSION &amp; LICENCE" Style="{StaticResource SecondaryActionStyle}"
+                                    Command="{Binding OpenSelectedSectionCommand}" />
+                        </VerticalStackLayout>
+                    </VerticalStackLayout>
+                </ScrollView>
+            </Border>
+        </Grid>
+    </Grid>
 </ContentPage>

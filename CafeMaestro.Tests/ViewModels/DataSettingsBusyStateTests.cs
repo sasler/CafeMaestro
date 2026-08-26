@@ -13,15 +13,12 @@ public sealed class DataSettingsBusyStateTests
     {
         var appData = new Mock<IAppDataService>();
         appData.SetupGet(service => service.CurrentData).Returns(AppDataFactory.CreateDefault());
-        var preferences = new Mock<IPreferencesService>();
-        preferences.Setup(service => service.GetThemePreferenceAsync()).ReturnsAsync(ThemePreference.System);
         var viewModel = new DataSettingsPageViewModel(
-            preferences.Object,
             appData.Object,
             Mock.Of<IDataBackupService>(),
             Mock.Of<IUserFileService>(),
             Mock.Of<IRoastDataService>(),
-            Mock.Of<IRoastLevelService>(),
+            SettingsTestFactory.IdleSession().Object,
             Mock.Of<INavigationService>(),
             Mock.Of<IShareService>(),
             Mock.Of<IAlertService>())
@@ -42,15 +39,12 @@ public sealed class DataSettingsBusyStateTests
     {
         var appData = new Mock<IAppDataService>();
         appData.SetupGet(service => service.CurrentData).Returns(AppDataFactory.CreateDefault());
-        var preferences = new Mock<IPreferencesService>();
-        preferences.Setup(service => service.GetThemePreferenceAsync()).ReturnsAsync(ThemePreference.System);
         var viewModel = new DataSettingsPageViewModel(
-            preferences.Object,
             appData.Object,
             Mock.Of<IDataBackupService>(),
             Mock.Of<IUserFileService>(),
             Mock.Of<IRoastDataService>(),
-            Mock.Of<IRoastLevelService>(),
+            SettingsTestFactory.IdleSession().Object,
             Mock.Of<INavigationService>(),
             Mock.Of<IShareService>(),
             Mock.Of<IAlertService>());

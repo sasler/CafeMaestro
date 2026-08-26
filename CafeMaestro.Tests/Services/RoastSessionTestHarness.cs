@@ -54,6 +54,15 @@ internal sealed class RecordingCoolingNotificationService : ICoolingNotification
     public List<Guid> Cancelled { get; } = [];
     public bool ThrowOnSchedule { get; set; }
 
+    public CoolingNotificationPermissionState PermissionState { get; set; } =
+        CoolingNotificationPermissionState.Granted;
+
+    public Task<CoolingNotificationPermissionState> GetPermissionStateAsync(
+        CancellationToken cancellationToken = default) => Task.FromResult(PermissionState);
+
+    public Task<CoolingNotificationPermissionState> RequestPermissionAsync(
+        CancellationToken cancellationToken = default) => Task.FromResult(PermissionState);
+
     public Task ScheduleCoolingReadyAsync(
         Guid roastId,
         DateTimeOffset readyToWeighAtUtc,
