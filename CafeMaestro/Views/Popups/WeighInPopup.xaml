@@ -7,7 +7,7 @@
              WidthRequest="340" Padding="{StaticResource SpaceMd}">
     <Border Style="{StaticResource ReadyCardStyle}">
         <VerticalStackLayout Spacing="{StaticResource SpaceLg}">
-            <Label Text="WEIGH IN" Style="{StaticResource SectionHeaderStyle}" />
+            <Label Text="{Binding ActionTitle}" Style="{StaticResource SectionHeaderStyle}" />
             <Label Text="{Binding Request.BeanDisplaySnapshot}" Style="{StaticResource CardTitleStyle}" />
             <Label Text="{Binding Request.BatchWeight, StringFormat='Batch {0:0.0} g in'}" Style="{StaticResource CardMetaStyle}" />
             <Border Style="{StaticResource FieldContainerStyle}">
@@ -20,7 +20,9 @@
             <Button Text="SAVE WEIGHT" Command="{Binding SaveCommand}" IsEnabled="{Binding CanSave}"
                     Style="{StaticResource ConfirmActionStyle}" />
             <Button Text="I NEVER WEIGHED THIS BATCH" Command="{Binding MarkUnweighedCommand}"
-                    Style="{StaticResource SecondaryActionStyle}" />
+                    Style="{StaticResource SecondaryActionStyle}"
+                    LineBreakMode="WordWrap"
+                    IsVisible="{Binding CanMarkUnweighed}" />
             <Button Text="CANCEL" Command="{Binding CancelCommand}" Style="{StaticResource SecondaryActionStyle}" />
         </VerticalStackLayout>
     </Border>

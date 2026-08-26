@@ -27,6 +27,13 @@ public partial class WeighInViewModel(
     public bool CanSave => !IsBusy && Request is not null &&
                            WeighInInputValidator.Validate(FinalWeightText, Request.BatchWeight).IsValid;
 
+    public bool IsEditingResult => Request?.InitialFinalWeight is > 0;
+
+    public string ActionTitle => IsEditingResult ? "EDIT FINAL WEIGHT" : "WEIGH IN";
+
+    /// <summary>Only a batch still owed a weight can be recorded as never weighed.</summary>
+    public bool CanMarkUnweighed => Request is not null && !IsEditingResult;
+
     public void ApplyQueryAttributes(IDictionary<string, object> query)
     {
         if (query.TryGetValue(nameof(Request), out object? request))
@@ -49,6 +56,17 @@ public partial class WeighInViewModel(
             : string.Empty;
         OnPropertyChanged(nameof(CanSave));
         SaveCommand.NotifyCanExecuteChanged();
+    }
+
+    partial void OnRequestChanged(WeighInRequest? value)
+    {
+        OnPropertyChanged(nameof(IsEditingResult));
+        OnPropertyChanged(nameof(ActionTitle));
+        OnPropertyChanged(nameof(CanMarkUnweighed));
+        if (value?.InitialFinalWeight is double initialWeight)
+        {
+            FinalWeightText = initialWeight.ToString("0.0", System.Globalization.CultureInfo.CurrentCulture);
+        }
     }
 
     [RelayCommand(CanExecute = nameof(CanSave))]

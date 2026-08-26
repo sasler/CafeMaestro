@@ -100,21 +100,26 @@ internal static class RoastProjection
             BeanDisplaySnapshot = string.IsNullOrWhiteSpace(roast.BeanDisplaySnapshot)
                 ? roast.BeanType
                 : roast.BeanDisplaySnapshot,
+            Temperature = roast.Temperature,
             BatchWeight = roast.BatchWeight,
             DroppedAtUtc = droppedAt,
             ReadyToWeighAtUtc = readyAt,
             RemainingCoolingSeconds = Math.Max(0, (readyAt - asOfUtc).TotalSeconds),
             Status = EffectiveStatus(roast, asOfUtc),
-            TotalSeconds = roast.TotalSeconds
+            TotalSeconds = roast.TotalSeconds,
+            Notes = roast.Notes,
+            Summary = roast.Summary,
+            RoastLevelName = roast.RoastLevelName
         };
     }
 
-    /// <summary>Open work is every dropped roast still owed a weight, oldest drop first.</summary>
+    /// <summary>Cooling is pinned first, then ready work; each status is oldest first.</summary>
     internal static List<RoastWorkItem> OpenWork(AppData data, DateTimeOffset asOfUtc) =>
         (data.RoastLogs ?? [])
             .Where(roast => roast.CompletionStatus == RoastCompletionStatus.AwaitingWeight)
             .Select(roast => ToWorkItem(roast, asOfUtc))
-            .OrderBy(item => item.DroppedAtUtc)
+            .OrderBy(item => item.Status == RoastEffectiveStatus.Cooling ? 0 : 1)
+            .ThenBy(item => item.DroppedAtUtc)
             .ThenBy(item => item.BatchNumber ?? int.MaxValue)
             .ToList();
 

@@ -20,6 +20,7 @@ public partial class AppShell : Shell
 		Routing.RegisterRoute(Routes.BeanEdit, typeof(BeanEditPage));
 		Routing.RegisterRoute(Routes.BeanDetail, typeof(BeanDetailPage));
 		Routing.RegisterRoute(Routes.RoastEdit, typeof(RoastEditPage));
+		Routing.RegisterRoute(Routes.RoastDetail, typeof(RoastDetailPage));
 		Routing.RegisterRoute(Routes.BeanImport, typeof(BeanImportPage));
 		Routing.RegisterRoute(Routes.RoastImport, typeof(RoastImportPage));
 #if DEBUG

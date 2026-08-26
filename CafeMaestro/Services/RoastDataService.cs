@@ -720,7 +720,12 @@ namespace CafeMaestro.Services
                 }
                 else
                 {
-                    updatedRoast.RoastLevelName = "Pending";
+                    updatedRoast.RoastLevelName = updatedRoast.CompletionStatus switch
+                    {
+                        RoastCompletionStatus.Unweighed => "Unweighed",
+                        RoastCompletionStatus.Discarded => "Discarded",
+                        _ => "Pending"
+                    };
                 }
 
                 return await _appDataService.TryUpdateAsync(appData =>
@@ -747,7 +752,9 @@ namespace CafeMaestro.Services
                         : null;
                     existingRoast.CompletionStatus = updatedRoast.HasFinalWeight
                         ? RoastCompletionStatus.Complete
-                        : RoastCompletionStatus.AwaitingWeight;
+                        : updatedRoast.CompletionStatus is RoastCompletionStatus.Unweighed or RoastCompletionStatus.Discarded
+                            ? updatedRoast.CompletionStatus
+                            : RoastCompletionStatus.AwaitingWeight;
                     if (!updatedRoast.HasFinalWeight)
                     {
                         if (!existingRoast.DroppedAtUtc.HasValue &&

@@ -26,7 +26,16 @@ public interface IRoastQueryService
         Guid beanId,
         CancellationToken cancellationToken = default);
 
-    /// <summary>Dropped roasts still owed a final weight, oldest drop first.</summary>
+    /// <summary>Cooling then ready roasts still owed a final weight, oldest first within status.</summary>
     Task<IReadOnlyList<RoastWorkItem>> GetOpenWorkAsync(
+        CancellationToken cancellationToken = default);
+
+    /// <summary>Completed, explicitly unweighed, and discarded roasts, newest first.</summary>
+    Task<IReadOnlyList<RoastData>> GetHistoryAsync(
+        CancellationToken cancellationToken = default);
+
+    /// <summary>One stored roast for a focused detail screen.</summary>
+    Task<RoastData?> GetRoastAsync(
+        Guid roastId,
         CancellationToken cancellationToken = default);
 }

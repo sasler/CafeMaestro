@@ -533,7 +533,7 @@ public sealed class RoastSessionService : IRoastSessionService, IDisposable
                         "That batch is no longer in the roast log.");
                 }
 
-                if (roast.CompletionStatus != RoastCompletionStatus.AwaitingWeight)
+                if (roast.CompletionStatus is not (RoastCompletionStatus.AwaitingWeight or RoastCompletionStatus.Complete))
                 {
                     return context.Reject(
                         RoastTransitionError.RoastAlreadyResolved,

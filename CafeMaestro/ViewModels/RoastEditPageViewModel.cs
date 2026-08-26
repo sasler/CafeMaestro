@@ -28,6 +28,12 @@ public partial class RoastEditPageViewModel : ObservableObject
     [ObservableProperty] public partial string Notes { get; set; } = string.Empty;
     [ObservableProperty] public partial bool IsBusy { get; set; }
 
+    public string FinalWeightDisplay => string.IsNullOrWhiteSpace(FinalWeightText)
+        ? "—"
+        : $"{FinalWeightText} g out";
+
+    partial void OnFinalWeightTextChanged(string value) => OnPropertyChanged(nameof(FinalWeightDisplay));
+
     public RoastEditPageViewModel(
         IRoastDataService roastDataService,
         IBeanDataService beanDataService,
@@ -81,17 +87,15 @@ public partial class RoastEditPageViewModel : ObservableObject
     [RelayCommand]
     private async Task SaveAsync()
     {
-        if (_roast is null || SelectedBean is null ||
+        if (_roast is null ||
             !TryParseNumber(TemperatureText, out double temperature) || temperature is <= 0 or > 500 ||
-            !TryParseNumber(BatchWeightText, out double batchWeight) || batchWeight <= 0 ||
-            !TryParseOptionalNumber(FinalWeightText, out double? finalWeight) || finalWeight > batchWeight ||
             !TryParseTime(RoastTimeText, out int roastMinutes, out int roastSeconds) ||
             !TryParseOptionalTime(FirstCrackTimeText, out int? firstCrackMinutes, out int? firstCrackSeconds) ||
             ((firstCrackMinutes * 60) + firstCrackSeconds) > ((roastMinutes * 60) + roastSeconds))
         {
             await _alertService.ShowAlertAsync(
                 "Invalid roast",
-                "Check the bean, temperature, weights, and mm:ss times before saving.",
+                "Check the temperature and mm:ss times before saving.",
                 "OK");
             return;
         }
@@ -100,23 +104,12 @@ public partial class RoastEditPageViewModel : ObservableObject
         try
         {
             RoastData updated = CopyForEdit(_roast);
-            updated.BeanId = SelectedBean.Id;
-            updated.BeanType = SelectedBean.DisplayName;
-            updated.BeanDisplaySnapshot = SelectedBean.DisplayName;
             updated.Temperature = temperature;
-            updated.BatchWeight = batchWeight;
-            updated.FinalWeight = finalWeight;
             updated.RoastMinutes = roastMinutes;
             updated.RoastSeconds = roastSeconds;
             updated.FirstCrackMinutes = firstCrackMinutes;
             updated.FirstCrackSeconds = firstCrackSeconds;
             updated.Notes = Notes.Trim();
-            updated.CompletionStatus = finalWeight > 0
-                ? RoastCompletionStatus.Complete
-                : RoastCompletionStatus.AwaitingWeight;
-            updated.RoastLevelName = finalWeight > 0
-                ? await _roastLevelService.GetRoastLevelNameAsync(updated.WeightLossPercentage)
-                : string.Empty;
 
             if (!await _roastDataService.UpdateRoastLogAsync(updated))
             {
@@ -160,23 +153,6 @@ public partial class RoastEditPageViewModel : ObservableObject
 
     private static bool TryParseNumber(string text, out double value) =>
         double.TryParse(text, NumberStyles.Float, CultureInfo.CurrentCulture, out value) && double.IsFinite(value);
-
-    private static bool TryParseOptionalNumber(string text, out double? value)
-    {
-        value = null;
-        if (string.IsNullOrWhiteSpace(text))
-        {
-            return true;
-        }
-
-        if (!TryParseNumber(text, out double parsed) || parsed <= 0)
-        {
-            return false;
-        }
-
-        value = parsed;
-        return true;
-    }
 
     private static bool TryParseTime(string text, out int minutes, out int seconds)
     {

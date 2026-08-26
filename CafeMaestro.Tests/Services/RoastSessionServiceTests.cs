@@ -317,6 +317,22 @@ public sealed class RoastSessionServiceTests
     }
 
     [Fact]
+    public async Task SaveFinalWeightAsync_OnCompletedRoast_UpdatesTheFocusedResult()
+    {
+        using RoastSessionTestHarness harness = await RoastSessionTestHarness.CreateAsync(Start);
+        Guid roastId = await DropOneBatchAsync(harness);
+        (await harness.Session.SaveFinalWeightAsync(roastId, 206)).Success.Should().BeTrue();
+
+        TransitionResult edited = await harness.Session.SaveFinalWeightAsync(roastId, 204.96);
+
+        edited.Success.Should().BeTrue();
+        RoastData roast = harness.Current.RoastLogs.Single();
+        roast.FinalWeight.Should().Be(205.0);
+        roast.CompletionStatus.Should().Be(RoastCompletionStatus.Complete);
+        roast.RoastLevelName.Should().Be("Medium");
+    }
+
+    [Fact]
     public async Task MarkUnweighedAsync_ThenSaveFinalWeightAsync_AcceptsOnlyTheFirstTransition()
     {
         using RoastSessionTestHarness harness = await RoastSessionTestHarness.CreateAsync(Start);
