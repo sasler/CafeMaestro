@@ -489,12 +489,12 @@ public partial class ImportPageViewModel : ObservableObject, IQueryAttributable
     /// </summary>
     public void OnDisappearing()
     {
-        _operationCts?.Cancel();
-
         if (!_isLeavingFlow)
         {
             return;
         }
+
+        _operationCts?.Cancel();
 
         _userFileService.DeleteTemporaryFile(_temporaryFilePath);
         _temporaryFilePath = null;
@@ -512,21 +512,18 @@ public partial class ImportPageViewModel : ObservableObject, IQueryAttributable
             return;
         }
 
-        CancellationToken cancellationToken = BeginOperation();
-
         try
         {
             IsBusy = true;
             StatusMessage = $"Importing {ValidRowCount} {(ValidRowCount == 1 ? Descriptor.ItemSingular : Descriptor.ItemPlural)}…";
 
-            ImportCommitResult result = await _importService.CommitAsync(_plan, cancellationToken);
+            // Reading and reviewing are cancellable; the commit itself is not. It is one short
+            // atomic mutation, and abandoning it mid-write would risk the very thing atomicity
+            // exists to prevent.
+            ImportCommitResult result = await _importService.CommitAsync(_plan, CancellationToken.None);
             ApplyResult(result);
             Step = ImportStep.Result;
             StatusMessage = string.Empty;
-        }
-        catch (OperationCanceledException)
-        {
-            StatusMessage = "Import cancelled. Nothing was changed.";
         }
         catch (Exception ex)
         {
