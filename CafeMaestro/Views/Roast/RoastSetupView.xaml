@@ -2,6 +2,7 @@
 <ContentView xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
              xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
              xmlns:models="clr-namespace:CafeMaestro.Models"
+             xmlns:roast="clr-namespace:CafeMaestro.Views.Roast"
              xmlns:vm="clr-namespace:CafeMaestro.ViewModels"
              x:Class="CafeMaestro.Views.Roast.RoastSetupView"
              x:DataType="vm:RoastPageViewModel">
@@ -68,6 +69,80 @@
                                Style="{StaticResource FieldHintStyle}" />
                     </Grid>
                 </Border>
+
+                <VerticalStackLayout IsVisible="{Binding HasBeanHistory}" Spacing="{StaticResource SpaceSm}">
+                    <Grid ColumnDefinitions="*,Auto" ColumnSpacing="{StaticResource SpaceSm}">
+                        <Label Text="EARLIER ROASTS" Style="{StaticResource SectionHeaderStyle}"
+                               VerticalTextAlignment="Center" />
+                        <Button Grid.Column="1" Text="{Binding BeanHistoryToggleText}"
+                                Command="{Binding ToggleBeanHistoryCommand}"
+                                IsVisible="{Binding HasMoreBeanHistory}"
+                                Style="{StaticResource QuietActionStyle}"
+                                MinimumHeightRequest="{StaticResource ControlHeightMin}"
+                                SemanticProperties.Hint="Shows more or fewer roast history entries" />
+                    </Grid>
+                    <VerticalStackLayout BindableLayout.ItemsSource="{Binding BeanHistory}"
+                                         Spacing="{StaticResource SpaceSm}">
+                        <BindableLayout.ItemTemplate>
+                            <DataTemplate x:DataType="vm:BeanRoastHistoryEntry">
+                                <Border Style="{StaticResource CardStyle}"
+                                        MinimumHeightRequest="{StaticResource ControlHeightMin}"
+                                        SemanticProperties.Description="{Binding SemanticDescription}"
+                                        SemanticProperties.Hint="{Binding ReuseHint}">
+                                    <Border.GestureRecognizers>
+                                        <TapGestureRecognizer
+                                            Command="{Binding Source={RelativeSource AncestorType={x:Type roast:RoastSetupView}}, Path=ViewModel.ReuseBeanHistoryCommand, x:DataType=roast:RoastSetupView}"
+                                            CommandParameter="{Binding .}" />
+                                    </Border.GestureRecognizers>
+                                    <!--
+                                        The reuse affordance shares the date's row so both text
+                                        lines keep the card's full width. At large font scales
+                                        they wrap downward instead of being squeezed into a
+                                        narrow column beside it.
+                                    -->
+                                    <Grid ColumnDefinitions="*,Auto" RowDefinitions="Auto,Auto,Auto"
+                                          ColumnSpacing="{StaticResource SpaceMd}" RowSpacing="{StaticResource SpaceXs}">
+                                        <Label Text="{Binding DateDisplay}" Style="{StaticResource CardCaptionStyle}"
+                                               AutomationProperties.IsInAccessibleTree="False">
+                                            <Label.Triggers>
+                                                <DataTrigger TargetType="Label" Binding="{Binding IsMuted}" Value="True">
+                                                    <Setter Property="TextColor" Value="{DynamicResource MutedTextColor}" />
+                                                </DataTrigger>
+                                            </Label.Triggers>
+                                        </Label>
+                                        <Label Grid.Column="1" Text="TAP TO REUSE"
+                                               Style="{StaticResource CardCaptionStyle}" HorizontalTextAlignment="End"
+                                               VerticalTextAlignment="Center" AutomationProperties.IsInAccessibleTree="False">
+                                            <Label.Triggers>
+                                                <DataTrigger TargetType="Label" Binding="{Binding IsMuted}" Value="True">
+                                                    <Setter Property="TextColor" Value="{DynamicResource MutedTextColor}" />
+                                                </DataTrigger>
+                                            </Label.Triggers>
+                                        </Label>
+                                        <Label Grid.Row="1" Grid.ColumnSpan="2" Text="{Binding SettingsDisplay}"
+                                               Style="{StaticResource CardMetaStyle}" LineBreakMode="WordWrap"
+                                               AutomationProperties.IsInAccessibleTree="False">
+                                            <Label.Triggers>
+                                                <DataTrigger TargetType="Label" Binding="{Binding IsMuted}" Value="True">
+                                                    <Setter Property="TextColor" Value="{DynamicResource MutedTextColor}" />
+                                                </DataTrigger>
+                                            </Label.Triggers>
+                                        </Label>
+                                        <Label Grid.Row="2" Grid.ColumnSpan="2" Text="{Binding ResultDisplay}"
+                                               Style="{StaticResource CardMetaStyle}" LineBreakMode="WordWrap"
+                                               AutomationProperties.IsInAccessibleTree="False">
+                                            <Label.Triggers>
+                                                <DataTrigger TargetType="Label" Binding="{Binding IsMuted}" Value="True">
+                                                    <Setter Property="TextColor" Value="{DynamicResource MutedTextColor}" />
+                                                </DataTrigger>
+                                            </Label.Triggers>
+                                        </Label>
+                                    </Grid>
+                                </Border>
+                            </DataTemplate>
+                        </BindableLayout.ItemTemplate>
+                    </VerticalStackLayout>
+                </VerticalStackLayout>
             </VerticalStackLayout>
         </ScrollView>
 

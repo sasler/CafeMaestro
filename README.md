@@ -15,9 +15,9 @@ CafeMaestro is a comprehensive tool designed for coffee enthusiasts and professi
 ## Features
 
 - **Bean Inventory Management**: Search and filter green coffee inventory, see low/out-of-stock quantities at a glance, and open a responsive detail view with the latest completed roast.
-- **Roast Console**: Prefilled bean, temperature, and batch weight setup; a persisted elapsed instrument; one-tap Drop; and a two-batch cooling/weigh-in handoff.
+- **Roast Console**: Prefilled bean, temperature, and batch weight setup with newest-first bean history; a persisted elapsed instrument; one-tap Drop; and weigh-in for earlier batches while the next batch keeps roasting.
 - **Focused Four-Tab Navigation**: Launch into Roast, with Log, Beans, and Settings always one tab away outside active/recovery roast states.
-- **Roast Log Work Queue**: Keep Cooling and Needs weight batches pinned above searchable history, then open focused details or weigh an explicitly selected batch.
+- **Roast Log Work Queue**: Keep Cooling and Needs weight batches pinned above searchable history, then weigh an explicitly selected batch or correct every recorded roast setting.
 - **Optional First Crack Tracking**: When enabled in roasting preferences, mark or correct First Crack for live development-time analysis; the default console stays uncluttered.
 - **Optional Android Cooling Reminders**: Opt in to a best-effort notification when a persisted batch reaches its cooling-ready time; opening it revalidates the batch before offering weigh-in.
 - **Roast Level Analysis**: Automatic classification of roast levels based on weight loss percentage.
@@ -141,10 +141,11 @@ remain unchanged when a bean is renamed. See [Beans inventory and detail](docs/b
 
 The Roast Console keeps the normal path short while preserving every physical obligation:
 - Select a bean and accept or edit its prefilled temperature and batch weight
+- Compare the bean's newest-first roast history or reuse a prior roast's temperature and batch weight
 - Compare against the newest completed result without turning it into a target
 - Start only after the active draft is durable, then Pause/Resume or Drop from the elapsed instrument
 - Set up Batch 2 from the first drop while Batch 1 cools
-- Weigh a ready batch through an explicit batch-identity sheet at 0.1 g precision
+- Weigh a ready batch through an explicit batch-identity sheet at 0.1 g precision, including while the next batch is actively roasting
 - Recover an interrupted roast with explicit elapsed correction when the device clock changed
 - Enable First Crack tracking only when development time and DTR are useful
 
@@ -157,7 +158,7 @@ The Roast Log section allows you to:
 - Search beans, notes, summaries, and roast levels without reloading storage
 - Distinguish same-bean batches by batch number, drop time, and input weight
 - Review honest Complete, Unweighed, and Discarded details without fabricated zero values
-- Correct final weights through the focused Weigh In sheet and edit other allowed details separately
+- Correct final weights through the focused Weigh In sheet and edit bean, initial weight, temperature, times, and notes from the roast editor
 - Delete confirmed records, import roast CSV contextually, or export the log to CSV
 
 See [Roast Log work queue](docs/roast-log.md) for projection, ticker, editing, and accessibility behavior,

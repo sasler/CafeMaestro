@@ -12,7 +12,6 @@ public partial class RoastEditPageViewModel : ObservableObject
 {
     private readonly IRoastDataService _roastDataService;
     private readonly IBeanDataService _beanDataService;
-    private readonly IRoastLevelService _roastLevelService;
     private readonly INavigationService _navigationService;
     private readonly IAlertService _alertService;
     private RoastData? _roast;
@@ -26,27 +25,46 @@ public partial class RoastEditPageViewModel : ObservableObject
     [ObservableProperty] public partial string RoastTimeText { get; set; } = string.Empty;
     [ObservableProperty] public partial string FirstCrackTimeText { get; set; } = string.Empty;
     [ObservableProperty] public partial string Notes { get; set; } = string.Empty;
+    [ObservableProperty] public partial string BeanError { get; set; } = string.Empty;
+    [ObservableProperty] public partial string TemperatureError { get; set; } = string.Empty;
+    [ObservableProperty] public partial string BatchWeightError { get; set; } = string.Empty;
+    [ObservableProperty] public partial string FinalWeightError { get; set; } = string.Empty;
+    [ObservableProperty] public partial string RoastTimeError { get; set; } = string.Empty;
+    [ObservableProperty] public partial string FirstCrackError { get; set; } = string.Empty;
+    [ObservableProperty] public partial string FocusField { get; set; } = string.Empty;
     [ObservableProperty] public partial bool IsBusy { get; set; }
 
     public string FinalWeightDisplay => string.IsNullOrWhiteSpace(FinalWeightText)
         ? "—"
         : $"{FinalWeightText} g out";
 
-    partial void OnFinalWeightTextChanged(string value) => OnPropertyChanged(nameof(FinalWeightDisplay));
-
     public RoastEditPageViewModel(
         IRoastDataService roastDataService,
         IBeanDataService beanDataService,
-        IRoastLevelService roastLevelService,
         INavigationService navigationService,
         IAlertService alertService)
     {
         _roastDataService = roastDataService;
         _beanDataService = beanDataService;
-        _roastLevelService = roastLevelService;
         _navigationService = navigationService;
         _alertService = alertService;
     }
+
+    partial void OnSelectedBeanChanged(BeanData? value) => BeanError = string.Empty;
+
+    partial void OnTemperatureTextChanged(string value) => TemperatureError = string.Empty;
+
+    partial void OnBatchWeightTextChanged(string value) => BatchWeightError = string.Empty;
+
+    partial void OnFinalWeightTextChanged(string value)
+    {
+        FinalWeightError = string.Empty;
+        OnPropertyChanged(nameof(FinalWeightDisplay));
+    }
+
+    partial void OnRoastTimeTextChanged(string value) => RoastTimeError = string.Empty;
+
+    partial void OnFirstCrackTimeTextChanged(string value) => FirstCrackError = string.Empty;
 
     public async Task OnAppearingAsync()
     {
@@ -76,6 +94,7 @@ public partial class RoastEditPageViewModel : ObservableObject
             RoastTimeText = _roast.FormattedTime;
             FirstCrackTimeText = _roast.FirstCrackSeconds.HasValue ? _roast.FirstCrackTime : string.Empty;
             Notes = _roast.Notes;
+            ClearValidationErrors();
         }
         finally
         {
@@ -86,16 +105,24 @@ public partial class RoastEditPageViewModel : ObservableObject
     [RelayCommand]
     private async Task SaveAsync()
     {
-        if (_roast is null ||
-            !TryParseNumber(TemperatureText, out double temperature) || temperature is <= 0 or > 500 ||
-            !TryParseTime(RoastTimeText, out int roastMinutes, out int roastSeconds) ||
-            !TryParseOptionalTime(FirstCrackTimeText, out int? firstCrackMinutes, out int? firstCrackSeconds) ||
-            ((firstCrackMinutes * 60) + firstCrackSeconds) > ((roastMinutes * 60) + roastSeconds))
+        if (_roast is null)
         {
             await _alertService.ShowAlertAsync(
                 "Invalid roast",
-                "Check the temperature and mm:ss times before saving.",
+                "The selected roast could not be loaded.",
                 "OK");
+            return;
+        }
+
+        if (!TryValidate(
+                out double temperature,
+                out double batchWeight,
+                out double? finalWeight,
+                out int roastMinutes,
+                out int roastSeconds,
+                out int? firstCrackMinutes,
+                out int? firstCrackSeconds))
+        {
             return;
         }
 
@@ -103,7 +130,15 @@ public partial class RoastEditPageViewModel : ObservableObject
         try
         {
             RoastData updated = CopyForEdit(_roast);
+            if (SelectedBean is not null)
+            {
+                updated.BeanId = SelectedBean.Id;
+                updated.BeanType = SelectedBean.DisplayName;
+                updated.BeanDisplaySnapshot = SelectedBean.DisplayName;
+            }
             updated.Temperature = temperature;
+            updated.BatchWeight = batchWeight;
+            updated.FinalWeight = finalWeight;
             updated.RoastMinutes = roastMinutes;
             updated.RoastSeconds = roastSeconds;
             updated.FirstCrackMinutes = firstCrackMinutes;
@@ -151,7 +186,114 @@ public partial class RoastEditPageViewModel : ObservableObject
     };
 
     private static bool TryParseNumber(string text, out double value) =>
-        double.TryParse(text, NumberStyles.Float, CultureInfo.CurrentCulture, out value) && double.IsFinite(value);
+        (double.TryParse(text, NumberStyles.Float, CultureInfo.CurrentCulture, out value) ||
+         double.TryParse(text, NumberStyles.Float, CultureInfo.InvariantCulture, out value)) &&
+        double.IsFinite(value);
+
+    private bool TryValidate(
+        out double temperature,
+        out double batchWeight,
+        out double? finalWeight,
+        out int roastMinutes,
+        out int roastSeconds,
+        out int? firstCrackMinutes,
+        out int? firstCrackSeconds)
+    {
+        temperature = 0;
+        batchWeight = 0;
+        finalWeight = null;
+        roastMinutes = 0;
+        roastSeconds = 0;
+        firstCrackMinutes = null;
+        firstCrackSeconds = null;
+
+        // A deleted bean or an ambiguous legacy name intentionally has no picker selection.
+        // Keep the copied identity in that case so editing another field never erases provenance.
+        BeanError = string.Empty;
+
+        bool temperatureValid = TryParseNumber(TemperatureText, out temperature) &&
+                                temperature > 0 && temperature <= 500;
+        TemperatureError = temperatureValid
+            ? string.Empty
+            : "Enter a temperature between 0 and 500 °C.";
+
+        bool batchWeightValid = TryParseNumber(BatchWeightText, out batchWeight) && batchWeight > 0;
+        BatchWeightError = batchWeightValid
+            ? string.Empty
+            : "Enter a batch weight greater than 0 g.";
+
+        double parsedFinalWeight = 0;
+        bool finalWeightValid = string.IsNullOrWhiteSpace(FinalWeightText) ||
+                                (TryParseNumber(FinalWeightText, out parsedFinalWeight) &&
+                                 parsedFinalWeight > 0);
+        if (finalWeightValid && !string.IsNullOrWhiteSpace(FinalWeightText))
+        {
+            finalWeight = parsedFinalWeight;
+        }
+
+        if (!finalWeightValid)
+        {
+            FinalWeightError = "Enter a final weight greater than 0 g, or leave it blank.";
+        }
+        else if (finalWeight.HasValue && batchWeightValid && finalWeight.Value > batchWeight)
+        {
+            FinalWeightError =
+                $"Final weight is above {batchWeight:0.#} g loaded — correct the batch weight if that is the mistake.";
+        }
+        else
+        {
+            FinalWeightError = string.Empty;
+        }
+
+        bool roastTimeValid = TryParseTime(RoastTimeText, out roastMinutes, out roastSeconds);
+        RoastTimeError = roastTimeValid ? string.Empty : "Enter roast time as mm:ss.";
+
+        bool firstCrackValid = TryParseOptionalTime(
+            FirstCrackTimeText, out firstCrackMinutes, out firstCrackSeconds);
+        bool firstCrackWithinRoast = firstCrackValid &&
+            (!firstCrackMinutes.HasValue ||
+             (firstCrackMinutes.Value * 60 + firstCrackSeconds.GetValueOrDefault()) <=
+             (roastMinutes * 60 + roastSeconds));
+        if (!firstCrackValid)
+        {
+            FirstCrackError = "Enter First Crack as mm:ss, or leave it blank.";
+        }
+        else if (!firstCrackWithinRoast)
+        {
+            FirstCrackError = "First Crack must be within the total roast time.";
+        }
+        else
+        {
+            FirstCrackError = string.Empty;
+        }
+
+        bool valid = string.IsNullOrWhiteSpace(BeanError) && temperatureValid && batchWeightValid &&
+                     finalWeightValid && (!finalWeight.HasValue || finalWeight.Value <= batchWeight) &&
+                     roastTimeValid && firstCrackValid && firstCrackWithinRoast;
+        FocusField = valid
+            ? string.Empty
+            : FirstInvalidField();
+        return valid;
+    }
+
+    private string FirstInvalidField() =>
+        !string.IsNullOrWhiteSpace(BeanError) ? nameof(SelectedBean) :
+        !string.IsNullOrWhiteSpace(TemperatureError) ? nameof(TemperatureText) :
+        !string.IsNullOrWhiteSpace(BatchWeightError) ? nameof(BatchWeightText) :
+        !string.IsNullOrWhiteSpace(FinalWeightError) ? nameof(FinalWeightText) :
+        !string.IsNullOrWhiteSpace(RoastTimeError) ? nameof(RoastTimeText) :
+        nameof(FirstCrackTimeText);
+
+    private void ClearValidationErrors()
+    {
+        BeanError = string.Empty;
+        TemperatureError = string.Empty;
+        BatchWeightError = string.Empty;
+        FinalWeightError = string.Empty;
+        RoastTimeError = string.Empty;
+        FirstCrackError = string.Empty;
+        FocusField = string.Empty;
+    }
 
     private static bool TryParseTime(string text, out int minutes, out int seconds)
     {

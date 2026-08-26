@@ -1,5 +1,6 @@
 using System.Globalization;
 using CafeMaestro.Models;
+using CafeMaestro.Services;
 
 namespace CafeMaestro.ViewModels;
 
@@ -141,4 +142,93 @@ public sealed class RoastLogCard
     }
 
     private static string FormatTime(int seconds) => $"{Math.Max(0, seconds) / 60:00}:{Math.Max(0, seconds) % 60:00}";
+}
+
+/// <summary>
+/// A compact setup projection for one roast belonging to the selected bean. The source roast is
+/// intentionally not exposed here: setup only needs values that can be displayed or reused.
+/// </summary>
+public sealed class BeanRoastHistoryEntry
+{
+    private BeanRoastHistoryEntry() { }
+
+    public required Guid RoastId { get; init; }
+    public Guid? BeanId { get; init; }
+    public required string DateDisplay { get; init; }
+    public required string BatchDisplay { get; init; }
+    public required string TemperatureDisplay { get; init; }
+    public required string FinalWeightDisplay { get; init; }
+    public required string LossDisplay { get; init; }
+    public required string LevelDisplay { get; init; }
+    public required string StatusDisplay { get; init; }
+
+    /// <summary>Line one: the settings a roaster would reuse.</summary>
+    public required string SettingsDisplay { get; init; }
+
+    /// <summary>Line two: what those settings produced, or why there is no result yet.</summary>
+    public required string ResultDisplay { get; init; }
+
+    public required string SemanticDescription { get; init; }
+    public required double Temperature { get; init; }
+    public required double BatchWeight { get; init; }
+    public required bool IsMuted { get; init; }
+
+    public string ReuseHint => "Loads these settings into the setup fields";
+
+    public static BeanRoastHistoryEntry FromHistory(RoastData roast)
+    {
+        bool complete = roast.CompletionStatus == RoastCompletionStatus.Complete && roast.FinalWeight is > 0;
+        DateTimeOffset droppedAt = RoastProjection.DroppedAtUtc(roast);
+        string date = droppedAt.ToLocalTime().ToString("d MMM yyyy · HH:mm", CultureInfo.CurrentCulture);
+        string batch = roast.BatchNumber is int number ? $"Batch {number}" : "Roast";
+        string temperature = $"{roast.Temperature:0.#} °C";
+        string finalWeight = complete ? $"{roast.FinalWeight:0.#} g out" : "—";
+        string loss = complete ? $"{roast.WeightLossPercentage:0.0}% loss" : "—";
+        string level = complete && !string.IsNullOrWhiteSpace(roast.RoastLevelName)
+            ? roast.RoastLevelName
+            : "—";
+        string status = complete
+            ? "Complete"
+            : roast.CompletionStatus switch
+            {
+                RoastCompletionStatus.Discarded => "Discarded",
+                RoastCompletionStatus.Unweighed => "Unweighed",
+                _ => "Needs weight"
+            };
+        // Two short lines rather than one long one: the row has to stay readable beside the
+        // reuse affordance at large Android font scales. "Complete" is not repeated on line two,
+        // because a loss and a level already say it.
+        string settings = $"{temperature} · {roast.BatchWeight:0.#} g in · {batch}";
+        string result = complete
+            ? $"{finalWeight} · {loss} · {level}"
+            : status;
+        string semanticFinalWeight = complete
+            ? $"{roast.FinalWeight:0.#} grams out"
+            : "no final weight recorded";
+        string semanticLoss = complete
+            ? $"{roast.WeightLossPercentage:0.0} percent loss"
+            : "no loss calculated";
+        string semanticLevel = level == "—" ? "no roast level" : level;
+
+        return new BeanRoastHistoryEntry
+        {
+            RoastId = roast.Id,
+            BeanId = roast.BeanId,
+            DateDisplay = date,
+            BatchDisplay = batch,
+            TemperatureDisplay = temperature,
+            FinalWeightDisplay = finalWeight,
+            LossDisplay = loss,
+            LevelDisplay = level,
+            StatusDisplay = status,
+            SettingsDisplay = settings,
+            ResultDisplay = result,
+            SemanticDescription =
+                $"{date}, {roast.Temperature:0.#} degrees, {roast.BatchWeight:0.#} grams in, " +
+                $"{semanticFinalWeight}, {semanticLoss}, {semanticLevel}. {status}.",
+            Temperature = roast.Temperature,
+            BatchWeight = roast.BatchWeight,
+            IsMuted = !complete
+        };
+    }
 }
