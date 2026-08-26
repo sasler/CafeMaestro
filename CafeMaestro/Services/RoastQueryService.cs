@@ -67,6 +67,28 @@ public sealed class RoastQueryService : IRoastQueryService
             RoastProjection.OpenWork(_appDataService.CurrentData, _clock.UtcNow));
     }
 
+    public Task<IReadOnlyList<RoastData>> GetHistoryAsync(
+        CancellationToken cancellationToken = default)
+    {
+        cancellationToken.ThrowIfCancellationRequested();
+        return Task.FromResult<IReadOnlyList<RoastData>>((_appDataService.CurrentData.RoastLogs ?? [])
+            .Where(roast => roast.CompletionStatus is RoastCompletionStatus.Complete
+                or RoastCompletionStatus.Unweighed
+                or RoastCompletionStatus.Discarded)
+            .OrderByDescending(RoastProjection.DroppedAtUtc)
+            .ThenByDescending(roast => roast.BatchNumber ?? 0)
+            .ToList());
+    }
+
+    public Task<RoastData?> GetRoastAsync(
+        Guid roastId,
+        CancellationToken cancellationToken = default)
+    {
+        cancellationToken.ThrowIfCancellationRequested();
+        return Task.FromResult((_appDataService.CurrentData.RoastLogs ?? [])
+            .FirstOrDefault(roast => roast.Id == roastId));
+    }
+
     /// <summary>
     /// Newest first. Same-bean back-to-back batches are disambiguated by batch number, since two
     /// drops can share a drop timestamp once truncated.

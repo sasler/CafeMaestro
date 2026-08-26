@@ -1,31 +1,47 @@
 <?xml version="1.0" encoding="utf-8" ?>
 <ContentView xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
              xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
-             xmlns:models="clr-namespace:CafeMaestro.Models"
              xmlns:popupVm="clr-namespace:CafeMaestro.ViewModels.Popups"
              x:Class="CafeMaestro.Views.Popups.ChooseBatchPopup"
+             x:Name="Root"
              x:DataType="popupVm:ChooseBatchViewModel"
              WidthRequest="350" Padding="{StaticResource SpaceMd}">
     <Border Style="{StaticResource ReadyCardStyle}">
         <VerticalStackLayout Spacing="{StaticResource SpaceLg}">
             <Label Text="WHICH BATCH IS THIS?" Style="{StaticResource SectionHeaderStyle}" />
             <Label Text="Select the physical batch before entering a weight." Style="{StaticResource CardMetaStyle}" />
-            <CollectionView ItemsSource="{Binding Choices}" SelectedItem="{Binding SelectedChoice, Mode=TwoWay}"
-                            SelectionMode="Single" HeightRequest="250">
-                <CollectionView.ItemTemplate>
-                    <DataTemplate x:DataType="models:BatchChoice">
-                        <Border Style="{StaticResource CardStyle}" Margin="0,4">
-                            <Grid ColumnDefinitions="Auto,*" ColumnSpacing="{StaticResource SpaceMd}">
-                                <Label Text="{Binding BatchNumber, StringFormat='B{0}'}" Style="{StaticResource NumericValueStyle}" />
-                                <VerticalStackLayout Grid.Column="1">
-                                    <Label Text="{Binding BeanDisplaySnapshot}" Style="{StaticResource CardTitleStyle}" />
-                                    <Label Text="{Binding BatchWeight, StringFormat='{0:0.0} g in'}" Style="{StaticResource CardMetaStyle}" />
-                                </VerticalStackLayout>
-                            </Grid>
-                        </Border>
-                    </DataTemplate>
-                </CollectionView.ItemTemplate>
-            </CollectionView>
+            <ScrollView MaximumHeightRequest="360"
+                        VerticalScrollBarVisibility="Default">
+                <VerticalStackLayout BindableLayout.ItemsSource="{Binding Options}"
+                                     Spacing="{StaticResource SpaceSm}">
+                    <BindableLayout.ItemTemplate>
+                        <DataTemplate x:DataType="popupVm:BatchChoiceOption">
+                            <Border Style="{StaticResource CardStyle}"
+                                    SemanticProperties.Description="{Binding SemanticDescription}">
+                                <Border.Triggers>
+                                    <DataTrigger TargetType="Border" Binding="{Binding IsSelected}" Value="True">
+                                        <Setter Property="Style" Value="{StaticResource ReadyCardStyle}" />
+                                    </DataTrigger>
+                                </Border.Triggers>
+                                <Border.GestureRecognizers>
+                                    <TapGestureRecognizer
+                                        Command="{Binding Source={x:Reference Root}, Path=BindingContext.SelectCommand}"
+                                        CommandParameter="{Binding .}" />
+                                </Border.GestureRecognizers>
+                                <Grid ColumnDefinitions="Auto,*" ColumnSpacing="{StaticResource SpaceMd}">
+                                    <Label Text="{Binding BatchDisplay}" Style="{StaticResource NumericValueStyle}"
+                                           VerticalTextAlignment="Center" />
+                                    <VerticalStackLayout Grid.Column="1">
+                                        <Label Text="{Binding BeanDisplay}" Style="{StaticResource CardTitleStyle}" />
+                                        <Label Text="{Binding DetailDisplay}" Style="{StaticResource CardMetaStyle}" />
+                                        <Label Text="{Binding SelectionDisplay}" Style="{StaticResource CardCaptionStyle}" />
+                                    </VerticalStackLayout>
+                                </Grid>
+                            </Border>
+                        </DataTemplate>
+                    </BindableLayout.ItemTemplate>
+                </VerticalStackLayout>
+            </ScrollView>
             <Button Text="CONTINUE" Command="{Binding ContinueCommand}" IsEnabled="{Binding CanContinue}"
                     Style="{StaticResource ConfirmActionStyle}" />
             <Button Text="CANCEL" Command="{Binding CancelCommand}" Style="{StaticResource SecondaryActionStyle}" />

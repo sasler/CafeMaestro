@@ -11,7 +11,7 @@ shows the value that section currently holds, and pushes a focused page.
 | Appearance | `Dark` | System / Light / Dark with a live preview |
 | Data & Backups | `12 beans · 84 roasts · backed up today` | Current data, backups, automatic recovery copies, CSV transfer, Start New Data |
 | Roast Levels | `7 configured` | List, add/edit/delete, Reset defaults |
-| About | `Version 1.9.0` | Version, history, privacy, licence |
+| About | Current app version | Version, history, privacy, licence |
 
 `SettingsIndexPageViewModel.OnAppearingAsync` rebuilds every summary, so returning from a detail
 page shows the change that was just made. The five detail routes are registered in

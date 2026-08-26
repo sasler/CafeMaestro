@@ -32,6 +32,35 @@ public sealed class RoastDataAtomicEditTests : IDisposable
         (await appData.LoadAppDataAsync()).Should().BeEquivalentTo(appData.CurrentData);
     }
 
+    [Theory]
+    [InlineData(RoastCompletionStatus.Unweighed, "Unweighed")]
+    [InlineData(RoastCompletionStatus.Discarded, "Discarded")]
+    public async Task UpdateRoastLogAsync_GenericEdit_PreservesResolvedNullWeightStatus(
+        RoastCompletionStatus status,
+        string levelName)
+    {
+        (ManagedAppDataService appData, RoastDataService roasts, RoastData original) =
+            await CreateServiceAsync();
+        await appData.UpdateAsync(data =>
+        {
+            RoastData stored = data.RoastLogs.Single();
+            stored.FinalWeight = null;
+            stored.CompletionStatus = status;
+            stored.RoastLevelName = levelName;
+        });
+        RoastData edited = CreateEditedCopy(original, finalWeight: null);
+        edited.CompletionStatus = status;
+        edited.Notes = "Updated without reopening physical work";
+
+        (await roasts.UpdateRoastLogAsync(edited)).Should().BeTrue();
+
+        RoastData saved = appData.CurrentData.RoastLogs.Single();
+        saved.CompletionStatus.Should().Be(status);
+        saved.RoastLevelName.Should().Be(levelName);
+        saved.Notes.Should().Be("Updated without reopening physical work");
+        (await appData.LoadAppDataAsync()).Should().BeEquivalentTo(appData.CurrentData);
+    }
+
     [Fact]
     public async Task UpdateRoastLogAsync_InvalidEdit_RollsBackCacheAndDisk()
     {

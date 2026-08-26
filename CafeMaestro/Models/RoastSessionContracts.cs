@@ -143,12 +143,16 @@ public sealed record RoastWorkItem
     public int? BatchNumber { get; init; }
     public Guid? BeanId { get; init; }
     public required string BeanDisplaySnapshot { get; init; }
+    public required double Temperature { get; init; }
     public required double BatchWeight { get; init; }
     public required DateTimeOffset DroppedAtUtc { get; init; }
     public required DateTimeOffset ReadyToWeighAtUtc { get; init; }
     public required double RemainingCoolingSeconds { get; init; }
     public required RoastEffectiveStatus Status { get; init; }
     public required int TotalSeconds { get; init; }
+    public string Notes { get; init; } = string.Empty;
+    public string Summary { get; init; } = string.Empty;
+    public string RoastLevelName { get; init; } = string.Empty;
 
     public bool IsReadyToWeigh => Status == RoastEffectiveStatus.NeedsWeight;
 }
