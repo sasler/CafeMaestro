@@ -7,6 +7,15 @@ using CommunityToolkit.Mvvm.Input;
 
 namespace CafeMaestro.ViewModels;
 
+public enum SettingsSection
+{
+    Roasting,
+    Appearance,
+    Data,
+    RoastLevels,
+    About
+}
+
 /// <summary>
 /// The Settings tab: a short list of destinations, each showing the value it currently holds.
 /// Summaries are rebuilt on every appearance so returning from a detail page shows the change
@@ -60,6 +69,23 @@ public partial class SettingsIndexPageViewModel : ObservableObject
     [ObservableProperty]
     public partial string AboutSummary { get; set; } = "Loading…";
 
+    [ObservableProperty]
+    public partial bool IsWideLayout { get; set; }
+
+    [ObservableProperty]
+    public partial SettingsSection SelectedSection { get; set; } = SettingsSection.Roasting;
+
+    public bool IsRoastingSelected => SelectedSection == SettingsSection.Roasting;
+    public bool IsAppearanceSelected => SelectedSection == SettingsSection.Appearance;
+    public bool IsDataSelected => SelectedSection == SettingsSection.Data;
+    public bool IsRoastLevelsSelected => SelectedSection == SettingsSection.RoastLevels;
+    public bool IsAboutSelected => SelectedSection == SettingsSection.About;
+    public bool IsRoastingHighlighted => IsWideLayout && IsRoastingSelected;
+    public bool IsAppearanceHighlighted => IsWideLayout && IsAppearanceSelected;
+    public bool IsDataHighlighted => IsWideLayout && IsDataSelected;
+    public bool IsRoastLevelsHighlighted => IsWideLayout && IsRoastLevelsSelected;
+    public bool IsAboutHighlighted => IsWideLayout && IsAboutSelected;
+
     /// <summary>System Back on the Settings tab root returns to Roast, the launch destination.</summary>
     public Task GoBackAsync() => _navigationService.GoToAsync(Routes.Roast);
 
@@ -73,20 +99,65 @@ public partial class SettingsIndexPageViewModel : ObservableObject
         RefreshAboutSummary();
     }
 
-    [RelayCommand]
-    private Task OpenRoastingAsync() => _navigationService.GoToAsync(Routes.RoastingSettings);
+    public void SetWideLayout(bool isWideLayout)
+    {
+        IsWideLayout = isWideLayout;
+        NotifySelectionState();
+    }
 
     [RelayCommand]
-    private Task OpenAppearanceAsync() => _navigationService.GoToAsync(Routes.AppearanceSettings);
+    private Task OpenRoastingAsync() => OpenSectionAsync(SettingsSection.Roasting, Routes.RoastingSettings);
 
     [RelayCommand]
-    private Task OpenDataAsync() => _navigationService.GoToAsync(Routes.DataSettings);
+    private Task OpenAppearanceAsync() => OpenSectionAsync(SettingsSection.Appearance, Routes.AppearanceSettings);
 
     [RelayCommand]
-    private Task OpenRoastLevelsAsync() => _navigationService.GoToAsync(Routes.RoastLevelSettings);
+    private Task OpenDataAsync() => OpenSectionAsync(SettingsSection.Data, Routes.DataSettings);
 
     [RelayCommand]
-    private Task OpenAboutAsync() => _navigationService.GoToAsync(Routes.About);
+    private Task OpenRoastLevelsAsync() => OpenSectionAsync(SettingsSection.RoastLevels, Routes.RoastLevelSettings);
+
+    [RelayCommand]
+    private Task OpenAboutAsync() => OpenSectionAsync(SettingsSection.About, Routes.About);
+
+    [RelayCommand]
+    private Task OpenSelectedSectionAsync() => _navigationService.GoToAsync(RouteFor(SelectedSection));
+
+    partial void OnSelectedSectionChanged(SettingsSection value) => NotifySelectionState();
+
+    private Task OpenSectionAsync(SettingsSection section, string route)
+    {
+        if (IsWideLayout)
+        {
+            SelectedSection = section;
+            return Task.CompletedTask;
+        }
+
+        return _navigationService.GoToAsync(route);
+    }
+
+    private void NotifySelectionState()
+    {
+        OnPropertyChanged(nameof(IsRoastingSelected));
+        OnPropertyChanged(nameof(IsAppearanceSelected));
+        OnPropertyChanged(nameof(IsDataSelected));
+        OnPropertyChanged(nameof(IsRoastLevelsSelected));
+        OnPropertyChanged(nameof(IsAboutSelected));
+        OnPropertyChanged(nameof(IsRoastingHighlighted));
+        OnPropertyChanged(nameof(IsAppearanceHighlighted));
+        OnPropertyChanged(nameof(IsDataHighlighted));
+        OnPropertyChanged(nameof(IsRoastLevelsHighlighted));
+        OnPropertyChanged(nameof(IsAboutHighlighted));
+    }
+
+    private static string RouteFor(SettingsSection section) => section switch
+    {
+        SettingsSection.Roasting => Routes.RoastingSettings,
+        SettingsSection.Appearance => Routes.AppearanceSettings,
+        SettingsSection.Data => Routes.DataSettings,
+        SettingsSection.RoastLevels => Routes.RoastLevelSettings,
+        _ => Routes.About
+    };
 
     private async Task RefreshRoastingSummaryAsync()
     {

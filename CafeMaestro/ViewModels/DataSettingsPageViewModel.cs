@@ -12,8 +12,9 @@ namespace CafeMaestro.ViewModels;
 /// Data &amp; Backups. The backup, restore, reset and CSV transfer operations are unchanged;
 /// they gained an active-roast guard so a replacement cannot land under a running roast.
 /// </summary>
-public partial class DataSettingsPageViewModel : ObservableObject
+public partial class DataSettingsPageViewModel : ObservableObject, IQueryAttributable
 {
+    public const string PersistenceRecoveryKey = "PersistenceRecovery";
     private readonly IAppDataService _appDataService;
     private readonly IDataBackupService _dataBackupService;
     private readonly IUserFileService _userFileService;
@@ -23,6 +24,7 @@ public partial class DataSettingsPageViewModel : ObservableObject
     private readonly IShareService _shareService;
     private readonly IAlertService _alertService;
     private bool _isSubscribed;
+    private bool _isPersistenceRecovery;
 
     public DataSettingsPageViewModel(
         IAppDataService appDataService,
@@ -69,6 +71,13 @@ public partial class DataSettingsPageViewModel : ObservableObject
     public partial ObservableCollection<DataBackupSummary> AutomaticBackups { get; set; } = [];
 
     public bool CanRunDataOperation => !IsDataOperationInProgress;
+
+    public void ApplyQueryAttributes(IDictionary<string, object> query)
+    {
+        _isPersistenceRecovery = query.TryGetValue(PersistenceRecoveryKey, out object? value) &&
+            bool.TryParse(value?.ToString(), out bool enabled) &&
+            enabled;
+    }
 
     partial void OnIsDataOperationInProgressChanged(bool value)
     {
@@ -377,6 +386,17 @@ public partial class DataSettingsPageViewModel : ObservableObject
         if (!roastInProgress)
         {
             return false;
+        }
+
+        if (_isPersistenceRecovery)
+        {
+            bool continueRecovery = await _alertService.ShowConfirmationAsync(
+                "Persistence Recovery",
+                "CafeMaestro could not save the active roast. Replacing the dataset will abandon " +
+                "that unsaved in-memory roast. Continue only if Retry cannot recover it.",
+                "Continue",
+                "Cancel");
+            return !continueRecovery;
         }
 
         await _alertService.ShowAlertAsync(

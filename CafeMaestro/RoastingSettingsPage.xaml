@@ -10,7 +10,7 @@
     <ScrollView>
         <VerticalStackLayout Padding="{StaticResource PagePadding}" Spacing="{StaticResource SpaceMd}">
             <Label Text="PREFERENCES" Style="{StaticResource SectionHeaderStyle}" />
-            <Label Text="These apply to roasts you start from now on. A roast already running keeps the settings it started with."
+            <Label Text="First Crack and cooling duration apply to roasts you start from now on. Notification changes apply immediately."
                    Style="{StaticResource CardCaptionStyle}"
                    LineBreakMode="WordWrap" />
 

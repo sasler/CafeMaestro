@@ -7,6 +7,7 @@
              x:DataType="vm:SettingsIndexPageViewModel"
              BackgroundColor="{DynamicResource SurfaceColor}"
              Shell.NavBarIsVisible="False"
+             SizeChanged="OnPageSizeChanged"
              Title="Settings">
 
     <ContentPage.Resources>
@@ -16,94 +17,220 @@
         </Style>
     </ContentPage.Resources>
 
-    <ScrollView>
-        <VerticalStackLayout Padding="{StaticResource PagePadding}" Spacing="{StaticResource SpaceMd}">
-            <Grid ColumnDefinitions="*,Auto" Margin="0,0,0,4">
-                <Label Text="Settings"
-                       FontFamily="{StaticResource FontFamilyEmphasis}"
-                       FontSize="{StaticResource FontSizeHeadline}"
-                       TextColor="{DynamicResource PrimaryTextColor}"
-                       VerticalOptions="Center" />
-                <controls:IconView Grid.Column="1"
-                                   Data="{StaticResource IconSettingsData}"
-                                   IconSize="{StaticResource IconSizeLg}"
-                                   VerticalOptions="Center" />
-            </Grid>
+    <Grid RowDefinitions="Auto,*"
+          Padding="{StaticResource PagePadding}"
+          RowSpacing="{StaticResource SpaceMd}">
+        <Grid ColumnDefinitions="*,Auto" Margin="0,0,0,4">
+            <Label Text="Settings"
+                   FontFamily="{StaticResource FontFamilyEmphasis}"
+                   FontSize="{StaticResource FontSizeHeadline}"
+                   TextColor="{DynamicResource PrimaryTextColor}"
+                   VerticalOptions="Center" />
+            <controls:IconView Grid.Column="1"
+                               Data="{StaticResource IconSettingsData}"
+                               IconSize="{StaticResource IconSizeLg}"
+                               InputTransparent="True"
+                               VerticalOptions="Center" />
+        </Grid>
 
-            <Border Style="{StaticResource SettingsRowStyle}"
-                    SemanticProperties.Description="Roasting preferences"
-                    SemanticProperties.Hint="{Binding RoastingSummary}">
-                <Border.GestureRecognizers>
-                    <TapGestureRecognizer Command="{Binding OpenRoastingCommand}" />
-                </Border.GestureRecognizers>
-                <Grid ColumnDefinitions="*,Auto" ColumnSpacing="{StaticResource SpaceMd}">
-                    <VerticalStackLayout Spacing="{StaticResource SpaceXs}">
-                        <Label Text="Roasting" Style="{StaticResource CardTitleStyle}" />
-                        <Label Text="{Binding RoastingSummary}" Style="{StaticResource CardMetaStyle}" LineBreakMode="WordWrap" />
-                    </VerticalStackLayout>
-                    <controls:IconView Grid.Column="1" Data="{StaticResource IconChevronData}" VerticalOptions="Center" />
-                </Grid>
-            </Border>
+        <Grid x:Name="SettingsBody"
+              Grid.Row="1"
+              ColumnDefinitions="*,0"
+              ColumnSpacing="{StaticResource SpaceLg}">
+            <ScrollView Grid.Column="0">
+                <VerticalStackLayout Spacing="{StaticResource SpaceMd}">
+                    <Border Style="{StaticResource SettingsRowStyle}"
+                            SemanticProperties.Description="Roasting preferences"
+                            SemanticProperties.Hint="{Binding RoastingSummary}">
+                        <Border.Triggers>
+                            <DataTrigger TargetType="Border" Binding="{Binding IsRoastingHighlighted}" Value="True">
+                                <Setter Property="Stroke" Value="{DynamicResource RoastColor}" />
+                                <Setter Property="BackgroundColor" Value="{DynamicResource RoastSurfaceColor}" />
+                            </DataTrigger>
+                        </Border.Triggers>
+                        <Border.GestureRecognizers>
+                            <TapGestureRecognizer Command="{Binding OpenRoastingCommand}" />
+                        </Border.GestureRecognizers>
+                        <Grid ColumnDefinitions="*,Auto" ColumnSpacing="{StaticResource SpaceMd}">
+                            <VerticalStackLayout Spacing="{StaticResource SpaceXs}">
+                                <Label Text="Roasting" Style="{StaticResource CardTitleStyle}" />
+                                <Label Text="{Binding RoastingSummary}" Style="{StaticResource CardMetaStyle}" LineBreakMode="WordWrap" />
+                            </VerticalStackLayout>
+                            <Grid Grid.Column="1" VerticalOptions="Center">
+                                <Button Style="{StaticResource IconButtonStyle}"
+                                        Command="{Binding OpenRoastingCommand}"
+                                        SemanticProperties.Description="Open roasting preferences" />
+                                <controls:IconView Data="{StaticResource IconChevronData}" InputTransparent="True"
+                                                   HorizontalOptions="Center" VerticalOptions="Center" />
+                            </Grid>
+                        </Grid>
+                    </Border>
 
-            <Border Style="{StaticResource SettingsRowStyle}"
-                    SemanticProperties.Description="Appearance"
-                    SemanticProperties.Hint="{Binding AppearanceSummary}">
-                <Border.GestureRecognizers>
-                    <TapGestureRecognizer Command="{Binding OpenAppearanceCommand}" />
-                </Border.GestureRecognizers>
-                <Grid ColumnDefinitions="*,Auto" ColumnSpacing="{StaticResource SpaceMd}">
-                    <VerticalStackLayout Spacing="{StaticResource SpaceXs}">
-                        <Label Text="Appearance" Style="{StaticResource CardTitleStyle}" />
-                        <Label Text="{Binding AppearanceSummary}" Style="{StaticResource CardMetaStyle}" LineBreakMode="WordWrap" />
-                    </VerticalStackLayout>
-                    <controls:IconView Grid.Column="1" Data="{StaticResource IconChevronData}" VerticalOptions="Center" />
-                </Grid>
-            </Border>
+                    <Border Style="{StaticResource SettingsRowStyle}"
+                            SemanticProperties.Description="Appearance"
+                            SemanticProperties.Hint="{Binding AppearanceSummary}">
+                        <Border.Triggers>
+                            <DataTrigger TargetType="Border" Binding="{Binding IsAppearanceHighlighted}" Value="True">
+                                <Setter Property="Stroke" Value="{DynamicResource RoastColor}" />
+                                <Setter Property="BackgroundColor" Value="{DynamicResource RoastSurfaceColor}" />
+                            </DataTrigger>
+                        </Border.Triggers>
+                        <Border.GestureRecognizers>
+                            <TapGestureRecognizer Command="{Binding OpenAppearanceCommand}" />
+                        </Border.GestureRecognizers>
+                        <Grid ColumnDefinitions="*,Auto" ColumnSpacing="{StaticResource SpaceMd}">
+                            <VerticalStackLayout Spacing="{StaticResource SpaceXs}">
+                                <Label Text="Appearance" Style="{StaticResource CardTitleStyle}" />
+                                <Label Text="{Binding AppearanceSummary}" Style="{StaticResource CardMetaStyle}" LineBreakMode="WordWrap" />
+                            </VerticalStackLayout>
+                            <Grid Grid.Column="1" VerticalOptions="Center">
+                                <Button Style="{StaticResource IconButtonStyle}"
+                                        Command="{Binding OpenAppearanceCommand}"
+                                        SemanticProperties.Description="Open appearance settings" />
+                                <controls:IconView Data="{StaticResource IconChevronData}" InputTransparent="True"
+                                                   HorizontalOptions="Center" VerticalOptions="Center" />
+                            </Grid>
+                        </Grid>
+                    </Border>
 
-            <Border Style="{StaticResource SettingsRowStyle}"
-                    SemanticProperties.Description="Data and backups"
-                    SemanticProperties.Hint="{Binding DataSummary}">
-                <Border.GestureRecognizers>
-                    <TapGestureRecognizer Command="{Binding OpenDataCommand}" />
-                </Border.GestureRecognizers>
-                <Grid ColumnDefinitions="*,Auto" ColumnSpacing="{StaticResource SpaceMd}">
-                    <VerticalStackLayout Spacing="{StaticResource SpaceXs}">
-                        <Label Text="Data &amp; Backups" Style="{StaticResource CardTitleStyle}" />
-                        <Label Text="{Binding DataSummary}" Style="{StaticResource CardMetaStyle}" LineBreakMode="WordWrap" />
-                    </VerticalStackLayout>
-                    <controls:IconView Grid.Column="1" Data="{StaticResource IconChevronData}" VerticalOptions="Center" />
-                </Grid>
-            </Border>
+                    <Border Style="{StaticResource SettingsRowStyle}"
+                            SemanticProperties.Description="Data and backups"
+                            SemanticProperties.Hint="{Binding DataSummary}">
+                        <Border.Triggers>
+                            <DataTrigger TargetType="Border" Binding="{Binding IsDataHighlighted}" Value="True">
+                                <Setter Property="Stroke" Value="{DynamicResource RoastColor}" />
+                                <Setter Property="BackgroundColor" Value="{DynamicResource RoastSurfaceColor}" />
+                            </DataTrigger>
+                        </Border.Triggers>
+                        <Border.GestureRecognizers>
+                            <TapGestureRecognizer Command="{Binding OpenDataCommand}" />
+                        </Border.GestureRecognizers>
+                        <Grid ColumnDefinitions="*,Auto" ColumnSpacing="{StaticResource SpaceMd}">
+                            <VerticalStackLayout Spacing="{StaticResource SpaceXs}">
+                                <Label Text="Data &amp; Backups" Style="{StaticResource CardTitleStyle}" />
+                                <Label Text="{Binding DataSummary}" Style="{StaticResource CardMetaStyle}" LineBreakMode="WordWrap" />
+                            </VerticalStackLayout>
+                            <Grid Grid.Column="1" VerticalOptions="Center">
+                                <Button Style="{StaticResource IconButtonStyle}"
+                                        Command="{Binding OpenDataCommand}"
+                                        SemanticProperties.Description="Open data and backup settings" />
+                                <controls:IconView Data="{StaticResource IconChevronData}" InputTransparent="True"
+                                                   HorizontalOptions="Center" VerticalOptions="Center" />
+                            </Grid>
+                        </Grid>
+                    </Border>
 
-            <Border Style="{StaticResource SettingsRowStyle}"
-                    SemanticProperties.Description="Roast levels"
-                    SemanticProperties.Hint="{Binding RoastLevelSummary}">
-                <Border.GestureRecognizers>
-                    <TapGestureRecognizer Command="{Binding OpenRoastLevelsCommand}" />
-                </Border.GestureRecognizers>
-                <Grid ColumnDefinitions="*,Auto" ColumnSpacing="{StaticResource SpaceMd}">
-                    <VerticalStackLayout Spacing="{StaticResource SpaceXs}">
-                        <Label Text="Roast Levels" Style="{StaticResource CardTitleStyle}" />
-                        <Label Text="{Binding RoastLevelSummary}" Style="{StaticResource CardMetaStyle}" LineBreakMode="WordWrap" />
-                    </VerticalStackLayout>
-                    <controls:IconView Grid.Column="1" Data="{StaticResource IconChevronData}" VerticalOptions="Center" />
-                </Grid>
-            </Border>
+                    <Border Style="{StaticResource SettingsRowStyle}"
+                            SemanticProperties.Description="Roast levels"
+                            SemanticProperties.Hint="{Binding RoastLevelSummary}">
+                        <Border.Triggers>
+                            <DataTrigger TargetType="Border" Binding="{Binding IsRoastLevelsHighlighted}" Value="True">
+                                <Setter Property="Stroke" Value="{DynamicResource RoastColor}" />
+                                <Setter Property="BackgroundColor" Value="{DynamicResource RoastSurfaceColor}" />
+                            </DataTrigger>
+                        </Border.Triggers>
+                        <Border.GestureRecognizers>
+                            <TapGestureRecognizer Command="{Binding OpenRoastLevelsCommand}" />
+                        </Border.GestureRecognizers>
+                        <Grid ColumnDefinitions="*,Auto" ColumnSpacing="{StaticResource SpaceMd}">
+                            <VerticalStackLayout Spacing="{StaticResource SpaceXs}">
+                                <Label Text="Roast Levels" Style="{StaticResource CardTitleStyle}" />
+                                <Label Text="{Binding RoastLevelSummary}" Style="{StaticResource CardMetaStyle}" LineBreakMode="WordWrap" />
+                            </VerticalStackLayout>
+                            <Grid Grid.Column="1" VerticalOptions="Center">
+                                <Button Style="{StaticResource IconButtonStyle}"
+                                        Command="{Binding OpenRoastLevelsCommand}"
+                                        SemanticProperties.Description="Open roast level settings" />
+                                <controls:IconView Data="{StaticResource IconChevronData}" InputTransparent="True"
+                                                   HorizontalOptions="Center" VerticalOptions="Center" />
+                            </Grid>
+                        </Grid>
+                    </Border>
 
-            <Border Style="{StaticResource SettingsRowStyle}"
-                    SemanticProperties.Description="About CafeMaestro"
-                    SemanticProperties.Hint="{Binding AboutSummary}">
-                <Border.GestureRecognizers>
-                    <TapGestureRecognizer Command="{Binding OpenAboutCommand}" />
-                </Border.GestureRecognizers>
-                <Grid ColumnDefinitions="*,Auto" ColumnSpacing="{StaticResource SpaceMd}">
-                    <VerticalStackLayout Spacing="{StaticResource SpaceXs}">
-                        <Label Text="About" Style="{StaticResource CardTitleStyle}" />
-                        <Label Text="{Binding AboutSummary}" Style="{StaticResource CardMetaStyle}" LineBreakMode="WordWrap" />
+                    <Border Style="{StaticResource SettingsRowStyle}"
+                            SemanticProperties.Description="About CafeMaestro"
+                            SemanticProperties.Hint="{Binding AboutSummary}">
+                        <Border.Triggers>
+                            <DataTrigger TargetType="Border" Binding="{Binding IsAboutHighlighted}" Value="True">
+                                <Setter Property="Stroke" Value="{DynamicResource RoastColor}" />
+                                <Setter Property="BackgroundColor" Value="{DynamicResource RoastSurfaceColor}" />
+                            </DataTrigger>
+                        </Border.Triggers>
+                        <Border.GestureRecognizers>
+                            <TapGestureRecognizer Command="{Binding OpenAboutCommand}" />
+                        </Border.GestureRecognizers>
+                        <Grid ColumnDefinitions="*,Auto" ColumnSpacing="{StaticResource SpaceMd}">
+                            <VerticalStackLayout Spacing="{StaticResource SpaceXs}">
+                                <Label Text="About" Style="{StaticResource CardTitleStyle}" />
+                                <Label Text="{Binding AboutSummary}" Style="{StaticResource CardMetaStyle}" LineBreakMode="WordWrap" />
+                            </VerticalStackLayout>
+                            <Grid Grid.Column="1" VerticalOptions="Center">
+                                <Button Style="{StaticResource IconButtonStyle}"
+                                        Command="{Binding OpenAboutCommand}"
+                                        SemanticProperties.Description="Open About CafeMaestro" />
+                                <controls:IconView Data="{StaticResource IconChevronData}" InputTransparent="True"
+                                                   HorizontalOptions="Center" VerticalOptions="Center" />
+                            </Grid>
+                        </Grid>
+                    </Border>
+                </VerticalStackLayout>
+            </ScrollView>
+
+            <Border x:Name="WideDetailPane"
+                    Grid.Column="1"
+                    Style="{StaticResource RaisedCardStyle}"
+                    IsVisible="False">
+                <ScrollView>
+                    <VerticalStackLayout Spacing="{StaticResource SpaceLg}">
+                        <VerticalStackLayout IsVisible="{Binding IsRoastingSelected}" Spacing="{StaticResource SpaceMd}">
+                            <Label Text="ROASTING" Style="{StaticResource SectionHeaderStyle}" />
+                            <Label Text="Future-roast defaults" Style="{StaticResource CardTitleStyle}" />
+                            <Label Text="{Binding RoastingSummary}" Style="{StaticResource NumericValueStyle}" LineBreakMode="WordWrap" />
+                            <Label Text="First Crack remains optional. First Crack and cooling duration are captured when a roast starts; notification changes apply immediately."
+                                   Style="{StaticResource CardMetaStyle}" LineBreakMode="WordWrap" />
+                            <Button Text="EDIT ROASTING SETTINGS" Style="{StaticResource PrimaryActionStyle}"
+                                    Command="{Binding OpenSelectedSectionCommand}" />
+                        </VerticalStackLayout>
+
+                        <VerticalStackLayout IsVisible="{Binding IsAppearanceSelected}" Spacing="{StaticResource SpaceMd}">
+                            <Label Text="APPEARANCE" Style="{StaticResource SectionHeaderStyle}" />
+                            <Label Text="{Binding AppearanceSummary}" Style="{StaticResource CardTitleStyle}" />
+                            <Label Text="System, light, and dark all use the same status colours and accessible contrast."
+                                   Style="{StaticResource CardMetaStyle}" LineBreakMode="WordWrap" />
+                            <Button Text="CHOOSE THEME" Style="{StaticResource PrimaryActionStyle}"
+                                    Command="{Binding OpenSelectedSectionCommand}" />
+                        </VerticalStackLayout>
+
+                        <VerticalStackLayout IsVisible="{Binding IsDataSelected}" Spacing="{StaticResource SpaceMd}">
+                            <Label Text="DATA &amp; BACKUPS" Style="{StaticResource SectionHeaderStyle}" />
+                            <Label Text="{Binding DataSummary}" Style="{StaticResource CardTitleStyle}" LineBreakMode="WordWrap" />
+                            <Label Text="Back up, restore, import, export, or start a clean dataset from the guarded data tools."
+                                   Style="{StaticResource CardMetaStyle}" LineBreakMode="WordWrap" />
+                            <Button Text="OPEN DATA TOOLS" Style="{StaticResource PrimaryActionStyle}"
+                                    Command="{Binding OpenSelectedSectionCommand}" />
+                        </VerticalStackLayout>
+
+                        <VerticalStackLayout IsVisible="{Binding IsRoastLevelsSelected}" Spacing="{StaticResource SpaceMd}">
+                            <Label Text="ROAST LEVELS" Style="{StaticResource SectionHeaderStyle}" />
+                            <Label Text="{Binding RoastLevelSummary}" Style="{StaticResource CardTitleStyle}" />
+                            <Label Text="These weight-loss ranges name completed roast results."
+                                   Style="{StaticResource CardMetaStyle}" LineBreakMode="WordWrap" />
+                            <Button Text="EDIT ROAST LEVELS" Style="{StaticResource PrimaryActionStyle}"
+                                    Command="{Binding OpenSelectedSectionCommand}" />
+                        </VerticalStackLayout>
+
+                        <VerticalStackLayout IsVisible="{Binding IsAboutSelected}" Spacing="{StaticResource SpaceMd}">
+                            <Label Text="ABOUT" Style="{StaticResource SectionHeaderStyle}" />
+                            <Label Text="CafeMaestro" Style="{StaticResource CardTitleStyle}" FontSize="{StaticResource FontSizeHeadline}" />
+                            <Label Text="{Binding AboutSummary}" Style="{StaticResource NumericValueStyle}" />
+                            <Label Text="Your beans and roasts stay on this device. CafeMaestro has no account, cloud sync, or analytics."
+                                   Style="{StaticResource CardMetaStyle}" LineBreakMode="WordWrap" />
+                            <Button Text="VERSION &amp; LICENCE" Style="{StaticResource SecondaryActionStyle}"
+                                    Command="{Binding OpenSelectedSectionCommand}" />
+                        </VerticalStackLayout>
                     </VerticalStackLayout>
-                    <controls:IconView Grid.Column="1" Data="{StaticResource IconChevronData}" VerticalOptions="Center" />
-                </Grid>
+                </ScrollView>
             </Border>
-        </VerticalStackLayout>
-    </ScrollView>
+        </Grid>
+    </Grid>
 </ContentPage>

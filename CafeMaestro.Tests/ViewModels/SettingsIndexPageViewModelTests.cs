@@ -82,6 +82,24 @@ public sealed class SettingsIndexPageViewModelTests
     }
 
     [Fact]
+    public async Task WideLayout_SelectsRailSectionBeforeOpeningItsDetailPage()
+    {
+        var navigation = new Mock<INavigationService>();
+        SettingsIndexPageViewModel viewModel = CreateViewModel(navigation: navigation);
+        viewModel.SetWideLayout(true);
+
+        await viewModel.OpenDataCommand.ExecuteAsync(null);
+
+        viewModel.SelectedSection.Should().Be(SettingsSection.Data);
+        viewModel.IsDataHighlighted.Should().BeTrue();
+        navigation.Verify(service => service.GoToAsync(It.IsAny<string>()), Times.Never);
+
+        await viewModel.OpenSelectedSectionCommand.ExecuteAsync(null);
+
+        navigation.Verify(service => service.GoToAsync(Routes.DataSettings), Times.Once);
+    }
+
+    [Fact]
     public async Task RootBackRoute_ReturnsToRoastTab()
     {
         var navigation = new Mock<INavigationService>();

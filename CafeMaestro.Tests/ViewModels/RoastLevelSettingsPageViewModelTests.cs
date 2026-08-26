@@ -13,6 +13,19 @@ namespace CafeMaestro.Tests.ViewModels;
 public sealed class RoastLevelSettingsPageViewModelTests
 {
     [Fact]
+    public void EditorLayout_KeepsActionsOutsideScrollableFields()
+    {
+        string xaml = File.ReadAllText(Path.Combine(
+            XamlResourceReader.RepositoryRoot,
+            "CafeMaestro",
+            "RoastLevelSettingsPage.xaml"));
+
+        xaml.Should().Contain("<ScrollView Grid.Row=\"1\"");
+        xaml.Should().Contain("<Grid Grid.Row=\"2\" ColumnDefinitions=\"*,*\"");
+        xaml.Should().NotContain("WidthRequest=\"320\"");
+    }
+
+    [Fact]
     public async Task ResetRoastLevelsToDefaultsCommand_WhenConfirmed_SavesDefaultLevels()
     {
         var roastLevels = new Mock<IRoastLevelService>();

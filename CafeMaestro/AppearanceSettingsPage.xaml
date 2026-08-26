@@ -24,12 +24,18 @@
                         <Label Text="System" Style="{StaticResource CardTitleStyle}" />
                         <Label Text="Match the device's light or dark setting." Style="{StaticResource CardMetaStyle}" LineBreakMode="WordWrap" />
                     </VerticalStackLayout>
-                    <controls:IconView Grid.Column="1"
-                                       Data="{StaticResource IconCheckData}"
-                                       IconColor="{DynamicResource ReadyColor}"
-                                       IsVisible="{Binding IsSystemSelected}"
-                                       Description="Selected"
-                                       VerticalOptions="Center" />
+                    <Grid Grid.Column="1" VerticalOptions="Center">
+                        <Button Style="{StaticResource IconButtonStyle}"
+                                Command="{Binding SelectThemeCommand}"
+                                CommandParameter="{x:Static services:ThemePreference.System}"
+                                SemanticProperties.Description="Use system theme" />
+                        <controls:IconView Data="{StaticResource IconCheckData}"
+                                           IconColor="{DynamicResource ReadyColor}"
+                                           IsVisible="{Binding IsSystemSelected}"
+                                           InputTransparent="True"
+                                           Description="Selected"
+                                           HorizontalOptions="Center" VerticalOptions="Center" />
+                    </Grid>
                 </Grid>
             </Border>
 
@@ -44,12 +50,18 @@
                         <Label Text="Light" Style="{StaticResource CardTitleStyle}" />
                         <Label Text="Paper surfaces with the same status colours." Style="{StaticResource CardMetaStyle}" LineBreakMode="WordWrap" />
                     </VerticalStackLayout>
-                    <controls:IconView Grid.Column="1"
-                                       Data="{StaticResource IconCheckData}"
-                                       IconColor="{DynamicResource ReadyColor}"
-                                       IsVisible="{Binding IsLightSelected}"
-                                       Description="Selected"
-                                       VerticalOptions="Center" />
+                    <Grid Grid.Column="1" VerticalOptions="Center">
+                        <Button Style="{StaticResource IconButtonStyle}"
+                                Command="{Binding SelectThemeCommand}"
+                                CommandParameter="{x:Static services:ThemePreference.Light}"
+                                SemanticProperties.Description="Use light theme" />
+                        <controls:IconView Data="{StaticResource IconCheckData}"
+                                           IconColor="{DynamicResource ReadyColor}"
+                                           IsVisible="{Binding IsLightSelected}"
+                                           InputTransparent="True"
+                                           Description="Selected"
+                                           HorizontalOptions="Center" VerticalOptions="Center" />
+                    </Grid>
                 </Grid>
             </Border>
 
@@ -64,12 +76,18 @@
                         <Label Text="Dark" Style="{StaticResource CardTitleStyle}" />
                         <Label Text="The roasting console palette, used everywhere." Style="{StaticResource CardMetaStyle}" LineBreakMode="WordWrap" />
                     </VerticalStackLayout>
-                    <controls:IconView Grid.Column="1"
-                                       Data="{StaticResource IconCheckData}"
-                                       IconColor="{DynamicResource ReadyColor}"
-                                       IsVisible="{Binding IsDarkSelected}"
-                                       Description="Selected"
-                                       VerticalOptions="Center" />
+                    <Grid Grid.Column="1" VerticalOptions="Center">
+                        <Button Style="{StaticResource IconButtonStyle}"
+                                Command="{Binding SelectThemeCommand}"
+                                CommandParameter="{x:Static services:ThemePreference.Dark}"
+                                SemanticProperties.Description="Use dark theme" />
+                        <controls:IconView Data="{StaticResource IconCheckData}"
+                                           IconColor="{DynamicResource ReadyColor}"
+                                           IsVisible="{Binding IsDarkSelected}"
+                                           InputTransparent="True"
+                                           Description="Selected"
+                                           HorizontalOptions="Center" VerticalOptions="Center" />
+                    </Grid>
                 </Grid>
             </Border>
 

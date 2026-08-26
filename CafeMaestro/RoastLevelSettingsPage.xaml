@@ -75,46 +75,54 @@
               BackgroundColor="{DynamicResource ScrimColor}"
               InputTransparent="False">
             <Border Style="{StaticResource RaisedCardStyle}"
-                    WidthRequest="320"
-                    HorizontalOptions="Center"
-                    VerticalOptions="Center">
-                <VerticalStackLayout Spacing="{StaticResource SpaceMd}">
-                    <Label Text="{Binding EditPopupTitle}" Style="{StaticResource CardTitleStyle}" HorizontalOptions="Center" />
+                    MaximumWidthRequest="420"
+                    Margin="{StaticResource PagePadding}"
+                    HorizontalOptions="Fill"
+                    VerticalOptions="Fill">
+                <Grid RowDefinitions="Auto,*,Auto" RowSpacing="{StaticResource SpaceMd}">
+                    <Label Text="{Binding EditPopupTitle}"
+                           Style="{StaticResource CardTitleStyle}"
+                           HorizontalOptions="Center"
+                           LineBreakMode="WordWrap" />
 
-                    <VerticalStackLayout Spacing="{StaticResource SpaceXs}">
-                        <Label Text="Name" Style="{StaticResource FieldLabelStyle}" />
-                        <Border Style="{StaticResource FieldContainerStyle}">
-                            <Entry Text="{Binding RoastLevelName}"
-                                   Placeholder="Enter roast level name"
-                                   Style="{StaticResource FieldEntryStyle}" />
-                        </Border>
-                    </VerticalStackLayout>
+                    <ScrollView Grid.Row="1" VerticalScrollBarVisibility="Default">
+                        <VerticalStackLayout Spacing="{StaticResource SpaceMd}">
+                            <VerticalStackLayout Spacing="{StaticResource SpaceXs}">
+                                <Label Text="Name" Style="{StaticResource FieldLabelStyle}" />
+                                <Border Style="{StaticResource FieldContainerStyle}">
+                                    <Entry Text="{Binding RoastLevelName}"
+                                           Placeholder="Enter roast level name"
+                                           Style="{StaticResource FieldEntryStyle}" />
+                                </Border>
+                            </VerticalStackLayout>
 
-                    <VerticalStackLayout Spacing="{StaticResource SpaceXs}">
-                        <Label Text="Min weight loss (%)" Style="{StaticResource FieldLabelStyle}" />
-                        <Border Style="{StaticResource FieldContainerStyle}">
-                            <Entry Text="{Binding MinWeightLossText}"
-                                   Placeholder="0.0"
-                                   Keyboard="Numeric"
-                                   Style="{StaticResource FieldEntryStyle}" />
-                        </Border>
-                    </VerticalStackLayout>
+                            <VerticalStackLayout Spacing="{StaticResource SpaceXs}">
+                                <Label Text="Min weight loss (%)" Style="{StaticResource FieldLabelStyle}" />
+                                <Border Style="{StaticResource FieldContainerStyle}">
+                                    <Entry Text="{Binding MinWeightLossText}"
+                                           Placeholder="0.0"
+                                           Keyboard="Numeric"
+                                           Style="{StaticResource FieldEntryStyle}" />
+                                </Border>
+                            </VerticalStackLayout>
 
-                    <VerticalStackLayout Spacing="{StaticResource SpaceXs}">
-                        <Label Text="Max weight loss (%)" Style="{StaticResource FieldLabelStyle}" />
-                        <Border Style="{StaticResource FieldContainerStyle}">
-                            <Entry Text="{Binding MaxWeightLossText}"
-                                   Placeholder="100.0"
-                                   Keyboard="Numeric"
-                                   Style="{StaticResource FieldEntryStyle}" />
-                        </Border>
-                    </VerticalStackLayout>
+                            <VerticalStackLayout Spacing="{StaticResource SpaceXs}">
+                                <Label Text="Max weight loss (%)" Style="{StaticResource FieldLabelStyle}" />
+                                <Border Style="{StaticResource FieldContainerStyle}">
+                                    <Entry Text="{Binding MaxWeightLossText}"
+                                           Placeholder="100.0"
+                                           Keyboard="Numeric"
+                                           Style="{StaticResource FieldEntryStyle}" />
+                                </Border>
+                            </VerticalStackLayout>
+                        </VerticalStackLayout>
+                    </ScrollView>
 
-                    <Grid ColumnDefinitions="*,*" ColumnSpacing="{StaticResource SpaceSm}">
+                    <Grid Grid.Row="2" ColumnDefinitions="*,*" ColumnSpacing="{StaticResource SpaceSm}">
                         <Button Grid.Column="0" Text="SAVE" Style="{StaticResource PrimaryActionStyle}" Command="{Binding SaveRoastLevelCommand}" />
                         <Button Grid.Column="1" Text="CANCEL" Style="{StaticResource SecondaryActionStyle}" Command="{Binding CancelRoastLevelCommand}" />
                     </Grid>
-                </VerticalStackLayout>
+                </Grid>
             </Border>
         </Grid>
     </Grid>

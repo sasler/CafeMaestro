@@ -180,6 +180,43 @@ public sealed class DataSettingsPageViewModelTests
     }
 
     [Fact]
+    public async Task StartNewDataCommand_FromPersistenceRecovery_AllowsExplicitAbandonment()
+    {
+        var backupService = new Mock<IDataBackupService>();
+        backupService
+            .Setup(service => service.StartNewDataAsync(It.IsAny<CancellationToken>()))
+            .ReturnsAsync(CreateData(0, 0));
+        backupService
+            .Setup(service => service.GetSafetyBackupsAsync(It.IsAny<CancellationToken>()))
+            .ReturnsAsync([]);
+        var alerts = new Mock<IAlertService>();
+        alerts
+            .Setup(service => service.ShowConfirmationAsync(
+                It.IsAny<string>(), It.IsAny<string>(), It.IsAny<string>(), It.IsAny<string>()))
+            .ReturnsAsync(true);
+        DataSettingsPageViewModel viewModel = CreateViewModel(
+            backupService,
+            new Mock<IUserFileService>(),
+            alerts: alerts,
+            session: SettingsTestFactory.ActiveSession());
+        viewModel.ApplyQueryAttributes(new Dictionary<string, object>
+        {
+            [DataSettingsPageViewModel.PersistenceRecoveryKey] = bool.TrueString
+        });
+
+        await viewModel.StartNewDataCommand.ExecuteAsync(null);
+
+        backupService.Verify(
+            service => service.StartNewDataAsync(It.IsAny<CancellationToken>()),
+            Times.Once);
+        alerts.Verify(service => service.ShowConfirmationAsync(
+            "Persistence Recovery",
+            It.Is<string>(message => message.Contains("unsaved in-memory roast")),
+            "Continue",
+            "Cancel"), Times.Once);
+    }
+
+    [Fact]
     public async Task RestoreFromBackupCommand_WhileARoastIsActive_NeverOpensTheFilePicker()
     {
         var userFileService = new Mock<IUserFileService>();

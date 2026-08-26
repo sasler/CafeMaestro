@@ -28,4 +28,17 @@ public partial class SettingsPage : ContentPage
         _ = _viewModel.GoBackAsync();
         return true;
     }
+
+    private void OnPageSizeChanged(object? sender, EventArgs e)
+    {
+        bool isWide = Width >= 600;
+        SettingsBody.ColumnDefinitions[0].Width = isWide
+            ? new GridLength(2, GridUnitType.Star)
+            : GridLength.Star;
+        SettingsBody.ColumnDefinitions[1].Width = isWide
+            ? new GridLength(3, GridUnitType.Star)
+            : new GridLength(0);
+        WideDetailPane.IsVisible = isWide;
+        _viewModel.SetWideLayout(isWide);
+    }
 }

@@ -306,7 +306,11 @@ public class RoastPageViewModelTests
         await harness.ViewModel.OpenDataSettingsAsync();
         await harness.ViewModel.RetryAsync();
 
-        harness.Navigation.Verify(service => service.GoToAsync(CafeMaestro.Navigation.Routes.DataSettings), Times.Once);
+        harness.Navigation.Verify(service => service.GoToAsync(
+            CafeMaestro.Navigation.Routes.DataSettings,
+            It.Is<IDictionary<string, object>>(parameters =>
+                parameters[DataSettingsPageViewModel.PersistenceRecoveryKey].ToString() == bool.TrueString)),
+            Times.Once);
         harness.Session.Verify(service => service.DropAsync(
             It.IsAny<DropProposal>(), It.IsAny<CancellationToken>()), Times.Exactly(2));
     }
