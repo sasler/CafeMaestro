@@ -22,7 +22,7 @@ CafeMaestro is a comprehensive tool designed for coffee enthusiasts and professi
 - **Optional Android Cooling Reminders**: Opt in to a best-effort notification when a persisted batch reaches its cooling-ready time; opening it revalidates the batch before offering weigh-in.
 - **Roast Level Analysis**: Automatic classification of roast levels based on weight loss percentage.
 - **Custom Roast Levels**: Define and customize your own roast levels based on weight loss percentages.
-- **CSV Transfer**: Import bean and roast records, then save or share roast-log CSV files through the system document UI.
+- **Guided CSV Import**: One flow for beans and roast logs — choose a file, map columns, review every row and its rejection reason, then import in a single atomic write. Save or share roast-log CSV exports through the system document UI.
 - **Theme Support**: Choose between light, dark, or system theme preferences.
 - **Automatic Data Safety**: Keep the live dataset private inside CafeMaestro, export validated backups, and recover from the five newest automatic safety copies.
 - **Cross-Platform**: Built with .NET MAUI for Android and Windows (iOS/macOS supported by framework).
@@ -110,8 +110,9 @@ All services are registered via DI in `MauiProgram.cs` using interface-based sin
 | Service | Interface | Responsibility |
 |---------|-----------|----------------|
 | ManagedAppDataService | IAppDataService | Versioned private JSON persistence with atomic mutations, recovery copies, and sequential migration |
-| BeanDataService | IBeanDataService | Bean CRUD operations, CSV import |
-| RoastDataService | IRoastDataService | Roast CRUD, CSV import/export |
+| BeanDataService | IBeanDataService | Bean CRUD operations |
+| RoastDataService | IRoastDataService | Roast CRUD and CSV export |
+| ImportService | IImportService | Shared CSV import: per-kind adapters, row review, one atomic commit — see docs/import.md |
 | RoastLevelService | IRoastLevelService | Roast level classification |
 | TimerService | ITimerService | Roast timer with elapsed time events |
 | PreferencesService | IPreferencesService | User preferences storage |
@@ -160,7 +161,8 @@ The Roast Log section allows you to:
 - Correct final weights through the focused Weigh In sheet and edit other allowed details separately
 - Delete confirmed records, import roast CSV contextually, or export the log to CSV
 
-See [Roast Log work queue](docs/roast-log.md) for projection, ticker, editing, and accessibility behavior.
+See [Roast Log work queue](docs/roast-log.md) for projection, ticker, editing, and accessibility behavior,
+and [CSV import](docs/import.md) for the shared import flow, adapter contract, and commit behavior.
 
 ### Data and Backups
 
@@ -169,7 +171,7 @@ CafeMaestro saves the working dataset automatically in private app storage. In S
 - Save, restore, or share JSON backup copies without modifying selected source files
 - Restore one of the five most recent automatic safety backups
 - Save an unvalidated raw recovery copy for manual repair when legacy data cannot be upgraded safely
-- Import coffee beans or roast logs from CSV, and save or share roast-log CSV exports
+- Import coffee beans or roast logs through the shared [CSV import](docs/import.md) flow, and save or share roast-log CSV exports
 
 The canonical dataset carries an explicit schema version. CafeMaestro upgrades supported legacy data
 sequentially, keeps the original bytes as a recovery copy before an in-place upgrade, and refuses to

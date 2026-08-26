@@ -53,7 +53,6 @@ public sealed class RoastDataAtomicEditTests : IDisposable
             .ReturnsAsync("Medium");
         RoastDataService roasts = new(
             appData,
-            Mock.Of<ICsvParserService>(),
             levels.Object,
             notifications.Object,
             preferences.Object);
@@ -160,7 +159,6 @@ public sealed class RoastDataAtomicEditTests : IDisposable
         var levels = new Mock<IRoastLevelService>(MockBehavior.Strict);
         var roasts = new RoastDataService(
             appData,
-            Mock.Of<ICsvParserService>(),
             levels.Object);
         string originalJson = await File.ReadAllTextAsync(path);
         int eventCount = 0;
@@ -194,7 +192,6 @@ public sealed class RoastDataAtomicEditTests : IDisposable
         await appData.InitializeAsync(Mock.Of<IPreferencesService>());
         var roasts = new RoastDataService(
             appData,
-            Mock.Of<ICsvParserService>(),
             Mock.Of<IRoastLevelService>());
         string originalJson = await File.ReadAllTextAsync(path);
         RoastData roast = new()
@@ -286,7 +283,6 @@ public sealed class RoastDataAtomicEditTests : IDisposable
         var appData = new ManagedAppDataService(canonicalPath, () => "1.5.0");
         var roasts = new RoastDataService(
             appData,
-            Mock.Of<ICsvParserService>(),
             Mock.Of<IRoastLevelService>());
         int eventCount = 0;
         appData.DataChanged += (_, _) => eventCount++;
@@ -334,7 +330,7 @@ public sealed class RoastDataAtomicEditTests : IDisposable
             .ReturnsAsync("Medium");
         return (
             appData,
-            new RoastDataService(appData, Mock.Of<ICsvParserService>(), levels.Object),
+            new RoastDataService(appData, levels.Object),
             original);
     }
 

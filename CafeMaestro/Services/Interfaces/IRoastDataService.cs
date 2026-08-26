@@ -3,7 +3,7 @@ using CafeMaestro.Models;
 namespace CafeMaestro.Services;
 
 /// <summary>
-/// Roast log queries, import, and export.
+/// Roast log queries and export. CSV import belongs to <see cref="IImportService"/>.
 /// </summary>
 /// <remarks>
 /// Roast workflow transitions — start, drop, weigh-in, unweighed, discard — belong to
@@ -24,7 +24,6 @@ public interface IRoastDataService
     Task<List<RoastData>> LoadRoastDataAsync();
     Task<List<RoastData>> SearchRoastDataAsync(string beanType = "");
     Task ExportRoastLogAsync(Stream destination, CancellationToken cancellationToken = default);
-    Task<(int Success, int Failed, List<string> Errors)> ImportRoastsFromCsvAsync(string filePath, Dictionary<string, string> columnMapping);
     Task<int> RemoveDuplicatesAsync();
     Task<List<RoastData>> GetAllRoastsAsync();
     Task<bool> AddRoastAsync(RoastData roast);

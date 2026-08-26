@@ -327,7 +327,9 @@ public partial class RoastLogPageViewModel : ObservableObject
     }
 
     [RelayCommand]
-    private Task NavigateToImportAsync() => _navigationService.GoToAsync(Routes.RoastImport);
+    private Task NavigateToImportAsync() => _navigationService.GoToAsync(
+        Routes.Import,
+        new Dictionary<string, object> { [ImportPageViewModel.KindParameter] = ImportKind.Roasts });
 
     [RelayCommand]
     private async Task RefreshAsync()

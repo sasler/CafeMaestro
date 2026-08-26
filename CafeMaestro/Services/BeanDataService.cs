@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
@@ -12,7 +12,6 @@ namespace CafeMaestro.Services
     public class BeanDataService : IBeanDataService
     {
         private readonly IAppDataService _appDataService;
-        private readonly ICsvParserService _csvParserService;
         private readonly SemaphoreSlim _initLock = new SemaphoreSlim(1, 1);
         private bool _isInitialized = false;
         private string _currentDataFilePath;
@@ -23,10 +22,9 @@ namespace CafeMaestro.Services
             get => _appDataService.DataFilePath;
         }
 
-        public BeanDataService(IAppDataService appDataService, ICsvParserService csvParserService)
+        public BeanDataService(IAppDataService appDataService)
         {
             _appDataService = appDataService;
-            _csvParserService = csvParserService;
             _currentDataFilePath = _appDataService.DataFilePath;
 
             // Subscribe to path changes from AppDataService
@@ -358,229 +356,6 @@ namespace CafeMaestro.Services
                 System.Diagnostics.Debug.WriteLine($"Error getting sorted available beans: {ex.Message}");
                 System.Diagnostics.Debug.WriteLine($"Stack trace: {ex.StackTrace}");
                 return new List<BeanData>();
-            }
-        }
-
-        // Import beans from CSV file
-        public async Task<(int Success, int Failed, List<string> Errors)> ImportBeansFromCsvAsync(
-            string filePath,
-            Dictionary<string, string> columnMapping)
-        {
-            try
-            {
-                if (string.IsNullOrEmpty(filePath) || !File.Exists(filePath))
-                {
-                    throw new FileNotFoundException("CSV file not found", filePath);
-                }
-
-                // Read the CSV data
-                var csvData = await _csvParserService.ReadCsvContentAsync(filePath, int.MaxValue);
-
-                var errors = new List<string>();
-                int successCount = 0;
-                int failedCount = 0;
-
-                // Load the app data once at the beginning
-                var appData = await _appDataService.LoadAppDataAsync();
-
-                // Use the beans from the loaded app data for duplicate checking
-                // IMPORTANT FIX: Don't load beans separately, use the ones already in appData
-                var existingBeans = appData.Beans;
-
-                // Process each row
-                foreach (var row in csvData)
-                {
-                    try
-                    {
-                        var bean = new BeanData
-                        {
-                            Id = Guid.NewGuid(),
-                            PurchaseDate = DateTime.Now, // Default
-                            Quantity = 0, // Default
-                            RemainingQuantity = 0 // Default
-                        };
-
-                        // Apply values based on mapping
-                        foreach (var mapping in columnMapping)
-                        {
-                            string beanProperty = mapping.Key;
-                            string csvColumn = mapping.Value;
-
-                            if (string.IsNullOrEmpty(csvColumn) || !row.ContainsKey(csvColumn))
-                            {
-                                continue; // Skip if no mapping or column not found
-                            }
-
-                            string csvValue = row[csvColumn];
-
-                            // Skip empty values
-                            if (string.IsNullOrWhiteSpace(csvValue))
-                            {
-                                continue;
-                            }
-
-                            // Apply value based on property
-                            switch (beanProperty)
-                            {
-                                case "CoffeeName":
-                                    bean.CoffeeName = csvValue.Trim();
-                                    break;
-                                case "Country":
-                                    bean.Country = csvValue.Trim();
-                                    break;
-                                case "Variety":
-                                    bean.Variety = csvValue.Trim();
-                                    break;
-                                case "Process":
-                                    bean.Process = csvValue.Trim();
-                                    break;
-                                case "Notes":
-                                    bean.Notes = csvValue.Trim();
-                                    break;
-                                case "Link":
-                                    bean.Link = csvValue.Trim();
-                                    break;
-                                case "PurchaseDate":
-                                    try
-                                    {
-                                        // Try multiple date formats, including European format (dd/MM/yyyy)
-                                        if (DateTime.TryParse(csvValue, out DateTime purchaseDate))
-                                        {
-                                            bean.PurchaseDate = purchaseDate;
-                                        }
-                                        else if (DateTime.TryParseExact(
-                                            csvValue,
-                                            new[] { "dd/MM/yyyy", "MM/dd/yyyy", "yyyy-MM-dd" },
-                                            System.Globalization.CultureInfo.InvariantCulture,
-                                            System.Globalization.DateTimeStyles.None,
-                                            out purchaseDate))
-                                        {
-                                            bean.PurchaseDate = purchaseDate;
-                                        }
-                                        else
-                                        {
-                                            System.Diagnostics.Debug.WriteLine($"Failed to parse date: {csvValue}");
-                                        }
-                                    }
-                                    catch (Exception ex)
-                                    {
-                                        System.Diagnostics.Debug.WriteLine($"Error parsing date '{csvValue}': {ex.Message}");
-                                    }
-                                    break;
-                                case "Quantity":
-                                    if (double.TryParse(csvValue, out double quantity))
-                                    {
-                                        bean.Quantity = quantity;
-                                        bean.RemainingQuantity = quantity; // Set remaining to full
-                                    }
-                                    else
-                                    {
-                                        System.Diagnostics.Debug.WriteLine($"Failed to parse quantity: {csvValue}");
-                                    }
-                                    break;
-                                case "Price":
-                                    if (decimal.TryParse(csvValue, out decimal price))
-                                    {
-                                        bean.Price = price;
-                                    }
-                                    else
-                                    {
-                                        System.Diagnostics.Debug.WriteLine($"Failed to parse price: {csvValue}");
-                                    }
-                                    break;
-                            }
-                        }
-
-                        // Set null or empty properties to sensible defaults
-                        if (string.IsNullOrWhiteSpace(bean.CoffeeName))
-                        {
-                            throw new ArgumentException("Bean name is required");
-                        }
-
-                        if (string.IsNullOrWhiteSpace(bean.Country))
-                        {
-                            throw new ArgumentException("Country is required");
-                        }
-
-                        if (string.IsNullOrWhiteSpace(bean.Variety))
-                        {
-                            bean.Variety = string.Empty; // Default to empty string
-                        }
-
-                        if (string.IsNullOrWhiteSpace(bean.Process))
-                        {
-                            bean.Process = string.Empty; // Default to empty string
-                        }
-
-                        if (bean.Quantity <= 0)
-                        {
-                            bean.Quantity = 1; // Default to 1kg if not specified
-                            bean.RemainingQuantity = 1;
-                        }
-
-                        // Check for duplicates based on name, country and variety
-                        bool isDuplicate = existingBeans.Any(b =>
-                            b.CoffeeName.Equals(bean.CoffeeName, StringComparison.OrdinalIgnoreCase) &&
-                            b.Country.Equals(bean.Country, StringComparison.OrdinalIgnoreCase) &&
-                            (string.IsNullOrEmpty(bean.Variety) && string.IsNullOrEmpty(b.Variety) ||
-                             !string.IsNullOrEmpty(bean.Variety) && !string.IsNullOrEmpty(b.Variety) &&
-                             b.Variety.Equals(bean.Variety, StringComparison.OrdinalIgnoreCase)));
-
-                        if (isDuplicate)
-                        {
-                            throw new InvalidOperationException($"Bean '{bean.CoffeeName}' from {bean.Country} already exists in inventory");
-                        }
-
-                        // Add the bean to the app data directly
-                        appData.Beans.Add(bean);
-
-                        // Track success in memory
-                        successCount++;
-                    }
-                    catch (Exception ex)
-                    {
-                        failedCount++;
-                        string error = $"Row error: {ex.Message}";
-                        errors.Add(error);
-                        System.Diagnostics.Debug.WriteLine($"ERROR: {error}");
-                        System.Diagnostics.Debug.WriteLine($"Exception details: {ex}");
-                    }
-                }
-
-                // Now save all the beans at once using the special non-notifying method
-                bool saveResult = await _appDataService.SaveAppDataWithoutNotificationAsync(appData);
-
-                if (!saveResult)
-                {
-                    // If bulk save failed, try loading data again and give up
-                    var freshData = await _appDataService.LoadAppDataAsync();
-                }
-
-                // Final verification
-                var finalBeanCount = await GetBeanCountAsync();
-
-                return (successCount, failedCount, errors);
-            }
-            catch (Exception ex)
-            {
-                System.Diagnostics.Debug.WriteLine($"Error importing beans from CSV: {ex.Message}");
-                System.Diagnostics.Debug.WriteLine($"Exception details: {ex.StackTrace}");
-                throw;
-            }
-        }
-
-        // Simple method to get just the count of beans
-        private async Task<int> GetBeanCountAsync()
-        {
-            try
-            {
-                var appData = await _appDataService.LoadAppDataAsync();
-                return appData.Beans?.Count ?? 0;
-            }
-            catch (Exception ex)
-            {
-                System.Diagnostics.Debug.WriteLine($"Error getting bean count: {ex.Message}");
-                return -1;
             }
         }
 

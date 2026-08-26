@@ -133,7 +133,7 @@ public sealed class DataSettingsPageViewModelTests
     }
 
     [Fact]
-    public async Task ImportCommands_NavigateDirectlyToClearlyNamedImportPages()
+    public async Task ImportCommands_OpenTheSharedFlowWithTheRightKindPreselected()
     {
         var navigation = new Mock<INavigationService>();
         var viewModel = CreateViewModel(
@@ -144,8 +144,18 @@ public sealed class DataSettingsPageViewModelTests
         await viewModel.ImportCoffeeBeansCommand.ExecuteAsync(null);
         await viewModel.ImportRoastLogsCommand.ExecuteAsync(null);
 
-        navigation.Verify(service => service.GoToAsync(Routes.BeanImport), Times.Once);
-        navigation.Verify(service => service.GoToAsync(Routes.RoastImport), Times.Once);
+        navigation.Verify(
+            service => service.GoToAsync(
+                Routes.Import,
+                It.Is<IDictionary<string, object>>(parameters =>
+                    (ImportKind)parameters[ImportPageViewModel.KindParameter] == ImportKind.Beans)),
+            Times.Once);
+        navigation.Verify(
+            service => service.GoToAsync(
+                Routes.Import,
+                It.Is<IDictionary<string, object>>(parameters =>
+                    (ImportKind)parameters[ImportPageViewModel.KindParameter] == ImportKind.Roasts)),
+            Times.Once);
     }
 
     [Fact]

@@ -85,30 +85,12 @@ namespace CafeMaestro.Services
                 // Load all roast levels
                 var roastLevels = await GetRoastLevelsAsync();
 
-                // Find the appropriate level for the given weight loss percentage
-                foreach (var level in roastLevels.OrderBy(l => l.MinWeightLossPercentage))
-                {
-                    if (weightLossPercentage >= level.MinWeightLossPercentage &&
-                        weightLossPercentage < level.MaxWeightLossPercentage)
-                    {
-                        return level.Name;
-                    }
-                }
-
-                // If no level matches, find the highest level
-                var highestLevel = roastLevels.OrderByDescending(l => l.MaxWeightLossPercentage).FirstOrDefault();
-                if (highestLevel != null)
-                {
-                    return highestLevel.Name;
-                }
-
-                // Fallback to a generic name if no levels defined
-                return "Unknown";
+                return RoastLevelResolver.Resolve(roastLevels, weightLossPercentage);
             }
             catch (Exception ex)
             {
                 System.Diagnostics.Debug.WriteLine($"Error getting roast level: {ex.Message}");
-                return "Unknown";
+                return RoastLevelResolver.UnknownLevelName;
             }
         }
 

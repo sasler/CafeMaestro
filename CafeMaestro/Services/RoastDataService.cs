@@ -12,7 +12,6 @@ namespace CafeMaestro.Services
     public class RoastDataService : IRoastDataService
     {
         private readonly IAppDataService _appDataService;
-        private readonly ICsvParserService _csvParserService;
         private readonly IRoastLevelService _roastLevelService;
         private readonly ICoolingNotificationService _coolingNotifications;
         private readonly IRoastPreferencesService _roastPreferences;
@@ -27,10 +26,9 @@ namespace CafeMaestro.Services
             get => _appDataService.DataFilePath;
         }
 
-        public RoastDataService(IAppDataService appDataService, ICsvParserService csvParserService, IRoastLevelService roastLevelService)
+        public RoastDataService(IAppDataService appDataService, IRoastLevelService roastLevelService)
             : this(
                 appDataService,
-                csvParserService,
                 roastLevelService,
                 new NoOpCoolingNotificationService(),
                 new DisabledRoastPreferencesService())
@@ -39,12 +37,10 @@ namespace CafeMaestro.Services
 
         public RoastDataService(
             IAppDataService appDataService,
-            ICsvParserService csvParserService,
             IRoastLevelService roastLevelService,
             ICoolingNotificationService coolingNotifications)
             : this(
                 appDataService,
-                csvParserService,
                 roastLevelService,
                 coolingNotifications,
                 new DisabledRoastPreferencesService())
@@ -54,13 +50,11 @@ namespace CafeMaestro.Services
         [Microsoft.Extensions.DependencyInjection.ActivatorUtilitiesConstructor]
         public RoastDataService(
             IAppDataService appDataService,
-            ICsvParserService csvParserService,
             IRoastLevelService roastLevelService,
             ICoolingNotificationService coolingNotifications,
             IRoastPreferencesService roastPreferences)
         {
             _appDataService = appDataService;
-            _csvParserService = csvParserService;
             _roastLevelService = roastLevelService;
             _coolingNotifications = coolingNotifications ?? throw new ArgumentNullException(nameof(coolingNotifications));
             _roastPreferences = roastPreferences ?? throw new ArgumentNullException(nameof(roastPreferences));
@@ -267,246 +261,6 @@ namespace CafeMaestro.Services
             return $"\"{safeValue.Replace("\"", "\"\"")}\"";
         }
         // Import roasts from CSV file
-        public async Task<(int Success, int Failed, List<string> Errors)> ImportRoastsFromCsvAsync(
-            string filePath,
-            Dictionary<string, string> columnMapping)
-        {
-            try
-            {
-                if (string.IsNullOrEmpty(filePath) || !File.Exists(filePath))
-                {
-                    throw new FileNotFoundException("CSV file not found", filePath);
-                }
-
-                using var notificationSuspension = _appDataService.SuspendNotifications();
-
-                // Read the CSV data
-                var csvData = await _csvParserService.ReadCsvContentAsync(filePath, int.MaxValue);
-
-                var errors = new List<string>();
-                int successCount = 0;
-                int failedCount = 0;
-
-                // Load existing roasts
-                var existingRoasts = await GetAllRoastsAsync();
-
-                // Also track roasts added in this import session
-                var importedRoasts = new List<RoastData>();
-
-                // Process each row
-                foreach (var row in csvData)
-                {
-                    try
-                    {
-                        var roast = new RoastData
-                        {
-                            Id = Guid.NewGuid(), // Always generate a new ID for imported records
-                            RoastDate = DateTime.Now, // Default
-                            Temperature = 235, // Default
-                            BeanType = "",
-                            BatchWeight = 0,
-                            FinalWeight = 0,
-                            RoastMinutes = 0,
-                            RoastSeconds = 0,
-                            Notes = ""
-                        };
-
-                        // Apply values based on mapping
-                        foreach (var mapping in columnMapping)
-                        {
-                            string roastProperty = mapping.Key;
-                            string csvColumn = mapping.Value;
-
-                            if (string.IsNullOrEmpty(csvColumn) || !row.ContainsKey(csvColumn))
-                            {
-                                continue; // Skip if no mapping or column not found
-                            }
-
-                            string csvValue = row[csvColumn];
-
-                            // Skip empty values
-                            if (string.IsNullOrWhiteSpace(csvValue))
-                            {
-                                continue;
-                            }
-
-                            // Apply value based on property
-                            switch (roastProperty)
-                            {
-                                case "RoastDate":
-                                    try
-                                    {
-                                        // Try multiple date formats, including European format (dd/MM/yyyy)
-                                        if (DateTime.TryParse(csvValue, out DateTime roastDate))
-                                        {
-                                            roast.RoastDate = roastDate;
-                                        }
-                                        else if (DateTime.TryParseExact(
-                                            csvValue,
-                                            new[] { "dd/MM/yyyy", "MM/dd/yyyy", "yyyy-MM-dd" },
-                                            System.Globalization.CultureInfo.InvariantCulture,
-                                            System.Globalization.DateTimeStyles.None,
-                                            out roastDate))
-                                        {
-                                            roast.RoastDate = roastDate;
-                                        }
-                                        else
-                                        {
-                                            System.Diagnostics.Debug.WriteLine($"Failed to parse date: {csvValue}");
-                                        }
-                                    }
-                                    catch (Exception ex)
-                                    {
-                                        System.Diagnostics.Debug.WriteLine($"Error parsing date '{csvValue}': {ex.Message}");
-                                    }
-                                    break;
-                                // ... rest of the switch case handles other properties
-                                case "BeanType":
-                                    // Trim whitespace and double spaces
-                                    roast.BeanType = csvValue.Trim().Replace("  ", " ");
-                                    break;
-                                case "Temperature":
-                                    if (double.TryParse(csvValue, out double temp))
-                                    {
-                                        roast.Temperature = temp;
-                                    }
-                                    else if (int.TryParse(csvValue.Replace("°C", "").Replace("C", "").Trim(), out int tempInt))
-                                    {
-                                        roast.Temperature = tempInt;
-                                    }
-                                    else
-                                    {
-                                        System.Diagnostics.Debug.WriteLine($"Failed to parse temperature: {csvValue}");
-                                    }
-                                    break;
-                                case "RoastTime":
-                                    try
-                                    {
-                                        // Parse time in format like "13:30" (mm:ss)
-                                        string timeValue = csvValue.Trim();
-
-                                        // Handle different time formats
-                                        if (timeValue.Contains(":"))
-                                        {
-                                            // Manual parsing for mm:ss format (not hh:mm as TimeSpan.TryParse would interpret it)
-                                            string[] parts = timeValue.Split(':');
-                                            if (parts.Length == 2 && int.TryParse(parts[0], out int minutes) && int.TryParse(parts[1], out int seconds))
-                                            {
-                                                roast.RoastMinutes = minutes;
-                                                roast.RoastSeconds = seconds;
-                                            }
-                                            else if (TimeSpan.TryParse(timeValue, out TimeSpan timeSpan))
-                                            {
-                                                // Interpret TimeSpan as mm:ss format rather than hh:mm
-                                                // Convert hours from TimeSpan to minutes for our usage
-                                                roast.RoastMinutes = timeSpan.Hours * 60 + timeSpan.Minutes;
-                                                roast.RoastSeconds = timeSpan.Seconds;
-                                            }
-                                            else
-                                            {
-                                                System.Diagnostics.Debug.WriteLine($"Failed to parse time: {csvValue}");
-                                            }
-                                        }
-                                        else if (int.TryParse(timeValue, out int totalSeconds))
-                                        {
-                                            // Handle pure seconds input
-                                            roast.RoastMinutes = totalSeconds / 60;
-                                            roast.RoastSeconds = totalSeconds % 60;
-                                        }
-                                        else
-                                        {
-                                            System.Diagnostics.Debug.WriteLine($"Failed to parse time: {csvValue}");
-                                        }
-                                    }
-                                    catch (Exception ex)
-                                    {
-                                        System.Diagnostics.Debug.WriteLine($"Error parsing time '{csvValue}': {ex.Message}");
-                                    }
-                                    break;
-                                case "BatchWeight":
-                                    if (double.TryParse(csvValue.Replace("g", "").Trim(), out double batchWeight))
-                                    {
-                                        roast.BatchWeight = batchWeight;
-                                    }
-                                    else
-                                    {
-                                        System.Diagnostics.Debug.WriteLine($"Failed to parse batch weight: {csvValue}");
-                                    }
-                                    break;
-                                case "FinalWeight":
-                                    if (double.TryParse(csvValue.Replace("g", "").Trim(), out double finalWeight))
-                                    {
-                                        roast.FinalWeight = finalWeight;
-                                    }
-                                    else
-                                    {
-                                        System.Diagnostics.Debug.WriteLine($"Failed to parse final weight: {csvValue}");
-                                    }
-                                    break;
-                                case "WeightLoss":
-                                    // Can't set WeightLossPercentage directly as it's a read-only property
-                                    // Instead, we'll ensure FinalWeight and BatchWeight are set properly
-                                    string cleanedValue = csvValue.Replace("%", "").Trim();
-                                    if (double.TryParse(cleanedValue, out double lossPercentage) && roast.BatchWeight > 0)
-                                    {
-                                        // If batch weight is set, we can calculate the final weight to achieve this loss percentage
-                                        double calculatedFinalWeight = roast.BatchWeight * (1 - (lossPercentage / 100.0));
-                                        roast.FinalWeight = Math.Round(calculatedFinalWeight, 2);
-                                    }
-                                    else
-                                    {
-                                        System.Diagnostics.Debug.WriteLine($"Failed to parse weight loss percentage or batch weight not set: {csvValue}");
-                                    }
-                                    break;
-                                case "Notes":
-                                    roast.Notes = csvValue.Trim();
-                                    break;
-                            }
-                        }
-
-                        // Validate required fields
-                        if (string.IsNullOrWhiteSpace(roast.BeanType))
-                        {
-                            throw new ArgumentException("Coffee bean name is required");
-                        }
-
-                        // Add the roast - using our custom method that traces exactly what's happening
-                        bool success = await AddRoastDirectAsync(roast);
-
-                        if (success)
-                        {
-                            successCount++;
-                            // Add to track list
-                            importedRoasts.Add(roast);
-                        }
-                        else
-                        {
-                            failedCount++;
-                            string error = $"Failed to add {roast.BeanType} roast from {roast.RoastDate.ToShortDateString()}";
-                            errors.Add(error);
-                            System.Diagnostics.Debug.WriteLine($"ERROR: {error}");
-                        }
-                    }
-                    catch (Exception ex)
-                    {
-                        failedCount++;
-                        string error = $"Row error: {ex.Message}";
-                        errors.Add(error);
-                        System.Diagnostics.Debug.WriteLine($"ERROR: {error}");
-                        System.Diagnostics.Debug.WriteLine($"Exception details: {ex}");
-                    }
-                }
-
-                return (successCount, failedCount, errors);
-            }
-            catch (Exception ex)
-            {
-                System.Diagnostics.Debug.WriteLine($"Error importing roasts from CSV: {ex.Message}");
-                System.Diagnostics.Debug.WriteLine($"Exception details: {ex}");
-                throw;
-            }
-        }
-
         // Special version of AddRoastAsync that avoids event recursion
         private async Task<bool> AddRoastDirectAsync(RoastData roast)
         {
@@ -688,30 +442,8 @@ namespace CafeMaestro.Services
             }
         }
 
-        private static void PrepareNewRoastForPersistence(RoastData roast)
-        {
-            roast.BeanDisplaySnapshot = string.IsNullOrWhiteSpace(roast.BeanDisplaySnapshot)
-                ? roast.BeanType
-                : roast.BeanDisplaySnapshot;
-            if (!roast.DroppedAtUtc.HasValue && roast.RoastDate != default)
-            {
-                roast.DroppedAtUtc =
-                    V1ToV2AppDataMigration.ConvertLegacyRoastDate(roast.RoastDate);
-            }
-
-            if (roast.FinalWeight > 0)
-            {
-                roast.CompletionStatus = RoastCompletionStatus.Complete;
-                return;
-            }
-
-            if (roast.FinalWeight is null or 0)
-            {
-                roast.FinalWeight = null;
-                roast.CompletionStatus = RoastCompletionStatus.AwaitingWeight;
-                roast.CoolingDurationSeconds ??= 0;
-            }
-        }
+        private static void PrepareNewRoastForPersistence(RoastData roast) =>
+            NewRoastDefaults.Apply(roast);
 
         private static bool HasInvalidFinalWeight(RoastData roast) =>
             roast.FinalWeight is double finalWeight &&

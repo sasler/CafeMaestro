@@ -7,6 +7,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased] - Complete Architecture Refactor
 ### Added
+- One guided CSV import flow — choose type and file, map columns, review every row, then import — replacing the separate Bean and Roast import pages
+- Beans, Roast Log and Data & Backups open that flow with Beans or Roast Logs already selected, so no contextual action asks a question it already knows the answer to
+- Review reports valid, needs-attention and total counts, names every excluded row and its reason, and states exactly what the import will write before anything is saved
+- Accepted rows are committed in one atomic app-data mutation that raises a single data-changed notification, so every affected surface refreshes once
+- `IImportService` with per-destination `IImportAdapter` implementations owning field definitions, row validation, duplicate policy and commit behaviour
+- Imported roasts without a final weight arrive as Awaiting weight and ready to weigh now, so historical rows land in the Roast Log work queue as actionable
+- `docs/import.md` describing the flow states, the adapter contract and the atomic commit
+- CSV reading is record-aware, so a quoted note containing a line break stays one logical row instead of aborting the file
 - Optional Android cooling-ready reminders with a contextual first-Drop explanation, Android 13+ notification permission, low-importance channel, inexact one-shot alarms and warm/cold activation into the exact persisted batch
 - Reminder reconciliation on initialization and data replacement, plus cancellation after weigh-in, Unweighed, deletion or time correction; Android delivery stays best effort and non-Android targets remain no-op
 - Settings is now a short index of destinations — Roasting, Appearance, Data & Backups, Roast Levels and About — each row showing the value it currently holds and refreshing that summary when you return
@@ -68,6 +76,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - 8 new unit tests covering share commands and flexible roast saving
 
 ### Fixed
+- A roast-log CSV containing a multiline quoted note could not be imported at all; it now reads as the rows it actually contains
+- CafeMaestro's own export of an unweighed roast (`0` final weight, `Pending` loss) round-trips back onto the Awaiting weight path instead of being rejected
+- A supplied negative final weight is rejected instead of being silently replaced by a value derived from the loss column
 - Start New Data and both Restore paths are blocked with an explanation while a roast is active or awaiting recovery, so a dataset replacement can no longer land silently under a running batch
 - Roast overlays now resolve and bind their own view and ViewModel: popup query attributes left the Weigh In and batch-choice sheets unbound in Release builds, so they appeared with no batch, no title, and unresponsive buttons on device
 - Persistence change notifications now return to the app synchronization context before updating UI-bound subscribers
@@ -80,7 +91,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Invalid backup JSON is rejected without modifying active data or the selected source
 
 ### Changed
-- Version bumped to 1.10.0
+- CSV import now reads and validates the whole file before the Review step, so the counts shown are the counts imported rather than a five-row sample
+- Import parses numbers and dates with invariant culture first and only then falls back to the device culture, matching how CafeMaestro stores them
+- Duplicate policy is re-applied inside the atomic commit, so a record added between Review and import is reported rather than duplicated
+- Mapping pickers, Auto-map, Back and the type cards are disabled while a review or import is running, and a review whose mapping changed mid-flight is discarded instead of applied
+- Version bumped to 1.12.0
 - The single long Settings page is replaced by an index with focused, Back-navigable detail pages; data/backup, roast-level and theme behavior moved without changing the services behind them
 - Data & Backups now isolates Start New Data in a danger zone below everything else, and the roast persistence-error escape hatch opens that page directly instead of the Settings index
 - Final-weight entry and corrections now use the focused Weigh In flow; generic roast editing is limited to mutable recorded details
@@ -110,6 +125,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - RoastDataService handles Pending roast level for roasts without final weight
 
 ### Removed
+- `BeanImportPage`, `RoastImportPage`, their ViewModels and routes, plus the per-row `ImportBeansFromCsvAsync`/`ImportRoastsFromCsvAsync` service methods they relied on
 - The redundant Home page, ViewModel, route, DI registrations, tests, and icon asset
 - Custom live-data file locations and the first-run storage-location prompt
 - Broad Android storage and media permissions that are unnecessary with the system document picker
