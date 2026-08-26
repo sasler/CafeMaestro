@@ -363,12 +363,12 @@
             <Button Text="{Binding DestinationActionLabel}"
                     Style="{StaticResource ConfirmActionStyle}"
                     Command="{Binding OpenDestinationCommand}"
-                    IsVisible="{Binding ImportSucceeded}" />
+                    IsVisible="{Binding ShowDestinationAction}" />
 
             <Button Text="TRY IMPORT AGAIN"
                     Style="{StaticResource PrimaryActionStyle}"
                     Command="{Binding RetryCommand}"
-                    IsVisible="{Binding ImportFailed}" />
+                    IsVisible="{Binding ShowRetryAction}" />
 
             <Grid ColumnDefinitions="*,*" ColumnSpacing="{StaticResource SpaceSm}">
                 <Button Text="BACK"

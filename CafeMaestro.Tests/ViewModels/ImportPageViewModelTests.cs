@@ -290,6 +290,42 @@ public sealed class ImportPageViewModelTests : IDisposable
         harness.Navigation.Verify(service => service.GoToAsync(Routes.BeanInventory), Times.Once);
     }
 
+    [Fact]
+    public async Task ResultActions_StayHiddenUntilTheResultStep()
+    {
+        // ImportFailed is just "not yet succeeded", so it is true from the start; only the step
+        // may reveal Retry, or it would sit beside every earlier step's primary action.
+        Harness harness = CreateHarness();
+        harness.ViewModel.ImportFailed.Should().BeTrue();
+        harness.ViewModel.ShowRetryAction.Should().BeFalse();
+        harness.ViewModel.ShowDestinationAction.Should().BeFalse();
+
+        harness.StageFile("beans.csv", BeanCsv);
+        await harness.ViewModel.BrowseCommand.ExecuteAsync(null);
+        harness.ViewModel.ShowRetryAction.Should().BeFalse();
+
+        await harness.ViewModel.ReviewCommand.ExecuteAsync(null);
+        harness.ViewModel.ShowRetryAction.Should().BeFalse();
+
+        await harness.ViewModel.ImportCommand.ExecuteAsync(null);
+        harness.ViewModel.ShowRetryAction.Should().BeFalse();
+        harness.ViewModel.ShowDestinationAction.Should().BeTrue();
+    }
+
+    [Fact]
+    public async Task ShowRetryAction_IsRevealedOnlyByAFailedResult()
+    {
+        Harness harness = CreateHarness(commitSucceeds: false);
+        harness.StageFile("beans.csv", BeanCsv);
+        await harness.ViewModel.BrowseCommand.ExecuteAsync(null);
+        await harness.ViewModel.ReviewCommand.ExecuteAsync(null);
+
+        await harness.ViewModel.ImportCommand.ExecuteAsync(null);
+
+        harness.ViewModel.ShowRetryAction.Should().BeTrue();
+        harness.ViewModel.ShowDestinationAction.Should().BeFalse();
+    }
+
     // ------------------------------------------------------------------ abandoning the flow
 
     [Fact]

@@ -44,8 +44,22 @@ internal static class ImportValueParser
 
         string trimmed = StripUnits(value);
 
-        return double.TryParse(trimmed, NumberStyles.Float, CultureInfo.InvariantCulture, out result) ||
-               double.TryParse(trimmed, NumberStyles.Float, CultureInfo.CurrentCulture, out result);
+        if (!double.TryParse(trimmed, NumberStyles.Float, CultureInfo.InvariantCulture, out result) &&
+            !double.TryParse(trimmed, NumberStyles.Float, CultureInfo.CurrentCulture, out result))
+        {
+            return false;
+        }
+
+        // "NaN" and "Infinity" parse successfully but are never a real weight, quantity,
+        // temperature or percentage — and they cannot be serialized, so letting one through would
+        // fail the whole atomic commit, valid rows included.
+        if (!double.IsFinite(result))
+        {
+            result = 0;
+            return false;
+        }
+
+        return true;
     }
 
     public static bool TryParsePrice(string value, out decimal result)

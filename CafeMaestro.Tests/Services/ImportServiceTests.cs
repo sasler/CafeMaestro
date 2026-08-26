@@ -137,6 +137,51 @@ public sealed class ImportServiceTests : IDisposable
         target.Beans.Single(bean => bean.CoffeeName == "Gesha").Quantity.Should().Be(1);
     }
 
+    [Theory]
+    [InlineData("NaN")]
+    [InlineData("Infinity")]
+    [InlineData("-Infinity")]
+    public async Task BuildPlanAsync_ForBeans_RejectsNonFiniteQuantities(string quantity)
+    {
+        // A named floating-point value parses but cannot be serialized, so accepting one would
+        // fail the whole atomic commit and take every valid row down with it.
+        var target = new AppData();
+        (IImportService service, Mock<IAppDataService> appData) = CreateServiceWithMock(target);
+
+        ImportPlan plan = await service.BuildPlanAsync(
+            ImportKind.Beans,
+            [
+                Row(("Name", "Nyeri"), ("Country", "Kenya"), ("Qty", quantity)),
+                Row(("Name", "Huila"), ("Country", "Colombia"), ("Qty", "1"))
+            ],
+            BeanMappings);
+        ImportCommitResult result = await service.CommitAsync(plan);
+
+        plan.RejectedRows.Should().ContainSingle()
+            .Which.Detail.Should().Contain("not a number");
+        result.Succeeded.Should().BeTrue();
+        result.Imported.Should().Be(1);
+        target.Beans.Should().ContainSingle().Which.Quantity.Should().Be(1);
+        target.Beans.Should().OnlyContain(bean => double.IsFinite(bean.Quantity));
+    }
+
+    [Theory]
+    [InlineData("NaN")]
+    [InlineData("Infinity")]
+    public async Task BuildPlanAsync_ForRoasts_RejectsNonFiniteWeights(string weight)
+    {
+        IImportService service = CreateService(new AppData());
+
+        ImportPlan plan = await service.BuildPlanAsync(
+            ImportKind.Roasts,
+            [Row(("Date", "2026-03-01"), ("Bean", "Kenya AA"), ("Batch", weight))],
+            RoastMappings);
+
+        plan.AcceptedRows.Should().BeEmpty();
+        plan.RejectedRows.Should().ContainSingle()
+            .Which.Detail.Should().Contain("not a weight above zero");
+    }
+
     // ------------------------------------------------------------------ roast rows
 
     [Fact]
@@ -250,6 +295,51 @@ public sealed class ImportServiceTests : IDisposable
         plan.AcceptedRows.Should().ContainSingle();
         plan.RejectedRows.Should().ContainSingle()
             .Which.Detail.Should().Contain("already logged");
+    }
+
+    [Fact]
+    public async Task RoastLogExport_ReimportsCleanly()
+    {
+        // CafeMaestro's own roast-log export is the CSV users actually re-import: quoted bean
+        // names, a timestamped date, mm:ss elapsed time, and a Weight Loss % column.
+        string path = Path.Combine(_testDirectory, "CafeMaestro_RoastLog.csv");
+        await File.WriteAllTextAsync(
+            path,
+            """
+            Date,Bean Type,Temperature,Batch Weight,Final Weight,Weight Loss %,Roast Time,Roast Level,Notes
+            2024-02-28 00:00,"Colombia - Tumbaga Decaf (Arabica)",235,200,173.6,13.2,14:00,Medium-Light,""
+            2024-04-22 00:00,"Ethiopia - Yirgacheffe (Arabica)",235,230,197.57,14.1,13:30,Medium,""
+            """);
+
+        var target = new AppData();
+        IImportService service = CreateService(target);
+        ImportFileContent content = await service.ReadFileAsync(path);
+        IReadOnlyDictionary<string, string> mappings =
+            service.SuggestMappings(ImportKind.Roasts, content.Headers);
+
+        mappings["RoastDate"].Should().Be("Date");
+        mappings["BeanType"].Should().Be("Bean Type");
+        mappings["Temperature"].Should().Be("Temperature");
+        mappings["BatchWeight"].Should().Be("Batch Weight");
+        mappings["FinalWeight"].Should().Be("Final Weight");
+        mappings["RoastTime"].Should().Be("Roast Time");
+        mappings["Notes"].Should().Be("Notes");
+
+        ImportPlan plan = await service.BuildPlanAsync(ImportKind.Roasts, content.Rows, mappings);
+        ImportCommitResult result = await service.CommitAsync(plan);
+
+        result.Succeeded.Should().BeTrue();
+        plan.RejectedRows.Should().BeEmpty();
+        RoastData first = target.RoastLogs[0];
+        first.BeanType.Should().Be("Colombia - Tumbaga Decaf (Arabica)");
+        first.RoastDate.Should().Be(new DateTime(2024, 2, 28, 0, 0, 0));
+        first.BatchWeight.Should().Be(200);
+        first.FinalWeight.Should().Be(173.6);
+        first.RoastMinutes.Should().Be(14);
+        first.RoastSeconds.Should().Be(0);
+        first.CompletionStatus.Should().Be(RoastCompletionStatus.Complete);
+        // The supplied final weight stands; the Weight Loss % column never overrides it.
+        first.WeightLossPercentage.Should().BeApproximately(13.2, 0.05);
     }
 
     // ------------------------------------------------------------------ commit

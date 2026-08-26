@@ -64,6 +64,8 @@ public partial class ImportPageViewModel : ObservableObject, IQueryAttributable
     [NotifyPropertyChangedFor(nameof(IsMapStep))]
     [NotifyPropertyChangedFor(nameof(IsReviewStep))]
     [NotifyPropertyChangedFor(nameof(IsResultStep))]
+    [NotifyPropertyChangedFor(nameof(ShowRetryAction))]
+    [NotifyPropertyChangedFor(nameof(ShowDestinationAction))]
     [NotifyPropertyChangedFor(nameof(StepTitle))]
     public partial ImportStep Step { get; set; } = ImportStep.SelectFile;
 
@@ -198,9 +200,20 @@ public partial class ImportPageViewModel : ObservableObject, IQueryAttributable
 
     [ObservableProperty]
     [NotifyPropertyChangedFor(nameof(ImportFailed))]
+    [NotifyPropertyChangedFor(nameof(ShowRetryAction))]
+    [NotifyPropertyChangedFor(nameof(ShowDestinationAction))]
     public partial bool ImportSucceeded { get; set; }
 
     public bool ImportFailed => !ImportSucceeded;
+
+    /// <summary>
+    /// Result-step actions. <see cref="ImportFailed"/> is simply "not yet succeeded", so it is true
+    /// before an import is attempted; the step must gate visibility or Retry would sit beside every
+    /// earlier step's primary action.
+    /// </summary>
+    public bool ShowRetryAction => IsResultStep && ImportFailed;
+
+    public bool ShowDestinationAction => IsResultStep && ImportSucceeded;
 
     [ObservableProperty]
     public partial int ImportedCount { get; set; }
