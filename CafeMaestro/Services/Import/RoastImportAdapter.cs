@@ -41,6 +41,7 @@ public sealed class RoastImportAdapter : IImportAdapter
     [
         new("RoastDate", "Date", true, ["date", "roastdate"]),
         new("BeanType", "Coffee bean", true, ["coffee", "bean"], ExactAliases: ["type"]),
+        new("BeanId", "Bean ID", false, ["beanid", "identity"], ExactAliases: ["bean id"]),
         new("Temperature", "Temperature", false, ["temp", "temperature"]),
         new("RoastTime", "Time", false, ["time", "duration"]),
         new("BatchWeight", "Batch weight", true, ["batch", "weight", "charge"], ExactAliases: ["weightg"]),
@@ -63,7 +64,9 @@ public sealed class RoastImportAdapter : IImportAdapter
         private readonly List<RoastLevelData> _roastLevels;
         private readonly HashSet<string> _signatures;
 
-        public RoastImportSession(IEnumerable<RoastData> existingRoasts, List<RoastLevelData> roastLevels)
+        public RoastImportSession(
+            IEnumerable<RoastData> existingRoasts,
+            List<RoastLevelData> roastLevels)
         {
             _roastLevels = roastLevels;
             _signatures = new HashSet<string>(
@@ -83,6 +86,7 @@ public sealed class RoastImportAdapter : IImportAdapter
 
             string beanType = ImportHeaderMatcher.GetMappedValue(row, mappings, "BeanType")
                 .Replace("  ", " ", StringComparison.Ordinal);
+            string rawBeanId = ImportHeaderMatcher.GetMappedValue(row, mappings, "BeanId");
             string rawDate = ImportHeaderMatcher.GetMappedValue(row, mappings, "RoastDate");
 
             if (string.IsNullOrWhiteSpace(beanType))
@@ -93,6 +97,19 @@ public sealed class RoastImportAdapter : IImportAdapter
             if (string.IsNullOrWhiteSpace(rawDate))
             {
                 return Reject(rowNumber, beanType, "Date is required.");
+            }
+
+            Guid? beanId = null;
+            if (!string.IsNullOrWhiteSpace(rawBeanId))
+            {
+                if (!Guid.TryParse(rawBeanId, out Guid parsedBeanId) || parsedBeanId == Guid.Empty)
+                {
+                    return Reject(rowNumber, beanType, $"Bean ID '{rawBeanId}' is not a valid stable identity.");
+                }
+
+                // A supplied identity is authoritative. It may refer to a bean that is not in
+                // this dataset yet; retaining it is safer than reassigning history by name.
+                beanId = parsedBeanId;
             }
 
             if (!ImportValueParser.TryParseDate(rawDate, out DateTime roastDate))
@@ -115,6 +132,7 @@ public sealed class RoastImportAdapter : IImportAdapter
             var roast = new RoastData
             {
                 Id = Guid.NewGuid(),
+                BeanId = beanId,
                 BeanType = beanType,
                 RoastDate = roastDate,
                 BatchWeight = batchWeight,
@@ -275,7 +293,10 @@ public sealed class RoastImportAdapter : IImportAdapter
         /// Duplicate policy: the same bean, day, batch weight, temperature, and elapsed time —
         /// the signature the roast log already uses to strip duplicates after a restore.
         /// </summary>
-        private static string CreateSignature(RoastData roast) =>
-            $"{roast.BeanType?.Trim()}|{roast.RoastDate:yyyy-MM-dd}|{roast.BatchWeight}|{roast.Temperature}|{roast.RoastMinutes}:{roast.RoastSeconds}";
+        private static string CreateSignature(RoastData roast)
+        {
+            string beanIdentity = roast.BeanId?.ToString("D") ?? roast.BeanType?.Trim() ?? string.Empty;
+            return $"{beanIdentity}|{roast.RoastDate:yyyy-MM-dd}|{roast.BatchWeight}|{roast.Temperature}|{roast.RoastMinutes}:{roast.RoastSeconds}";
+        }
     }
 }

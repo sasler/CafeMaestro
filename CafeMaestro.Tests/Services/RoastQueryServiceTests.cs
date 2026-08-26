@@ -51,6 +51,39 @@ public sealed class RoastQueryServiceTests
     }
 
     [Fact]
+    public async Task GetSetupSuggestion_UsesStableBeanIdWhenDisplayNamesMatch()
+    {
+        using RoastSessionTestHarness harness = await RoastSessionTestHarness.CreateAsync(Start);
+        BeanData first = await harness.AddBeanAsync(coffeeName: "Guji");
+        BeanData second = await harness.AddBeanAsync(coffeeName: "Guji");
+        first.DisplayName.Should().Be(second.DisplayName);
+
+        RoastData firstHistory = Completed(
+            first,
+            Start.AddDays(-2),
+            temperature: 210,
+            batchWeight: 200,
+            finalWeight: 176);
+        RoastData secondHistory = Completed(
+            second,
+            Start.AddDays(-1),
+            temperature: 225,
+            batchWeight: 260,
+            finalWeight: 219);
+        await AddRoastsAsync(harness, firstHistory, secondHistory);
+
+        RoastSetupSuggestion firstSuggestion = await harness.Query.GetSetupSuggestionAsync(first.Id);
+        RoastSetupSuggestion secondSuggestion = await harness.Query.GetSetupSuggestionAsync(second.Id);
+
+        firstSuggestion.Temperature.Should().Be(210);
+        firstSuggestion.BatchWeight.Should().Be(200);
+        firstSuggestion.LastCompletedRoast.Should().BeSameAs(firstHistory);
+        secondSuggestion.Temperature.Should().Be(225);
+        secondSuggestion.BatchWeight.Should().Be(260);
+        secondSuggestion.LastCompletedRoast.Should().BeSameAs(secondHistory);
+    }
+
+    [Fact]
     public async Task GetRoastsForBean_MatchesALegacyRowByItsExactUniqueDisplaySnapshot()
     {
         using RoastSessionTestHarness harness = await RoastSessionTestHarness.CreateAsync(Start);

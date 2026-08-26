@@ -343,6 +343,93 @@ public sealed class ImportServiceTests : IDisposable
     }
 
     [Fact]
+    public async Task RoastLogImport_PreservesOptionalStableBeanIdForDuplicateNames()
+    {
+        BeanData first = new()
+        {
+            Id = Guid.NewGuid(), Country = "Ethiopia", CoffeeName = "Guji", Variety = "Heirloom",
+            Quantity = 1, RemainingQuantity = 1
+        };
+        BeanData second = new()
+        {
+            Id = Guid.NewGuid(), Country = first.Country, CoffeeName = first.CoffeeName,
+            Variety = first.Variety, Quantity = 1, RemainingQuantity = 1
+        };
+        var target = new AppData { Beans = [first, second] };
+        IImportService service = CreateService(target);
+        var mappings = new Dictionary<string, string>
+        {
+            ["RoastDate"] = "Date",
+            ["BeanType"] = "Bean Type",
+            ["BeanId"] = "Bean ID",
+            ["BatchWeight"] = "Batch Weight"
+        };
+
+        ImportPlan plan = await service.BuildPlanAsync(
+            ImportKind.Roasts,
+            [Row(
+                ("Date", "2026-03-01"),
+                ("Bean Type", first.DisplayName),
+                ("Bean ID", second.Id.ToString()),
+                ("Batch Weight", "220"))],
+            mappings);
+        ImportCommitResult result = await service.CommitAsync(plan);
+
+        result.Succeeded.Should().BeTrue();
+        RoastData imported = target.RoastLogs.Should().ContainSingle().Subject;
+        imported.BeanId.Should().Be(second.Id);
+        imported.BeanDisplaySnapshot.Should().Be(first.DisplayName);
+    }
+
+    [Fact]
+    public async Task RoastLogExportImport_RoundTripsStableIdsForDuplicateDisplayNames()
+    {
+        BeanData first = new()
+        {
+            Id = Guid.NewGuid(), Country = "Ethiopia", CoffeeName = "Guji", Variety = "Heirloom",
+            Quantity = 1, RemainingQuantity = 1
+        };
+        BeanData second = new()
+        {
+            Id = Guid.NewGuid(), Country = first.Country, CoffeeName = first.CoffeeName,
+            Variety = first.Variety, Quantity = 1, RemainingQuantity = 1
+        };
+        RoastData firstRoast = ExportableRoast(first, 210, 220, new DateTime(2026, 3, 1));
+        RoastData secondRoast = ExportableRoast(second, 225, 240, new DateTime(2026, 3, 2));
+        var exportedData = new AppData
+        {
+            Beans = [first, second],
+            RoastLogs = [firstRoast, secondRoast]
+        };
+        var exporterAppData = new Mock<IAppDataService>();
+        exporterAppData.SetupGet(service => service.DataFilePath).Returns("cafemaestro_data.json");
+        exporterAppData.Setup(service => service.LoadAppDataAsync()).ReturnsAsync(exportedData);
+        using var exporter = new RoastDataService(
+            exporterAppData.Object,
+            Mock.Of<IRoastLevelService>(),
+            Mock.Of<ICoolingNotificationService>(),
+            Mock.Of<IRoastPreferencesService>());
+        await using var csvStream = new MemoryStream();
+        await exporter.ExportRoastLogAsync(csvStream);
+        csvStream.Position = 0;
+        using var csvReader = new StreamReader(csvStream);
+        string path = Path.Combine(_testDirectory, "duplicate-beans-round-trip.csv");
+        await File.WriteAllTextAsync(path, await csvReader.ReadToEndAsync());
+
+        var target = new AppData { Beans = [first, second] };
+        IImportService importer = CreateService(target);
+        ImportFileContent content = await importer.ReadFileAsync(path);
+        IReadOnlyDictionary<string, string> mappings =
+            importer.SuggestMappings(ImportKind.Roasts, content.Headers);
+        ImportPlan plan = await importer.BuildPlanAsync(ImportKind.Roasts, content.Rows, mappings);
+        ImportCommitResult result = await importer.CommitAsync(plan);
+
+        result.Succeeded.Should().BeTrue();
+        plan.RejectedRows.Should().BeEmpty();
+        target.RoastLogs.Select(roast => roast.BeanId).Should().Equal(first.Id, second.Id);
+    }
+
+    [Fact]
     public async Task IncompleteRoastExport_RoundTripsBackOntoTheAwaitingWeightPath()
     {
         // The exporter writes 0 in the final-weight column and "Pending" in the loss column for a
@@ -645,6 +732,18 @@ public sealed class ImportServiceTests : IDisposable
 
     private static Dictionary<string, string> Row(params (string Header, string Value)[] cells) =>
         cells.ToDictionary(cell => cell.Header, cell => cell.Value);
+
+    private static RoastData ExportableRoast(
+        BeanData bean,
+        double temperature,
+        double batchWeight,
+        DateTime date) => new()
+        {
+            Id = Guid.NewGuid(), BeanId = bean.Id, BeanType = bean.DisplayName,
+            BeanDisplaySnapshot = bean.DisplayName, Temperature = temperature, BatchWeight = batchWeight,
+            FinalWeight = batchWeight - 20, RoastDate = date, RoastMinutes = 11, RoastSeconds = 30,
+            RoastLevelName = "Medium", CompletionStatus = RoastCompletionStatus.Complete
+        };
 
     private static IImportService CreateService(AppData data, string roastLevelName = "Medium") =>
         CreateServiceWithMock(data, roastLevelName).Service;

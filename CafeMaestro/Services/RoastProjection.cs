@@ -127,26 +127,49 @@ internal static class RoastProjection
     /// Whether a roast belongs to a bean. Rows without a BeanId may match on an exact display
     /// snapshot, but only when that name identifies exactly one bean in the current inventory.
     /// </summary>
+    /// <remarks>
+    /// A stored BeanId is authoritative, including an orphaned or empty value; the display-name
+    /// fallback is reserved for genuinely legacy rows whose identity is absent. Ambiguous names
+    /// intentionally resolve to no bean rather than guessing between duplicate inventory entries.
+    /// </remarks>
     internal static bool BelongsToBean(
         RoastData roast,
         BeanData bean,
         IReadOnlyList<BeanData> allBeans)
     {
-        if (roast.BeanId.HasValue)
+        BeanData? resolved = ResolveBean(roast, allBeans);
+        return resolved?.Id == bean.Id;
+    }
+
+    /// <summary>
+    /// Resolves a stored roast to one current bean without silently reassigning its history.
+    /// Stable IDs always win. Only a missing ID may use an exact, unique display snapshot.
+    /// </summary>
+    internal static BeanData? ResolveBean(
+        RoastData roast,
+        IReadOnlyList<BeanData> allBeans)
+    {
+        ArgumentNullException.ThrowIfNull(roast);
+        ArgumentNullException.ThrowIfNull(allBeans);
+
+        if (roast.BeanId is Guid stableBeanId)
         {
-            return roast.BeanId.Value == bean.Id;
+            return stableBeanId == Guid.Empty
+                ? null
+                : allBeans.FirstOrDefault(candidate => candidate.Id == stableBeanId);
         }
 
         string snapshot = string.IsNullOrWhiteSpace(roast.BeanDisplaySnapshot)
             ? roast.BeanType
             : roast.BeanDisplaySnapshot;
         if (string.IsNullOrWhiteSpace(snapshot) ||
-            !string.Equals(snapshot, bean.DisplayName, StringComparison.Ordinal))
+            allBeans.Count(candidate =>
+                string.Equals(candidate.DisplayName, snapshot, StringComparison.Ordinal)) != 1)
         {
-            return false;
+            return null;
         }
 
-        return allBeans.Count(candidate =>
-            string.Equals(candidate.DisplayName, snapshot, StringComparison.Ordinal)) == 1;
+        return allBeans.First(candidate =>
+            string.Equals(candidate.DisplayName, snapshot, StringComparison.Ordinal));
     }
 }

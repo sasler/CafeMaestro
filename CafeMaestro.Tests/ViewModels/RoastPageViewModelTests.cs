@@ -39,6 +39,45 @@ public class RoastPageViewModelTests
     }
 
     [Fact]
+    public async Task SelectingSameNamedBeans_OnlyAppliesTheCurrentBeanSuggestion()
+    {
+        Harness harness = new();
+        BeanData second = new()
+        {
+            Id = Guid.NewGuid(), Country = harness.Bean.Country, CoffeeName = harness.Bean.CoffeeName,
+            Variety = harness.Bean.Variety, Quantity = 1, RemainingQuantity = 1
+        };
+        harness.Beans.Setup(service => service.GetSortedAvailableBeansAsync())
+            .ReturnsAsync([harness.Bean, second]);
+
+        var firstSuggestion = new TaskCompletionSource<RoastSetupSuggestion>(
+            TaskCreationOptions.RunContinuationsAsynchronously);
+        var secondSuggestion = new TaskCompletionSource<RoastSetupSuggestion>(
+            TaskCreationOptions.RunContinuationsAsynchronously);
+        harness.Query.Setup(service => service.GetSetupSuggestionAsync(
+                harness.Bean.Id,
+                It.IsAny<CancellationToken>()))
+            .Returns((Guid _, CancellationToken _) => firstSuggestion.Task);
+        harness.Query.Setup(service => service.GetSetupSuggestionAsync(
+                second.Id,
+                It.IsAny<CancellationToken>()))
+            .Returns((Guid _, CancellationToken _) => secondSuggestion.Task);
+
+        Task firstSelection = harness.ViewModel.SelectBeanAsync(harness.Bean);
+        Task secondSelection = harness.ViewModel.SelectBeanAsync(second);
+
+        secondSuggestion.SetResult(Harness.Suggestion(second, temperature: 225, batchWeight: 260));
+        await secondSelection;
+        firstSuggestion.SetResult(Harness.Suggestion(harness.Bean, temperature: 210, batchWeight: 200));
+        await firstSelection;
+
+        harness.ViewModel.SelectedBean.Should().BeSameAs(second);
+        harness.ViewModel.TemperatureText.Should().Be("225");
+        harness.ViewModel.BatchWeightText.Should().Be("260");
+        harness.ViewModel.PreviousResultDetails.Should().Contain("225");
+    }
+
+    [Fact]
     public async Task Start_ThenPause_ProjectsPersistedSnapshotWithoutOwningTimerTruth()
     {
         Harness harness = new();
@@ -477,7 +516,7 @@ public class RoastPageViewModelTests
 
         public Mock<IRoastSessionService> Session { get; } = new();
         public Mock<IBeanDataService> Beans { get; } = new();
-        private readonly Mock<IRoastQueryService> _query = new();
+        public Mock<IRoastQueryService> Query { get; } = new();
 
         public Harness()
         {
@@ -493,13 +532,13 @@ public class RoastPageViewModelTests
 
             Beans.Setup(service => service.GetSortedAvailableBeansAsync()).ReturnsAsync([Bean]);
             Beans.Setup(service => service.GetBeanByIdAsync(Bean.Id)).ReturnsAsync(Bean);
-            _query.Setup(service => service.GetSetupSuggestionAsync(Bean.Id, It.IsAny<CancellationToken>()))
+            Query.Setup(service => service.GetSetupSuggestionAsync(Bean.Id, It.IsAny<CancellationToken>()))
                 .ReturnsAsync(new RoastSetupSuggestion
                 {
                     BeanId = Bean.Id, Temperature = 218, BatchWeight = 240,
                     LastCompletedRoast = CompletedRoast(), NewerAwaitingWeightCount = 0
                 });
-            _query.Setup(service => service.GetRoastsForBeanAsync(Bean.Id, It.IsAny<CancellationToken>()))
+            Query.Setup(service => service.GetRoastsForBeanAsync(Bean.Id, It.IsAny<CancellationToken>()))
                 .ReturnsAsync([CompletedRoast(), DroppedRoast()]);
             Overlay.Setup(service => service.ShowWeighInAsync(
                     It.IsAny<WeighInRequest>(), It.IsAny<CancellationToken>()))
@@ -507,7 +546,7 @@ public class RoastPageViewModelTests
 
             ViewModel = new RoastPageViewModel(
                 Session.Object,
-                _query.Object,
+                Query.Object,
                 Beans.Object,
                 Overlay.Object,
                 Wake.Object,
@@ -551,6 +590,23 @@ public class RoastPageViewModelTests
                 ActiveRoast = null
             };
         }
+
+        public static RoastSetupSuggestion Suggestion(BeanData bean, double temperature, double batchWeight) =>
+            new()
+            {
+                BeanId = bean.Id,
+                Temperature = temperature,
+                BatchWeight = batchWeight,
+                LastCompletedRoast = new RoastData
+                {
+                    Id = Guid.NewGuid(), BeanId = bean.Id, BeanType = bean.DisplayName,
+                    BeanDisplaySnapshot = bean.DisplayName, Temperature = temperature,
+                    BatchWeight = batchWeight, FinalWeight = batchWeight - 20,
+                    RoastMinutes = 11, RoastSeconds = 5, RoastDate = FixedClock.Now.UtcDateTime,
+                    CompletionStatus = RoastCompletionStatus.Complete, RoastLevelName = "Medium"
+                },
+                NewerAwaitingWeightCount = 0
+            };
 
         public RoastWorkItem Work(int batch, double remaining) => new()
         {

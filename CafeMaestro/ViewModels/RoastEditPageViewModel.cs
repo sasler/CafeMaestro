@@ -69,8 +69,7 @@ public partial class RoastEditPageViewModel : ObservableObject
                 return;
             }
 
-            SelectedBean = AvailableBeans.FirstOrDefault(bean => bean.Id == _roast.BeanId)
-                ?? AvailableBeans.FirstOrDefault(bean => bean.DisplayName == _roast.BeanType);
+            SelectedBean = RoastProjection.ResolveBean(_roast, AvailableBeans);
             TemperatureText = _roast.Temperature.ToString("0.#", CultureInfo.CurrentCulture);
             BatchWeightText = _roast.BatchWeight.ToString("0.#", CultureInfo.CurrentCulture);
             FinalWeightText = _roast.FinalWeight?.ToString("0.#", CultureInfo.CurrentCulture) ?? string.Empty;

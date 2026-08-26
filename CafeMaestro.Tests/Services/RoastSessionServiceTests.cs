@@ -31,6 +31,7 @@ public sealed class RoastSessionServiceTests
 
         AppData persisted = await harness.AppDataService.LoadAppDataAsync();
         persisted.ActiveRoastSession!.ActiveRoast!.Id.Should().Be(result.Snapshot.ActiveRoast.Id);
+        persisted.ActiveRoastSession.ActiveRoast.BeanId.Should().Be(bean.Id);
         persisted.ActiveRoastSession.ActiveRoast.BeanDisplaySnapshot.Should().Be(bean.DisplayName);
     }
 

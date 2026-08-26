@@ -196,6 +196,48 @@ public sealed class DataBackupServiceTests : IDisposable
     }
 
     [Fact]
+    public async Task CreateExportStreamAsync_PreservesStableBeanIdsForDuplicateDisplayNames()
+    {
+        BeanData first = new()
+        {
+            Id = Guid.NewGuid(), Country = "Ethiopia", CoffeeName = "Guji", Variety = "Heirloom",
+            Quantity = 1, RemainingQuantity = 1
+        };
+        BeanData second = new()
+        {
+            Id = Guid.NewGuid(), Country = first.Country, CoffeeName = first.CoffeeName,
+            Variety = first.Variety, Quantity = 1, RemainingQuantity = 1
+        };
+        RoastData firstRoast = new()
+        {
+            Id = Guid.NewGuid(), BeanId = first.Id, BeanType = first.DisplayName,
+            BeanDisplaySnapshot = first.DisplayName, BatchWeight = 220, Temperature = 210,
+            RoastDate = new DateTime(2026, 8, 24), CompletionStatus = RoastCompletionStatus.Complete
+        };
+        RoastData secondRoast = new()
+        {
+            Id = Guid.NewGuid(), BeanId = second.Id, BeanType = second.DisplayName,
+            BeanDisplaySnapshot = second.DisplayName, BatchWeight = 240, Temperature = 225,
+            RoastDate = new DateTime(2026, 8, 25), CompletionStatus = RoastCompletionStatus.Complete
+        };
+        var appDataService = CreateAppDataService(new AppData
+        {
+            Beans = [first, second],
+            RoastLogs = [firstRoast, secondRoast]
+        });
+        var service = new DataBackupService(
+            appDataService.Object,
+            Path.Combine(_testDirectory, "Backups"));
+
+        await using Stream stream = await service.CreateExportStreamAsync();
+        using var reader = new StreamReader(stream, Encoding.UTF8);
+        AppData exported = JsonSerializer.Deserialize<AppData>(await reader.ReadToEndAsync())!;
+
+        exported.Beans.Select(bean => bean.Id).Should().Equal(first.Id, second.Id);
+        exported.RoastLogs.Select(roast => roast.BeanId).Should().Equal(first.Id, second.Id);
+    }
+
+    [Fact]
     public async Task CreateExportStreamAsync_ColdForwardCanonical_RejectsFallbackExport()
     {
         string canonicalPath = Path.Combine(_testDirectory, "forward-export.json");
