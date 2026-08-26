@@ -20,6 +20,9 @@ public sealed record RoastChannelPresentation
     public required string TimeDisplay { get; init; }
     public required double CoolingProgress { get; init; }
     public required bool IsReady { get; init; }
+
+    public string SemanticDescription =>
+        $"{BatchLabel}, {BeanDisplaySnapshot}, {StatusLabel}, {TimeDisplay}.";
 }
 
 /// <summary>

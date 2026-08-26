@@ -2,6 +2,7 @@
 <ContentPage xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
              xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
              xmlns:controls="clr-namespace:CafeMaestro.Controls"
+             xmlns:local="clr-namespace:CafeMaestro"
              xmlns:vm="clr-namespace:CafeMaestro.ViewModels"
              x:Class="CafeMaestro.RoastLevelSettingsPage"
              x:Name="RootPage"
@@ -31,7 +32,7 @@
                                 </VerticalStackLayout>
                                 <Grid Grid.Column="1" VerticalOptions="Center">
                                     <Button Style="{StaticResource IconButtonStyle}"
-                                            Command="{Binding Source={x:Reference RootPage}, Path=BindingContext.EditRoastLevelCommand}"
+                                            Command="{Binding Source={x:Reference RootPage}, Path=ViewModel.EditRoastLevelCommand, x:DataType=local:RoastLevelSettingsPage}"
                                             CommandParameter="{Binding .}"
                                             SemanticProperties.Description="Edit roast level" />
                                     <controls:IconView Data="{StaticResource IconEditData}" InputTransparent="True"
@@ -39,7 +40,7 @@
                                 </Grid>
                                 <Grid Grid.Column="2" VerticalOptions="Center">
                                     <Button Style="{StaticResource IconButtonStyle}"
-                                            Command="{Binding Source={x:Reference RootPage}, Path=BindingContext.DeleteRoastLevelCommand}"
+                                            Command="{Binding Source={x:Reference RootPage}, Path=ViewModel.DeleteRoastLevelCommand, x:DataType=local:RoastLevelSettingsPage}"
                                             CommandParameter="{Binding .}"
                                             SemanticProperties.Description="Delete roast level" />
                                     <controls:IconView Data="{StaticResource IconDeleteData}"
@@ -92,7 +93,8 @@
                                 <Border Style="{StaticResource FieldContainerStyle}">
                                     <Entry Text="{Binding RoastLevelName}"
                                            Placeholder="Enter roast level name"
-                                           Style="{StaticResource FieldEntryStyle}" />
+                                           Style="{StaticResource FieldEntryStyle}"
+                                           SemanticProperties.Description="Roast level name" />
                                 </Border>
                             </VerticalStackLayout>
 
@@ -102,7 +104,8 @@
                                     <Entry Text="{Binding MinWeightLossText}"
                                            Placeholder="0.0"
                                            Keyboard="Numeric"
-                                           Style="{StaticResource FieldEntryStyle}" />
+                                           Style="{StaticResource FieldEntryStyle}"
+                                           SemanticProperties.Description="Minimum weight loss percentage" />
                                 </Border>
                             </VerticalStackLayout>
 
@@ -112,7 +115,8 @@
                                     <Entry Text="{Binding MaxWeightLossText}"
                                            Placeholder="100.0"
                                            Keyboard="Numeric"
-                                           Style="{StaticResource FieldEntryStyle}" />
+                                           Style="{StaticResource FieldEntryStyle}"
+                                           SemanticProperties.Description="Maximum weight loss percentage" />
                                 </Border>
                             </VerticalStackLayout>
                         </VerticalStackLayout>

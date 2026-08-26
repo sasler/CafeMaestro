@@ -126,6 +126,25 @@ public sealed class CoolingNotificationWorkflowTests
             It.IsAny<WeighInRequest>(), It.IsAny<CancellationToken>()), Times.Never);
     }
 
+    [Fact]
+    public async Task CancelAsync_WhenNotificationCancellationIsRequested_PropagatesCancellation()
+    {
+        Mock<ICoolingNotificationService> notifications = new();
+        notifications.Setup(service => service.CancelAsync(
+                It.IsAny<Guid>(), It.IsAny<CancellationToken>()))
+            .ThrowsAsync(new OperationCanceledException());
+        CoolingNotificationWorkflow workflow = new(
+            Mock.Of<IAppDataService>(),
+            Mock.Of<IRoastPreferencesService>(),
+            notifications.Object,
+            Mock.Of<IAlertService>(),
+            new MemoryPreferences());
+
+        Func<Task> act = () => workflow.CancelAsync(Guid.NewGuid());
+
+        await act.Should().ThrowAsync<OperationCanceledException>();
+    }
+
     private static AppActivationPayload Payload(Guid roastId) =>
         new("cooling-ready", new Dictionary<string, string> { ["roastId"] = roastId.ToString() });
 

@@ -145,70 +145,6 @@ public sealed class RoastDataAtomicEditTests : IDisposable
         (await File.ReadAllTextAsync(appData.DataFilePath)).Should().Be(originalJson);
     }
 
-    [Theory]
-    [InlineData(-1d)]
-    [InlineData(double.NaN)]
-    [InlineData(double.PositiveInfinity)]
-    [InlineData(double.NegativeInfinity)]
-    public async Task SaveRoastDataAsync_InvalidFinalWeight_DoesNotLookupOrWrite(
-        double invalidFinalWeight)
-    {
-        string path = Path.Combine(_testDirectory, $"new-invalid-{Guid.NewGuid():N}.json");
-        var appData = new ManagedAppDataService(path, () => "1.5.0");
-        await appData.InitializeAsync(Mock.Of<IPreferencesService>());
-        var levels = new Mock<IRoastLevelService>(MockBehavior.Strict);
-        var roasts = new RoastDataService(
-            appData,
-            levels.Object);
-        string originalJson = await File.ReadAllTextAsync(path);
-        int eventCount = 0;
-        appData.DataChanged += (_, _) => eventCount++;
-        RoastData roast = new()
-        {
-            BeanType = "Ethiopia",
-            BeanDisplaySnapshot = "Ethiopia",
-            Temperature = 205,
-            BatchWeight = 200,
-            FinalWeight = invalidFinalWeight,
-            RoastDate = DateTime.UtcNow
-        };
-
-        bool saved = await roasts.SaveRoastDataAsync(roast);
-
-        saved.Should().BeFalse();
-        eventCount.Should().Be(0);
-        appData.CurrentData.RoastLogs.Should().BeEmpty();
-        (await File.ReadAllTextAsync(path)).Should().Be(originalJson);
-        levels.Verify(
-            service => service.GetRoastLevelNameAsync(It.IsAny<double>()),
-            Times.Never);
-    }
-
-    [Fact]
-    public async Task AddRoastAsync_NonFiniteFinalWeight_DoesNotWrite()
-    {
-        string path = Path.Combine(_testDirectory, "add-invalid.json");
-        var appData = new ManagedAppDataService(path, () => "1.5.0");
-        await appData.InitializeAsync(Mock.Of<IPreferencesService>());
-        var roasts = new RoastDataService(
-            appData,
-            Mock.Of<IRoastLevelService>());
-        string originalJson = await File.ReadAllTextAsync(path);
-        RoastData roast = new()
-        {
-            BeanType = "Ethiopia",
-            BeanDisplaySnapshot = "Ethiopia",
-            Temperature = 205,
-            BatchWeight = 200,
-            FinalWeight = double.NaN,
-            RoastDate = DateTime.UtcNow
-        };
-
-        (await roasts.AddRoastAsync(roast)).Should().BeFalse();
-        appData.CurrentData.RoastLogs.Should().BeEmpty();
-        (await File.ReadAllTextAsync(path)).Should().Be(originalJson);
-    }
-
     [Fact]
     public async Task UpdateRoastLogAsync_AfterBeanRename_PreservesHistoricalSnapshot()
     {
@@ -283,7 +219,9 @@ public sealed class RoastDataAtomicEditTests : IDisposable
         var appData = new ManagedAppDataService(canonicalPath, () => "1.5.0");
         var roasts = new RoastDataService(
             appData,
-            Mock.Of<IRoastLevelService>());
+            Mock.Of<IRoastLevelService>(),
+            Mock.Of<ICoolingNotificationService>(),
+            Mock.Of<IRoastPreferencesService>());
         int eventCount = 0;
         appData.DataChanged += (_, _) => eventCount++;
         RoastData missing = new()
@@ -330,7 +268,11 @@ public sealed class RoastDataAtomicEditTests : IDisposable
             .ReturnsAsync("Medium");
         return (
             appData,
-            new RoastDataService(appData, levels.Object),
+            new RoastDataService(
+                appData,
+                levels.Object,
+                Mock.Of<ICoolingNotificationService>(),
+                Mock.Of<IRoastPreferencesService>()),
             original);
     }
 

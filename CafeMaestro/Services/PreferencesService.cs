@@ -125,20 +125,5 @@ namespace CafeMaestro.Services
             }
         }
         
-        // Legacy compatibility methods
-        public async Task SaveRoastDataFilePathAsync(string filePath)
-        {
-            await SaveAppDataFilePathAsync(filePath);
-        }
-        
-        public async Task<string> GetRoastDataFilePathAsync()
-        {
-            return await GetAppDataFilePathAsync() ?? string.Empty;
-        }
-        
-        public async Task ClearRoastDataFilePathAsync()
-        {
-            await ClearAppDataFilePathAsync();
-        }
     }
 }

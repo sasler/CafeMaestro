@@ -13,9 +13,8 @@ a vector icon set. Pages consume it; they never invent colours, spacing or glyph
 | `Resources/Styles/ComponentStyles.xaml` | Cards, fields, action bars, chips, icon buttons, empty/error/loading, Shell tinting |
 | `Resources/Styles/IconGeometries.xaml` | Path data for every glyph, on a 24 x 24 grid |
 | `Controls/IconView.cs` | Renders one glyph at a requested size and semantic colour |
-| `Resources/Styles/Styles.xaml` | Pre-redesign styles, still used by pages awaiting migration |
 
-`App.xaml` merges DarkTheme, IconGeometries, ComponentStyles and Styles.
+`App.xaml` merges DarkTheme, IconGeometries and ComponentStyles.
 `ComponentStyles.xaml` merges `DesignTokens.xaml` itself, so its `StaticResource` lookups
 resolve while it is being parsed — and the tokens become available application-wide.
 

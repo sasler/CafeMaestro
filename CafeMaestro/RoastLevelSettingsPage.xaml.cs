@@ -12,6 +12,8 @@ public partial class RoastLevelSettingsPage : ContentPage
         BindingContext = _viewModel = viewModel ?? throw new ArgumentNullException(nameof(viewModel));
     }
 
+    public RoastLevelSettingsPageViewModel ViewModel => _viewModel;
+
     protected override async void OnAppearing()
     {
         base.OnAppearing();

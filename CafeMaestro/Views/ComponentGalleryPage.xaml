@@ -294,7 +294,7 @@
                     <Grid>
                         <Button x:Name="AccentAddButton" Style="{StaticResource AccentIconButtonStyle}" SemanticProperties.Description="Add bean" />
                         <controls:IconView Data="{StaticResource IconAddData}"
-                                           IconColor="{Binding TextColor, Source={x:Reference AccentAddButton}}" />
+                                           IconColor="{Binding TextColor, Source={x:Reference AccentAddButton}, x:DataType=Button}" />
                     </Grid>
                     <Grid>
                         <Button Style="{StaticResource IconButtonStyle}" SemanticProperties.Description="More actions" />

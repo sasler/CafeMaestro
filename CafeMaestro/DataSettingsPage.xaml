@@ -1,6 +1,7 @@
 <?xml version="1.0" encoding="utf-8" ?>
 <ContentPage xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
              xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
+             xmlns:local="clr-namespace:CafeMaestro"
              xmlns:services="clr-namespace:CafeMaestro.Services"
              xmlns:vm="clr-namespace:CafeMaestro.ViewModels"
              x:Class="CafeMaestro.DataSettingsPage"
@@ -82,14 +83,14 @@
                                             Text="RESTORE"
                                             IsVisible="{Binding IsRestorable}"
                                             Style="{StaticResource SecondaryActionStyle}"
-                                            Command="{Binding Source={x:Reference RootPage}, Path=BindingContext.RestoreSafetyBackupCommand}"
+                                             Command="{Binding Source={x:Reference RootPage}, Path=ViewModel.RestoreSafetyBackupCommand, x:DataType=local:DataSettingsPage}"
                                             CommandParameter="{Binding .}"
                                             SemanticProperties.Description="Restore this automatic backup" />
                                     <Button Grid.Column="1"
                                             Text="SAVE COPY"
                                             IsVisible="{Binding IsRawRecovery}"
                                             Style="{StaticResource SecondaryActionStyle}"
-                                            Command="{Binding Source={x:Reference RootPage}, Path=BindingContext.SaveRecoveryCopyCommand}"
+                                             Command="{Binding Source={x:Reference RootPage}, Path=ViewModel.SaveRecoveryCopyCommand, x:DataType=local:DataSettingsPage}"
                                             CommandParameter="{Binding .}"
                                             SemanticProperties.Description="Save the original raw recovery JSON" />
                                 </Grid>

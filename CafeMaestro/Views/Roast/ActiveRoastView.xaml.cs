@@ -9,6 +9,8 @@ public partial class ActiveRoastView : ContentView
     private RoastInstrumentDrawable? _drawable;
     private RoastPageViewModel? _viewModel;
 
+    public RoastPageViewModel? ViewModel => BindingContext as RoastPageViewModel;
+
     public ActiveRoastView()
     {
         InitializeComponent();

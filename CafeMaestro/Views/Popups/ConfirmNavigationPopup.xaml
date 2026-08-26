@@ -4,7 +4,9 @@
              xmlns:popupVm="clr-namespace:CafeMaestro.ViewModels.Popups"
              x:Class="CafeMaestro.Views.Popups.ConfirmNavigationPopup"
              x:DataType="popupVm:ConfirmNavigationViewModel"
-             WidthRequest="330" Padding="{StaticResource SpaceMd}">
+             MaximumWidthRequest="{StaticResource PopupMaxWidth}"
+             HorizontalOptions="Fill"
+             Padding="{StaticResource SpaceMd}">
     <Border Style="{StaticResource AttentionCardStyle}">
         <VerticalStackLayout Spacing="{StaticResource SpaceLg}">
             <Label Text="A ROAST IS ACTIVE" Style="{StaticResource SectionHeaderStyle}" />

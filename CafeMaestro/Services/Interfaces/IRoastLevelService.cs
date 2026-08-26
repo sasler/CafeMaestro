@@ -5,7 +5,6 @@ namespace CafeMaestro.Services;
 public interface IRoastLevelService
 {
     string DataFilePath { get; }
-    Task InitializeFromPreferencesAsync(IPreferencesService preferencesService);
     Task<string> GetRoastLevelNameAsync(double weightLossPercentage);
     Task<List<RoastLevelData>> GetRoastLevelsAsync();
     Task<bool> SaveRoastLevelsAsync(List<RoastLevelData> levels);

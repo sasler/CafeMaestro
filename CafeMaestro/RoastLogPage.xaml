@@ -2,6 +2,7 @@
 <ContentPage xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
              xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
              xmlns:controls="clr-namespace:CafeMaestro.Controls"
+             xmlns:local="clr-namespace:CafeMaestro"
              xmlns:vm="clr-namespace:CafeMaestro.ViewModels"
              x:Class="CafeMaestro.RoastLogPage"
              x:DataType="vm:RoastLogPageViewModel"
@@ -132,14 +133,14 @@
                                             <controls:RoastStatusCard Card="{Binding .}">
                                                 <controls:RoastStatusCard.GestureRecognizers>
                                                     <TapGestureRecognizer
-                                                        Command="{Binding Source={RelativeSource AncestorType={x:Type ContentPage}}, Path=BindingContext.OpenDetailCommand}"
+                                                        Command="{Binding Source={RelativeSource AncestorType={x:Type local:RoastLogPage}}, Path=ViewModel.OpenDetailCommand, x:DataType=local:RoastLogPage}"
                                                         CommandParameter="{Binding .}" />
                                                 </controls:RoastStatusCard.GestureRecognizers>
                                             </controls:RoastStatusCard>
                                             <Button Text="WEIGH IN"
                                                     Style="{StaticResource ConfirmActionStyle}"
                                                     IsVisible="{Binding CanWeigh}"
-                                                    Command="{Binding Source={RelativeSource AncestorType={x:Type ContentPage}}, Path=BindingContext.WeighCommand}"
+                                                    Command="{Binding Source={RelativeSource AncestorType={x:Type local:RoastLogPage}}, Path=ViewModel.WeighCommand, x:DataType=local:RoastLogPage}"
                                                     CommandParameter="{Binding .}"
                                                     SemanticProperties.Description="{Binding BeanDisplay, StringFormat='Weigh {0}'}" />
                                         </VerticalStackLayout>
@@ -167,18 +168,18 @@
                                                 <SwipeItems Mode="Reveal">
                                                     <SwipeItem Text="Edit"
                                                                BackgroundColor="{DynamicResource RoastColor}"
-                                                               Command="{Binding Source={RelativeSource AncestorType={x:Type ContentPage}}, Path=BindingContext.EditRoastCommand}"
+                                                               Command="{Binding Source={RelativeSource AncestorType={x:Type local:RoastLogPage}}, Path=ViewModel.EditRoastCommand, x:DataType=local:RoastLogPage}"
                                                                CommandParameter="{Binding .}" />
                                                     <SwipeItem Text="Delete"
                                                                BackgroundColor="{DynamicResource DangerColor}"
-                                                               Command="{Binding Source={RelativeSource AncestorType={x:Type ContentPage}}, Path=BindingContext.DeleteRoastCommand}"
+                                                               Command="{Binding Source={RelativeSource AncestorType={x:Type local:RoastLogPage}}, Path=ViewModel.DeleteRoastCommand, x:DataType=local:RoastLogPage}"
                                                                CommandParameter="{Binding .}" />
                                                 </SwipeItems>
                                             </SwipeView.RightItems>
                                             <controls:RoastStatusCard Card="{Binding .}">
                                                 <controls:RoastStatusCard.GestureRecognizers>
                                                     <TapGestureRecognizer
-                                                        Command="{Binding Source={RelativeSource AncestorType={x:Type ContentPage}}, Path=BindingContext.OpenDetailCommand}"
+                                                        Command="{Binding Source={RelativeSource AncestorType={x:Type local:RoastLogPage}}, Path=ViewModel.OpenDetailCommand, x:DataType=local:RoastLogPage}"
                                                         CommandParameter="{Binding .}" />
                                                 </controls:RoastStatusCard.GestureRecognizers>
                                             </controls:RoastStatusCard>

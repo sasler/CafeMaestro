@@ -4,7 +4,9 @@
              xmlns:popupVm="clr-namespace:CafeMaestro.ViewModels.Popups"
              x:Class="CafeMaestro.Views.Popups.DiscardRoastPopup"
              x:DataType="popupVm:DiscardRoastViewModel"
-             WidthRequest="340" Padding="{StaticResource SpaceMd}">
+             MaximumWidthRequest="{StaticResource PopupMaxWidth}"
+             HorizontalOptions="Fill"
+             Padding="{StaticResource SpaceMd}">
     <Border Style="{StaticResource DangerCardStyle}">
         <VerticalStackLayout Spacing="{StaticResource SpaceLg}">
             <Label Text="DISCARD BATCH?" Style="{StaticResource SectionHeaderStyle}" />
@@ -12,7 +14,11 @@
             <Label Text="{Binding Request.ElapsedDisplay, StringFormat='Elapsed {0}'}" Style="{StaticResource NumericValueStyle}" />
             <Grid ColumnDefinitions="*,Auto">
                 <Label Text="Were the beans used?" Style="{StaticResource CardMetaStyle}" VerticalOptions="Center" />
-                <Switch Grid.Column="1" IsToggled="{Binding BeansWereUsed}" />
+                <Switch Grid.Column="1"
+                        IsToggled="{Binding BeansWereUsed}"
+                        MinimumHeightRequest="{StaticResource TouchTargetMin}"
+                        MinimumWidthRequest="{StaticResource TouchTargetMin}"
+                        SemanticProperties.Description="Remove the used bean weight from inventory" />
             </Grid>
             <Button Text="DISCARD BATCH" Command="{Binding DiscardCommand}" Style="{StaticResource DestructiveActionStyle}" />
             <Button Text="LOG IT ANYWAY" Command="{Binding KeepLogCommand}" Style="{StaticResource SecondaryActionStyle}" />

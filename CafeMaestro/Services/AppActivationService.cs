@@ -62,11 +62,3 @@ public sealed class AppActivationService : IAppActivationService
         }
     }
 }
-
-/// <summary>Cross-platform placeholder until a platform activation destination is implemented.</summary>
-public sealed class NoOpAppActivationHandler : IAppActivationHandler
-{
-    public Task HandleAsync(
-        AppActivationPayload payload,
-        CancellationToken cancellationToken = default) => Task.CompletedTask;
-}

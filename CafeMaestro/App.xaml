@@ -14,8 +14,6 @@
                 <ResourceDictionary Source="Resources/Styles/IconGeometries.xaml" />
                 <!-- Component recipes; merges DesignTokens.xaml so tokens resolve app-wide -->
                 <ResourceDictionary Source="Resources/Styles/ComponentStyles.xaml" />
-                <!-- Legacy styles still used by pages awaiting migration -->
-                <ResourceDictionary Source="Resources/Styles/Styles.xaml" />
             </ResourceDictionary.MergedDictionaries>
         </ResourceDictionary>
     </Application.Resources>

@@ -76,6 +76,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - 8 new unit tests covering share commands and flexible roast saving
 
 ### Fixed
+- Release XamlC bindings now declare their page or template source types, and Release builds fail on
+  stale or ambiguous binding paths instead of shipping runtime-only binding failures
+- Roast edit and recovery inputs now expose explicit screen-reader names, shared scalable field
+  styling, and the same minimum touch targets as the rest of the redesigned forms
+- Cooling-reminder cancellation preserves cooperative cancellation while still treating native
+  scheduler failures as non-blocking best effort
+- App, page, and singleton event subscriptions now have symmetric lifecycle cleanup, including
+  ticker and graphics resources that must not survive a page or window teardown
 - A roast-log CSV containing a multiline quoted note could not be imported at all; it now reads as the rows it actually contains
 - CafeMaestro's own export of an unweighed roast (`0` final weight, `Pending` loss) round-trips back onto the Awaiting weight path instead of being rejected
 - A supplied negative final weight is rejected instead of being silently replaced by a value derived from the loss column
@@ -91,6 +99,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Invalid backup JSON is rejected without modifying active data or the selected source
 
 ### Changed
+- Release hardening validates backup, export, and unified CSV import round trips against the same
+  atomic persistence paths, including content-URI-safe file handling
+- Responsive popup sheets now fill the available phone width up to a shared maximum, and long
+  action labels wrap when dynamic text grows
+- Version bumped to 1.12.1
 - CSV import now reads and validates the whole file before the Review step, so the counts shown are the counts imported rather than a five-row sample
 - Import parses numbers and dates with invariant culture first and only then falls back to the device culture, matching how CafeMaestro stores them
 - Duplicate policy is re-applied inside the atomic commit, so a record added between Review and import is reported rather than duplicated
@@ -125,6 +138,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - RoastDataService handles Pending roast level for roasts without final weight
 
 ### Removed
+- Proven-unused timer, legacy import, navigation, compatibility-shim, legacy-style, and image
+  assets were retired after repository-wide reference searches
 - `BeanImportPage`, `RoastImportPage`, their ViewModels and routes, plus the per-row `ImportBeansFromCsvAsync`/`ImportRoastsFromCsvAsync` service methods they relied on
 - The redundant Home page, ViewModel, route, DI registrations, tests, and icon asset
 - Custom live-data file locations and the first-run storage-location prompt

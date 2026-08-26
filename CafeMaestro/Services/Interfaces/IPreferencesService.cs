@@ -10,7 +10,4 @@ public interface IPreferencesService
     Task ResetToFirstRunAsync();
     Task SaveThemePreferenceAsync(ThemePreference theme);
     Task<ThemePreference> GetThemePreferenceAsync();
-    Task SaveRoastDataFilePathAsync(string filePath);
-    Task<string> GetRoastDataFilePathAsync();
-    Task ClearRoastDataFilePathAsync();
 }

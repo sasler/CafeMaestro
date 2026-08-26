@@ -61,6 +61,10 @@ public sealed class CoolingNotificationWorkflow : ICoolingNotificationWorkflow
                     cancellationToken);
             }
         }
+        catch (OperationCanceledException)
+        {
+            throw;
+        }
         catch (Exception ex)
         {
             System.Diagnostics.Debug.WriteLine($"Cooling reminder reconciliation failed: {ex.Message}");
@@ -118,6 +122,10 @@ public sealed class CoolingNotificationWorkflow : ICoolingNotificationWorkflow
                 return await ScheduleAsync(droppedRoast, cancellationToken);
             }
         }
+        catch (OperationCanceledException)
+        {
+            throw;
+        }
         catch (Exception ex)
         {
             System.Diagnostics.Debug.WriteLine($"Cooling reminder onboarding failed: {ex.Message}");
@@ -130,41 +138,16 @@ public sealed class CoolingNotificationWorkflow : ICoolingNotificationWorkflow
         return null;
     }
 
-    /// <summary>
-    /// Compatibility helper for callers/tests that already have the projected open-work item.
-    /// New post-persistence callers should pass the stored <see cref="RoastData"/> directly.
-    /// </summary>
-    public Task<string?> AfterSuccessfulDropAsync(
-        RoastWorkItem droppedRoast,
-        CancellationToken cancellationToken = default)
-    {
-        ArgumentNullException.ThrowIfNull(droppedRoast);
-        return HandleSuccessfulDropAsync(new RoastData
-        {
-            Id = droppedRoast.RoastId,
-            SessionId = droppedRoast.SessionId,
-            BatchNumber = droppedRoast.BatchNumber,
-            BeanId = droppedRoast.BeanId,
-            BeanType = droppedRoast.BeanDisplaySnapshot,
-            BeanDisplaySnapshot = droppedRoast.BeanDisplaySnapshot,
-            Temperature = droppedRoast.Temperature,
-            BatchWeight = droppedRoast.BatchWeight,
-            RoastMinutes = droppedRoast.TotalSeconds / 60,
-            RoastSeconds = droppedRoast.TotalSeconds % 60,
-            RoastDate = droppedRoast.DroppedAtUtc.LocalDateTime,
-            DroppedAtUtc = droppedRoast.DroppedAtUtc,
-            CoolingDurationSeconds = (int)Math.Max(0, (droppedRoast.ReadyToWeighAtUtc - droppedRoast.DroppedAtUtc).TotalSeconds),
-            CompletionStatus = RoastCompletionStatus.AwaitingWeight,
-            RoastLevelName = "Pending"
-        }, cancellationToken);
-    }
-
     public async Task CancelAsync(Guid roastId, CancellationToken cancellationToken = default)
     {
         await _operationGate.WaitAsync(cancellationToken);
         try
         {
             await _notifications.CancelAsync(roastId, cancellationToken);
+        }
+        catch (OperationCanceledException)
+        {
+            throw;
         }
         catch (Exception ex)
         {
@@ -194,6 +177,10 @@ public sealed class CoolingNotificationWorkflow : ICoolingNotificationWorkflow
                 roast.BatchNumber,
                 cancellationToken);
             return null;
+        }
+        catch (OperationCanceledException)
+        {
+            throw;
         }
         catch (Exception ex)
         {

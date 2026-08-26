@@ -7,7 +7,7 @@ namespace CafeMaestro;
 public partial class RoastPage : ContentPage
 {
     private readonly RoastPageViewModel _viewModel;
-    private readonly IDispatcherTimer _ticker;
+    private IDispatcherTimer? _ticker;
     private bool _isAppeared;
     private bool _isObservingViewModel;
 
@@ -15,9 +15,6 @@ public partial class RoastPage : ContentPage
     {
         InitializeComponent();
         BindingContext = _viewModel = viewModel ?? throw new ArgumentNullException(nameof(viewModel));
-        _ticker = Dispatcher.CreateTimer();
-        _ticker.Interval = TimeSpan.FromMilliseconds(250);
-        _ticker.Tick += OnTick;
     }
 
     protected override async void OnAppearing()
@@ -27,6 +24,7 @@ public partial class RoastPage : ContentPage
         SubscribeViewModel();
         await _viewModel.OnAppearingAsync();
         UpdateChrome();
+        EnsureTicker();
         UpdateTicker();
     }
 
@@ -34,7 +32,12 @@ public partial class RoastPage : ContentPage
     {
         _isAppeared = false;
         UnsubscribeViewModel();
-        _ticker.Stop();
+        if (_ticker is not null)
+        {
+            _ticker.Stop();
+            _ticker.Tick -= OnTick;
+            _ticker = null;
+        }
         await _viewModel.OnDisappearingAsync();
         base.OnDisappearing();
     }
@@ -56,6 +59,18 @@ public partial class RoastPage : ContentPage
     {
         _viewModel.Tick();
         ActiveView.InvalidateInstrument();
+    }
+
+    private void EnsureTicker()
+    {
+        if (_ticker is not null)
+        {
+            return;
+        }
+
+        _ticker = Dispatcher.CreateTimer();
+        _ticker.Interval = TimeSpan.FromMilliseconds(250);
+        _ticker.Tick += OnTick;
     }
 
     private void OnViewModelPropertyChanged(object? sender, PropertyChangedEventArgs e)
@@ -107,11 +122,11 @@ public partial class RoastPage : ContentPage
                 Models.RoastPresentationState.Handoff;
         if (shouldRun)
         {
-            _ticker.Start();
+            _ticker?.Start();
         }
         else
         {
-            _ticker.Stop();
+            _ticker?.Stop();
         }
     }
 

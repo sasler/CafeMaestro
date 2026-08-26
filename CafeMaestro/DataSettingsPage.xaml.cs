@@ -12,6 +12,8 @@ public partial class DataSettingsPage : ContentPage
         BindingContext = _viewModel = viewModel ?? throw new ArgumentNullException(nameof(viewModel));
     }
 
+    public DataSettingsPageViewModel ViewModel => _viewModel;
+
     protected override async void OnAppearing()
     {
         base.OnAppearing();

@@ -13,6 +13,8 @@ public partial class RoastLogPage : ContentPage
         BindingContext = _viewModel = viewModel;
     }
 
+    public RoastLogPageViewModel ViewModel => _viewModel;
+
     protected override async void OnAppearing()
     {
         base.OnAppearing();
@@ -24,6 +26,11 @@ public partial class RoastLogPage : ContentPage
     protected override void OnDisappearing()
     {
         _ticker?.Stop();
+        if (_ticker is not null)
+        {
+            _ticker.Tick -= OnTickerTick;
+            _ticker = null;
+        }
         _viewModel.OnDisappearing();
         base.OnDisappearing();
     }
@@ -43,7 +50,12 @@ public partial class RoastLogPage : ContentPage
 
         _ticker = Dispatcher.CreateTimer();
         _ticker.Interval = TimeSpan.FromSeconds(1);
-        _ticker.Tick += async (_, _) => await _viewModel.RefreshTimeProjectionAsync();
+        _ticker.Tick += OnTickerTick;
+    }
+
+    private async void OnTickerTick(object? sender, EventArgs e)
+    {
+        await _viewModel.RefreshTimeProjectionAsync();
     }
 
     private void OnPageSizeChanged(object? sender, EventArgs e)

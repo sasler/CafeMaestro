@@ -18,9 +18,10 @@
         <CollectionView Grid.Row="1" ItemsSource="{Binding Channels}" SelectionMode="None">
             <CollectionView.ItemTemplate>
                 <DataTemplate x:DataType="models:RoastChannelPresentation">
-                    <Border Style="{StaticResource CoolingCardStyle}" Margin="0,0,0,12">
+                    <Border Style="{StaticResource CoolingCardStyle}" Margin="0,0,0,12"
+                            SemanticProperties.Description="{Binding SemanticDescription}">
                         <Border.GestureRecognizers>
-                            <TapGestureRecognizer Command="{Binding Source={x:Reference Root}, Path=BindingContext.WeighChannelCommand}"
+                            <TapGestureRecognizer Command="{Binding Source={x:Reference Root}, Path=ViewModel.WeighChannelCommand, x:DataType=roast:RoastHandoffView}"
                                                   CommandParameter="{Binding .}" />
                         </Border.GestureRecognizers>
                         <Grid ColumnDefinitions="Auto,Auto,*,Auto" ColumnSpacing="{StaticResource SpaceMd}">
@@ -31,9 +32,11 @@
                                 <Label Text="{Binding StatusLabel}" Style="{StaticResource CardMetaStyle}" />
                             </VerticalStackLayout>
                             <Button Grid.Column="3" Text="{Binding TimeDisplay}"
-                                    Command="{Binding Source={x:Reference Root}, Path=BindingContext.WeighChannelCommand}"
+                                    Command="{Binding Source={x:Reference Root}, Path=ViewModel.WeighChannelCommand, x:DataType=roast:RoastHandoffView}"
                                     CommandParameter="{Binding .}" IsEnabled="{Binding IsReady}"
-                                    Style="{StaticResource SecondaryActionStyle}" MinimumHeightRequest="48" />
+                                    Style="{StaticResource SecondaryActionStyle}" MinimumHeightRequest="{StaticResource ControlHeightMin}"
+                                    SemanticProperties.Description="{Binding SemanticDescription}"
+                                    SemanticProperties.Hint="Opens final weight entry when this batch is ready" />
                         </Grid>
                     </Border>
                 </DataTemplate>

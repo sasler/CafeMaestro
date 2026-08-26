@@ -31,44 +31,6 @@ public sealed class RoastSessionService : IRoastSessionService, IDisposable
         IAppDataService appDataService,
         IRoastLevelService roastLevelService,
         IRoastPreferencesService roastPreferencesService,
-        ICoolingNotificationService coolingNotificationService,
-        IClock clock)
-        : this(
-            appDataService,
-            roastLevelService,
-            roastPreferencesService,
-            new LegacyCoolingNotificationWorkflow(roastPreferencesService, coolingNotificationService),
-            clock)
-    {
-    }
-
-    /// <summary>
-    /// App composition supplies both the native implementation and the policy coordinator. The
-    /// native parameter intentionally remains in this overload so existing embedders/tests keep
-    /// their constructor contract while DI selects this richer, single-owner path.
-    /// </summary>
-    [Microsoft.Extensions.DependencyInjection.ActivatorUtilitiesConstructor]
-    public RoastSessionService(
-        IAppDataService appDataService,
-        IRoastLevelService roastLevelService,
-        IRoastPreferencesService roastPreferencesService,
-        ICoolingNotificationService coolingNotificationService,
-        IClock clock,
-        ICoolingNotificationWorkflow coolingNotificationWorkflow)
-        : this(
-            appDataService,
-            roastLevelService,
-            roastPreferencesService,
-            coolingNotificationWorkflow,
-            clock)
-    {
-        ArgumentNullException.ThrowIfNull(coolingNotificationService);
-    }
-
-    private RoastSessionService(
-        IAppDataService appDataService,
-        IRoastLevelService roastLevelService,
-        IRoastPreferencesService roastPreferencesService,
         ICoolingNotificationWorkflow coolingNotificationWorkflow,
         IClock clock)
     {

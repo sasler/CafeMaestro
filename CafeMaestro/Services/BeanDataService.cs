@@ -9,11 +9,10 @@ using CafeMaestro.Models;
 
 namespace CafeMaestro.Services
 {
-    public class BeanDataService : IBeanDataService
+    public class BeanDataService : IBeanDataService, IDisposable
     {
         private readonly IAppDataService _appDataService;
-        private readonly SemaphoreSlim _initLock = new SemaphoreSlim(1, 1);
-        private bool _isInitialized = false;
+        private bool _isDisposed;
         private string _currentDataFilePath;
 
         // Property to get the current data file path
@@ -51,34 +50,6 @@ namespace CafeMaestro.Services
                     System.Diagnostics.Debug.WriteLine($"Error reloading data after path change in BeanService: {ex.Message}");
                 }
             });
-        }
-
-        // Initialize from preferences - ensure this is called at startup
-        public async Task InitializeFromPreferencesAsync(IPreferencesService preferencesService)
-        {
-            await _initLock.WaitAsync();
-
-            try
-            {
-                if (_isInitialized)
-                {
-                    return;
-                }
-
-                // Force a reload of data
-                await _appDataService.ReloadDataAsync();
-                _currentDataFilePath = _appDataService.DataFilePath;
-
-                _isInitialized = true;
-            }
-            catch (Exception ex)
-            {
-                System.Diagnostics.Debug.WriteLine($"Error initializing BeanService from preferences: {ex.Message}");
-            }
-            finally
-            {
-                _initLock.Release();
-            }
         }
 
         public async Task<bool> SaveBeansAsync(List<BeanData> beans)
@@ -359,35 +330,15 @@ namespace CafeMaestro.Services
             }
         }
 
-        // Add a special version of AddBeanAsync that avoids event recursion
-        private async Task<bool> AddBeanDirectAsync(BeanData bean)
+        public void Dispose()
         {
-            try
+            if (_isDisposed)
             {
-                // First verify current path
-                if (_currentDataFilePath != _appDataService.DataFilePath)
-                {                    // Synchronize the path
-                    _currentDataFilePath = _appDataService.DataFilePath;
-                }
-
-                // Load full app data
-                var appData = await _appDataService.LoadAppDataAsync();
-
-                // Add the bean
-                appData.Beans.Add(bean);
-
-                // Save updated app data
-                bool saveResult = await _appDataService.SaveAppDataAsync(appData);
-
-                return saveResult;
+                return;
             }
-            catch (Exception ex)
-            {
-                System.Diagnostics.Debug.WriteLine($"TRACE ERROR: Error adding bean directly: {ex.Message}");
-                System.Diagnostics.Debug.WriteLine($"TRACE ERROR: Exception type: {ex.GetType().Name}");
-                System.Diagnostics.Debug.WriteLine($"TRACE ERROR: Stack trace: {ex.StackTrace}");
-                return false;
-            }
+
+            _isDisposed = true;
+            _appDataService.DataFilePathChanged -= OnDataFilePathChanged;
         }
     }
 }

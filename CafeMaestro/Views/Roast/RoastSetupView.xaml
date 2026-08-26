@@ -1,6 +1,7 @@
 <?xml version="1.0" encoding="utf-8" ?>
 <ContentView xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
              xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
+             xmlns:models="clr-namespace:CafeMaestro.Models"
              xmlns:vm="clr-namespace:CafeMaestro.ViewModels"
              x:Class="CafeMaestro.Views.Roast.RoastSetupView"
              x:DataType="vm:RoastPageViewModel">
@@ -23,11 +24,11 @@
                     <Border Style="{StaticResource FieldContainerStyle}">
                         <Picker ItemsSource="{Binding AvailableBeans}"
                                 SelectedItem="{Binding SelectedBean, Mode=TwoWay}"
-                                ItemDisplayBinding="{Binding DisplayName}"
+                                ItemDisplayBinding="{Binding DisplayName, x:DataType=models:BeanData}"
                                 Title="Choose a bean"
                                 TextColor="{DynamicResource PrimaryTextColor}"
                                 BackgroundColor="{DynamicResource TransparentColor}"
-                                MinimumHeightRequest="48"
+                                MinimumHeightRequest="{StaticResource ControlHeightMin}"
                                 SemanticProperties.Description="Bean selector" />
                     </Border>
                 </VerticalStackLayout>

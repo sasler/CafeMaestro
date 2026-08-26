@@ -5,7 +5,6 @@ namespace CafeMaestro.Services;
 public interface IBeanDataService
 {
     string DataFilePath { get; }
-    Task InitializeFromPreferencesAsync(IPreferencesService preferencesService);
     Task<bool> SaveBeansAsync(List<BeanData> beans);
     Task<bool> AddBeanAsync(BeanData bean);
     Task<bool> UpdateBeanAsync(BeanData bean);

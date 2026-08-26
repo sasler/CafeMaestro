@@ -27,8 +27,8 @@ Unweighed and Discarded records display an em dash for output, loss, and level r
 - The generic edit page changes only mutable recorded details: temperature, roast time, First Crack,
   and notes. It does not rewrite batch identity, input weight, session identity, or final weight.
 - Detail and list deletion name the bean and date before deleting.
-- Import remains the contextual existing Roast Import route until the unified import ticket replaces
-  it. CSV export is available directly from the Log header.
+- Import opens the shared CSV flow with Roast Logs already selected, so the mapping and review rules
+  match the Beans and Data & Backups entry points. CSV export is available directly from the Log header.
 
 The page subscribes to app-data changes only while visible. Weigh-in, edits, and deletion therefore
 publish one persistence event and trigger one projection refresh without a second manual reload.

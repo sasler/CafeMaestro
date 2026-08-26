@@ -1,6 +1,7 @@
 ﻿using CafeMaestro.Models;
 using CafeMaestro.Services;
 using FluentAssertions;
+using Microsoft.Maui.Storage;
 using Moq;
 
 namespace CafeMaestro.Tests.Services;
@@ -85,6 +86,22 @@ internal sealed class RecordingCoolingNotificationService : ICoolingNotification
     }
 }
 
+internal sealed class RoastSessionPreferences : IPreferences
+{
+    private readonly Dictionary<string, object?> _values = [];
+
+    public bool ContainsKey(string key, string? sharedName = null) => _values.ContainsKey(key);
+
+    public void Remove(string key, string? sharedName = null) => _values.Remove(key);
+
+    public void Clear(string? sharedName = null) => _values.Clear();
+
+    public void Set<T>(string key, T value, string? sharedName = null) => _values[key] = value;
+
+    public T Get<T>(string key, T defaultValue, string? sharedName = null) =>
+        _values.TryGetValue(key, out object? value) && value is T typed ? typed : defaultValue;
+}
+
 /// <summary>
 /// Wires the roast domain against the real persistence stack and a temporary data file, so
 /// transitions exercise the same atomic mutation, validation, and event path the app uses.
@@ -112,21 +129,30 @@ internal sealed class RoastSessionTestHarness : IDisposable
         RoastLevelService
             .Setup(service => service.GetRoastLevelNameAsync(It.IsAny<double>()))
             .ReturnsAsync("Medium");
-        Session = notificationWorkflow is null
-            ? new RoastSessionService(
-                appDataService,
-                RoastLevelService.Object,
-                preferences,
-                notifications,
-                clock)
-            : new RoastSessionService(
-                appDataService,
-                RoastLevelService.Object,
-                preferences,
-                notifications,
-                clock,
-                notificationWorkflow);
+        ICoolingNotificationWorkflow workflow = notificationWorkflow ?? CreateNotificationWorkflow(
+            appDataService, preferences, notifications);
+        Session = new RoastSessionService(
+            appDataService,
+            RoastLevelService.Object,
+            preferences,
+            workflow,
+            clock);
         Query = new RoastQueryService(appDataService, clock);
+    }
+
+    private static ICoolingNotificationWorkflow CreateNotificationWorkflow(
+        IAppDataService appDataService,
+        FakeRoastPreferencesService preferences,
+        RecordingCoolingNotificationService notifications)
+    {
+        RoastSessionPreferences platformPreferences = new();
+        platformPreferences.Set("CoolingNotificationFirstDropPromptSeen", true);
+        return new CoolingNotificationWorkflow(
+            appDataService,
+            preferences,
+            notifications,
+            Mock.Of<IAlertService>(),
+            platformPreferences);
     }
 
     public string CanonicalPath { get; }

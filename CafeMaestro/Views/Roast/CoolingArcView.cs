@@ -22,6 +22,7 @@ public sealed class CoolingArcView : GraphicsView
     public CoolingArcView()
     {
         Loaded += OnLoaded;
+        Unloaded += OnUnloaded;
         HeightRequest = 48;
         WidthRequest = 48;
         AutomationProperties.SetIsInAccessibleTree(this, false);
@@ -40,6 +41,12 @@ public sealed class CoolingArcView : GraphicsView
         };
         Drawable = _drawable;
         Invalidate();
+    }
+
+    private void OnUnloaded(object? sender, EventArgs e)
+    {
+        _drawable = null;
+        Drawable = null;
     }
 
     private static void OnProgressChanged(BindableObject bindable, object oldValue, object newValue)

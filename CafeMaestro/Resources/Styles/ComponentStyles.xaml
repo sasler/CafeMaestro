@@ -252,6 +252,14 @@
         </Setter>
     </Style>
 
+    <Style x:Key="FieldEditorStyle" TargetType="Editor">
+        <Setter Property="TextColor" Value="{DynamicResource PrimaryTextColor}" />
+        <Setter Property="PlaceholderColor" Value="{DynamicResource MutedTextColor}" />
+        <Setter Property="BackgroundColor" Value="{DynamicResource TransparentColor}" />
+        <Setter Property="FontSize" Value="{StaticResource FontSizeBody}" />
+        <Setter Property="MinimumHeightRequest" Value="{StaticResource EditorHeightMin}" />
+    </Style>
+
     <!-- Error text is placed directly beneath its field and linked to it semantically. -->
     <Style x:Key="FieldErrorStyle" TargetType="Label">
         <Setter Property="TextColor" Value="{DynamicResource DangerColor}" />
@@ -291,6 +299,7 @@
         <Setter Property="CornerRadius" Value="{StaticResource ButtonRadiusLg}" />
         <Setter Property="MinimumHeightRequest" Value="{StaticResource PrimaryActionHeight}" />
         <Setter Property="Padding" Value="{StaticResource ChipPadding}" />
+        <Setter Property="LineBreakMode" Value="WordWrap" />
         <Setter Property="VisualStateManager.VisualStateGroups">
             <VisualStateGroupList>
                 <VisualStateGroup Name="CommonStates">

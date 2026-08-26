@@ -2,6 +2,7 @@
 <ContentPage xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
              xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
              xmlns:controls="clr-namespace:CafeMaestro.Controls"
+             xmlns:local="clr-namespace:CafeMaestro"
              xmlns:models="clr-namespace:CafeMaestro.Models"
              xmlns:vm="clr-namespace:CafeMaestro.ViewModels"
              x:Class="CafeMaestro.BeanInventoryPage"
@@ -89,7 +90,7 @@
                                         <SwipeItems Mode="Reveal">
                                             <SwipeItem Text="Edit"
                                                        BackgroundColor="{DynamicResource ElevatedSurfaceColor}"
-                                                       Command="{Binding Source={RelativeSource AncestorType={x:Type ContentPage}}, Path=BindingContext.EditBeanCommand}"
+                                                       Command="{Binding Source={RelativeSource AncestorType={x:Type local:BeanInventoryPage}}, Path=ViewModel.EditBeanCommand, x:DataType=local:BeanInventoryPage}"
                                                        CommandParameter="{Binding .}" />
                                         </SwipeItems>
                                     </SwipeView.LeftItems>
@@ -97,13 +98,13 @@
                                         <SwipeItems Mode="Reveal">
                                             <SwipeItem Text="Delete"
                                                        BackgroundColor="{DynamicResource DangerColor}"
-                                                       Command="{Binding Source={RelativeSource AncestorType={x:Type ContentPage}}, Path=BindingContext.DeleteBeanCommand}"
+                                                       Command="{Binding Source={RelativeSource AncestorType={x:Type local:BeanInventoryPage}}, Path=ViewModel.DeleteBeanCommand, x:DataType=local:BeanInventoryPage}"
                                                        CommandParameter="{Binding .}" />
                                         </SwipeItems>
                                     </SwipeView.RightItems>
                                     <Border Style="{StaticResource CardStyle}">
                                         <Border.GestureRecognizers>
-                                            <TapGestureRecognizer Command="{Binding Source={RelativeSource AncestorType={x:Type ContentPage}}, Path=BindingContext.OpenBeanCommand}"
+                                            <TapGestureRecognizer Command="{Binding Source={RelativeSource AncestorType={x:Type local:BeanInventoryPage}}, Path=ViewModel.OpenBeanCommand, x:DataType=local:BeanInventoryPage}"
                                                                   CommandParameter="{Binding .}" />
                                         </Border.GestureRecognizers>
                                         <Grid ColumnDefinitions="*,Auto,Auto" ColumnSpacing="{StaticResource SpaceMd}">
@@ -123,7 +124,7 @@
                                             </VerticalStackLayout>
                                             <Grid Grid.Column="2" VerticalOptions="Center">
                                                 <Button Style="{StaticResource IconButtonStyle}"
-                                                        Command="{Binding Source={RelativeSource AncestorType={x:Type ContentPage}}, Path=BindingContext.ShowBeanActionsCommand}"
+                                                        Command="{Binding Source={RelativeSource AncestorType={x:Type local:BeanInventoryPage}}, Path=ViewModel.ShowBeanActionsCommand, x:DataType=local:BeanInventoryPage}"
                                                         CommandParameter="{Binding .}"
                                                         SemanticProperties.Description="Bean actions" />
                                                 <controls:IconView Data="{StaticResource IconMoreData}" InputTransparent="True" HorizontalOptions="Center" VerticalOptions="Center" />

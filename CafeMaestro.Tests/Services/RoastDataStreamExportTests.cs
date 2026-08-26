@@ -35,7 +35,9 @@ public sealed class RoastDataStreamExportTests
             });
         var service = new RoastDataService(
             appDataService.Object,
-            Mock.Of<IRoastLevelService>());
+            Mock.Of<IRoastLevelService>(),
+            Mock.Of<ICoolingNotificationService>(),
+            Mock.Of<IRoastPreferencesService>());
         await using var destination = new MemoryStream();
 
         await service.ExportRoastLogAsync(destination);
