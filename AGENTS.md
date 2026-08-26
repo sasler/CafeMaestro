@@ -11,18 +11,6 @@ CafeMaestro is a cross-platform coffee roasting companion app built with **.NET 
 - **App project:** `CafeMaestro/CafeMaestro.csproj`
 - **Test project:** `CafeMaestro.Tests/CafeMaestro.Tests.csproj`
 
-## Model Routing
-
-Use the correct AI model for each type of work:
-
-| Task type | Model | Rationale |
-|---|---|---|
-| **UX/UI design & implementation** | Claude Opus 4.6 | Superior aesthetic judgment and design coherence |
-| **Code review** | Claude Sonnet 4.6 | Fast, thorough, detail-oriented review |
-| **Coding (non-UX), research, everything else** | GPT 5.4 | Strong general-purpose coding and reasoning |
-
-When delegating to sub-agents, always use the model specified above. The code review agent **must** be a different model than the one that wrote the code — fresh eyes catch more issues.
-
 ## Standard Workflow
 
 For any feature, bug fix, or change, follow the **implement-feature** skill (`.github/skills/implement-feature/SKILL.md`). The workflow enforces:
@@ -34,7 +22,7 @@ For any feature, bug fix, or change, follow the **implement-feature** skill (`.g
 5. Code review by a different AI model
 6. Version bump + changelog + docs update
 7. PR creation with gitmoji
-8. GitHub Copilot auto-review polling and follow-up
+8. Request GitHub Copilot review, wait for it and follow-up
 
 > **CRITICAL — Atomic Review Cycle:** Steps 7–8 form an atomic unit of work. After receiving the GitHub Copilot auto-review, you **must** complete ALL of the following before yielding, stopping, or marking the task complete:
 >
