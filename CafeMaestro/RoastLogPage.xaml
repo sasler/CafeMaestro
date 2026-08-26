@@ -7,6 +7,7 @@
              x:DataType="vm:RoastLogPageViewModel"
              BackgroundColor="{DynamicResource SurfaceColor}"
              Shell.NavBarIsVisible="False"
+             SizeChanged="OnPageSizeChanged"
              Title="Roast Log">
     <Grid RowDefinitions="Auto,*">
         <VerticalStackLayout Grid.Row="0"
@@ -26,13 +27,17 @@
                         <Button Style="{StaticResource IconButtonStyle}"
                                 Command="{Binding NavigateToImportCommand}"
                                 SemanticProperties.Description="Import roast log CSV" />
-                        <controls:IconView Data="{StaticResource IconImportData}" HorizontalOptions="Center" VerticalOptions="Center" />
+                        <controls:IconView Data="{StaticResource IconImportData}"
+                                           InputTransparent="True"
+                                           HorizontalOptions="Center" VerticalOptions="Center" />
                     </Grid>
                     <Grid>
                         <Button Style="{StaticResource IconButtonStyle}"
                                 Command="{Binding ExportLogCommand}"
                                 SemanticProperties.Description="Export roast log CSV" />
-                        <controls:IconView Data="{StaticResource IconExportData}" HorizontalOptions="Center" VerticalOptions="Center" />
+                        <controls:IconView Data="{StaticResource IconExportData}"
+                                           InputTransparent="True"
+                                           HorizontalOptions="Center" VerticalOptions="Center" />
                     </Grid>
                     <Grid>
                         <Button Style="{StaticResource AccentIconButtonStyle}"
@@ -40,6 +45,7 @@
                                 SemanticProperties.Description="Start a new roast" />
                         <controls:IconView Data="{StaticResource IconAddData}"
                                            IconColor="{DynamicResource OnRoastColor}"
+                                           InputTransparent="True"
                                            HorizontalOptions="Center" VerticalOptions="Center" />
                     </Grid>
                 </HorizontalStackLayout>
@@ -100,27 +106,24 @@
             </ScrollView>
         </VerticalStackLayout>
 
-        <RefreshView Grid.Row="1"
-                     IsRefreshing="{Binding IsLoading}"
-                     Command="{Binding RefreshCommand}">
-            <CollectionView ItemsSource="{Binding History}"
-                            SelectionMode="None"
-                            Margin="{StaticResource PagePadding}">
-                <CollectionView.ItemsLayout>
-                    <LinearItemsLayout Orientation="Vertical" ItemSpacing="16" />
-                </CollectionView.ItemsLayout>
-                <CollectionView.Header>
-                    <VerticalStackLayout Spacing="{StaticResource SpaceLg}" Margin="0,0,0,16">
-                        <Border Style="{StaticResource ErrorBannerStyle}" IsVisible="{Binding HasLoadError}">
-                            <Grid ColumnDefinitions="*,Auto" ColumnSpacing="{StaticResource SpaceSm}">
-                                <Label Text="{Binding LoadErrorMessage}" Style="{StaticResource ErrorBannerTextStyle}" />
-                                <Button Grid.Column="1" Text="Retry" Style="{StaticResource SecondaryActionStyle}"
-                                        Command="{Binding RefreshCommand}" />
-                            </Grid>
-                        </Border>
+        <Grid x:Name="LogBody"
+              Grid.Row="1"
+              ColumnDefinitions="*,0"
+              ColumnSpacing="{StaticResource SpaceLg}"
+              Margin="{StaticResource PagePadding}">
+            <Grid Grid.Column="0" RowDefinitions="Auto,*" RowSpacing="{StaticResource SpaceLg}">
+                <VerticalStackLayout Grid.Row="0" Spacing="{StaticResource SpaceLg}">
+                    <Border Style="{StaticResource ErrorBannerStyle}" IsVisible="{Binding HasLoadError}">
+                        <Grid ColumnDefinitions="*,Auto" ColumnSpacing="{StaticResource SpaceSm}">
+                            <Label Text="{Binding LoadErrorMessage}" Style="{StaticResource ErrorBannerTextStyle}" />
+                            <Button Grid.Column="1" Text="Retry" Style="{StaticResource SecondaryActionStyle}"
+                                    Command="{Binding RefreshCommand}" />
+                        </Grid>
+                    </Border>
 
-                        <VerticalStackLayout IsVisible="{Binding HasOpenWork}" Spacing="{StaticResource SpaceSm}">
-                            <Label Text="OPEN WORK" Style="{StaticResource SectionHeaderStyle}" />
+                    <VerticalStackLayout IsVisible="{Binding HasOpenWork}" Spacing="{StaticResource SpaceSm}">
+                        <Label Text="OPEN WORK" Style="{StaticResource SectionHeaderStyle}" />
+                        <ScrollView MaximumHeightRequest="420" VerticalScrollBarVisibility="Default">
                             <VerticalStackLayout BindableLayout.ItemsSource="{Binding OpenWork}"
                                                  Spacing="{StaticResource SpaceMd}">
                                 <BindableLayout.ItemTemplate>
@@ -143,52 +146,99 @@
                                     </DataTemplate>
                                 </BindableLayout.ItemTemplate>
                             </VerticalStackLayout>
+                        </ScrollView>
+                    </VerticalStackLayout>
+                </VerticalStackLayout>
+
+                <RefreshView Grid.Row="1"
+                             IsRefreshing="{Binding IsLoading}"
+                             Command="{Binding RefreshCommand}">
+                    <Grid>
+                        <Grid RowDefinitions="Auto,*" RowSpacing="{StaticResource SpaceSm}" IsVisible="{Binding HasHistory}">
+                            <Label Text="HISTORY" Style="{StaticResource SectionHeaderStyle}" />
+                            <CollectionView Grid.Row="1" ItemsSource="{Binding History}" SelectionMode="None">
+                                <CollectionView.ItemsLayout>
+                                    <LinearItemsLayout Orientation="Vertical" ItemSpacing="16" />
+                                </CollectionView.ItemsLayout>
+                                <CollectionView.ItemTemplate>
+                                    <DataTemplate x:DataType="vm:RoastLogCard">
+                                        <SwipeView>
+                                            <SwipeView.RightItems>
+                                                <SwipeItems Mode="Reveal">
+                                                    <SwipeItem Text="Edit"
+                                                               BackgroundColor="{DynamicResource RoastColor}"
+                                                               Command="{Binding Source={RelativeSource AncestorType={x:Type ContentPage}}, Path=BindingContext.EditRoastCommand}"
+                                                               CommandParameter="{Binding .}" />
+                                                    <SwipeItem Text="Delete"
+                                                               BackgroundColor="{DynamicResource DangerColor}"
+                                                               Command="{Binding Source={RelativeSource AncestorType={x:Type ContentPage}}, Path=BindingContext.DeleteRoastCommand}"
+                                                               CommandParameter="{Binding .}" />
+                                                </SwipeItems>
+                                            </SwipeView.RightItems>
+                                            <controls:RoastStatusCard Card="{Binding .}">
+                                                <controls:RoastStatusCard.GestureRecognizers>
+                                                    <TapGestureRecognizer
+                                                        Command="{Binding Source={RelativeSource AncestorType={x:Type ContentPage}}, Path=BindingContext.OpenDetailCommand}"
+                                                        CommandParameter="{Binding .}" />
+                                                </controls:RoastStatusCard.GestureRecognizers>
+                                            </controls:RoastStatusCard>
+                                        </SwipeView>
+                                    </DataTemplate>
+                                </CollectionView.ItemTemplate>
+                            </CollectionView>
+                        </Grid>
+
+                        <VerticalStackLayout Style="{StaticResource EmptyStateStyle}" IsVisible="{Binding IsEmpty}">
+                            <Label Text="{Binding EmptyTitle}" Style="{StaticResource EmptyStateTitleStyle}" />
+                            <Label Text="{Binding EmptyBody}" Style="{StaticResource EmptyStateBodyStyle}" />
+                            <Button Text="CLEAR SEARCH AND FILTER" Style="{StaticResource SecondaryActionStyle}"
+                                    IsVisible="{Binding CanClearEmptyState}"
+                                    Command="{Binding ClearEmptyStateCommand}" />
+                            <Button Text="START FIRST ROAST" Style="{StaticResource PrimaryActionStyle}"
+                                    IsVisible="{Binding ShowStartEmptyState}"
+                                    Command="{Binding AddRoastCommand}" />
                         </VerticalStackLayout>
+                    </Grid>
+                </RefreshView>
+            </Grid>
 
-                        <Label Text="HISTORY" Style="{StaticResource SectionHeaderStyle}" IsVisible="{Binding HasHistory}" />
+            <Border x:Name="DetailPane"
+                    Grid.Column="1"
+                    Style="{StaticResource RaisedCardStyle}"
+                    IsVisible="False">
+                <ScrollView>
+                    <VerticalStackLayout Spacing="{StaticResource SpaceLg}">
+                        <VerticalStackLayout Style="{StaticResource EmptyStateStyle}" IsVisible="{Binding HasNoSelectedCard}">
+                            <Label Text="Select a roast" Style="{StaticResource EmptyStateTitleStyle}" />
+                            <Label Text="Batch facts and result details appear here." Style="{StaticResource EmptyStateBodyStyle}" />
+                        </VerticalStackLayout>
+                        <VerticalStackLayout IsVisible="{Binding HasSelectedCard}" Spacing="{StaticResource SpaceMd}">
+                            <Label Text="ROAST DETAIL" Style="{StaticResource SectionHeaderStyle}" />
+                            <controls:RoastStatusCard Card="{Binding SelectedCard}" />
+                            <Grid ColumnDefinitions="*,*" ColumnSpacing="{StaticResource SpaceMd}">
+                                <VerticalStackLayout>
+                                    <Label Text="FIRST CRACK" Style="{StaticResource SectionHeaderStyle}" />
+                                    <Label Text="{Binding SelectedCard.FirstCrackDisplay}" Style="{StaticResource NumericValueStyle}" />
+                                </VerticalStackLayout>
+                                <VerticalStackLayout Grid.Column="1">
+                                    <Label Text="ROAST LEVEL" Style="{StaticResource SectionHeaderStyle}" />
+                                    <Label Text="{Binding SelectedCard.LevelDisplay}" Style="{StaticResource NumericValueStyle}" LineBreakMode="WordWrap" />
+                                </VerticalStackLayout>
+                            </Grid>
+                            <Button Text="WEIGH IN" Style="{StaticResource ConfirmActionStyle}"
+                                    IsVisible="{Binding SelectedCard.CanWeigh}"
+                                    Command="{Binding WeighCommand}"
+                                    CommandParameter="{Binding SelectedCard}" />
+                            <Button Text="EDIT DETAILS" Style="{StaticResource SecondaryActionStyle}"
+                                    IsVisible="{Binding CanEditSelected}"
+                                    Command="{Binding EditRoastCommand}"
+                                    CommandParameter="{Binding SelectedCard}" />
+                            <Button Text="OPEN FULL DETAILS" Style="{StaticResource SecondaryActionStyle}"
+                                    Command="{Binding OpenSelectedDetailCommand}" />
+                        </VerticalStackLayout>
                     </VerticalStackLayout>
-                </CollectionView.Header>
-
-                <CollectionView.ItemTemplate>
-                    <DataTemplate x:DataType="vm:RoastLogCard">
-                        <SwipeView>
-                            <SwipeView.RightItems>
-                                <SwipeItems Mode="Reveal">
-                                    <SwipeItem Text="Edit"
-                                               BackgroundColor="{DynamicResource RoastColor}"
-                                               Command="{Binding Source={RelativeSource AncestorType={x:Type ContentPage}}, Path=BindingContext.EditRoastCommand}"
-                                               CommandParameter="{Binding .}" />
-                                    <SwipeItem Text="Delete"
-                                               BackgroundColor="{DynamicResource DangerColor}"
-                                               Command="{Binding Source={RelativeSource AncestorType={x:Type ContentPage}}, Path=BindingContext.DeleteRoastCommand}"
-                                               CommandParameter="{Binding .}" />
-                                </SwipeItems>
-                            </SwipeView.RightItems>
-                            <controls:RoastStatusCard Card="{Binding .}">
-                                <controls:RoastStatusCard.GestureRecognizers>
-                                    <TapGestureRecognizer
-                                        Command="{Binding Source={RelativeSource AncestorType={x:Type ContentPage}}, Path=BindingContext.OpenDetailCommand}"
-                                        CommandParameter="{Binding .}" />
-                                </controls:RoastStatusCard.GestureRecognizers>
-                            </controls:RoastStatusCard>
-                        </SwipeView>
-                    </DataTemplate>
-                </CollectionView.ItemTemplate>
-
-                <CollectionView.EmptyView>
-                    <VerticalStackLayout Style="{StaticResource EmptyStateStyle}" IsVisible="{Binding IsEmpty}">
-                        <Label Text="{Binding EmptyTitle}" Style="{StaticResource EmptyStateTitleStyle}" />
-                        <Label Text="{Binding EmptyBody}"
-                               Style="{StaticResource EmptyStateBodyStyle}" />
-                        <Button Text="CLEAR SEARCH AND FILTER" Style="{StaticResource SecondaryActionStyle}"
-                                IsVisible="{Binding CanClearEmptyState}"
-                                Command="{Binding ClearEmptyStateCommand}" />
-                        <Button Text="START FIRST ROAST" Style="{StaticResource PrimaryActionStyle}"
-                                IsVisible="{Binding ShowStartEmptyState}"
-                                Command="{Binding AddRoastCommand}" />
-                    </VerticalStackLayout>
-                </CollectionView.EmptyView>
-            </CollectionView>
-        </RefreshView>
+                </ScrollView>
+            </Border>
+        </Grid>
     </Grid>
 </ContentPage>

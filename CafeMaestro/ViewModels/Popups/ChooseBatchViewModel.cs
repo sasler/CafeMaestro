@@ -27,7 +27,11 @@ public partial class BatchChoiceOption : ObservableObject
     public string SemanticDescription =>
         $"{(Choice.BatchNumber is int number ? $"Batch {number}" : "Batch")}, {BeanDisplay}, {DetailDisplay}. {SelectionDisplay}.";
 
-    partial void OnIsSelectedChanged(bool value) => OnPropertyChanged(nameof(SelectionDisplay));
+    partial void OnIsSelectedChanged(bool value)
+    {
+        OnPropertyChanged(nameof(SelectionDisplay));
+        OnPropertyChanged(nameof(SemanticDescription));
+    }
 }
 
 public partial class ChooseBatchViewModel(IOverlayService overlayService) : ObservableObject, IQueryAttributable

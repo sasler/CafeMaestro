@@ -24,6 +24,7 @@
                                 SemanticProperties.Description="Delete this roast" />
                         <controls:IconView Data="{StaticResource IconDeleteData}"
                                            IconColor="{DynamicResource DangerColor}"
+                                           InputTransparent="True"
                                            HorizontalOptions="Center" VerticalOptions="Center" />
                     </Grid>
                 </Grid>

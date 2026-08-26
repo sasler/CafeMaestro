@@ -53,9 +53,18 @@ public partial class RoastLogPageViewModel : ObservableObject
     [ObservableProperty]
     public partial RoastLogFilter SelectedFilter { get; set; }
 
+    [ObservableProperty]
+    public partial RoastLogCard? SelectedCard { get; set; }
+
+    [ObservableProperty]
+    public partial bool IsWideLayout { get; set; }
+
     public bool HasOpenWork => OpenWork.Count > 0;
     public bool HasHistory => History.Count > 0;
-    public bool IsEmpty => !HasOpenWork && !HasHistory && !IsLoading;
+    public bool IsEmpty => !HasOpenWork && !HasHistory && !IsLoading && !HasLoadError;
+    public bool HasSelectedCard => SelectedCard is not null;
+    public bool HasNoSelectedCard => SelectedCard is null;
+    public bool CanEditSelected => SelectedCard?.Roast is not null;
     public bool HasSearch => !string.IsNullOrWhiteSpace(SearchText);
     public bool IsAllSelected => SelectedFilter == RoastLogFilter.All;
     public bool IsCompleteSelected => SelectedFilter == RoastLogFilter.Complete;
@@ -106,6 +115,14 @@ public partial class RoastLogPageViewModel : ObservableObject
     partial void OnOpenWorkChanged(ObservableCollection<RoastLogCard> value) => NotifyCollectionState();
     partial void OnHistoryChanged(ObservableCollection<RoastLogCard> value) => NotifyCollectionState();
     partial void OnIsLoadingChanged(bool value) => OnPropertyChanged(nameof(IsEmpty));
+    partial void OnHasLoadErrorChanged(bool value) => OnPropertyChanged(nameof(IsEmpty));
+
+    partial void OnSelectedCardChanged(RoastLogCard? value)
+    {
+        OnPropertyChanged(nameof(HasSelectedCard));
+        OnPropertyChanged(nameof(HasNoSelectedCard));
+        OnPropertyChanged(nameof(CanEditSelected));
+    }
 
     partial void OnSelectedFilterChanged(RoastLogFilter value)
     {
@@ -133,6 +150,15 @@ public partial class RoastLogPageViewModel : ObservableObject
 
         _appDataService.DataChanged -= HandleAppDataChanged;
         _isSubscribed = false;
+    }
+
+    public void SetWideLayout(bool isWideLayout)
+    {
+        IsWideLayout = isWideLayout;
+        if (!isWideLayout)
+        {
+            SelectedCard = null;
+        }
     }
 
     /// <summary>Hardware back on the Log tab returns to Roast, the launch destination.</summary>
@@ -190,11 +216,26 @@ public partial class RoastLogPageViewModel : ObservableObject
         new Dictionary<string, object> { ["NewRoast"] = bool.TrueString });
 
     [RelayCommand]
-    private Task OpenDetailAsync(RoastLogCard? card) => card is null
+    private Task OpenDetailAsync(RoastLogCard? card)
+    {
+        if (card is null)
+        {
+            return Task.CompletedTask;
+        }
+
+        if (IsWideLayout)
+        {
+            SelectedCard = card;
+            return Task.CompletedTask;
+        }
+
+        return NavigateToDetailAsync(card);
+    }
+
+    [RelayCommand]
+    private Task OpenSelectedDetailAsync() => SelectedCard is null
         ? Task.CompletedTask
-        : _navigationService.GoToAsync(
-            Routes.RoastDetail,
-            new Dictionary<string, object> { ["RoastId"] = card.RoastId.ToString() });
+        : NavigateToDetailAsync(SelectedCard);
 
     [RelayCommand]
     private Task EditRoastAsync(RoastLogCard? card) => card?.Roast is null
@@ -394,7 +435,19 @@ public partial class RoastLogPageViewModel : ObservableObject
     private void UpdateRecordCount()
     {
         RecordCount = OpenWork.Count + History.Count;
+        RefreshSelectedCard();
         NotifyEmptyState();
+    }
+
+    private void RefreshSelectedCard()
+    {
+        if (SelectedCard is null)
+        {
+            return;
+        }
+
+        SelectedCard = OpenWork.Concat(History)
+            .FirstOrDefault(card => card.RoastId == SelectedCard.RoastId);
     }
 
     private void NotifyCollectionState()
@@ -419,6 +472,10 @@ public partial class RoastLogPageViewModel : ObservableObject
         RoastLogFilter.Unweighed => "unweighed",
         _ => string.Empty
     };
+
+    private Task NavigateToDetailAsync(RoastLogCard card) => _navigationService.GoToAsync(
+        Routes.RoastDetail,
+        new Dictionary<string, object> { ["RoastId"] = card.RoastId.ToString() });
 
     private static BatchChoice ToBatchChoice(RoastWorkItem item) => new()
     {

@@ -65,7 +65,7 @@ public sealed class RoastLogCard
             LevelDisplay = "—",
             TemperatureDisplay = $"{item.Temperature:0.#} °C",
             RoastTimeDisplay = time,
-            FirstCrackDisplay = "—",
+            FirstCrackDisplay = roast?.FirstCrackSeconds.HasValue == true ? roast.FirstCrackTime : "—",
             SemanticDescription = semantic,
             Status = item.Status,
             SearchableText = $"{item.BeanDisplaySnapshot} {batch} {status} {item.Notes} {item.Summary} {item.RoastLevelName} {roast?.Notes}",

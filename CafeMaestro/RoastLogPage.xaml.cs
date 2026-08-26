@@ -45,4 +45,14 @@ public partial class RoastLogPage : ContentPage
         _ticker.Interval = TimeSpan.FromSeconds(1);
         _ticker.Tick += async (_, _) => await _viewModel.RefreshTimeProjectionAsync();
     }
+
+    private void OnPageSizeChanged(object? sender, EventArgs e)
+    {
+        bool isWide = Width >= 600;
+        LogBody.ColumnDefinitions[1].Width = isWide
+            ? new GridLength(2, GridUnitType.Star)
+            : new GridLength(0);
+        DetailPane.IsVisible = isWide;
+        _viewModel.SetWideLayout(isWide);
+    }
 }

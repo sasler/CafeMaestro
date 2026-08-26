@@ -39,13 +39,13 @@
 
             <VerticalStackLayout Grid.Column="1" Spacing="{StaticResource SpaceSm}">
                 <VerticalStackLayout Spacing="{StaticResource SpaceXs}">
-                    <Label Text="{Binding BeanDisplay}" Style="{StaticResource CardTitleStyle}" />
-                    <Label Text="{Binding BatchDisplay}" Style="{StaticResource CardMetaStyle}" />
-                    <HorizontalStackLayout Spacing="{StaticResource SpaceSm}">
+                    <Label Text="{Binding BeanDisplay}" Style="{StaticResource CardTitleStyle}" LineBreakMode="WordWrap" />
+                    <Label Text="{Binding BatchDisplay}" Style="{StaticResource CardMetaStyle}" LineBreakMode="WordWrap" />
+                    <Grid ColumnDefinitions="Auto,*" ColumnSpacing="{StaticResource SpaceSm}">
                         <Label Text="{Binding StatusDisplay}" Style="{StaticResource StatusChipLabelStyle}" />
-                        <Label Text="{Binding StatusDetail}" Style="{StaticResource CardCaptionStyle}"
-                               VerticalTextAlignment="Center" />
-                    </HorizontalStackLayout>
+                        <Label Grid.Column="1" Text="{Binding StatusDetail}" Style="{StaticResource CardCaptionStyle}"
+                               LineBreakMode="WordWrap" VerticalTextAlignment="Center" />
+                    </Grid>
                 </VerticalStackLayout>
 
                 <Label Text="{Binding DateDisplay}" Style="{StaticResource CardCaptionStyle}" />

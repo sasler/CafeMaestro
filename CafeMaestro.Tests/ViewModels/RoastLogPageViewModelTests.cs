@@ -86,6 +86,69 @@ public class RoastLogPageViewModelTests
     }
 
     [Fact]
+    public async Task OpenDetailCommand_InWideLayout_SelectsInlineWithoutNavigating()
+    {
+        RoastData roast = Complete("Kenya", DateTimeOffset.UtcNow);
+        RoastLogCard card = RoastLogCard.FromHistory(roast);
+        var navigationService = new Mock<INavigationService>(MockBehavior.Strict);
+        var viewModel = CreateViewModel(navigationService: navigationService);
+        viewModel.SetWideLayout(true);
+
+        await viewModel.OpenDetailCommand.ExecuteAsync(card);
+
+        viewModel.SelectedCard.Should().BeSameAs(card);
+        viewModel.HasSelectedCard.Should().BeTrue();
+        navigationService.VerifyNoOtherCalls();
+    }
+
+    [Fact]
+    public async Task FailedFirstLoad_ShowsErrorWithoutFalseEmptyState()
+    {
+        var queryService = new Mock<IRoastQueryService>();
+        queryService.Setup(service => service.GetOpenWorkAsync(It.IsAny<CancellationToken>()))
+            .ThrowsAsync(new IOException("read failed"));
+        queryService.Setup(service => service.GetHistoryAsync(It.IsAny<CancellationToken>()))
+            .ReturnsAsync([]);
+        var viewModel = CreateViewModel(queryService: queryService);
+
+        await viewModel.RefreshCommand.ExecuteAsync(null);
+
+        viewModel.HasLoadError.Should().BeTrue();
+        viewModel.IsEmpty.Should().BeFalse();
+    }
+
+    [Fact]
+    public async Task OpenWorkWithoutHistory_RemainsAVisibleNonEmptyQueue()
+    {
+        DateTimeOffset now = DateTimeOffset.UtcNow;
+        var queryService = new Mock<IRoastQueryService>();
+        queryService.Setup(service => service.GetOpenWorkAsync(It.IsAny<CancellationToken>()))
+            .ReturnsAsync([Work("Guji", now, RoastEffectiveStatus.NeedsWeight)]);
+        queryService.Setup(service => service.GetHistoryAsync(It.IsAny<CancellationToken>()))
+            .ReturnsAsync([]);
+        var viewModel = CreateViewModel(queryService: queryService);
+
+        await viewModel.RefreshCommand.ExecuteAsync(null);
+
+        viewModel.HasOpenWork.Should().BeTrue();
+        viewModel.HasHistory.Should().BeFalse();
+        viewModel.IsEmpty.Should().BeFalse();
+    }
+
+    [Fact]
+    public void OpenWorkCard_PreservesRecordedFirstCrackFromStoredRoast()
+    {
+        DateTimeOffset now = DateTimeOffset.UtcNow;
+        RoastWorkItem work = Work("Guji", now, RoastEffectiveStatus.NeedsWeight);
+        RoastData roast = Complete("Guji", now);
+        roast.Id = work.RoastId;
+        roast.FirstCrackMinutes = 8;
+        roast.FirstCrackSeconds = 42;
+
+        RoastLogCard.FromWork(work, roast).FirstCrackDisplay.Should().Be("08:42");
+    }
+
+    [Fact]
     public async Task SearchText_DebouncesToLatestTermWithoutReloadingStorage()
     {
         var queryService = new Mock<IRoastQueryService>();
