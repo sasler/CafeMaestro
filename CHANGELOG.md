@@ -7,6 +7,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased] - Complete Architecture Refactor
 ### Added
+- Settings is now a short index of destinations — Roasting, Appearance, Data & Backups, Roast Levels and About — each row showing the value it currently holds and refreshing that summary when you return
+- Roasting preferences page for First Crack tracking, cooling duration, weight precision and cooling notifications, with a note that changes apply to future roasts only
+- Cooling-notification state reports the app preference and the OS permission separately, so a reminder that will not be delivered says why instead of appearing to be on
+- `ICoolingNotificationService.GetPermissionStateAsync`/`RequestPermissionAsync` with an `Unavailable` result on platforms that cannot post reminders, giving the Android work a stable contract to bind to
+- Appearance page with System/Light/Dark and a live sample card that previews the selected theme's surfaces, status colours and instrument type
+- About page carrying version, first-installed version, version history, privacy and licence
+- `docs/settings.md` describing the index, the preference contracts and the active-roast data guard
 - Roast Log work queue with Cooling and Needs weight batches pinned above searchable Complete, Unweighed, and Discarded history
 - Accessible shared roast status cards, a focused roast-detail route, explicit multi-batch weigh-in selection, and honest missing-result values
 - App-scoped Window stop/resume recovery that releases display wake, pauses UI ticking, and refreshes the persisted roast snapshot without retaining transient pages
@@ -59,6 +66,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - 8 new unit tests covering share commands and flexible roast saving
 
 ### Fixed
+- Start New Data and both Restore paths are blocked with an explanation while a roast is active or awaiting recovery, so a dataset replacement can no longer land silently under a running batch
 - Roast overlays now resolve and bind their own view and ViewModel: popup query attributes left the Weigh In and batch-choice sheets unbound in Release builds, so they appeared with no batch, no title, and unresponsive buttons on device
 - Persistence change notifications now return to the app synchronization context before updating UI-bound subscribers
 - Loading screen referenced `cafemaestro_logo.svg` and a non-existent `Primary` colour, so the logo and spinner never picked up their intended appearance
@@ -70,8 +78,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Invalid backup JSON is rejected without modifying active data or the selected source
 
 ### Changed
-- Version bumped to 1.9.0
+- Version bumped to 1.10.0
+- The single long Settings page is replaced by an index with focused, Back-navigable detail pages; data/backup, roast-level and theme behavior moved without changing the services behind them
+- Data & Backups now isolates Start New Data in a danger zone below everything else, and the roast persistence-error escape hatch opens that page directly instead of the Settings index
 - Final-weight entry and corrections now use the focused Weigh In flow; generic roast editing is limited to mutable recorded details
+- Version bumped to 1.9.0
 - Version bumped to 1.8.0
 - Roast is now the launch/home destination in an exact four-tab Shell ordered Roast, Log, Beans, Settings; focused active/recovery states centrally hide the tab bar
 - Version bumped to 1.7.0

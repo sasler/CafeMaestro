@@ -23,6 +23,11 @@ public partial class AppShell : Shell
 		Routing.RegisterRoute(Routes.RoastDetail, typeof(RoastDetailPage));
 		Routing.RegisterRoute(Routes.BeanImport, typeof(BeanImportPage));
 		Routing.RegisterRoute(Routes.RoastImport, typeof(RoastImportPage));
+		Routing.RegisterRoute(Routes.RoastingSettings, typeof(RoastingSettingsPage));
+		Routing.RegisterRoute(Routes.AppearanceSettings, typeof(AppearanceSettingsPage));
+		Routing.RegisterRoute(Routes.DataSettings, typeof(DataSettingsPage));
+		Routing.RegisterRoute(Routes.RoastLevelSettings, typeof(RoastLevelSettingsPage));
+		Routing.RegisterRoute(Routes.About, typeof(AboutPage));
 #if DEBUG
 		Routing.RegisterRoute(Routes.ComponentGallery, typeof(Views.ComponentGalleryPage));
 #endif

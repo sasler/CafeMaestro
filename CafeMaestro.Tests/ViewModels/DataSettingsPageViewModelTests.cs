@@ -10,10 +10,10 @@ namespace CafeMaestro.Tests.ViewModels;
 public sealed class DataSettingsPageViewModelTests
 {
     [Fact]
-    public async Task RootBackRoute_ReturnsToRoastTab()
+    public async Task GoBack_PopsToTheSettingsIndexRatherThanJumpingToATab()
     {
         Mock<INavigationService> navigation = new();
-        navigation.Setup(service => service.GoToAsync(It.IsAny<string>())).Returns(Task.CompletedTask);
+        navigation.Setup(service => service.GoBackAsync()).Returns(Task.CompletedTask);
         DataSettingsPageViewModel viewModel = CreateViewModel(
             new Mock<IDataBackupService>(),
             new Mock<IUserFileService>(),
@@ -21,7 +21,8 @@ public sealed class DataSettingsPageViewModelTests
 
         await viewModel.GoBackAsync();
 
-        navigation.Verify(service => service.GoToAsync(Routes.Roast), Times.Once);
+        navigation.Verify(service => service.GoBackAsync(), Times.Once);
+        navigation.Verify(service => service.GoToAsync(It.IsAny<string>()), Times.Never);
     }
 
     [Fact]
@@ -147,31 +148,118 @@ public sealed class DataSettingsPageViewModelTests
         navigation.Verify(service => service.GoToAsync(Routes.RoastImport), Times.Once);
     }
 
+    [Fact]
+    public async Task StartNewDataCommand_WhileARoastIsActive_ExplainsAndReplacesNothing()
+    {
+        var backupService = new Mock<IDataBackupService>();
+        var alerts = new Mock<IAlertService>();
+        DataSettingsPageViewModel viewModel = CreateViewModel(
+            backupService,
+            new Mock<IUserFileService>(),
+            alerts: alerts,
+            session: SettingsTestFactory.ActiveSession());
+
+        await viewModel.StartNewDataCommand.ExecuteAsync(null);
+
+        backupService.Verify(
+            service => service.StartNewDataAsync(It.IsAny<CancellationToken>()),
+            Times.Never);
+        alerts.Verify(
+            service => service.ShowConfirmationAsync(
+                It.IsAny<string>(),
+                It.IsAny<string>(),
+                It.IsAny<string>(),
+                It.IsAny<string>()),
+            Times.Never);
+        alerts.Verify(
+            service => service.ShowAlertAsync(
+                "Start New Data",
+                It.Is<string>(message => message.Contains("still in progress")),
+                "OK"),
+            Times.Once);
+    }
+
+    [Fact]
+    public async Task StartNewDataCommand_FromPersistenceRecovery_AllowsExplicitAbandonment()
+    {
+        var backupService = new Mock<IDataBackupService>();
+        backupService
+            .Setup(service => service.StartNewDataAsync(It.IsAny<CancellationToken>()))
+            .ReturnsAsync(CreateData(0, 0));
+        backupService
+            .Setup(service => service.GetSafetyBackupsAsync(It.IsAny<CancellationToken>()))
+            .ReturnsAsync([]);
+        var alerts = new Mock<IAlertService>();
+        alerts
+            .Setup(service => service.ShowConfirmationAsync(
+                It.IsAny<string>(), It.IsAny<string>(), It.IsAny<string>(), It.IsAny<string>()))
+            .ReturnsAsync(true);
+        DataSettingsPageViewModel viewModel = CreateViewModel(
+            backupService,
+            new Mock<IUserFileService>(),
+            alerts: alerts,
+            session: SettingsTestFactory.ActiveSession());
+        viewModel.ApplyQueryAttributes(new Dictionary<string, object>
+        {
+            [DataSettingsPageViewModel.PersistenceRecoveryKey] = bool.TrueString
+        });
+
+        await viewModel.StartNewDataCommand.ExecuteAsync(null);
+
+        backupService.Verify(
+            service => service.StartNewDataAsync(It.IsAny<CancellationToken>()),
+            Times.Once);
+        alerts.Verify(service => service.ShowConfirmationAsync(
+            "Persistence Recovery",
+            It.Is<string>(message => message.Contains("unsaved in-memory roast")),
+            "Continue",
+            "Cancel"), Times.Once);
+    }
+
+    [Fact]
+    public async Task RestoreFromBackupCommand_WhileARoastIsActive_NeverOpensTheFilePicker()
+    {
+        var userFileService = new Mock<IUserFileService>();
+        var alerts = new Mock<IAlertService>();
+        DataSettingsPageViewModel viewModel = CreateViewModel(
+            new Mock<IDataBackupService>(),
+            userFileService,
+            alerts: alerts,
+            session: SettingsTestFactory.ActiveSession());
+
+        await viewModel.RestoreFromBackupCommand.ExecuteAsync(null);
+
+        userFileService.Verify(
+            service => service.PickFileAsync(
+                It.IsAny<UserFileType>(),
+                It.IsAny<string>(),
+                It.IsAny<CancellationToken>()),
+            Times.Never);
+        alerts.Verify(
+            service => service.ShowAlertAsync(
+                "Restore Backup",
+                It.IsAny<string>(),
+                "OK"),
+            Times.Once);
+    }
+
     private static DataSettingsPageViewModel CreateViewModel(
         Mock<IDataBackupService> backupService,
         Mock<IUserFileService> userFileService,
         Mock<IAlertService>? alerts = null,
-        Mock<INavigationService>? navigation = null)
+        Mock<INavigationService>? navigation = null,
+        Mock<IRoastSessionService>? session = null)
     {
         var appDataService = new Mock<IAppDataService>();
         appDataService.SetupGet(service => service.CurrentData).Returns(CreateData(1, 0));
         appDataService.SetupGet(service => service.DataFilePath).Returns("cafemaestro_data.json");
-        var preferences = new Mock<IPreferencesService>();
-        preferences
-            .Setup(service => service.GetThemePreferenceAsync())
-            .ReturnsAsync(ThemePreference.System);
-        var roastLevelService = new Mock<IRoastLevelService>();
-        roastLevelService
-            .Setup(service => service.GetRoastLevelsAsync())
-            .ReturnsAsync([]);
 
         return new DataSettingsPageViewModel(
-            preferences.Object,
             appDataService.Object,
             backupService.Object,
             userFileService.Object,
             Mock.Of<IRoastDataService>(),
-            roastLevelService.Object,
+            (session ?? SettingsTestFactory.IdleSession()).Object,
             navigation?.Object ?? Mock.Of<INavigationService>(),
             Mock.Of<IShareService>(),
             alerts?.Object ?? Mock.Of<IAlertService>());

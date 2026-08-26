@@ -530,7 +530,14 @@ public partial class RoastPageViewModel : ObservableObject, IQueryAttributable
             return;
         }
 
-        await _navigationService.GoToAsync(Routes.Settings);
+        // The escape hatch now opens the focused Data & Backups page directly rather than the
+        // Settings index, so recovery is one step away from the error screen.
+        await _navigationService.GoToAsync(
+            Routes.DataSettings,
+            new Dictionary<string, object>
+            {
+                [DataSettingsPageViewModel.PersistenceRecoveryKey] = bool.TrueString
+            });
         _pendingDropProposal = null;
         _retryAction = null;
     }

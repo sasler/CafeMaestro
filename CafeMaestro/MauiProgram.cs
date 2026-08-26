@@ -39,6 +39,7 @@ public static class MauiProgram
         builder.Services.AddSingleton<IRoastLevelService, RoastLevelService>();
         builder.Services.AddSingleton<INavigationService, NavigationService>();
         builder.Services.AddSingleton<IAlertService, AlertService>();
+        builder.Services.AddSingleton<IThemeService, ThemeService>();
         builder.Services.AddSingleton<IShareService, ShareService>();
         builder.Services.AddSingleton<IFileSaver>(FileSaver.Default);
         builder.Services.AddSingleton<Microsoft.Maui.Storage.IFilePicker>(Microsoft.Maui.Storage.FilePicker.Default);
@@ -74,7 +75,13 @@ public static class MauiProgram
         // Register Pages for DI - changing to transient to avoid state retention
         builder.Services.AddTransient<AppShell>();
         builder.Services.AddTransient<LoadingPage>();
+        builder.Services.AddSingleton<IAppVersionProvider, PlatformAppVersionProvider>();
+        builder.Services.AddTransient<SettingsIndexPageViewModel>();
         builder.Services.AddTransient<DataSettingsPageViewModel>();
+        builder.Services.AddTransient<RoastingSettingsPageViewModel>();
+        builder.Services.AddTransient<AppearanceSettingsPageViewModel>();
+        builder.Services.AddTransient<RoastLevelSettingsPageViewModel>();
+        builder.Services.AddTransient<AboutPageViewModel>();
         builder.Services.AddSingleton<RoastPageViewModel>();
         builder.Services.AddTransient<RoastEditPageViewModel>();
         builder.Services.AddTransient<BeanInventoryPageViewModel>();
@@ -94,6 +101,11 @@ public static class MauiProgram
         builder.Services.AddTransient<BeanImportPage>();
         builder.Services.AddTransient<RoastImportPage>();
         builder.Services.AddTransient<SettingsPage>();
+        builder.Services.AddTransient<RoastingSettingsPage>();
+        builder.Services.AddTransient<AppearanceSettingsPage>();
+        builder.Services.AddTransient<DataSettingsPage>();
+        builder.Services.AddTransient<RoastLevelSettingsPage>();
+        builder.Services.AddTransient<AboutPage>();
 
 #if DEBUG
         // Review harness for the shared visual system - Debug builds only.
