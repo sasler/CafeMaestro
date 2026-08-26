@@ -38,8 +38,9 @@ the primary weigh-in action; otherwise both batches remain cooling and Finish se
 obligations intact.
 
 A cooling channel also offers a subordinate **Ready now** action. After confirmation, the session
-stores that batch's actual cooling duration, cancels its reminder, and projects it as Needs weight
-without inventing a final weight or changing another cooling batch. The state survives a restart.
+stores that batch's actual cooling duration and an explicit early-completion fact, cancels its
+reminder, and projects it as Needs weight without inventing a final weight or changing another
+cooling batch. The state survives a restart and remains ready if the device clock rolls backward.
 
 When more than one physical batch is ready, no batch is selected by default. Weigh-in validates a
 positive final weight at 0.1 g precision and never permits more than the recorded input weight.

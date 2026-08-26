@@ -23,7 +23,8 @@ Only facts are persisted. Everything the screen shows is derived at read time:
 - **Elapsed time** = `AccumulatedElapsedSeconds + max(0, now − RunningSinceUtc)` while roasting,
   and `AccumulatedElapsedSeconds` while paused. A per-second value is never written.
 - **Cooling versus Needs weight** = a stored `AwaitingWeight` status compared against
-  `DroppedAtUtc + CoolingDurationSeconds`. Nothing has to run at zero, so process death, a denied
+  `DroppedAtUtc + CoolingDurationSeconds`, unless `CoolingCompletedEarly` records a confirmed
+  **Ready now** transition. Nothing has to run at zero, so process death, clock rollback, a denied
   notification permission, or a delayed alarm cannot strand a roast in the wrong state.
 
 The visible timer is refreshed by a page-owned UI ticker that asks for a fresh projection. The
@@ -39,6 +40,7 @@ ticker stops with visibility; the roast does not.
 | Mark 1C | Active, enabled at Start, not already marked | Store the current whole second once |
 | Drop | Active Roasting or Paused | Append the roast, decrement the bean, clear the draft, advance the batch number — one mutation |
 | Retry Drop | A previous Drop write failed | Reuse the same draft id; no duplicate record and no second decrement |
+| Ready now | An unresolved batch is still cooling | Persist the actual duration plus early-completion fact; cancel its reminder; keep final weight empty |
 | Save weight | `AwaitingWeight`; above 0 and not above the batch weight; normalized to 0.1 g | Set the final weight, level and `Complete`; cancel the reminder |
 | Mark Unweighed | `AwaitingWeight` | Set `Unweighed` without inventing a weight or loss; cancel the reminder |
 | Finish session | No active draft | Clear only `ActiveRoastSession`; cooling and needs-weight roasts stay open |
