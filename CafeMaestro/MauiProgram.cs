@@ -22,7 +22,10 @@ public static class MauiProgram
             // The card itself owns the surface, so the host stays transparent.
             .UseMauiCommunityToolkit(options => options.SetPopupDefaults(new DefaultPopupSettings
             {
-                BackgroundColor = Colors.Transparent,
+                // The builder runs before App.InitializeComponent loads theme resources; the
+                // shared resolver uses the active TransparentColor when one already exists and
+                // supplies a transparent bootstrap value for this toolkit-wide default.
+                BackgroundColor = PopupThemeResources.ResolveTransparentColor(),
                 CanBeDismissedByTappingOutsideOfPopup = true
             }))
             .ConfigureFonts(fonts =>

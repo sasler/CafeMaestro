@@ -46,7 +46,8 @@ public sealed class CoolingNotificationWorkflow : ICoolingNotificationWorkflow
             }
 
             foreach (RoastData roast in _appDataService.CurrentData.RoastLogs
-                         .Where(candidate => candidate.CompletionStatus == RoastCompletionStatus.AwaitingWeight))
+                         .Where(candidate => candidate.CompletionStatus == RoastCompletionStatus.AwaitingWeight &&
+                             !candidate.CoolingCompletedEarly))
             {
                 if (roast.ReadyToWeighAtUtc is not DateTimeOffset readyAt)
                 {

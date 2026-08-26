@@ -508,11 +508,12 @@ public sealed class RoastSessionService : IRoastSessionService, IDisposable
                 }
 
                 // Shortening the stored cooling window — rather than flipping a transient flag —
-                // is what makes readiness durable: the same pure projection reads Needs weight on
-                // every later launch, for this roast only, and the final weight stays missing.
+                // keeps the normal ready-at display while the explicit fact makes this transition
+                // independent of wall-clock ordering, including a clock rollback.
                 roast.CoolingDurationSeconds = (int)Math.Max(
                     0,
                     Math.Floor((now - RoastProjection.DroppedAtUtc(roast)).TotalSeconds));
+                roast.CoolingCompletedEarly = true;
                 return true;
             },
             cancellationToken);

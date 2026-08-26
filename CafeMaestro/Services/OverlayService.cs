@@ -95,13 +95,13 @@ public sealed class OverlayService(IServiceProvider services) : IOverlayService
     private static PopupOptions BuildPopupOptions() => new()
     {
         CanBeDismissedByTappingOutsideOfPopup = true,
-        PageOverlayColor = ThemeColor("PopupScrimColor") ?? Colors.Transparent,
+        PageOverlayColor = ThemeColor("PopupScrimColor") ?? PopupThemeResources.ResolveTransparentColor(),
         Shadow = null,
         Shape = new RoundRectangle
         {
             CornerRadius = new CornerRadius(ThemeDouble("PopupCornerRadiusValue", 20)),
-            Fill = Brush.Transparent,
-            Stroke = Brush.Transparent,
+            Fill = new SolidColorBrush(PopupThemeResources.ResolveTransparentColor()),
+            Stroke = new SolidColorBrush(PopupThemeResources.ResolveTransparentColor()),
             StrokeThickness = 0
         }
     };

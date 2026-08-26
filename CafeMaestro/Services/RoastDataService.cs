@@ -269,6 +269,7 @@ namespace CafeMaestro.Services
 
                 if (notificationsEnabled &&
                     savedRoast?.CompletionStatus == RoastCompletionStatus.AwaitingWeight &&
+                    savedRoast is not { CoolingCompletedEarly: true } &&
                     savedRoast.ReadyToWeighAtUtc is DateTimeOffset readyAt)
                 {
                     try

@@ -30,6 +30,12 @@ namespace CafeMaestro.Models
         public int? CoolingDurationSeconds { get; set; }
         public RoastCompletionStatus CompletionStatus { get; set; }
 
+        /// <summary>
+        /// Records that the user explicitly released this batch before its normal cooling window
+        /// elapsed. Missing values in older files deserialize to <see langword="false"/>.
+        /// </summary>
+        public bool CoolingCompletedEarly { get; set; }
+
         [JsonIgnore]
         public bool HasFinalWeight => FinalWeight > 0;
 

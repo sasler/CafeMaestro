@@ -828,6 +828,43 @@ public sealed class RoastSessionServiceTests
     }
 
     [Fact]
+    public async Task CompleteCoolingAsync_DoesNotRecreateReminderDuringColdLaunchReconciliation()
+    {
+        using RoastSessionTestHarness original = await RoastSessionTestHarness.CreateAsync(Start);
+        original.Preferences.CoolingNotificationsEnabled = true;
+        Guid roastId = await DropOneBatchAsync(original);
+        (await original.Session.CompleteCoolingAsync(roastId)).Success.Should().BeTrue();
+
+        using RoastSessionTestHarness relaunched =
+            await original.RelaunchAsync(original.Clock.UtcNow.AddSeconds(5));
+        relaunched.Preferences.CoolingNotificationsEnabled = true;
+
+        await relaunched.NotificationWorkflow.ReconcileAsync();
+
+        relaunched.Notifications.Scheduled.Should().NotContain(roastId);
+    }
+
+    [Fact]
+    public async Task CompleteCoolingAsync_WhenClockRollsBehindDrop_PersistsImmediateNeedsWeightProjection()
+    {
+        using RoastSessionTestHarness harness = await RoastSessionTestHarness.CreateAsync(Start);
+        Guid roastId = await DropOneBatchAsync(harness);
+        harness.Clock.UtcNow = Start.AddSeconds(600);
+
+        TransitionResult result = await harness.Session.CompleteCoolingAsync(roastId);
+
+        result.Success.Should().BeTrue();
+        RoastWorkItem released = result.Snapshot.OpenWork.Single();
+        released.Status.Should().Be(RoastEffectiveStatus.NeedsWeight);
+        released.RemainingCoolingSeconds.Should().Be(0);
+
+        using RoastSessionTestHarness relaunched = await harness.RelaunchAsync(harness.Clock.UtcNow);
+        RoastWorkItem restored = (await relaunched.Session.GetSnapshotAsync()).OpenWork.Single();
+        restored.Status.Should().Be(RoastEffectiveStatus.NeedsWeight);
+        restored.RemainingCoolingSeconds.Should().Be(0);
+    }
+
+    [Fact]
     public async Task CompleteCoolingAsync_OnABatchThatIsAlreadyReady_IsANoOp()
     {
         using RoastSessionTestHarness harness = await RoastSessionTestHarness.CreateAsync(Start);

@@ -68,7 +68,8 @@ internal static class RoastProjection
 
     /// <summary>
     /// Stored status combined with the clock. Awaiting weight reads as Cooling before the
-    /// readiness timestamp and Needs weight after it, so no write is required at zero.
+    /// readiness timestamp and Needs weight after it, or immediately when the user explicitly
+    /// released the batch, so no write is required at zero.
     /// </summary>
     internal static RoastEffectiveStatus EffectiveStatus(RoastData roast, DateTimeOffset asOfUtc) =>
         roast.CompletionStatus switch
@@ -76,9 +77,9 @@ internal static class RoastProjection
             RoastCompletionStatus.Complete => RoastEffectiveStatus.Complete,
             RoastCompletionStatus.Unweighed => RoastEffectiveStatus.Unweighed,
             RoastCompletionStatus.Discarded => RoastEffectiveStatus.Discarded,
-            _ => asOfUtc < ReadyToWeighAtUtc(roast)
-                ? RoastEffectiveStatus.Cooling
-                : RoastEffectiveStatus.NeedsWeight
+            _ => roast.CoolingCompletedEarly || asOfUtc >= ReadyToWeighAtUtc(roast)
+                ? RoastEffectiveStatus.NeedsWeight
+                : RoastEffectiveStatus.Cooling
         };
 
     internal static DateTimeOffset ReadyToWeighAtUtc(RoastData roast) =>
@@ -91,6 +92,7 @@ internal static class RoastProjection
     {
         DateTimeOffset droppedAt = DroppedAtUtc(roast);
         DateTimeOffset readyAt = ReadyToWeighAtUtc(roast);
+        RoastEffectiveStatus status = EffectiveStatus(roast, asOfUtc);
         return new RoastWorkItem
         {
             RoastId = roast.Id,
@@ -104,8 +106,10 @@ internal static class RoastProjection
             BatchWeight = roast.BatchWeight,
             DroppedAtUtc = droppedAt,
             ReadyToWeighAtUtc = readyAt,
-            RemainingCoolingSeconds = Math.Max(0, (readyAt - asOfUtc).TotalSeconds),
-            Status = EffectiveStatus(roast, asOfUtc),
+            RemainingCoolingSeconds = status == RoastEffectiveStatus.Cooling
+                ? Math.Max(0, (readyAt - asOfUtc).TotalSeconds)
+                : 0,
+            Status = status,
             TotalSeconds = roast.TotalSeconds,
             Notes = roast.Notes,
             Summary = roast.Summary,

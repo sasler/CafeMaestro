@@ -129,13 +129,13 @@ internal sealed class RoastSessionTestHarness : IDisposable
         RoastLevelService
             .Setup(service => service.GetRoastLevelNameAsync(It.IsAny<double>()))
             .ReturnsAsync("Medium");
-        ICoolingNotificationWorkflow workflow = notificationWorkflow ?? CreateNotificationWorkflow(
+        NotificationWorkflow = notificationWorkflow ?? CreateNotificationWorkflow(
             appDataService, preferences, notifications);
         Session = new RoastSessionService(
             appDataService,
             RoastLevelService.Object,
             preferences,
-            workflow,
+            NotificationWorkflow,
             clock);
         Query = new RoastQueryService(appDataService, clock);
     }
@@ -160,6 +160,7 @@ internal sealed class RoastSessionTestHarness : IDisposable
     public FakeClock Clock { get; }
     public FakeRoastPreferencesService Preferences { get; }
     public RecordingCoolingNotificationService Notifications { get; }
+    public ICoolingNotificationWorkflow NotificationWorkflow { get; }
     public Mock<IRoastLevelService> RoastLevelService { get; }
     public RoastSessionService Session { get; }
     public RoastQueryService Query { get; }
