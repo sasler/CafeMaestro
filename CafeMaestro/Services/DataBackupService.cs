@@ -9,6 +9,7 @@ public sealed class DataBackupService : IDataBackupService
     private readonly IAppDataService _appDataService;
     private readonly string _backupDirectory;
     private readonly Func<AppData, CancellationToken, Task>? _safetyBackupOverride;
+    private readonly ICoolingNotificationWorkflow? _notificationWorkflow;
     private readonly JsonSerializerOptions _jsonOptions = new()
     {
         WriteIndented = true,
@@ -22,20 +23,33 @@ public sealed class DataBackupService : IDataBackupService
     }
 
     public DataBackupService(IAppDataService appDataService, string backupDirectory)
-        : this(appDataService, backupDirectory, null)
+        : this(appDataService, backupDirectory, null, null)
+    {
+    }
+
+    public DataBackupService(
+        IAppDataService appDataService,
+        ICoolingNotificationWorkflow notificationWorkflow)
+        : this(
+            appDataService,
+            Path.Combine(FileSystem.AppDataDirectory, "Backups"),
+            null,
+            notificationWorkflow)
     {
     }
 
     internal DataBackupService(
         IAppDataService appDataService,
         string backupDirectory,
-        Func<AppData, CancellationToken, Task>? safetyBackupOverride)
+        Func<AppData, CancellationToken, Task>? safetyBackupOverride,
+        ICoolingNotificationWorkflow? notificationWorkflow = null)
     {
         _appDataService = appDataService ?? throw new ArgumentNullException(nameof(appDataService));
         _backupDirectory = string.IsNullOrWhiteSpace(backupDirectory)
             ? throw new ArgumentException("Backup directory is required.", nameof(backupDirectory))
             : backupDirectory;
         _safetyBackupOverride = safetyBackupOverride;
+        _notificationWorkflow = notificationWorkflow;
     }
 
     public async Task<DataBackupSummary> PreviewExternalBackupAsync(
@@ -163,9 +177,7 @@ public sealed class DataBackupService : IDataBackupService
         {
             if (_appDataService.IsRecoveryRequired)
             {
-                return await _appDataService.ReplaceAppDataForRecoveryAsync(
-                    replacement,
-                    cancellationToken);
+                return await ReplaceRecoveryDataAsync(replacement, cancellationToken);
             }
 
             AppData currentData;
@@ -177,9 +189,7 @@ public sealed class DataBackupService : IDataBackupService
                 ex is InvalidDataException or IOException or UnauthorizedAccessException &&
                 _appDataService.IsRecoveryRequired)
             {
-                return await _appDataService.ReplaceAppDataForRecoveryAsync(
-                    replacement,
-                    cancellationToken);
+                return await ReplaceRecoveryDataAsync(replacement, cancellationToken);
             }
 
             replacement.PersistenceRevision = currentData.PersistenceRevision;
@@ -191,7 +201,12 @@ public sealed class DataBackupService : IDataBackupService
             }
 
             PruneSafetyBackups(cancellationToken);
-            return await _appDataService.LoadAppDataAsync();
+            AppData committed = await _appDataService.LoadAppDataAsync();
+            if (_notificationWorkflow is not null)
+            {
+                await _notificationWorkflow.ReconcileAsync(cancellationToken);
+            }
+            return committed;
         }
         finally
         {
@@ -214,6 +229,20 @@ public sealed class DataBackupService : IDataBackupService
             _backupDirectory,
             _jsonOptions,
             cancellationToken);
+    }
+
+    private async Task<AppData> ReplaceRecoveryDataAsync(
+        AppData replacement,
+        CancellationToken cancellationToken)
+    {
+        AppData committed = await _appDataService.ReplaceAppDataForRecoveryAsync(
+            replacement,
+            cancellationToken);
+        if (_notificationWorkflow is not null)
+        {
+            await _notificationWorkflow.ReconcileAsync(cancellationToken);
+        }
+        return committed;
     }
 
     private void PruneSafetyBackups(CancellationToken cancellationToken)

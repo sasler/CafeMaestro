@@ -56,11 +56,16 @@ public static class MauiProgram
             Microsoft.Maui.Storage.Preferences.Default);
         builder.Services.AddSingleton<IClock, SystemClock>();
         builder.Services.AddSingleton<IRoastPreferencesService, RoastPreferencesService>();
+#if ANDROID
+        builder.Services.AddSingleton<ICoolingNotificationService, AndroidCoolingNotificationService>();
+#else
         builder.Services.AddSingleton<ICoolingNotificationService, NoOpCoolingNotificationService>();
+#endif
+        builder.Services.AddSingleton<ICoolingNotificationWorkflow, CoolingNotificationWorkflow>();
         builder.Services.AddSingleton<IRoastSessionService, RoastSessionService>();
         builder.Services.AddSingleton<IRoastQueryService, RoastQueryService>();
         builder.Services.AddSingleton<IDisplayWakeService, DisplayWakeService>();
-        builder.Services.AddSingleton<IAppActivationHandler, NoOpAppActivationHandler>();
+        builder.Services.AddSingleton<IAppActivationHandler, CoolingNotificationActivationHandler>();
         builder.Services.AddSingleton<IAppActivationService, AppActivationService>();
         builder.Services.AddSingleton<IRoastRecoveryAdapter, RoastRecoveryAdapter>();
         builder.Services.AddSingleton<IOverlayService, OverlayService>();

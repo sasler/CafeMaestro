@@ -1,6 +1,7 @@
 using CafeMaestro.Models;
 using CafeMaestro.Services;
 using FluentAssertions;
+using Moq;
 
 namespace CafeMaestro.Tests.Services;
 
@@ -674,6 +675,35 @@ public sealed class RoastSessionServiceTests
         result.Snapshot.RequiresRecovery.Should().BeTrue();
         (await relaunched.Session.GetSnapshotAsync()).RequiresRecovery.Should().BeTrue();
         relaunched.Current.ActiveRoastSession!.ActiveRoast.Should().NotBeNull();
+    }
+
+    [Fact]
+    public async Task RecoverAsync_UsesThePostPersistenceCoordinatorWithBatchIdentity()
+    {
+        Mock<ICoolingNotificationWorkflow> workflow = new();
+        workflow.Setup(service => service.HandleSuccessfulDropAsync(
+                It.IsAny<RoastData>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync((string?)null);
+        using RoastSessionTestHarness harness = await RoastSessionTestHarness.CreateAsync(
+            Start,
+            notificationWorkflow: workflow.Object);
+        BeanData bean = await harness.AddBeanAsync();
+        (await harness.Session.StartAsync(new RoastSetup(bean.Id, 218, 240))).Success
+            .Should().BeTrue();
+        Guid draftId = harness.Current.ActiveRoastSession!.ActiveRoast!.Id;
+        harness.Clock.AdvanceSeconds(900);
+
+        TransitionResult result = await harness.Session.RecoverAsync(
+            RecoveryDecision.EndedAt(Start.AddSeconds(700)));
+
+        result.Success.Should().BeTrue();
+        workflow.Verify(service => service.HandleSuccessfulDropAsync(
+                It.Is<RoastData>(roast =>
+                    roast.Id == draftId &&
+                    roast.BatchNumber == 1 &&
+                    roast.CompletionStatus == RoastCompletionStatus.AwaitingWeight),
+                It.IsAny<CancellationToken>()),
+            Times.Once);
     }
 
     [Fact]

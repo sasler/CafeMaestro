@@ -8,18 +8,21 @@ public partial class LoadingPage : ContentPage
     private readonly IAppDataService _appDataService;
     private readonly IPreferencesService _preferencesService;
     private readonly IAppActivationService _activationService;
+    private readonly ICoolingNotificationWorkflow _notificationWorkflow;
     private readonly AppShell _appShell;
 
     public LoadingPage(
         IAppDataService appDataService,
         IPreferencesService preferencesService,
         IAppActivationService activationService,
+        ICoolingNotificationWorkflow notificationWorkflow,
         AppShell appShell)
     {
         InitializeComponent();
         _appDataService = appDataService ?? throw new ArgumentNullException(nameof(appDataService));
         _preferencesService = preferencesService ?? throw new ArgumentNullException(nameof(preferencesService));
         _activationService = activationService ?? throw new ArgumentNullException(nameof(activationService));
+        _notificationWorkflow = notificationWorkflow ?? throw new ArgumentNullException(nameof(notificationWorkflow));
         _appShell = appShell ?? throw new ArgumentNullException(nameof(appShell));
 
         Loaded += OnPageLoaded;
@@ -36,6 +39,7 @@ public partial class LoadingPage : ContentPage
         {
             await UpdateStatusAsync("Preparing your CafeMaestro data...");
             await _appDataService.InitializeAsync(_preferencesService);
+            await _notificationWorkflow.ReconcileAsync();
             await NavigateToAppShell();
         }
         catch (Exception ex)
@@ -49,7 +53,9 @@ public partial class LoadingPage : ContentPage
 
         try
         {
-            await _activationService.HandlePendingAsync();
+            _activationService.SetReady();
+            await MainThread.InvokeOnMainThreadAsync(
+                () => _activationService.HandlePendingAsync());
         }
         catch (Exception ex)
         {

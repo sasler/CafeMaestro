@@ -20,16 +20,19 @@ public partial class RoastingSettingsPageViewModel : ObservableObject
     private readonly IRoastPreferencesService _roastPreferences;
     private readonly ICoolingNotificationService _notifications;
     private readonly IAlertService _alertService;
+    private readonly ICoolingNotificationWorkflow _notificationWorkflow;
     private bool _isLoading;
 
     public RoastingSettingsPageViewModel(
         IRoastPreferencesService roastPreferences,
         ICoolingNotificationService notifications,
-        IAlertService alertService)
+        IAlertService alertService,
+        ICoolingNotificationWorkflow notificationWorkflow)
     {
         _roastPreferences = roastPreferences ?? throw new ArgumentNullException(nameof(roastPreferences));
         _notifications = notifications ?? throw new ArgumentNullException(nameof(notifications));
         _alertService = alertService ?? throw new ArgumentNullException(nameof(alertService));
+        _notificationWorkflow = notificationWorkflow ?? throw new ArgumentNullException(nameof(notificationWorkflow));
 
         CoolingDurationChoices = new ObservableCollection<string>(
             CoolingDurationMinuteOptions.Select(FormatCoolingMinutes));
@@ -188,6 +191,8 @@ public partial class RoastingSettingsPageViewModel : ObservableObject
         {
             await RequestNotificationPermissionAsync();
         }
+
+        await _notificationWorkflow.ReconcileAsync();
     }
 
     private async Task PersistAsync(Func<Task<bool>> write, Action revert, string failureMessage)

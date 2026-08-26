@@ -73,6 +73,7 @@ public partial class App : Application
             _appDataService,
             _preferencesService,
             _serviceProvider.GetRequiredService<IAppActivationService>(),
+            _serviceProvider.GetRequiredService<ICoolingNotificationWorkflow>(),
             _serviceProvider.GetRequiredService<AppShell>());
     }
 

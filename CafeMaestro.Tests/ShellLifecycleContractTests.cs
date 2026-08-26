@@ -48,6 +48,7 @@ public class ShellLifecycleContractTests
         AppActivationService service = new(handler.Object);
 
         service.Queue(payload);
+        service.SetReady();
         await service.HandlePendingAsync();
         await service.HandlePendingAsync();
 
@@ -64,11 +65,29 @@ public class ShellLifecycleContractTests
             .Returns(Task.CompletedTask);
         AppActivationService service = new(handler.Object);
         service.Queue(payload);
+        service.SetReady();
 
         Func<Task> firstAttempt = () => service.HandlePendingAsync();
         await firstAttempt.Should().ThrowAsync<InvalidOperationException>();
         await service.HandlePendingAsync();
 
         handler.Verify(candidate => candidate.HandleAsync(payload, It.IsAny<CancellationToken>()), Times.Exactly(2));
+    }
+
+    [Fact]
+    public async Task ActivationService_RetainsColdPayloadUntilInitializationAndShellAreReady()
+    {
+        Mock<IAppActivationHandler> handler = new();
+        AppActivationPayload payload = new("cooling-ready", new Dictionary<string, string>());
+        AppActivationService service = new(handler.Object);
+        service.Queue(payload);
+
+        await service.HandlePendingAsync();
+        handler.Verify(candidate => candidate.HandleAsync(
+            It.IsAny<AppActivationPayload>(), It.IsAny<CancellationToken>()), Times.Never);
+
+        service.SetReady();
+        await service.HandlePendingAsync();
+        handler.Verify(candidate => candidate.HandleAsync(payload, It.IsAny<CancellationToken>()), Times.Once);
     }
 }

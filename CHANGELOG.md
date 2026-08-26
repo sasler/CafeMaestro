@@ -7,6 +7,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased] - Complete Architecture Refactor
 ### Added
+- Optional Android cooling-ready reminders with a contextual first-Drop explanation, Android 13+ notification permission, low-importance channel, inexact one-shot alarms and warm/cold activation into the exact persisted batch
+- Reminder reconciliation on initialization and data replacement, plus cancellation after weigh-in, Unweighed, deletion or time correction; Android delivery stays best effort and non-Android targets remain no-op
 - Settings is now a short index of destinations — Roasting, Appearance, Data & Backups, Roast Levels and About — each row showing the value it currently holds and refreshing that summary when you return
 - Roasting preferences page for First Crack tracking, cooling duration, weight precision and cooling notifications, with a note that changes apply to future roasts only
 - Cooling-notification state reports the app preference and the OS permission separately, so a reminder that will not be delivered says why instead of appearing to be on
