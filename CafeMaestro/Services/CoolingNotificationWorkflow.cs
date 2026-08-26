@@ -16,6 +16,7 @@ public sealed class CoolingNotificationWorkflow : ICoolingNotificationWorkflow
     private readonly ICoolingNotificationService _notifications;
     private readonly IAlertService _alerts;
     private readonly IPreferences _preferences;
+    private readonly SemaphoreSlim _operationGate = new(1, 1);
 
     public CoolingNotificationWorkflow(
         IAppDataService appDataService,
@@ -33,6 +34,7 @@ public sealed class CoolingNotificationWorkflow : ICoolingNotificationWorkflow
 
     public async Task ReconcileAsync(CancellationToken cancellationToken = default)
     {
+        await _operationGate.WaitAsync(cancellationToken);
         try
         {
             await _notifications.CancelAllAsync(cancellationToken);
@@ -63,6 +65,10 @@ public sealed class CoolingNotificationWorkflow : ICoolingNotificationWorkflow
         {
             System.Diagnostics.Debug.WriteLine($"Cooling reminder reconciliation failed: {ex.Message}");
         }
+        finally
+        {
+            _operationGate.Release();
+        }
     }
 
     public async Task<string?> HandleSuccessfulDropAsync(
@@ -71,6 +77,7 @@ public sealed class CoolingNotificationWorkflow : ICoolingNotificationWorkflow
     {
         ArgumentNullException.ThrowIfNull(droppedRoast);
 
+        await _operationGate.WaitAsync(cancellationToken);
         try
         {
             CoolingNotificationPermissionState state =
@@ -115,6 +122,10 @@ public sealed class CoolingNotificationWorkflow : ICoolingNotificationWorkflow
         {
             System.Diagnostics.Debug.WriteLine($"Cooling reminder onboarding failed: {ex.Message}");
         }
+        finally
+        {
+            _operationGate.Release();
+        }
 
         return null;
     }
@@ -150,6 +161,7 @@ public sealed class CoolingNotificationWorkflow : ICoolingNotificationWorkflow
 
     public async Task CancelAsync(Guid roastId, CancellationToken cancellationToken = default)
     {
+        await _operationGate.WaitAsync(cancellationToken);
         try
         {
             await _notifications.CancelAsync(roastId, cancellationToken);
@@ -157,6 +169,10 @@ public sealed class CoolingNotificationWorkflow : ICoolingNotificationWorkflow
         catch (Exception ex)
         {
             System.Diagnostics.Debug.WriteLine($"Cooling reminder cancellation failed: {ex.Message}");
+        }
+        finally
+        {
+            _operationGate.Release();
         }
     }
 
