@@ -15,6 +15,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Imported roasts without a final weight arrive as Awaiting weight and ready to weigh now, so historical rows land in the Roast Log work queue as actionable
 - `docs/import.md` describing the flow states, the adapter contract and the atomic commit
 - CSV reading is record-aware, so a quoted note containing a line break stays one logical row instead of aborting the file
+- Optional Android cooling-ready reminders with a contextual first-Drop explanation, Android 13+ notification permission, low-importance channel, inexact one-shot alarms and warm/cold activation into the exact persisted batch
+- Reminder reconciliation on initialization and data replacement, plus cancellation after weigh-in, Unweighed, deletion or time correction; Android delivery stays best effort and non-Android targets remain no-op
 - Settings is now a short index of destinations — Roasting, Appearance, Data & Backups, Roast Levels and About — each row showing the value it currently holds and refreshing that summary when you return
 - Roasting preferences page for First Crack tracking, cooling duration, weight precision and cooling notifications, with a note that changes apply to future roasts only
 - Cooling-notification state reports the app preference and the OS permission separately, so a reminder that will not be delivered says why instead of appearing to be on
@@ -93,7 +95,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Import parses numbers and dates with invariant culture first and only then falls back to the device culture, matching how CafeMaestro stores them
 - Duplicate policy is re-applied inside the atomic commit, so a record added between Review and import is reported rather than duplicated
 - Mapping pickers, Auto-map, Back and the type cards are disabled while a review or import is running, and a review whose mapping changed mid-flight is discarded instead of applied
-- Version bumped to 1.11.0
+- Version bumped to 1.12.0
 - The single long Settings page is replaced by an index with focused, Back-navigable detail pages; data/backup, roast-level and theme behavior moved without changing the services behind them
 - Data & Backups now isolates Start New Data in a danger zone below everything else, and the roast persistence-error escape hatch opens that page directly instead of the Settings index
 - Final-weight entry and corrections now use the focused Weigh In flow; generic roast editing is limited to mutable recorded details

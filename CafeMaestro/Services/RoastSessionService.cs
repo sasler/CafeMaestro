@@ -12,7 +12,7 @@ public sealed class RoastSessionService : IRoastSessionService, IDisposable
     private readonly IAppDataService _appDataService;
     private readonly IRoastLevelService _roastLevelService;
     private readonly IRoastPreferencesService _roastPreferencesService;
-    private readonly ICoolingNotificationService _coolingNotificationService;
+    private readonly ICoolingNotificationWorkflow _coolingNotificationWorkflow;
     private readonly IClock _clock;
     private readonly SemaphoreSlim _commandLock = new(1, 1);
     /// <summary>
@@ -33,13 +33,51 @@ public sealed class RoastSessionService : IRoastSessionService, IDisposable
         IRoastPreferencesService roastPreferencesService,
         ICoolingNotificationService coolingNotificationService,
         IClock clock)
+        : this(
+            appDataService,
+            roastLevelService,
+            roastPreferencesService,
+            new LegacyCoolingNotificationWorkflow(roastPreferencesService, coolingNotificationService),
+            clock)
+    {
+    }
+
+    /// <summary>
+    /// App composition supplies both the native implementation and the policy coordinator. The
+    /// native parameter intentionally remains in this overload so existing embedders/tests keep
+    /// their constructor contract while DI selects this richer, single-owner path.
+    /// </summary>
+    [Microsoft.Extensions.DependencyInjection.ActivatorUtilitiesConstructor]
+    public RoastSessionService(
+        IAppDataService appDataService,
+        IRoastLevelService roastLevelService,
+        IRoastPreferencesService roastPreferencesService,
+        ICoolingNotificationService coolingNotificationService,
+        IClock clock,
+        ICoolingNotificationWorkflow coolingNotificationWorkflow)
+        : this(
+            appDataService,
+            roastLevelService,
+            roastPreferencesService,
+            coolingNotificationWorkflow,
+            clock)
+    {
+        ArgumentNullException.ThrowIfNull(coolingNotificationService);
+    }
+
+    private RoastSessionService(
+        IAppDataService appDataService,
+        IRoastLevelService roastLevelService,
+        IRoastPreferencesService roastPreferencesService,
+        ICoolingNotificationWorkflow coolingNotificationWorkflow,
+        IClock clock)
     {
         _appDataService = appDataService ?? throw new ArgumentNullException(nameof(appDataService));
         _roastLevelService = roastLevelService ?? throw new ArgumentNullException(nameof(roastLevelService));
         _roastPreferencesService = roastPreferencesService
             ?? throw new ArgumentNullException(nameof(roastPreferencesService));
-        _coolingNotificationService = coolingNotificationService
-            ?? throw new ArgumentNullException(nameof(coolingNotificationService));
+        _coolingNotificationWorkflow = coolingNotificationWorkflow
+            ?? throw new ArgumentNullException(nameof(coolingNotificationWorkflow));
         _clock = clock ?? throw new ArgumentNullException(nameof(clock));
         _appDataService.DataChanged += OnDataChanged;
     }
@@ -272,8 +310,6 @@ public sealed class RoastSessionService : IRoastSessionService, IDisposable
         double? correctedElapsedSeconds,
         CancellationToken cancellationToken)
     {
-        bool notificationsEnabled =
-            await _roastPreferencesService.GetCoolingNotificationsEnabledAsync();
         RoastData? droppedRoast = null;
 
         // The batch this call is acting on. A competing tap that has not committed yet is still
@@ -358,15 +394,12 @@ public sealed class RoastSessionService : IRoastSessionService, IDisposable
         if (result.Success && droppedRoast is not null)
         {
             _lastDroppedRoastId = droppedRoast.Id;
-            if (notificationsEnabled)
+            string? warning = await _coolingNotificationWorkflow.HandleSuccessfulDropAsync(
+                droppedRoast,
+                cancellationToken);
+            if (warning is not null)
             {
-                string? warning = await TryScheduleCoolingNotificationAsync(
-                    droppedRoast,
-                    cancellationToken);
-                if (warning is not null)
-                {
-                    result = result with { Warning = warning };
-                }
+                result = result with { Warning = warning };
             }
         }
 
@@ -435,15 +468,10 @@ public sealed class RoastSessionService : IRoastSessionService, IDisposable
 
         if (result.Success && correctedRoast is not null)
         {
-            await TryCancelCoolingNotificationAsync(roastId, cancellationToken);
-            if (await _roastPreferencesService.GetCoolingNotificationsEnabledAsync())
-            {
-                string? warning = await TryScheduleCoolingNotificationAsync(correctedRoast, cancellationToken);
-                if (warning is not null)
-                {
-                    result = result with { Warning = warning };
-                }
-            }
+            // The persisted row is authoritative. Rebuild the native set after an edit so the
+            // corrected readiness anchor is represented exactly once, with preference/permission
+            // policy applied by the same coordinator that owns post-drop onboarding.
+            await _coolingNotificationWorkflow.ReconcileAsync(cancellationToken);
         }
 
         return result;
@@ -556,7 +584,7 @@ public sealed class RoastSessionService : IRoastSessionService, IDisposable
 
         if (result.Success)
         {
-            await TryCancelCoolingNotificationAsync(roastId, cancellationToken);
+            await _coolingNotificationWorkflow.CancelAsync(roastId, cancellationToken);
         }
 
         return result;
@@ -595,7 +623,7 @@ public sealed class RoastSessionService : IRoastSessionService, IDisposable
 
         if (result.Success)
         {
-            await TryCancelCoolingNotificationAsync(roastId, cancellationToken);
+            await _coolingNotificationWorkflow.CancelAsync(roastId, cancellationToken);
         }
 
         return result;
@@ -787,40 +815,6 @@ public sealed class RoastSessionService : IRoastSessionService, IDisposable
         bean.RemainingQuantity = Math.Max(
             0,
             Math.Round(bean.RemainingQuantity - usedKilograms, 6, MidpointRounding.AwayFromZero));
-    }
-
-    private async Task<string?> TryScheduleCoolingNotificationAsync(
-        RoastData roast,
-        CancellationToken cancellationToken)
-    {
-        try
-        {
-            await _coolingNotificationService.ScheduleCoolingReadyAsync(
-                roast.Id,
-                RoastProjection.ReadyToWeighAtUtc(roast),
-                roast.BeanDisplaySnapshot,
-                cancellationToken);
-            return null;
-        }
-        catch (Exception ex)
-        {
-            Debug.WriteLine($"Cooling notification could not be scheduled: {ex.Message}");
-            return "The roast is saved. A cooling reminder could not be scheduled.";
-        }
-    }
-
-    private async Task TryCancelCoolingNotificationAsync(
-        Guid roastId,
-        CancellationToken cancellationToken)
-    {
-        try
-        {
-            await _coolingNotificationService.CancelAsync(roastId, cancellationToken);
-        }
-        catch (Exception ex)
-        {
-            Debug.WriteLine($"Cooling notification could not be cancelled: {ex.Message}");
-        }
     }
 
     private async Task<TransitionResult> ExecuteAsync(

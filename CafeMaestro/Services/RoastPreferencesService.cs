@@ -10,7 +10,8 @@ public sealed class RoastPreferencesService : IRoastPreferencesService
 {
     private const string CoolingDurationKey = "RoastCoolingDurationSeconds";
     private const string FirstCrackEnabledKey = "RoastFirstCrackEnabled";
-    private const string CoolingNotificationsKey = "RoastCoolingNotificationsEnabled";
+    private const string CoolingNotificationsKey =
+        RoastPreferenceDefaults.CoolingNotificationsPreferenceKey;
 
     private readonly IPreferences _preferences;
 

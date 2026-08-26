@@ -12,6 +12,9 @@ public interface IAppActivationService
 {
     void Queue(AppActivationPayload payload);
 
+    /// <summary>Marks data initialization and Shell presentation complete.</summary>
+    void SetReady();
+
     /// <summary>Runs only after data initialization and Shell presentation have completed.</summary>
     Task HandlePendingAsync(CancellationToken cancellationToken = default);
 }

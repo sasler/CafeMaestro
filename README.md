@@ -19,6 +19,7 @@ CafeMaestro is a comprehensive tool designed for coffee enthusiasts and professi
 - **Focused Four-Tab Navigation**: Launch into Roast, with Log, Beans, and Settings always one tab away outside active/recovery roast states.
 - **Roast Log Work Queue**: Keep Cooling and Needs weight batches pinned above searchable history, then open focused details or weigh an explicitly selected batch.
 - **Optional First Crack Tracking**: When enabled in roasting preferences, mark or correct First Crack for live development-time analysis; the default console stays uncluttered.
+- **Optional Android Cooling Reminders**: Opt in to a best-effort notification when a persisted batch reaches its cooling-ready time; opening it revalidates the batch before offering weigh-in.
 - **Roast Level Analysis**: Automatic classification of roast levels based on weight loss percentage.
 - **Custom Roast Levels**: Define and customize your own roast levels based on weight loss percentages.
 - **Guided CSV Import**: One flow for beans and roast logs — choose a file, map columns, review every row and its rejection reason, then import in a single atomic write. Save or share roast-log CSV exports through the system document UI.

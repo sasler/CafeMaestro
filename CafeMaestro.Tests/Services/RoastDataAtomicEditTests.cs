@@ -32,6 +32,47 @@ public sealed class RoastDataAtomicEditTests : IDisposable
         (await appData.LoadAppDataAsync()).Should().BeEquivalentTo(appData.CurrentData);
     }
 
+    [Fact]
+    public async Task UpdateRoastLogAsync_WhenRemindersAreDisabled_CancelsInsteadOfReschedulingAwaitingRoast()
+    {
+        (ManagedAppDataService appData, _, RoastData original) = await CreateServiceAsync();
+        await appData.UpdateAsync(data =>
+        {
+            RoastData stored = data.RoastLogs.Single();
+            stored.FinalWeight = null;
+            stored.CompletionStatus = RoastCompletionStatus.AwaitingWeight;
+            stored.RoastLevelName = "Pending";
+        });
+
+        Mock<ICoolingNotificationService> notifications = new();
+        Mock<IRoastPreferencesService> preferences = new();
+        preferences.Setup(service => service.GetCoolingNotificationsEnabledAsync())
+            .ReturnsAsync(false);
+        var levels = new Mock<IRoastLevelService>();
+        levels.Setup(service => service.GetRoastLevelNameAsync(It.IsAny<double>()))
+            .ReturnsAsync("Medium");
+        RoastDataService roasts = new(
+            appData,
+            levels.Object,
+            notifications.Object,
+            preferences.Object);
+
+        RoastData edited = CreateEditedCopy(original, finalWeight: null);
+        edited.CompletionStatus = RoastCompletionStatus.AwaitingWeight;
+
+        (await roasts.UpdateRoastLogAsync(edited)).Should().BeTrue();
+
+        notifications.Verify(service => service.ScheduleCoolingReadyAsync(
+            It.IsAny<Guid>(),
+            It.IsAny<DateTimeOffset>(),
+            It.IsAny<string>(),
+            It.IsAny<int?>(),
+            It.IsAny<CancellationToken>()), Times.Never);
+        notifications.Verify(service => service.CancelAsync(
+            original.Id,
+            It.IsAny<CancellationToken>()), Times.Once);
+    }
+
     [Theory]
     [InlineData(RoastCompletionStatus.Unweighed, "Unweighed")]
     [InlineData(RoastCompletionStatus.Discarded, "Discarded")]
