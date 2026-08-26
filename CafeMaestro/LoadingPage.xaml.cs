@@ -54,7 +54,8 @@ public partial class LoadingPage : ContentPage
         try
         {
             _activationService.SetReady();
-            await _activationService.HandlePendingAsync();
+            await MainThread.InvokeOnMainThreadAsync(
+                () => _activationService.HandlePendingAsync());
         }
         catch (Exception ex)
         {
