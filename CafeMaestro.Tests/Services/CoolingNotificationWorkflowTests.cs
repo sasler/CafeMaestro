@@ -67,16 +67,16 @@ public sealed class CoolingNotificationWorkflowTests
         CoolingNotificationWorkflow workflow = new(
             Mock.Of<IAppDataService>(), preferences.Object, notifications.Object,
             alerts.Object, new MemoryPreferences());
-        RoastWorkItem dropped = Work(Now.AddMinutes(5));
+        RoastData dropped = Roast(RoastCompletionStatus.AwaitingWeight, Now.AddMinutes(5));
 
-        await workflow.AfterSuccessfulDropAsync(dropped);
-        await workflow.AfterSuccessfulDropAsync(dropped);
+        (await workflow.HandleSuccessfulDropAsync(dropped)).Should().BeNull();
+        (await workflow.HandleSuccessfulDropAsync(dropped)).Should().BeNull();
 
         alerts.Verify(service => service.ShowConfirmationAsync(
             It.IsAny<string>(), It.IsAny<string>(), It.IsAny<string>(), It.IsAny<string>()), Times.Once);
         notifications.Verify(service => service.RequestPermissionAsync(It.IsAny<CancellationToken>()), Times.Once);
         notifications.Verify(service => service.ScheduleCoolingReadyAsync(
-            dropped.RoastId, dropped.ReadyToWeighAtUtc, dropped.BeanDisplaySnapshot,
+            dropped.Id, dropped.ReadyToWeighAtUtc!.Value, dropped.BeanDisplaySnapshot,
             dropped.BatchNumber,
             It.IsAny<CancellationToken>()), Times.Once);
     }
@@ -137,15 +137,6 @@ public sealed class CoolingNotificationWorkflowTests
         RoastMinutes = 10, RoastSeconds = 0, RoastDate = readyAt.UtcDateTime,
         DroppedAtUtc = readyAt.AddMinutes(-5), CoolingDurationSeconds = 300,
         CompletionStatus = status, SessionId = Guid.NewGuid(), BatchNumber = 1
-    };
-
-    private static RoastWorkItem Work(DateTimeOffset readyAt) => new()
-    {
-        RoastId = Guid.NewGuid(), SessionId = Guid.NewGuid(), BatchNumber = 1,
-        BeanId = Guid.NewGuid(), BeanDisplaySnapshot = "Guji", Temperature = 218,
-        BatchWeight = 240, DroppedAtUtc = readyAt.AddMinutes(-5),
-        ReadyToWeighAtUtc = readyAt, RemainingCoolingSeconds = 300,
-        Status = RoastEffectiveStatus.Cooling, TotalSeconds = 600
     };
 
     private sealed class FixedClock(DateTimeOffset now) : IClock

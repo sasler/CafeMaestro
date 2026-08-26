@@ -30,6 +30,9 @@ public interface IRoastPreferencesService
 
 public static class RoastPreferenceDefaults
 {
+    /// <summary>Stable key shared by the Android scheduler's last-moment preference gate.</summary>
+    public const string CoolingNotificationsPreferenceKey = "RoastCoolingNotificationsEnabled";
+
     /// <summary>Five minutes, per the settled operating parameters.</summary>
     public const int CoolingDurationSeconds = 300;
 

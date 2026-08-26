@@ -15,6 +15,7 @@ namespace CafeMaestro.Services
         private readonly ICsvParserService _csvParserService;
         private readonly IRoastLevelService _roastLevelService;
         private readonly ICoolingNotificationService _coolingNotifications;
+        private readonly IRoastPreferencesService _roastPreferences;
         private readonly JsonSerializerOptions _jsonOptions;
         private readonly SemaphoreSlim _initLock = new SemaphoreSlim(1, 1);
         private bool _isInitialized = false;
@@ -27,7 +28,12 @@ namespace CafeMaestro.Services
         }
 
         public RoastDataService(IAppDataService appDataService, ICsvParserService csvParserService, IRoastLevelService roastLevelService)
-            : this(appDataService, csvParserService, roastLevelService, new NoOpCoolingNotificationService())
+            : this(
+                appDataService,
+                csvParserService,
+                roastLevelService,
+                new NoOpCoolingNotificationService(),
+                new DisabledRoastPreferencesService())
         {
         }
 
@@ -36,11 +42,28 @@ namespace CafeMaestro.Services
             ICsvParserService csvParserService,
             IRoastLevelService roastLevelService,
             ICoolingNotificationService coolingNotifications)
+            : this(
+                appDataService,
+                csvParserService,
+                roastLevelService,
+                coolingNotifications,
+                new DisabledRoastPreferencesService())
+        {
+        }
+
+        [Microsoft.Extensions.DependencyInjection.ActivatorUtilitiesConstructor]
+        public RoastDataService(
+            IAppDataService appDataService,
+            ICsvParserService csvParserService,
+            IRoastLevelService roastLevelService,
+            ICoolingNotificationService coolingNotifications,
+            IRoastPreferencesService roastPreferences)
         {
             _appDataService = appDataService;
             _csvParserService = csvParserService;
             _roastLevelService = roastLevelService;
             _coolingNotifications = coolingNotifications ?? throw new ArgumentNullException(nameof(coolingNotifications));
+            _roastPreferences = roastPreferences ?? throw new ArgumentNullException(nameof(roastPreferences));
             _currentDataFilePath = _appDataService.DataFilePath;
 
             _jsonOptions = new JsonSerializerOptions
@@ -739,6 +762,7 @@ namespace CafeMaestro.Services
                     };
                 }
 
+                RoastData? savedRoast = null;
                 bool saved = await _appDataService.TryUpdateAsync(appData =>
                 {
                     RoastData? existingRoast = appData.RoastLogs
@@ -783,6 +807,7 @@ namespace CafeMaestro.Services
                     existingRoast.RoastLevelName = updatedRoast.RoastLevelName;
                     existingRoast.FirstCrackMinutes = updatedRoast.FirstCrackMinutes;
                     existingRoast.FirstCrackSeconds = updatedRoast.FirstCrackSeconds;
+                    savedRoast = existingRoast;
                     return true;
                 });
                 if (!saved)
@@ -790,16 +815,29 @@ namespace CafeMaestro.Services
                     return false;
                 }
 
-                if (updatedRoast.CompletionStatus == RoastCompletionStatus.AwaitingWeight &&
-                    updatedRoast.ReadyToWeighAtUtc is DateTimeOffset readyAt)
+                bool notificationsEnabled;
+                try
+                {
+                    notificationsEnabled =
+                        await _roastPreferences.GetCoolingNotificationsEnabledAsync();
+                }
+                catch (Exception ex)
+                {
+                    System.Diagnostics.Debug.WriteLine($"Cooling reminder preference read failed: {ex.Message}");
+                    notificationsEnabled = false;
+                }
+
+                if (notificationsEnabled &&
+                    savedRoast?.CompletionStatus == RoastCompletionStatus.AwaitingWeight &&
+                    savedRoast.ReadyToWeighAtUtc is DateTimeOffset readyAt)
                 {
                     try
                     {
                         await _coolingNotifications.ScheduleCoolingReadyAsync(
-                            updatedRoast.Id,
+                            savedRoast.Id,
                             readyAt,
-                            updatedRoast.BeanDisplaySnapshot,
-                            updatedRoast.BatchNumber);
+                            savedRoast.BeanDisplaySnapshot,
+                            savedRoast.BatchNumber);
                     }
                     catch (Exception ex)
                     {

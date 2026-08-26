@@ -99,7 +99,8 @@ internal sealed class RoastSessionTestHarness : IDisposable
         ManagedAppDataService appDataService,
         FakeClock clock,
         FakeRoastPreferencesService preferences,
-        RecordingCoolingNotificationService notifications)
+        RecordingCoolingNotificationService notifications,
+        ICoolingNotificationWorkflow? notificationWorkflow)
     {
         CanonicalPath = canonicalPath;
         _ownsDirectory = ownsDirectory;
@@ -111,12 +112,20 @@ internal sealed class RoastSessionTestHarness : IDisposable
         RoastLevelService
             .Setup(service => service.GetRoastLevelNameAsync(It.IsAny<double>()))
             .ReturnsAsync("Medium");
-        Session = new RoastSessionService(
-            appDataService,
-            RoastLevelService.Object,
-            preferences,
-            notifications,
-            clock);
+        Session = notificationWorkflow is null
+            ? new RoastSessionService(
+                appDataService,
+                RoastLevelService.Object,
+                preferences,
+                notifications,
+                clock)
+            : new RoastSessionService(
+                appDataService,
+                RoastLevelService.Object,
+                preferences,
+                notifications,
+                clock,
+                notificationWorkflow);
         Query = new RoastQueryService(appDataService, clock);
     }
 
@@ -132,7 +141,8 @@ internal sealed class RoastSessionTestHarness : IDisposable
 
     public static Task<RoastSessionTestHarness> CreateAsync(
         DateTimeOffset? nowUtc = null,
-        Func<AppData, CancellationToken, Task>? writeOverride = null)
+        Func<AppData, CancellationToken, Task>? writeOverride = null,
+        ICoolingNotificationWorkflow? notificationWorkflow = null)
     {
         string directory = Path.Combine(
             Path.GetTempPath(),
@@ -143,25 +153,27 @@ internal sealed class RoastSessionTestHarness : IDisposable
             Path.Combine(directory, "roast-session.json"),
             ownsDirectory: true,
             nowUtc ?? new DateTimeOffset(2026, 3, 14, 9, 0, 0, TimeSpan.Zero),
-            writeOverride);
+            writeOverride,
+            notificationWorkflow);
     }
 
     /// <summary>Rebuilds the in-memory services over the same file, as a cold launch would.</summary>
     public Task<RoastSessionTestHarness> RelaunchAsync(DateTimeOffset? nowUtc = null) =>
-        CreateCoreAsync(CanonicalPath, ownsDirectory: false, nowUtc ?? Clock.UtcNow, null);
+        CreateCoreAsync(CanonicalPath, ownsDirectory: false, nowUtc ?? Clock.UtcNow, null, null);
 
     /// <summary>A cold launch over an existing file whose writes can be made to fail.</summary>
     public static Task<RoastSessionTestHarness> ReopenAsync(
         string canonicalPath,
         DateTimeOffset nowUtc,
         Func<AppData, CancellationToken, Task>? writeOverride) =>
-        CreateCoreAsync(canonicalPath, ownsDirectory: false, nowUtc, writeOverride);
+        CreateCoreAsync(canonicalPath, ownsDirectory: false, nowUtc, writeOverride, null);
 
     private static async Task<RoastSessionTestHarness> CreateCoreAsync(
         string canonicalPath,
         bool ownsDirectory,
         DateTimeOffset nowUtc,
-        Func<AppData, CancellationToken, Task>? writeOverride)
+        Func<AppData, CancellationToken, Task>? writeOverride,
+        ICoolingNotificationWorkflow? notificationWorkflow)
     {
         var appDataService = new ManagedAppDataService(
             canonicalPath,
@@ -175,7 +187,8 @@ internal sealed class RoastSessionTestHarness : IDisposable
             appDataService,
             new FakeClock(nowUtc),
             new FakeRoastPreferencesService(),
-            new RecordingCoolingNotificationService());
+            new RecordingCoolingNotificationService(),
+            notificationWorkflow);
     }
 
     public async Task<BeanData> AddBeanAsync(

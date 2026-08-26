@@ -47,6 +47,8 @@ public sealed class CoolingAlarmReceiver : BroadcastReceiver
             .Build();
         NotificationManager? manager =
             (NotificationManager?)context.GetSystemService(Context.NotificationService);
-        manager?.Notify(roastId.GetHashCode(), notification);
+        manager?.Notify(AndroidCoolingNotificationService.NotificationTag(roastId),
+            AndroidCoolingNotificationService.NotificationId,
+            notification);
     }
 }

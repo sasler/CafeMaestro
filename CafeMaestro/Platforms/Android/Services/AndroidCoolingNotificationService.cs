@@ -15,11 +15,13 @@ public sealed class AndroidCoolingNotificationService : ICoolingNotificationServ
     internal const string ExtraRoastId = "roastId";
     internal const string ExtraBeanName = "beanName";
     internal const string ExtraBatchNumber = "batchNumber";
+    internal const int NotificationId = 0;
     private const string PermissionRequestedKey = "CoolingNotificationPermissionRequested";
     private const string ScheduledIdsKey = "CoolingNotificationScheduledIds";
 
     private readonly Context _context;
     private readonly IPreferences _preferences;
+    private readonly SemaphoreSlim _registryGate = new(1, 1);
 
     public AndroidCoolingNotificationService(IPreferences preferences)
     {
@@ -94,32 +96,93 @@ public sealed class AndroidCoolingNotificationService : ICoolingNotificationServ
             return;
         }
 
-        AlarmManager? alarms = (AlarmManager?)_context.GetSystemService(Context.AlarmService);
-        PendingIntent? pendingIntent = CreateAlarmPendingIntent(
-            roastId, beanDisplayName, batchNumber, PendingIntentFlags.UpdateCurrent);
-        if (alarms is null || pendingIntent is null)
+        await _registryGate.WaitAsync(cancellationToken);
+        try
         {
-            return;
-        }
+            // Re-read the app-level opt-in while holding the same gate as native scheduling. This
+            // closes the disable-vs-in-flight-schedule race: a schedule that starts after the
+            // preference write observes the disabled state and cannot recreate an orphaned alarm.
+            if (!IsAppOptedIn())
+            {
+                return;
+            }
 
-        long triggerAtMillis = Math.Max(
-            DateTimeOffset.UtcNow.ToUnixTimeMilliseconds(),
-            readyToWeighAtUtc.ToUnixTimeMilliseconds());
-        if (OperatingSystem.IsAndroidVersionAtLeast(23))
-        {
-            alarms.SetAndAllowWhileIdle(AlarmType.RtcWakeup, triggerAtMillis, pendingIntent);
-        }
-        else
-        {
-            alarms.Set(AlarmType.RtcWakeup, triggerAtMillis, pendingIntent);
-        }
+            AlarmManager? alarms = (AlarmManager?)_context.GetSystemService(Context.AlarmService);
+            PendingIntent? pendingIntent = CreateAlarmPendingIntent(
+                roastId, beanDisplayName, batchNumber, PendingIntentFlags.UpdateCurrent);
+            if (alarms is null || pendingIntent is null)
+            {
+                return;
+            }
 
-        Remember(roastId);
+            // Record the durable identity before touching AlarmManager. If the process dies after
+            // this point, startup/disable reconciliation can still discover and cancel the alarm.
+            Remember(roastId);
+
+            long triggerAtMillis = Math.Max(
+                DateTimeOffset.UtcNow.ToUnixTimeMilliseconds(),
+                readyToWeighAtUtc.ToUnixTimeMilliseconds());
+            if (OperatingSystem.IsAndroidVersionAtLeast(23))
+            {
+                alarms.SetAndAllowWhileIdle(AlarmType.RtcWakeup, triggerAtMillis, pendingIntent);
+            }
+            else
+            {
+                alarms.Set(AlarmType.RtcWakeup, triggerAtMillis, pendingIntent);
+            }
+        }
+        finally
+        {
+            _registryGate.Release();
+        }
     }
 
-    public Task CancelAsync(Guid roastId, CancellationToken cancellationToken = default)
+    public async Task CancelAsync(Guid roastId, CancellationToken cancellationToken = default)
     {
-        cancellationToken.ThrowIfCancellationRequested();
+        await _registryGate.WaitAsync(cancellationToken);
+        try
+        {
+            cancellationToken.ThrowIfCancellationRequested();
+            CancelCore(roastId);
+        }
+        finally
+        {
+            _registryGate.Release();
+        }
+    }
+
+    public async Task CancelAllAsync(CancellationToken cancellationToken = default)
+    {
+        await _registryGate.WaitAsync(cancellationToken);
+        try
+        {
+            Exception? firstFailure = null;
+            foreach (Guid roastId in ReadScheduledIds().ToArray())
+            {
+                cancellationToken.ThrowIfCancellationRequested();
+                try
+                {
+                    CancelCore(roastId);
+                }
+                catch (Exception ex)
+                {
+                    firstFailure ??= ex;
+                }
+            }
+
+            if (firstFailure is not null)
+            {
+                throw firstFailure;
+            }
+        }
+        finally
+        {
+            _registryGate.Release();
+        }
+    }
+
+    private void CancelCore(Guid roastId)
+    {
         AlarmManager? alarms = (AlarmManager?)_context.GetSystemService(Context.AlarmService);
         PendingIntent? pendingIntent = CreateAlarmPendingIntent(
             roastId, null, null, PendingIntentFlags.NoCreate);
@@ -128,16 +191,19 @@ public sealed class AndroidCoolingNotificationService : ICoolingNotificationServ
             alarms?.Cancel(pendingIntent);
             pendingIntent.Cancel();
         }
-        Forget(roastId);
-        return Task.CompletedTask;
-    }
 
-    public async Task CancelAllAsync(CancellationToken cancellationToken = default)
-    {
-        foreach (Guid roastId in ReadScheduledIds())
+        NotificationManager? manager =
+            (NotificationManager?)_context.GetSystemService(Context.NotificationService);
+        if (manager is null)
         {
-            await CancelAsync(roastId, cancellationToken);
+            throw new InvalidOperationException("Android notification manager is unavailable.");
         }
+
+        // The tag/id pair is stable across process launches. Also clear the pre-review hash-only
+        // form once, so an upgrade cannot leave a previously delivered reminder in the tray.
+        manager.Cancel(NotificationTag(roastId), NotificationId);
+        manager.Cancel(roastId.GetHashCode());
+        Forget(roastId);
     }
 
     private PendingIntent? CreateAlarmPendingIntent(
@@ -206,4 +272,21 @@ public sealed class AndroidCoolingNotificationService : ICoolingNotificationServ
 
     private void WriteScheduledIds(IEnumerable<Guid> ids) =>
         _preferences.Set(ScheduledIdsKey, string.Join(',', ids.Select(id => id.ToString("D"))));
+
+    private bool IsAppOptedIn()
+    {
+        try
+        {
+            return _preferences.Get(
+                RoastPreferenceDefaults.CoolingNotificationsPreferenceKey,
+                RoastPreferenceDefaults.CoolingNotificationsEnabled);
+        }
+        catch (Exception ex)
+        {
+            System.Diagnostics.Debug.WriteLine($"Cooling notification preference read failed: {ex.Message}");
+            return false;
+        }
+    }
+
+    internal static string NotificationTag(Guid roastId) => roastId.ToString("D");
 }

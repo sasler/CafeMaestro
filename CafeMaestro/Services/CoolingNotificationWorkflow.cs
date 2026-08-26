@@ -65,8 +65,8 @@ public sealed class CoolingNotificationWorkflow : ICoolingNotificationWorkflow
         }
     }
 
-    public async Task AfterSuccessfulDropAsync(
-        RoastWorkItem droppedRoast,
+    public async Task<string?> HandleSuccessfulDropAsync(
+        RoastData droppedRoast,
         CancellationToken cancellationToken = default)
     {
         ArgumentNullException.ThrowIfNull(droppedRoast);
@@ -77,7 +77,7 @@ public sealed class CoolingNotificationWorkflow : ICoolingNotificationWorkflow
                 await _notifications.GetPermissionStateAsync(cancellationToken);
             if (state == CoolingNotificationPermissionState.Unavailable)
             {
-                return;
+                return null;
             }
 
             bool enabled = await _roastPreferences.GetCoolingNotificationsEnabledAsync();
@@ -85,9 +85,9 @@ public sealed class CoolingNotificationWorkflow : ICoolingNotificationWorkflow
             {
                 if (enabled && state == CoolingNotificationPermissionState.Granted)
                 {
-                    await ScheduleAsync(droppedRoast, cancellationToken);
+                    return await ScheduleAsync(droppedRoast, cancellationToken);
                 }
-                return;
+                return null;
             }
 
             // Record presentation before showing UI. A dismissal or denial is a normal, final
@@ -100,7 +100,7 @@ public sealed class CoolingNotificationWorkflow : ICoolingNotificationWorkflow
                 "Not now");
             if (!accepted || (!enabled && !await _roastPreferences.SetCoolingNotificationsEnabledAsync(true)))
             {
-                return;
+                return null;
             }
 
             state = state == CoolingNotificationPermissionState.NotDetermined
@@ -108,20 +108,81 @@ public sealed class CoolingNotificationWorkflow : ICoolingNotificationWorkflow
                 : state;
             if (state == CoolingNotificationPermissionState.Granted)
             {
-                await ScheduleAsync(droppedRoast, cancellationToken);
+                return await ScheduleAsync(droppedRoast, cancellationToken);
             }
         }
         catch (Exception ex)
         {
             System.Diagnostics.Debug.WriteLine($"Cooling reminder onboarding failed: {ex.Message}");
         }
+
+        return null;
     }
 
-    private Task ScheduleAsync(RoastWorkItem roast, CancellationToken cancellationToken) =>
-        _notifications.ScheduleCoolingReadyAsync(
-            roast.RoastId,
-            roast.ReadyToWeighAtUtc,
-            roast.BeanDisplaySnapshot,
-            roast.BatchNumber,
-            cancellationToken);
+    /// <summary>
+    /// Compatibility helper for callers/tests that already have the projected open-work item.
+    /// New post-persistence callers should pass the stored <see cref="RoastData"/> directly.
+    /// </summary>
+    public Task<string?> AfterSuccessfulDropAsync(
+        RoastWorkItem droppedRoast,
+        CancellationToken cancellationToken = default)
+    {
+        ArgumentNullException.ThrowIfNull(droppedRoast);
+        return HandleSuccessfulDropAsync(new RoastData
+        {
+            Id = droppedRoast.RoastId,
+            SessionId = droppedRoast.SessionId,
+            BatchNumber = droppedRoast.BatchNumber,
+            BeanId = droppedRoast.BeanId,
+            BeanType = droppedRoast.BeanDisplaySnapshot,
+            BeanDisplaySnapshot = droppedRoast.BeanDisplaySnapshot,
+            Temperature = droppedRoast.Temperature,
+            BatchWeight = droppedRoast.BatchWeight,
+            RoastMinutes = droppedRoast.TotalSeconds / 60,
+            RoastSeconds = droppedRoast.TotalSeconds % 60,
+            RoastDate = droppedRoast.DroppedAtUtc.LocalDateTime,
+            DroppedAtUtc = droppedRoast.DroppedAtUtc,
+            CoolingDurationSeconds = (int)Math.Max(0, (droppedRoast.ReadyToWeighAtUtc - droppedRoast.DroppedAtUtc).TotalSeconds),
+            CompletionStatus = RoastCompletionStatus.AwaitingWeight,
+            RoastLevelName = "Pending"
+        }, cancellationToken);
+    }
+
+    public async Task CancelAsync(Guid roastId, CancellationToken cancellationToken = default)
+    {
+        try
+        {
+            await _notifications.CancelAsync(roastId, cancellationToken);
+        }
+        catch (Exception ex)
+        {
+            System.Diagnostics.Debug.WriteLine($"Cooling reminder cancellation failed: {ex.Message}");
+        }
+    }
+
+    private async Task<string?> ScheduleAsync(
+        RoastData roast,
+        CancellationToken cancellationToken)
+    {
+        if (roast.ReadyToWeighAtUtc is not DateTimeOffset readyAt)
+        {
+            return null;
+        }
+
+        try
+        {
+            await _notifications.ScheduleCoolingReadyAsync(
+                roast.Id,
+                readyAt,
+                roast.BeanDisplaySnapshot,
+                roast.BatchNumber,
+                cancellationToken);
+            return null;
+        }
+        catch (Exception ex)
+        {
+            System.Diagnostics.Debug.WriteLine($"Cooling reminder scheduling failed: {ex.Message}");
+            return "The roast is saved. A cooling reminder could not be scheduled.";
+        }
+    }
 }
