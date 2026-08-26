@@ -26,13 +26,15 @@
                             <VerticalStackLayout Spacing="{StaticResource SpaceXs}">
                                 <Label Text="Coffee name *" Style="{StaticResource FieldLabelStyle}" />
                                 <Border Style="{StaticResource FieldContainerStyle}">
-                                    <Entry Text="{Binding CoffeeName}" Placeholder="Guji, Huila, Nyeri…" Style="{StaticResource FieldEntryStyle}" />
+                                    <Entry Text="{Binding CoffeeName}" Placeholder="Guji, Huila, Nyeri…" Style="{StaticResource FieldEntryStyle}"
+                                           SemanticProperties.Description="Coffee name" />
                                 </Border>
                             </VerticalStackLayout>
                             <VerticalStackLayout Spacing="{StaticResource SpaceXs}">
                                 <Label Text="Country of origin *" Style="{StaticResource FieldLabelStyle}" />
                                 <Border Style="{StaticResource FieldContainerStyle}">
-                                    <Entry Text="{Binding Country}" Placeholder="Ethiopia" Style="{StaticResource FieldEntryStyle}" />
+                                    <Entry Text="{Binding Country}" Placeholder="Ethiopia" Style="{StaticResource FieldEntryStyle}"
+                                           SemanticProperties.Description="Country of origin" />
                                 </Border>
                             </VerticalStackLayout>
                         </VerticalStackLayout>
@@ -46,13 +48,16 @@
                             <VerticalStackLayout Spacing="{StaticResource SpaceXs}">
                                 <Label Text="Variety" Style="{StaticResource FieldLabelStyle}" />
                                 <Border Style="{StaticResource FieldContainerStyle}">
-                                    <Entry Text="{Binding Variety}" Placeholder="Heirloom, Bourbon…" Style="{StaticResource FieldEntryStyle}" />
+                                    <Entry Text="{Binding Variety}" Placeholder="Heirloom, Bourbon…" Style="{StaticResource FieldEntryStyle}"
+                                           SemanticProperties.Description="Bean variety" />
                                 </Border>
                             </VerticalStackLayout>
                             <VerticalStackLayout Spacing="{StaticResource SpaceXs}">
                                 <Label Text="Process" Style="{StaticResource FieldLabelStyle}" />
                                 <Border Style="{StaticResource FieldContainerStyle}">
-                                    <Picker SelectedItem="{Binding Process}" Title="Choose processing method" TextColor="{DynamicResource PrimaryTextColor}">
+                                    <Picker SelectedItem="{Binding Process}" Title="Choose processing method" TextColor="{DynamicResource PrimaryTextColor}"
+                                            MinimumHeightRequest="{StaticResource ControlHeightMin}"
+                                            SemanticProperties.Description="Processing method">
                                         <Picker.Items>
                                             <x:String>Washed</x:String><x:String>Natural</x:String><x:String>Honey</x:String>
                                             <x:String>Wet-hulled</x:String><x:String>Anaerobic</x:String><x:String>Carbonic Maceration</x:String><x:String>Other</x:String>
@@ -63,13 +68,16 @@
                             <VerticalStackLayout Spacing="{StaticResource SpaceXs}">
                                 <Label Text="Purchase date" Style="{StaticResource FieldLabelStyle}" />
                                 <Border Style="{StaticResource FieldContainerStyle}">
-                                    <DatePicker Date="{Binding PurchaseDate}" Format="d MMMM yyyy" TextColor="{DynamicResource PrimaryTextColor}" />
+                                    <DatePicker Date="{Binding PurchaseDate}" Format="d MMMM yyyy" TextColor="{DynamicResource PrimaryTextColor}"
+                                                MinimumHeightRequest="{StaticResource ControlHeightMin}"
+                                                SemanticProperties.Description="Purchase date" />
                                 </Border>
                             </VerticalStackLayout>
                             <VerticalStackLayout Spacing="{StaticResource SpaceXs}">
                                 <Label Text="Store or website" Style="{StaticResource FieldLabelStyle}" />
                                 <Border Style="{StaticResource FieldContainerStyle}">
-                                    <Entry Text="{Binding Link}" Placeholder="Optional URL" Keyboard="Url" Style="{StaticResource FieldEntryStyle}" />
+                                    <Entry Text="{Binding Link}" Placeholder="Optional URL" Keyboard="Url" Style="{StaticResource FieldEntryStyle}"
+                                           SemanticProperties.Description="Store or website URL" />
                                 </Border>
                             </VerticalStackLayout>
                         </VerticalStackLayout>
@@ -83,19 +91,22 @@
                             <VerticalStackLayout Spacing="{StaticResource SpaceXs}">
                                 <Label Text="Total quantity (kg) *" Style="{StaticResource FieldLabelStyle}" />
                                 <Border Style="{StaticResource FieldContainerStyle}">
-                                    <Entry Text="{Binding Quantity}" Keyboard="Numeric" Placeholder="1.50" Style="{StaticResource FieldEntryStyle}" />
+                                    <Entry Text="{Binding Quantity}" Keyboard="Numeric" Placeholder="1.50" Style="{StaticResource FieldEntryStyle}"
+                                           SemanticProperties.Description="Total quantity in kilograms" />
                                 </Border>
                             </VerticalStackLayout>
                             <VerticalStackLayout Spacing="{StaticResource SpaceXs}">
                                 <Label Text="Remaining quantity (kg) *" Style="{StaticResource FieldLabelStyle}" />
                                 <Border Style="{StaticResource FieldContainerStyle}">
-                                    <Entry Text="{Binding RemainingQuantity}" Keyboard="Numeric" Placeholder="1.50" Style="{StaticResource FieldEntryStyle}" />
+                                    <Entry Text="{Binding RemainingQuantity}" Keyboard="Numeric" Placeholder="1.50" Style="{StaticResource FieldEntryStyle}"
+                                           SemanticProperties.Description="Remaining quantity in kilograms" />
                                 </Border>
                             </VerticalStackLayout>
                             <VerticalStackLayout Spacing="{StaticResource SpaceXs}">
                                 <Label Text="Price" Style="{StaticResource FieldLabelStyle}" />
                                 <Border Style="{StaticResource FieldContainerStyle}">
-                                    <Entry Text="{Binding Price}" Keyboard="Numeric" Placeholder="Optional" Style="{StaticResource FieldEntryStyle}" />
+                                    <Entry Text="{Binding Price}" Keyboard="Numeric" Placeholder="Optional" Style="{StaticResource FieldEntryStyle}"
+                                           SemanticProperties.Description="Bean price" />
                                 </Border>
                             </VerticalStackLayout>
                         </VerticalStackLayout>
@@ -108,9 +119,8 @@
                         <Editor Text="{Binding Notes}"
                                 Placeholder="Cupping notes, supplier details, or roast observations"
                                 AutoSize="TextChanges"
-                                MinimumHeightRequest="120"
-                                TextColor="{DynamicResource PrimaryTextColor}"
-                                PlaceholderColor="{DynamicResource SecondaryTextColor}" />
+                                Style="{StaticResource FieldEditorStyle}"
+                                SemanticProperties.Description="Bean notes" />
                     </Border>
                 </VerticalStackLayout>
             </VerticalStackLayout>

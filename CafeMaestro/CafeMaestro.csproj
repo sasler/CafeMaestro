@@ -25,6 +25,11 @@
         <Nullable>enable</Nullable>
         <LangVersion>latest</LangVersion>
 
+        <!-- Keep compiled bindings strict so release builds surface stale or ambiguous paths. -->
+        <MauiStrictXamlCompilation>true</MauiStrictXamlCompilation>
+        <MauiEnableXamlCBindingWithSourceCompilation>true</MauiEnableXamlCBindingWithSourceCompilation>
+        <WarningsAsErrors>$(WarningsAsErrors);XC0022;XC0023;XC0024;XC0025;XC0045</WarningsAsErrors>
+
         <!-- Display name -->
         <ApplicationTitle>CafeMaestro</ApplicationTitle>
 
@@ -32,8 +37,8 @@
         <ApplicationId>cafemaestro</ApplicationId>
 
         <!-- Versions -->
-        <ApplicationDisplayVersion>1.12.0</ApplicationDisplayVersion>
-        <ApplicationVersion>13</ApplicationVersion>
+        <ApplicationDisplayVersion>1.12.1</ApplicationDisplayVersion>
+        <ApplicationVersion>14</ApplicationVersion>
 
         <!-- To develop, package, and publish an app to the Microsoft Store, see: https://aka.ms/MauiTemplateUnpackaged -->
         <WindowsPackageType>None</WindowsPackageType>
@@ -59,24 +64,6 @@
         <!-- Add back BaseSize for the SVG logo -->
         <MauiImage Update="Resources\\Images\\cafemaestro_logo.svg" BaseSize="300,300" Resize="true" />
 
-        <!-- Timer SVG Icons - Define BaseSize but use Update instead of Include to prevent duplication -->
-        <MauiImage Update="Resources\Images\timer_play_icon.svg" BaseSize="60,60" />
-        <MauiImage Update="Resources\Images\timer_pause_icon.svg" BaseSize="60,60" />
-        <MauiImage Update="Resources\Images\timer_stop_icon.svg" BaseSize="60,60" />
-        <MauiImage Update="Resources\Images\timer_reset_icon.svg" BaseSize="60,60" />
-
-		<!-- Common icons -->
-		<MauiImage Update="Resources\Images\add_icon.svg" BaseSize="60,60" />
-		<MauiImage Update="Resources\Images\cancel_icon.svg" BaseSize="60,60" />
-		<MauiImage Update="Resources\Images\delete_icon.svg" BaseSize="60,60" />
-		<MauiImage Update="Resources\Images\edit_icon.svg" BaseSize="60,60" />
-		<MauiImage Update="Resources\Images\export_icon.svg" BaseSize="60,60" />
-		<MauiImage Update="Resources\Images\import_icon.svg" BaseSize="60,60" />
-		<MauiImage Update="Resources\Images\load_icon.svg" BaseSize="60,60" />
-		<MauiImage Update="Resources\Images\new_icon.svg" BaseSize="60,60" />
-		<MauiImage Update="Resources\Images\ok_icon.svg" BaseSize="60,60" />
-		<MauiImage Update="Resources\Images\save_icon.svg" BaseSize="60,60" />
-        
         <!--
             Direction B shell icons. Authored on the 24 grid, so they are rasterised at
             their design size and tinted by Shell's tab bar colours.
@@ -85,11 +72,6 @@
         <MauiImage Update="Resources\Images\tab_log_icon.svg" BaseSize="24,24" />
         <MauiImage Update="Resources\Images\tab_beans_icon.svg" BaseSize="24,24" />
         <MauiImage Update="Resources\Images\tab_settings_icon.svg" BaseSize="24,24" />
-
-        <!-- Navigation Menu Icons -->
-        <MauiImage Update="Resources\Images\log_icon.svg" BaseSize="150,150" />
-        <MauiImage Update="Resources\Images\beans_icon.svg" BaseSize="150,150" />
-        <MauiImage Update="Resources\Images\settings_icon.svg" BaseSize="150,150" />
 
         <!-- Custom Fonts -->
         <MauiFont Include="Resources\Fonts\*" />

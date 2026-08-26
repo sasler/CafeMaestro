@@ -14,6 +14,8 @@ public partial class BeanInventoryPage : ContentPage
             DisplayActionSheetAsync(title, cancel, destruction, buttons);
     }
 
+    public BeanInventoryPageViewModel ViewModel => _viewModel;
+
     protected override async void OnAppearing()
     {
         base.OnAppearing();

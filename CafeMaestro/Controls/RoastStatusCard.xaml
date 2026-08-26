@@ -4,10 +4,11 @@
              xmlns:controls="clr-namespace:CafeMaestro.Controls"
              xmlns:vm="clr-namespace:CafeMaestro.ViewModels"
              x:Class="CafeMaestro.Controls.RoastStatusCard"
-             x:Name="Root">
+             x:Name="Root"
+             x:DataType="controls:RoastStatusCard">
     <Border x:Name="CardBorder"
             x:DataType="vm:RoastLogCard"
-            BindingContext="{Binding Card, Source={x:Reference Root}}"
+            BindingContext="{Binding Card, Source={x:Reference Root}, x:DataType=controls:RoastStatusCard}"
             Style="{StaticResource CardStyle}"
             SemanticProperties.Description="{Binding SemanticDescription}">
         <Border.Triggers>

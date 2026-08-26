@@ -11,8 +11,35 @@ public partial class AppShell : Shell
 
 		RegisterRoutes();
 
+		Loaded += OnLoaded;
+		Unloaded += OnUnloaded;
+		SubscribeNavigationEvents();
+	}
+
+	private bool _navigationEventsSubscribed;
+
+	private void OnLoaded(object? sender, EventArgs e) => SubscribeNavigationEvents();
+
+	private void OnUnloaded(object? sender, EventArgs e)
+	{
+		if (!_navigationEventsSubscribed)
+		{
+			return;
+		}
+
+		Navigating -= OnNavigating;
+		_navigationEventsSubscribed = false;
+	}
+
+	private void SubscribeNavigationEvents()
+	{
+		if (_navigationEventsSubscribed)
+		{
+			return;
+		}
+
 		Navigating += OnNavigating;
-		Navigated += OnNavigated;
+		_navigationEventsSubscribed = true;
 	}
 
 	private void RegisterRoutes()
@@ -35,17 +62,6 @@ public partial class AppShell : Shell
 	private void OnNavigating(object? sender, ShellNavigatingEventArgs e)
 	{
 		Debug.WriteLine($"Navigating to: {e.Target.Location}");
-	}
-
-	private void OnNavigated(object? sender, ShellNavigatedEventArgs e)
-	{
-		if (CurrentPage != null && Application.Current is App app)
-		{
-			if (CurrentPage.BindingContext is NavigationParameters)
-				return;
-
-			app.PassDataToPage(CurrentPage);
-		}
 	}
 
 	protected override void OnNavigating(ShellNavigatingEventArgs args)

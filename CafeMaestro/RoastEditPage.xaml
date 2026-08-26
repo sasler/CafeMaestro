@@ -32,11 +32,15 @@
             <Grid ColumnDefinitions="*,*" ColumnSpacing="{StaticResource SpaceMd}">
                 <VerticalStackLayout>
                     <Label Text="TEMPERATURE (°C)" Style="{StaticResource CardMetaStyle}" />
-                    <Entry Text="{Binding TemperatureText}" Keyboard="Numeric" />
+                    <Entry Text="{Binding TemperatureText}" Keyboard="Numeric"
+                           Style="{StaticResource FieldEntryStyle}"
+                           SemanticProperties.Description="Roasting temperature in degrees Celsius" />
                 </VerticalStackLayout>
                 <VerticalStackLayout Grid.Column="1">
                     <Label Text="TOTAL TIME (mm:ss)" Style="{StaticResource CardMetaStyle}" />
-                    <Entry Text="{Binding RoastTimeText}" Keyboard="Numeric" Placeholder="10:42" />
+                    <Entry Text="{Binding RoastTimeText}" Keyboard="Numeric" Placeholder="10:42"
+                           Style="{StaticResource FieldEntryStyle}"
+                           SemanticProperties.Description="Total roast time in minutes and seconds" />
                 </VerticalStackLayout>
             </Grid>
 
@@ -44,9 +48,13 @@
                    Style="{StaticResource FieldHintStyle}" />
 
             <Label Text="FIRST CRACK (mm:ss, optional)" Style="{StaticResource CardMetaStyle}" />
-            <Entry Text="{Binding FirstCrackTimeText}" Keyboard="Numeric" Placeholder="Leave blank when unmarked" />
+            <Entry Text="{Binding FirstCrackTimeText}" Keyboard="Numeric" Placeholder="Leave blank when unmarked"
+                   Style="{StaticResource FieldEntryStyle}"
+                   SemanticProperties.Description="First Crack time in minutes and seconds" />
             <Label Text="NOTES" Style="{StaticResource CardMetaStyle}" />
-            <Editor Text="{Binding Notes}" AutoSize="TextChanges" MinimumHeightRequest="120" />
+            <Editor Text="{Binding Notes}" AutoSize="TextChanges"
+                    Style="{StaticResource FieldEditorStyle}"
+                    SemanticProperties.Description="Roast notes" />
 
             <Grid ColumnDefinitions="*,*" ColumnSpacing="{StaticResource SpaceMd}" Margin="0,24,0,0">
                 <Button Text="CANCEL" Command="{Binding CancelCommand}" Style="{StaticResource SecondaryActionStyle}" />

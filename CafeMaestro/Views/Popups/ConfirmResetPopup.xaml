@@ -4,7 +4,9 @@
              xmlns:popupVm="clr-namespace:CafeMaestro.ViewModels.Popups"
              x:Class="CafeMaestro.Views.Popups.ConfirmResetPopup"
              x:DataType="popupVm:ConfirmResetViewModel"
-             WidthRequest="330" Padding="{StaticResource SpaceMd}">
+             MaximumWidthRequest="{StaticResource PopupMaxWidth}"
+             HorizontalOptions="Fill"
+             Padding="{StaticResource SpaceMd}">
     <Border Style="{StaticResource AttentionCardStyle}">
         <VerticalStackLayout Spacing="{StaticResource SpaceLg}">
             <Label Text="RESET THIS TIMER?" Style="{StaticResource SectionHeaderStyle}" />

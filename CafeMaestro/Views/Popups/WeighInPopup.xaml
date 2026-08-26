@@ -4,7 +4,9 @@
              xmlns:popupVm="clr-namespace:CafeMaestro.ViewModels.Popups"
              x:Class="CafeMaestro.Views.Popups.WeighInPopup"
              x:DataType="popupVm:WeighInViewModel"
-             WidthRequest="340" Padding="{StaticResource SpaceMd}">
+             MaximumWidthRequest="{StaticResource PopupMaxWidth}"
+             HorizontalOptions="Fill"
+             Padding="{StaticResource SpaceMd}">
     <Border Style="{StaticResource ReadyCardStyle}">
         <VerticalStackLayout Spacing="{StaticResource SpaceLg}">
             <Label Text="{Binding ActionTitle}" Style="{StaticResource SectionHeaderStyle}" />

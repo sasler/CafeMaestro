@@ -2,6 +2,7 @@
 <ContentPage xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
              xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
              xmlns:controls="clr-namespace:CafeMaestro.Controls"
+             xmlns:local="clr-namespace:CafeMaestro"
              xmlns:services="clr-namespace:CafeMaestro.Services"
              xmlns:vm="clr-namespace:CafeMaestro.ViewModels"
              x:Class="CafeMaestro.ImportPage"
@@ -176,15 +177,15 @@
                                         <Label Text="{Binding DisplayName}"
                                                Style="{StaticResource FieldLabelStyle}"
                                                VerticalOptions="Center"
-                                               Grid.ColumnSpan="{Binding Source={x:Reference PageRoot}, Path=BindingContext.MappingLabelColumnSpan}" />
-                                        <Picker Grid.Row="{Binding Source={x:Reference PageRoot}, Path=BindingContext.MappingPickerRow}"
-                                                Grid.Column="{Binding Source={x:Reference PageRoot}, Path=BindingContext.MappingPickerColumn}"
-                                                Grid.ColumnSpan="{Binding Source={x:Reference PageRoot}, Path=BindingContext.MappingLabelColumnSpan}"
+                                               Grid.ColumnSpan="{Binding Source={x:Reference PageRoot}, Path=ViewModel.MappingLabelColumnSpan, x:DataType=local:ImportPage}" />
+                                        <Picker Grid.Row="{Binding Source={x:Reference PageRoot}, Path=ViewModel.MappingPickerRow, x:DataType=local:ImportPage}"
+                                                Grid.Column="{Binding Source={x:Reference PageRoot}, Path=ViewModel.MappingPickerColumn, x:DataType=local:ImportPage}"
+                                                Grid.ColumnSpan="{Binding Source={x:Reference PageRoot}, Path=ViewModel.MappingLabelColumnSpan, x:DataType=local:ImportPage}"
                                                 Title="Choose column"
-                                                ItemsSource="{Binding Source={x:Reference PageRoot}, Path=BindingContext.Headers}"
+                                                ItemsSource="{Binding Source={x:Reference PageRoot}, Path=ViewModel.Headers, x:DataType=local:ImportPage}"
                                                 SelectedItem="{Binding SelectedHeader, Mode=TwoWay}"
                                                 SemanticProperties.Description="{Binding FieldName}"
-                                                IsEnabled="{Binding Source={x:Reference PageRoot}, Path=BindingContext.IsMappingEnabled}"
+                                                IsEnabled="{Binding Source={x:Reference PageRoot}, Path=ViewModel.IsMappingEnabled, x:DataType=local:ImportPage}"
                                                 MinimumHeightRequest="{StaticResource ControlHeightMin}" />
                                     </Grid>
                                 </Border>
@@ -214,15 +215,15 @@
                                         <Label Text="{Binding DisplayName}"
                                                Style="{StaticResource FieldLabelStyle}"
                                                VerticalOptions="Center"
-                                               Grid.ColumnSpan="{Binding Source={x:Reference PageRoot}, Path=BindingContext.MappingLabelColumnSpan}" />
-                                        <Picker Grid.Row="{Binding Source={x:Reference PageRoot}, Path=BindingContext.MappingPickerRow}"
-                                                Grid.Column="{Binding Source={x:Reference PageRoot}, Path=BindingContext.MappingPickerColumn}"
-                                                Grid.ColumnSpan="{Binding Source={x:Reference PageRoot}, Path=BindingContext.MappingLabelColumnSpan}"
+                                               Grid.ColumnSpan="{Binding Source={x:Reference PageRoot}, Path=ViewModel.MappingLabelColumnSpan, x:DataType=local:ImportPage}" />
+                                        <Picker Grid.Row="{Binding Source={x:Reference PageRoot}, Path=ViewModel.MappingPickerRow, x:DataType=local:ImportPage}"
+                                                Grid.Column="{Binding Source={x:Reference PageRoot}, Path=ViewModel.MappingPickerColumn, x:DataType=local:ImportPage}"
+                                                Grid.ColumnSpan="{Binding Source={x:Reference PageRoot}, Path=ViewModel.MappingLabelColumnSpan, x:DataType=local:ImportPage}"
                                                 Title="Choose column"
-                                                ItemsSource="{Binding Source={x:Reference PageRoot}, Path=BindingContext.Headers}"
+                                                ItemsSource="{Binding Source={x:Reference PageRoot}, Path=ViewModel.Headers, x:DataType=local:ImportPage}"
                                                 SelectedItem="{Binding SelectedHeader, Mode=TwoWay}"
                                                 SemanticProperties.Description="{Binding FieldName}"
-                                                IsEnabled="{Binding Source={x:Reference PageRoot}, Path=BindingContext.IsMappingEnabled}"
+                                                IsEnabled="{Binding Source={x:Reference PageRoot}, Path=ViewModel.IsMappingEnabled, x:DataType=local:ImportPage}"
                                                 MinimumHeightRequest="{StaticResource ControlHeightMin}" />
                                     </Grid>
                                 </Border>

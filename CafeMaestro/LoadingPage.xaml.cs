@@ -10,6 +10,7 @@ public partial class LoadingPage : ContentPage
     private readonly IAppActivationService _activationService;
     private readonly ICoolingNotificationWorkflow _notificationWorkflow;
     private readonly AppShell _appShell;
+    private int _loadStarted;
 
     public LoadingPage(
         IAppDataService appDataService,
@@ -28,9 +29,15 @@ public partial class LoadingPage : ContentPage
         Loaded += OnPageLoaded;
     }
 
-    private void OnPageLoaded(object? sender, EventArgs e)
+    private async void OnPageLoaded(object? sender, EventArgs e)
     {
-        Task.Run(async () => await LoadDataAndNavigateAsync());
+        if (Interlocked.Exchange(ref _loadStarted, 1) != 0)
+        {
+            return;
+        }
+
+        Loaded -= OnPageLoaded;
+        await LoadDataAndNavigateAsync();
     }
 
     private async Task LoadDataAndNavigateAsync()

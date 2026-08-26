@@ -49,11 +49,11 @@ cd CafeMaestro
 # Restore dependencies
 dotnet restore
 
-# Build for Windows
-dotnet build CafeMaestro\CafeMaestro.csproj -f net10.0-windows10.0.19041.0
+# Build only the Windows target
+dotnet build CafeMaestro\CafeMaestro.csproj -p:TargetFrameworks=net10.0-windows10.0.19041.0 -f net10.0-windows10.0.19041.0
 
-# Build for Android
-dotnet build CafeMaestro\CafeMaestro.csproj -f net10.0-android
+# Build only the Android target
+dotnet build CafeMaestro\CafeMaestro.csproj -p:TargetFrameworks=net10.0-android -f net10.0-android
 ```
 
 ### Running Tests
@@ -111,10 +111,9 @@ All services are registered via DI in `MauiProgram.cs` using interface-based sin
 |---------|-----------|----------------|
 | ManagedAppDataService | IAppDataService | Versioned private JSON persistence with atomic mutations, recovery copies, and sequential migration |
 | BeanDataService | IBeanDataService | Bean CRUD operations |
-| RoastDataService | IRoastDataService | Roast CRUD and CSV export |
+| RoastDataService | IRoastDataService | Focused roast edits and CSV export |
 | ImportService | IImportService | Shared CSV import: per-kind adapters, row review, one atomic commit — see docs/import.md |
 | RoastLevelService | IRoastLevelService | Roast level classification |
-| TimerService | ITimerService | Roast timer with elapsed time events |
 | PreferencesService | IPreferencesService | User preferences storage |
 | NavigationService | INavigationService | Centralized Shell navigation |
 | AlertService | IAlertService | ViewModel-driven dialog alerts |

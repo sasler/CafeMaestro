@@ -6,12 +6,10 @@ using CafeMaestro.Models;
 
 namespace CafeMaestro.Services
 {
-    public class RoastLevelService : IRoastLevelService
+    public class RoastLevelService : IRoastLevelService, IDisposable
     {
         private readonly IAppDataService _appDataService;
-        private readonly SemaphoreSlim _initLock = new SemaphoreSlim(1, 1);
-        private bool _isInitialized = false;
-        private string _currentDataFilePath = string.Empty;
+        private bool _isDisposed;
 
         public string DataFilePath
         {
@@ -21,7 +19,6 @@ namespace CafeMaestro.Services
         public RoastLevelService(IAppDataService appDataService)
         {
             _appDataService = appDataService;
-            _currentDataFilePath = _appDataService.DataFilePath;
 
             // Subscribe to path changes from AppDataService
             _appDataService.DataFilePathChanged += OnDataFilePathChanged;
@@ -33,12 +30,6 @@ namespace CafeMaestro.Services
             {
                 try
                 {
-                    // Update stored path
-                    _currentDataFilePath = newPath;
-
-                    // Reset initialized flag to force reload with new path
-                    _isInitialized = false;
-
                     // Reload data with new path
                     await _appDataService.ReloadDataAsync();
                 }
@@ -47,34 +38,6 @@ namespace CafeMaestro.Services
                     System.Diagnostics.Debug.WriteLine($"Error reloading data after path change in RoastLevelService: {ex.Message}");
                 }
             });
-        }
-
-        // Initialize from preferences - ensure this is called at startup
-        public async Task InitializeFromPreferencesAsync(IPreferencesService preferencesService)
-        {
-            await _initLock.WaitAsync();
-
-            try
-            {
-                if (_isInitialized)
-                {
-                    return;
-                }
-
-                // Force a reload of data
-                await _appDataService.ReloadDataAsync();
-
-
-                _isInitialized = true;
-            }
-            catch (Exception ex)
-            {
-                System.Diagnostics.Debug.WriteLine($"Error initializing RoastLevelService from preferences: {ex.Message}");
-            }
-            finally
-            {
-                _initLock.Release();
-            }
         }
 
         // Get roast level data using weight loss percentage
@@ -247,6 +210,17 @@ namespace CafeMaestro.Services
                 System.Diagnostics.Debug.WriteLine($"Error getting roast level by ID: {ex.Message}");
                 return null;
             }
+        }
+
+        public void Dispose()
+        {
+            if (_isDisposed)
+            {
+                return;
+            }
+
+            _isDisposed = true;
+            _appDataService.DataFilePathChanged -= OnDataFilePathChanged;
         }
     }
 }

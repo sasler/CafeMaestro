@@ -34,7 +34,6 @@ public static class MauiProgram
         builder.Services.AddSingleton<ICsvParserService, CsvParserService>();
         builder.Services.AddSingleton<IRoastDataService, RoastDataService>();
         builder.Services.AddSingleton<IBeanDataService, BeanDataService>();
-        builder.Services.AddSingleton<ITimerService, TimerService>();
         builder.Services.AddSingleton<IPreferencesService, PreferencesService>();
         builder.Services.AddSingleton<IRoastLevelService, RoastLevelService>();
         builder.Services.AddSingleton<INavigationService, NavigationService>();

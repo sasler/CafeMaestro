@@ -55,6 +55,7 @@ public sealed class AndroidCoolingNotificationService : ICoolingNotificationServ
     public async Task<CoolingNotificationPermissionState> RequestPermissionAsync(
         CancellationToken cancellationToken = default)
     {
+        cancellationToken.ThrowIfCancellationRequested();
         if (Build.VERSION.SdkInt < BuildVersionCodes.Tiramisu)
         {
             return await GetPermissionStateAsync(cancellationToken);
@@ -67,6 +68,10 @@ public sealed class AndroidCoolingNotificationService : ICoolingNotificationServ
             return status == PermissionStatus.Granted
                 ? CoolingNotificationPermissionState.Granted
                 : CoolingNotificationPermissionState.Denied;
+        }
+        catch (System.OperationCanceledException)
+        {
+            throw;
         }
         catch (Exception ex)
         {

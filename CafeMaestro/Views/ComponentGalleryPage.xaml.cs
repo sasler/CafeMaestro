@@ -42,6 +42,7 @@ public partial class ComponentGalleryPage : ContentPage
     private int _paletteColumns;
     private int _iconColumns;
     private bool _isViewModelSubscribed;
+    private bool _isSizeObserved;
 
     public ComponentGalleryPage(ComponentGalleryPageViewModel viewModel)
     {
@@ -52,7 +53,7 @@ public partial class ComponentGalleryPage : ContentPage
 
         // The swatch and icon grids are laid out for the width that is actually
         // available, so the gallery reflows the same way the real surfaces will.
-        GalleryScroll.SizeChanged += OnGalleryScrollSizeChanged;
+        ObserveSizeChanges();
     }
 
     protected override async void OnAppearing()
@@ -64,6 +65,8 @@ public partial class ComponentGalleryPage : ContentPage
             _viewModel.PropertyChanged += OnViewModelPropertyChanged;
             _isViewModelSubscribed = true;
         }
+
+        ObserveSizeChanges();
 
         await _viewModel.LoadAsync();
     }
@@ -77,6 +80,23 @@ public partial class ComponentGalleryPage : ContentPage
             _viewModel.PropertyChanged -= OnViewModelPropertyChanged;
             _isViewModelSubscribed = false;
         }
+
+        if (_isSizeObserved)
+        {
+            GalleryScroll.SizeChanged -= OnGalleryScrollSizeChanged;
+            _isSizeObserved = false;
+        }
+    }
+
+    private void ObserveSizeChanges()
+    {
+        if (_isSizeObserved)
+        {
+            return;
+        }
+
+        GalleryScroll.SizeChanged += OnGalleryScrollSizeChanged;
+        _isSizeObserved = true;
     }
 
     private void OnViewModelPropertyChanged(object? sender, System.ComponentModel.PropertyChangedEventArgs e)

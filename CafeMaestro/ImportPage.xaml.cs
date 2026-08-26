@@ -14,6 +14,8 @@ public partial class ImportPage : ContentPage
         BindingContext = _viewModel = viewModel ?? throw new ArgumentNullException(nameof(viewModel));
     }
 
+    public ImportPageViewModel ViewModel => _viewModel;
+
     protected override void OnDisappearing()
     {
         _viewModel.OnDisappearing();

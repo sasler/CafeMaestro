@@ -14,6 +14,7 @@ public partial class App : Application
     private Window? _window;
     private ThemePreference _activeThemePreference = ThemePreference.Dark;
     private Models.AppData? _appData; // Make nullable to fix constructor error
+    private bool _applicationEventsAttached;
 
 
     // The initial page for the primary window
@@ -35,9 +36,7 @@ public partial class App : Application
         // Create the initial page
         _initialPage = CreateLoadingPage();
 
-        // Subscribe to data changed events
-        _appDataService.DataChanged += OnAppDataChanged;
-        RequestedThemeChanged += OnRequestedThemeChanged;
+        AttachApplicationEvents();
 
         // Load theme preference
         LoadThemePreference();
@@ -49,10 +48,35 @@ public partial class App : Application
         _appData = appData;
     }
 
+    private void AttachApplicationEvents()
+    {
+        if (_applicationEventsAttached)
+        {
+            return;
+        }
+
+        _appDataService.DataChanged += OnAppDataChanged;
+        RequestedThemeChanged += OnRequestedThemeChanged;
+        _applicationEventsAttached = true;
+    }
+
+    private void DetachApplicationEvents()
+    {
+        if (!_applicationEventsAttached)
+        {
+            return;
+        }
+
+        _appDataService.DataChanged -= OnAppDataChanged;
+        RequestedThemeChanged -= OnRequestedThemeChanged;
+        _applicationEventsAttached = false;
+    }
+
     protected override Window CreateWindow(IActivationState? activationState)
     {
         try
         {
+            AttachApplicationEvents();
             Window window = new(_initialPage);
             AttachWindowLifecycle(window);
             ApplyPlatformChrome(ThemePreferencePolicy.ResolveEffectiveTheme(
@@ -62,6 +86,7 @@ public partial class App : Application
         catch (Exception ex)
         {
             System.Diagnostics.Debug.WriteLine($"Error creating window: {ex.Message}");
+            AttachApplicationEvents();
             Window fallbackWindow = new(CreateLoadingPage());
             AttachWindowLifecycle(fallbackWindow);
             return fallbackWindow;
@@ -128,7 +153,11 @@ public partial class App : Application
         }
     }
 
-    private void OnWindowDestroying(object? sender, EventArgs e) => DetachWindowLifecycle();
+    private void OnWindowDestroying(object? sender, EventArgs e)
+    {
+        DetachWindowLifecycle();
+        DetachApplicationEvents();
+    }
 
     // Load and apply the saved theme preference
     private async void LoadThemePreference()
@@ -238,14 +267,4 @@ public partial class App : Application
         };
     }
 
-    // Pass data to a page when navigating
-    public void PassDataToPage(Page page)
-    {
-        if (page.BindingContext is not null)
-        {
-            return;
-        }
-
-        page.BindingContext = new NavigationParameters(GetAppData());
-    }
 }

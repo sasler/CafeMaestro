@@ -9,16 +9,14 @@ using CafeMaestro.Models;
 
 namespace CafeMaestro.Services
 {
-    public class RoastDataService : IRoastDataService
+    public class RoastDataService : IRoastDataService, IDisposable
     {
         private readonly IAppDataService _appDataService;
         private readonly IRoastLevelService _roastLevelService;
         private readonly ICoolingNotificationService _coolingNotifications;
         private readonly IRoastPreferencesService _roastPreferences;
         private readonly JsonSerializerOptions _jsonOptions;
-        private readonly SemaphoreSlim _initLock = new SemaphoreSlim(1, 1);
-        private bool _isInitialized = false;
-        private string _currentDataFilePath = string.Empty;
+        private bool _isDisposed;
 
         // Property to get the current data file path
         public string DataFilePath
@@ -26,28 +24,6 @@ namespace CafeMaestro.Services
             get => _appDataService.DataFilePath;
         }
 
-        public RoastDataService(IAppDataService appDataService, IRoastLevelService roastLevelService)
-            : this(
-                appDataService,
-                roastLevelService,
-                new NoOpCoolingNotificationService(),
-                new DisabledRoastPreferencesService())
-        {
-        }
-
-        public RoastDataService(
-            IAppDataService appDataService,
-            IRoastLevelService roastLevelService,
-            ICoolingNotificationService coolingNotifications)
-            : this(
-                appDataService,
-                roastLevelService,
-                coolingNotifications,
-                new DisabledRoastPreferencesService())
-        {
-        }
-
-        [Microsoft.Extensions.DependencyInjection.ActivatorUtilitiesConstructor]
         public RoastDataService(
             IAppDataService appDataService,
             IRoastLevelService roastLevelService,
@@ -58,7 +34,6 @@ namespace CafeMaestro.Services
             _roastLevelService = roastLevelService;
             _coolingNotifications = coolingNotifications ?? throw new ArgumentNullException(nameof(coolingNotifications));
             _roastPreferences = roastPreferences ?? throw new ArgumentNullException(nameof(roastPreferences));
-            _currentDataFilePath = _appDataService.DataFilePath;
 
             _jsonOptions = new JsonSerializerOptions
             {
@@ -80,12 +55,6 @@ namespace CafeMaestro.Services
             {
                 try
                 {
-                    // Update stored path
-                    _currentDataFilePath = newPath;
-
-                    // Reset initialized flag to force reload with new path
-                    _isInitialized = false;
-
                     // Reload data with new path
                     await _appDataService.ReloadDataAsync();
                 }
@@ -96,74 +65,7 @@ namespace CafeMaestro.Services
             });
         }
 
-        // Initialize from preferences - ensure this is called at startup
-        public async Task InitializeFromPreferencesAsync(IPreferencesService preferencesService)
-        {
-            await _initLock.WaitAsync();
-
-            try
-            {
-                if (_isInitialized)
-                {
-                    return;
-                }
-
-                // Force a reload of data
-                await _appDataService.ReloadDataAsync();
-
-                _isInitialized = true;
-            }
-            catch (Exception ex)
-            {
-                System.Diagnostics.Debug.WriteLine($"Error initializing RoastDataService from preferences: {ex.Message}");
-            }
-            finally
-            {
-                _initLock.Release();
-            }
-        }
-
-        public async Task<bool> SaveRoastDataAsync(RoastData roastData)
-        {
-            try
-            {
-                if (HasInvalidFinalWeight(roastData))
-                {
-                    return false;
-                }
-
-                PrepareNewRoastForPersistence(roastData);
-
-                // Before saving, determine and set the roast level name (only if final weight is known)
-                if (roastData.HasFinalWeight)
-                {
-                    string roastLevelName = await _roastLevelService.GetRoastLevelNameAsync(roastData.WeightLossPercentage);
-                    roastData.RoastLevelName = roastLevelName;
-                }
-                else
-                {
-                    roastData.RoastLevelName = "Pending";
-                }
-
-                // Load full app data
-                var appData = await _appDataService.LoadAppDataAsync();
-
-                // Add the new data
-                appData.RoastLogs.Add(roastData);
-
-                // Save updated app data
-                bool result = await _appDataService.SaveAppDataAsync(appData);
-
-                return result;
-            }
-            catch (Exception ex)
-            {
-                System.Diagnostics.Debug.WriteLine($"Error saving roast data: {ex.Message}");
-                return false;
-            }
-        }
-
-        public async Task<List<RoastData>> LoadRoastDataAsync()
+        private async Task<List<RoastData>> LoadRoastLogsAsync()
         {
             try
             {
@@ -203,16 +105,6 @@ namespace CafeMaestro.Services
             }
         }
 
-        public async Task<List<RoastData>> SearchRoastDataAsync(string beanType = "")
-        {
-            var allData = await LoadRoastDataAsync();
-
-            if (string.IsNullOrWhiteSpace(beanType))
-                return allData;
-
-            return allData.FindAll(r => r.BeanType.Contains(beanType, StringComparison.OrdinalIgnoreCase));
-        }
-
         public async Task ExportRoastLogAsync(
             Stream destination,
             CancellationToken cancellationToken = default)
@@ -223,7 +115,7 @@ namespace CafeMaestro.Services
                 throw new ArgumentException("The destination stream must be writable.", nameof(destination));
             }
 
-            List<RoastData> allData = await LoadRoastDataAsync();
+            List<RoastData> allData = await LoadRoastLogsAsync();
             await using var writer = new StreamWriter(
                 destination,
                 new System.Text.UTF8Encoding(encoderShouldEmitUTF8Identifier: false),
@@ -260,191 +152,6 @@ namespace CafeMaestro.Services
             string safeValue = value ?? string.Empty;
             return $"\"{safeValue.Replace("\"", "\"\"")}\"";
         }
-        // Import roasts from CSV file
-        // Special version of AddRoastAsync that avoids event recursion
-        private async Task<bool> AddRoastDirectAsync(RoastData roast)
-        {
-            try
-            {
-                if (HasInvalidFinalWeight(roast))
-                {
-                    return false;
-                }
-
-                PrepareNewRoastForPersistence(roast);
-
-                // Make sure ID is set
-                if (roast.Id == Guid.Empty)
-                {
-                    roast.Id = Guid.NewGuid();
-                }
-
-                // Load full app data - with detailed tracing
-                var appData = await _appDataService.LoadAppDataAsync();
-
-                // Initialize roast logs list if null
-                if (appData.RoastLogs == null)
-                {
-                    appData.RoastLogs = new List<RoastData>();
-                }
-
-                // Add the new roast log
-                appData.RoastLogs.Add(roast);
-
-                // Save updated app data
-                bool success = await _appDataService.SaveAppDataAsync(appData);
-
-                return success;
-            }
-            catch (Exception ex)
-            {
-                System.Diagnostics.Debug.WriteLine($"TRACE ERROR adding roast log: {ex.Message}");
-                System.Diagnostics.Debug.WriteLine($"TRACE ERROR stack trace: {ex.StackTrace}");
-                return false;
-            }
-        }
-
-        public async Task<int> RemoveDuplicatesAsync()
-        {
-            try
-            {
-                // Load full app data
-                var appData = await _appDataService.LoadAppDataAsync();
-
-                if (appData.RoastLogs == null || appData.RoastLogs.Count == 0)
-                {
-                    return 0;
-                }
-
-                // Keep track of IDs we've seen
-                var seenIds = new HashSet<Guid>();
-
-                // Keep track of content signatures we've seen for content-based deduplication
-                var seenContentSignatures = new HashSet<string>();
-
-                // Original count
-                int originalCount = appData.RoastLogs.Count;
-
-                // New list with duplicates removed
-                var uniqueRoasts = new List<RoastData>();
-
-                foreach (var roast in appData.RoastLogs)
-                {
-                    // Check for ID-based duplicates
-                    if (seenIds.Contains(roast.Id))
-                    {
-                        continue;
-                    }
-
-                    // Create a content signature for content-based deduplication
-                    string contentSignature = $"{roast.BeanType}|{roast.RoastDate:yyyy-MM-dd}|{roast.BatchWeight}|{roast.Temperature}|{roast.RoastMinutes}:{roast.RoastSeconds}";
-
-                    // Check for content-based duplicates
-                    if (seenContentSignatures.Contains(contentSignature))
-                    {
-                        continue;
-                    }
-
-                    // Add to our sets of seen items
-                    seenIds.Add(roast.Id);
-                    seenContentSignatures.Add(contentSignature);
-
-                    // Keep this roast in our unique list
-                    uniqueRoasts.Add(roast);
-                }
-
-                // Calculate how many duplicates were removed
-                int removedCount = originalCount - uniqueRoasts.Count;
-
-                if (removedCount > 0)
-                {
-                    // Update the app data with deduplicated list
-                    appData.RoastLogs = uniqueRoasts;
-
-                    // Save the updated data
-                    await _appDataService.SaveAppDataAsync(appData);
-                }
-
-                return removedCount;
-            }
-            catch (Exception ex)
-            {
-                System.Diagnostics.Debug.WriteLine($"Error removing duplicates: {ex.Message}");
-                return 0;
-            }
-        }
-
-        public async Task<List<RoastData>> GetAllRoastsAsync()
-        {
-            return await LoadRoastDataAsync();
-        }
-
-        public async Task<bool> AddRoastAsync(RoastData roast)
-        {
-            try
-            {
-                if (HasInvalidFinalWeight(roast))
-                {
-                    return false;
-                }
-
-                PrepareNewRoastForPersistence(roast);
-
-                // Make sure ID is set
-                if (roast.Id == Guid.Empty)
-                {
-                    roast.Id = Guid.NewGuid();
-                }
-
-                // Load full app data
-                var appData = await _appDataService.LoadAppDataAsync();
-
-                // Initialize roast logs list if null
-                if (appData.RoastLogs == null)
-                {
-                    appData.RoastLogs = new List<RoastData>();
-                }
-
-                // Check if this roast already exists
-                var existing = appData.RoastLogs.FirstOrDefault(r => r.Id == roast.Id);
-                if (existing != null)
-                {
-                    // This is a duplicate, don't add it again
-                    return true; // Return true to indicate "success" even though we didn't add it
-                }
-
-                // Add the new roast log
-                appData.RoastLogs.Add(roast);
-
-                // Save updated app data
-                return await _appDataService.SaveAppDataAsync(appData);
-            }
-            catch (Exception ex)
-            {
-                System.Diagnostics.Debug.WriteLine($"Error adding roast log: {ex.Message}");
-                return false;
-            }
-        }
-
-        public async Task<List<RoastData>> GetAllRoastLogsAsync()
-        {
-            try
-            {
-                // Load full app data
-                var appData = await _appDataService.LoadAppDataAsync();
-
-                return appData.RoastLogs?.ToList() ?? new List<RoastData>();
-            }
-            catch (Exception ex)
-            {
-                System.Diagnostics.Debug.WriteLine($"Error getting all roast logs: {ex.Message}");
-                return new List<RoastData>();
-            }
-        }
-
-        private static void PrepareNewRoastForPersistence(RoastData roast) =>
-            NewRoastDefaults.Apply(roast);
-
         private static bool HasInvalidFinalWeight(RoastData roast) =>
             roast.FinalWeight is double finalWeight &&
             (!double.IsFinite(finalWeight) || finalWeight < 0);
@@ -632,7 +339,7 @@ namespace CafeMaestro.Services
                     return null;
 
                 // Load all roast logs
-                var allRoasts = await GetAllRoastsAsync();
+                var allRoasts = await LoadRoastLogsAsync();
 
                 // Find the most recent roast with the matching bean type
                 var lastRoast = allRoasts
@@ -659,6 +366,17 @@ namespace CafeMaestro.Services
             {
                 System.Diagnostics.Debug.WriteLine($"Cooling reminder cancellation failed: {ex.Message}");
             }
+        }
+
+        public void Dispose()
+        {
+            if (_isDisposed)
+            {
+                return;
+            }
+
+            _isDisposed = true;
+            _appDataService.DataFilePathChanged -= OnDataFilePathChanged;
         }
     }
 }
