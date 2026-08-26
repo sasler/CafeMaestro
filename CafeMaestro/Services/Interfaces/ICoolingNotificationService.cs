@@ -46,7 +46,19 @@ public interface ICoolingNotificationService
         string beanDisplayName,
         CancellationToken cancellationToken = default);
 
+    Task ScheduleCoolingReadyAsync(
+        Guid roastId,
+        DateTimeOffset readyToWeighAtUtc,
+        string beanDisplayName,
+        int? batchNumber,
+        CancellationToken cancellationToken = default) =>
+        ScheduleCoolingReadyAsync(
+            roastId, readyToWeighAtUtc, beanDisplayName, cancellationToken);
+
     Task CancelAsync(Guid roastId, CancellationToken cancellationToken = default);
+
+    /// <summary>Cancels every reminder previously scheduled by this app.</summary>
+    Task CancelAllAsync(CancellationToken cancellationToken = default) => Task.CompletedTask;
 }
 
 /// <summary>The cross-platform default until the Android implementation lands.</summary>
@@ -67,5 +79,8 @@ public sealed class NoOpCoolingNotificationService : ICoolingNotificationService
         CancellationToken cancellationToken = default) => Task.CompletedTask;
 
     public Task CancelAsync(Guid roastId, CancellationToken cancellationToken = default) =>
+        Task.CompletedTask;
+
+    public Task CancelAllAsync(CancellationToken cancellationToken = default) =>
         Task.CompletedTask;
 }

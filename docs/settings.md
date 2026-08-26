@@ -41,12 +41,14 @@ The toggle is the *app* preference. `ICoolingNotificationService.GetPermissionSt
 - `Unavailable` — this platform/build cannot post reminders; the toggle is disabled and says so.
 - `NotDetermined` — supported, not yet asked. Turning the preference on asks then; a denial is a
   normal outcome, not an error.
-- `Granted` — reminders will arrive.
+- `Granted` — Android can post reminders, though battery policy may delay delivery.
 - `Denied` — the preference stays as the user set it, and the page shows a *Blocked by system
   settings* chip rather than silently switching itself off.
 
-The OS prompt is never raised at app launch. Android scheduling and the permission request itself
-are implemented separately; the cross-platform default reports `Unavailable`.
+The OS prompt is never raised at app launch. Android 13+ uses `POST_NOTIFICATIONS`; a contextual
+first-Drop explanation offers the opt-in, while enabling the toggle remains an explicit way to ask.
+Allowed reminders use a low-importance channel and best-effort inexact alarms. Other targets keep
+the cross-platform `Unavailable` no-op behavior.
 
 ## Appearance
 

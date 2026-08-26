@@ -5,6 +5,7 @@ public sealed class AppActivationService : IAppActivationService
     private readonly object _sync = new();
     private readonly IAppActivationHandler _handler;
     private AppActivationPayload? _pending;
+    private bool _isReady;
 
     public AppActivationService(IAppActivationHandler handler)
     {
@@ -20,11 +21,23 @@ public sealed class AppActivationService : IAppActivationService
         }
     }
 
+    public void SetReady()
+    {
+        lock (_sync)
+        {
+            _isReady = true;
+        }
+    }
+
     public async Task HandlePendingAsync(CancellationToken cancellationToken = default)
     {
         AppActivationPayload? payload;
         lock (_sync)
         {
+            if (!_isReady)
+            {
+                return;
+            }
             payload = _pending;
             _pending = null;
         }

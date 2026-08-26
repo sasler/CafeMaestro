@@ -145,6 +145,7 @@ public sealed class RoastingSettingsPageViewModelTests
         return new RoastingSettingsPageViewModel(
             preferences.Object,
             notifications.Object,
-            alerts?.Object ?? Mock.Of<IAlertService>());
+            alerts?.Object ?? Mock.Of<IAlertService>(),
+            Mock.Of<ICoolingNotificationWorkflow>());
     }
 }

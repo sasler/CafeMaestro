@@ -22,6 +22,7 @@ public partial class RoastPageViewModel : ObservableObject, IQueryAttributable
     private readonly INavigationService _navigationService;
     private readonly IAlertService _alertService;
     private readonly IClock _clock;
+    private readonly ICoolingNotificationWorkflow _notificationWorkflow;
     private readonly object _lifecycleSync = new();
     private readonly SemaphoreSlim _lifecycleWakeGate = new(1, 1);
 
@@ -164,7 +165,8 @@ public partial class RoastPageViewModel : ObservableObject, IQueryAttributable
         IRoastRecoveryAdapter recoveryAdapter,
         INavigationService navigationService,
         IAlertService alertService,
-        IClock clock)
+        IClock clock,
+        ICoolingNotificationWorkflow notificationWorkflow)
     {
         _sessionService = sessionService ?? throw new ArgumentNullException(nameof(sessionService));
         _queryService = queryService ?? throw new ArgumentNullException(nameof(queryService));
@@ -175,6 +177,7 @@ public partial class RoastPageViewModel : ObservableObject, IQueryAttributable
         _navigationService = navigationService ?? throw new ArgumentNullException(nameof(navigationService));
         _alertService = alertService ?? throw new ArgumentNullException(nameof(alertService));
         _clock = clock ?? throw new ArgumentNullException(nameof(clock));
+        _notificationWorkflow = notificationWorkflow ?? throw new ArgumentNullException(nameof(notificationWorkflow));
     }
 
     partial void OnPresentationStateChanged(RoastPresentationState value)
@@ -1009,6 +1012,16 @@ public partial class RoastPageViewModel : ObservableObject, IQueryAttributable
     {
         TransitionResult result = await _sessionService.DropAsync(proposal);
         await HandleTransitionAsync(result, () => CommitDropProposalAsync(proposal));
+        if (result.Success)
+        {
+            RoastWorkItem? dropped = result.Snapshot.OpenWork
+                .OrderByDescending(item => item.DroppedAtUtc)
+                .FirstOrDefault();
+            if (dropped is not null)
+            {
+                await _notificationWorkflow.AfterSuccessfulDropAsync(dropped);
+            }
+        }
     }
 
     private async Task HandleTransitionAsync(TransitionResult result, Func<Task> retryAction)

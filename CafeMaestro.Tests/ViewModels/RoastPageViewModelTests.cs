@@ -417,7 +417,8 @@ public class RoastPageViewModelTests
                 Mock.Of<IRoastRecoveryAdapter>(),
                 Navigation.Object,
                 Mock.Of<IAlertService>(),
-                Clock);
+                Clock,
+                Mock.Of<ICoolingNotificationWorkflow>());
         }
 
         public void SetSnapshot(RoastSessionSnapshot snapshot) => _snapshot = snapshot;

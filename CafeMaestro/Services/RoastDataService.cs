@@ -14,6 +14,7 @@ namespace CafeMaestro.Services
         private readonly IAppDataService _appDataService;
         private readonly ICsvParserService _csvParserService;
         private readonly IRoastLevelService _roastLevelService;
+        private readonly ICoolingNotificationService _coolingNotifications;
         private readonly JsonSerializerOptions _jsonOptions;
         private readonly SemaphoreSlim _initLock = new SemaphoreSlim(1, 1);
         private bool _isInitialized = false;
@@ -26,10 +27,20 @@ namespace CafeMaestro.Services
         }
 
         public RoastDataService(IAppDataService appDataService, ICsvParserService csvParserService, IRoastLevelService roastLevelService)
+            : this(appDataService, csvParserService, roastLevelService, new NoOpCoolingNotificationService())
+        {
+        }
+
+        public RoastDataService(
+            IAppDataService appDataService,
+            ICsvParserService csvParserService,
+            IRoastLevelService roastLevelService,
+            ICoolingNotificationService coolingNotifications)
         {
             _appDataService = appDataService;
             _csvParserService = csvParserService;
             _roastLevelService = roastLevelService;
+            _coolingNotifications = coolingNotifications ?? throw new ArgumentNullException(nameof(coolingNotifications));
             _currentDataFilePath = _appDataService.DataFilePath;
 
             _jsonOptions = new JsonSerializerOptions
@@ -728,7 +739,7 @@ namespace CafeMaestro.Services
                     };
                 }
 
-                return await _appDataService.TryUpdateAsync(appData =>
+                bool saved = await _appDataService.TryUpdateAsync(appData =>
                 {
                     RoastData? existingRoast = appData.RoastLogs
                         .FirstOrDefault(roast => roast.Id == updatedRoast.Id);
@@ -774,6 +785,32 @@ namespace CafeMaestro.Services
                     existingRoast.FirstCrackSeconds = updatedRoast.FirstCrackSeconds;
                     return true;
                 });
+                if (!saved)
+                {
+                    return false;
+                }
+
+                if (updatedRoast.CompletionStatus == RoastCompletionStatus.AwaitingWeight &&
+                    updatedRoast.ReadyToWeighAtUtc is DateTimeOffset readyAt)
+                {
+                    try
+                    {
+                        await _coolingNotifications.ScheduleCoolingReadyAsync(
+                            updatedRoast.Id,
+                            readyAt,
+                            updatedRoast.BeanDisplaySnapshot,
+                            updatedRoast.BatchNumber);
+                    }
+                    catch (Exception ex)
+                    {
+                        System.Diagnostics.Debug.WriteLine($"Cooling reminder reschedule failed: {ex.Message}");
+                    }
+                }
+                else
+                {
+                    await TryCancelCoolingReminderAsync(updatedRoast.Id);
+                }
+                return true;
             }
             catch (Exception ex)
             {
@@ -799,7 +836,12 @@ namespace CafeMaestro.Services
                     appData.RoastLogs.Remove(roastToRemove);
 
                     // Save updated app data
-                    return await _appDataService.SaveAppDataAsync(appData);
+                    bool saved = await _appDataService.SaveAppDataAsync(appData);
+                    if (saved)
+                    {
+                        await TryCancelCoolingReminderAsync(id);
+                    }
+                    return saved;
                 }
 
                 return false;
@@ -834,6 +876,18 @@ namespace CafeMaestro.Services
             {
                 System.Diagnostics.Debug.WriteLine($"Error finding previous roast: {ex.Message}");
                 return null;
+            }
+        }
+
+        private async Task TryCancelCoolingReminderAsync(Guid roastId)
+        {
+            try
+            {
+                await _coolingNotifications.CancelAsync(roastId);
+            }
+            catch (Exception ex)
+            {
+                System.Diagnostics.Debug.WriteLine($"Cooling reminder cancellation failed: {ex.Message}");
             }
         }
     }
