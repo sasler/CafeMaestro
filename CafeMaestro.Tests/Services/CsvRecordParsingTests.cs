@@ -17,22 +17,26 @@ public sealed class CsvRecordParsingTests : IDisposable
         Directory.CreateDirectory(_testDirectory);
     }
 
-    [Fact]
-    public async Task ReadCsvContentAsync_KeepsAMultilineQuotedFieldAsOneRow()
+    [Theory]
+    [InlineData("\n")]
+    [InlineData("\r\n")]
+    public async Task ReadCsvContentAsync_KeepsAMultilineQuotedFieldAsOneRow(string newLine)
     {
+        // The separator is spelled out rather than written as a literal, so the test asserts what
+        // the parser does with each line ending instead of however Git happened to check the file
+        // out. A quoted field keeps the newline the source actually contains.
         string path = await WriteAsync(
             "multiline.csv",
-            """
-            Date,Bean Type,Notes
-            2026-03-01,Kenya AA,"First line
-            second line"
-            2026-03-02,Colombia,"Single line"
-            """);
+            string.Join(
+                newLine,
+                "Date,Bean Type,Notes",
+                $"2026-03-01,Kenya AA,\"First line{newLine}second line\"",
+                "2026-03-02,Colombia,\"Single line\""));
 
         List<Dictionary<string, string>> rows = await new CsvParserService().ReadCsvContentAsync(path, int.MaxValue);
 
         rows.Should().HaveCount(2);
-        rows[0]["Notes"].Should().Be($"First line{Environment.NewLine}second line".Replace("\r\n", "\n"));
+        rows[0]["Notes"].Should().Be($"First line{newLine}second line");
         rows[0]["Bean Type"].Should().Be("Kenya AA");
         rows[1]["Notes"].Should().Be("Single line");
     }
