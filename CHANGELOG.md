@@ -7,6 +7,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased] - Complete Architecture Refactor
 ### Added
+- One guided CSV import flow — choose type and file, map columns, review every row, then import — replacing the separate Bean and Roast import pages
+- Beans, Roast Log and Data & Backups open that flow with Beans or Roast Logs already selected, so no contextual action asks a question it already knows the answer to
+- Review reports valid, needs-attention and total counts, names every excluded row and its reason, and states exactly what the import will write before anything is saved
+- Accepted rows are committed in one atomic app-data mutation that raises a single data-changed notification, so every affected surface refreshes once
+- `IImportService` with per-destination `IImportAdapter` implementations owning field definitions, row validation, duplicate policy and commit behaviour
+- Imported roasts without a final weight arrive as Awaiting weight and ready to weigh now, so historical rows land in the Roast Log work queue as actionable
+- `docs/import.md` describing the flow states, the adapter contract and the atomic commit
 - Settings is now a short index of destinations — Roasting, Appearance, Data & Backups, Roast Levels and About — each row showing the value it currently holds and refreshing that summary when you return
 - Roasting preferences page for First Crack tracking, cooling duration, weight precision and cooling notifications, with a note that changes apply to future roasts only
 - Cooling-notification state reports the app preference and the OS permission separately, so a reminder that will not be delivered says why instead of appearing to be on
@@ -78,7 +85,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Invalid backup JSON is rejected without modifying active data or the selected source
 
 ### Changed
-- Version bumped to 1.10.0
+- CSV import now reads and validates the whole file before the Review step, so the counts shown are the counts imported rather than a five-row sample
+- Import parses numbers and dates with invariant culture first and only then falls back to the device culture, matching how CafeMaestro stores them
+- Version bumped to 1.11.0
 - The single long Settings page is replaced by an index with focused, Back-navigable detail pages; data/backup, roast-level and theme behavior moved without changing the services behind them
 - Data & Backups now isolates Start New Data in a danger zone below everything else, and the roast persistence-error escape hatch opens that page directly instead of the Settings index
 - Final-weight entry and corrections now use the focused Weigh In flow; generic roast editing is limited to mutable recorded details
@@ -108,6 +117,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - RoastDataService handles Pending roast level for roasts without final weight
 
 ### Removed
+- `BeanImportPage`, `RoastImportPage`, their ViewModels and routes, plus the per-row `ImportBeansFromCsvAsync`/`ImportRoastsFromCsvAsync` service methods they relied on
 - The redundant Home page, ViewModel, route, DI registrations, tests, and icon asset
 - Custom live-data file locations and the first-run storage-location prompt
 - Broad Android storage and media permissions that are unnecessary with the system document picker
