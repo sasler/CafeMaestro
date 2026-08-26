@@ -17,7 +17,14 @@ public static class MauiProgram
         var builder = MauiApp.CreateBuilder();
         builder
             .UseMauiApp<App>()
-            .UseMauiCommunityToolkit()
+            // The popup host otherwise paints an opaque light plate behind the popup content,
+            // which shows through as platform-default chrome around every themed popup card.
+            // The card itself owns the surface, so the host stays transparent.
+            .UseMauiCommunityToolkit(options => options.SetPopupDefaults(new DefaultPopupSettings
+            {
+                BackgroundColor = Colors.Transparent,
+                CanBeDismissedByTappingOutsideOfPopup = true
+            }))
             .ConfigureFonts(fonts =>
             {
                 fonts.AddFont("OpenSans-Regular.ttf", "OpenSansRegular");

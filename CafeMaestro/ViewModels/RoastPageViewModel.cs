@@ -513,6 +513,42 @@ public partial class RoastPageViewModel : ObservableObject, IQueryAttributable
         }
     }
 
+    /// <summary>
+    /// Releases one cooling batch early. The countdown is a convenience, not a measurement, so a
+    /// roaster who can feel the beans are cool confirms once and the batch moves to Needs weight
+    /// with no weight invented on their behalf.
+    /// </summary>
+    [RelayCommand]
+    public async Task CompleteCoolingAsync(RoastChannelPresentation? channel)
+    {
+        if (channel is null || _snapshot is null)
+        {
+            return;
+        }
+
+        RoastWorkItem? item = CurrentSessionWork().FirstOrDefault(work => work.RoastId == channel.RoastId);
+        if (item is null || IsReadyNow(item))
+        {
+            return;
+        }
+
+        string batchLabel = item.BatchNumber is int batch ? $"Batch {batch}" : "This batch";
+        bool confirmed = await _alertService.ShowConfirmationAsync(
+            "Stop cooling?",
+            $"{batchLabel} moves to Needs weight now. Its countdown and cooling reminder end; " +
+                "the final weight is still yours to enter.",
+            "READY NOW",
+            "KEEP COOLING");
+        if (!confirmed)
+        {
+            return;
+        }
+
+        await HandleTransitionAsync(
+            await _sessionService.CompleteCoolingAsync(item.RoastId),
+            () => CompleteCoolingAsync(channel));
+    }
+
     [RelayCommand]
     public async Task RetryAsync()
     {

@@ -21,8 +21,14 @@ public sealed record RoastChannelPresentation
     public required double CoolingProgress { get; init; }
     public required bool IsReady { get; init; }
 
+    /// <summary>Whether this batch can still be released from cooling early.</summary>
+    public bool CanCompleteCooling => !IsReady;
+
     public string SemanticDescription =>
         $"{BatchLabel}, {BeanDisplaySnapshot}, {StatusLabel}, {TimeDisplay}.";
+
+    public string CompleteCoolingSemanticDescription =>
+        $"Ready now. End cooling for {BatchLabel}, {BeanDisplaySnapshot}.";
 }
 
 /// <summary>

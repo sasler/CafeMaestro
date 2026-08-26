@@ -403,6 +403,43 @@
     </Style>
 
     <!--
+        Quiet: an always-available escape hatch that sits beside a stronger action. It keeps a
+        full touch target and a status-coloured label, but drops the outline so it never competes
+        with the outlined secondary action next to it.
+    -->
+    <Style x:Key="QuietActionStyle" TargetType="Button" BasedOn="{StaticResource SecondaryActionStyle}">
+        <Setter Property="TextColor" Value="{DynamicResource CoolingColor}" />
+        <Setter Property="BorderWidth" Value="0" />
+        <Setter Property="BorderColor" Value="{DynamicResource TransparentColor}" />
+        <Setter Property="FontSize" Value="{StaticResource FontSizeCaption}" />
+        <Setter Property="VisualStateManager.VisualStateGroups">
+            <VisualStateGroupList>
+                <VisualStateGroup Name="CommonStates">
+                    <VisualState Name="Normal" />
+                    <VisualState Name="PointerOver">
+                        <VisualState.Setters>
+                            <Setter Property="BackgroundColor" Value="{DynamicResource CoolingSurfaceColor}" />
+                        </VisualState.Setters>
+                    </VisualState>
+                    <VisualState Name="Pressed">
+                        <VisualState.Setters>
+                            <Setter Property="BackgroundColor" Value="{DynamicResource CoolingSurfaceColor}" />
+                            <Setter Property="Scale" Value="0.985" />
+                            <Setter Property="Opacity" Value="0.82" />
+                        </VisualState.Setters>
+                    </VisualState>
+                    <VisualState Name="Disabled">
+                        <VisualState.Setters>
+                            <Setter Property="TextColor" Value="{DynamicResource DisabledColor}" />
+                            <Setter Property="Opacity" Value="0.7" />
+                        </VisualState.Setters>
+                    </VisualState>
+                </VisualStateGroup>
+            </VisualStateGroupList>
+        </Setter>
+    </Style>
+
+    <!--
         Icon-only control. Put the Button and an IconView in the same Grid cell, Button
         first so the glyph draws over it: the platform keeps focus, press states and the
         semantic description on the button, while the glyph stays a themeable vector.

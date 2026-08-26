@@ -62,6 +62,14 @@
     <Color x:Key="DisabledColor">#9AA1A9</Color>
     <Color x:Key="DisabledSurfaceColor">#EFECE7</Color>
     <Color x:Key="ScrimColor">#661A1512</Color>
+
+    <!--
+        Popup chrome. The overlay host draws a container behind the popup card; these keys are
+        what it themes itself from, so a popup never falls back to the platform default plate.
+    -->
+    <Color x:Key="PopupSurfaceColor">#FFFDFB</Color>
+    <Color x:Key="PopupBorderColor">#DED8D0</Color>
+    <Color x:Key="PopupScrimColor">#661A1512</Color>
     <!-- A dark neutral status bar keeps Android 15 edge-to-edge icons contrast-safe. -->
     <Color x:Key="PlatformStatusBarColor">#1A1512</Color>
     <Color x:Key="PlatformNavigationBarColor">#FFFDFB</Color>

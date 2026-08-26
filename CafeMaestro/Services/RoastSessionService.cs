@@ -473,6 +473,59 @@ public sealed class RoastSessionService : IRoastSessionService, IDisposable
             },
             cancellationToken);
 
+    public async Task<TransitionResult> CompleteCoolingAsync(
+        Guid roastId,
+        CancellationToken cancellationToken = default)
+    {
+        // A batch that is already past its readiness anchor is left alone rather than reported as
+        // an error the user cannot act on: the state they asked for is the state they already have.
+        bool alreadyReady = false;
+
+        TransitionResult result = await ExecuteAsync(
+            (data, now, context) =>
+            {
+                RoastData? roast = data.RoastLogs.FirstOrDefault(candidate => candidate.Id == roastId);
+                if (roast is null)
+                {
+                    return context.Reject(
+                        RoastTransitionError.RoastNotFound,
+                        "That batch is no longer in the roast log.");
+                }
+
+                if (roast.CompletionStatus != RoastCompletionStatus.AwaitingWeight)
+                {
+                    return context.Reject(
+                        RoastTransitionError.RoastAlreadyResolved,
+                        "This batch has already been resolved.");
+                }
+
+                if (RoastProjection.EffectiveStatus(roast, now) != RoastEffectiveStatus.Cooling)
+                {
+                    alreadyReady = true;
+                    return context.Reject(
+                        RoastTransitionError.RoastAlreadyResolved,
+                        "This batch is already ready to weigh.");
+                }
+
+                // Shortening the stored cooling window — rather than flipping a transient flag —
+                // is what makes readiness durable: the same pure projection reads Needs weight on
+                // every later launch, for this roast only, and the final weight stays missing.
+                roast.CoolingDurationSeconds = (int)Math.Max(
+                    0,
+                    Math.Floor((now - RoastProjection.DroppedAtUtc(roast)).TotalSeconds));
+                return true;
+            },
+            cancellationToken);
+
+        if (result.Success)
+        {
+            await _coolingNotificationWorkflow.CancelAsync(roastId, cancellationToken);
+            return result;
+        }
+
+        return alreadyReady ? TransitionResult.Ok(result.Snapshot) : result;
+    }
+
     public async Task<TransitionResult> SaveFinalWeightAsync(
         Guid roastId,
         double grams,

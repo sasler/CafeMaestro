@@ -54,6 +54,15 @@ public interface IRoastSessionService
         bool keepLog,
         CancellationToken cancellationToken = default);
 
+    /// <summary>
+    /// Ends one cooling batch early. The persisted cooling window is shortened to the time the
+    /// batch has actually cooled, so the batch reads Needs weight from now on — including after a
+    /// restart — while its final weight stays missing and every other batch is untouched.
+    /// </summary>
+    Task<TransitionResult> CompleteCoolingAsync(
+        Guid roastId,
+        CancellationToken cancellationToken = default);
+
     Task<TransitionResult> SaveFinalWeightAsync(
         Guid roastId,
         double grams,

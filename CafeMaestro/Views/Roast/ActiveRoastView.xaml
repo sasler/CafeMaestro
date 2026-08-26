@@ -50,12 +50,20 @@
                                             <Label Text="{Binding BeanDisplaySnapshot}" Style="{StaticResource CardTitleStyle}" />
                                             <Label Text="{Binding StatusLabel}" Style="{StaticResource CardMetaStyle}" />
                                         </VerticalStackLayout>
-                                        <Button Grid.Column="3" Text="{Binding TimeDisplay}"
-                                                Command="{Binding Source={x:Reference Root}, Path=ViewModel.WeighChannelCommand, x:DataType=roast:ActiveRoastView}"
-                                                CommandParameter="{Binding .}" IsEnabled="{Binding IsReady}"
-                                                Style="{StaticResource SecondaryActionStyle}" MinimumHeightRequest="{StaticResource ControlHeightMin}"
-                                                SemanticProperties.Description="{Binding SemanticDescription}"
-                                                SemanticProperties.Hint="Opens final weight entry when this batch is ready" />
+                                        <VerticalStackLayout Grid.Column="3" Spacing="{StaticResource SpaceSm}">
+                                            <Button Text="{Binding TimeDisplay}"
+                                                    Command="{Binding Source={x:Reference Root}, Path=ViewModel.WeighChannelCommand, x:DataType=roast:ActiveRoastView}"
+                                                    CommandParameter="{Binding .}" IsEnabled="{Binding IsReady}"
+                                                    Style="{StaticResource SecondaryActionStyle}" MinimumHeightRequest="{StaticResource ControlHeightMin}"
+                                                    SemanticProperties.Description="{Binding SemanticDescription}"
+                                                    SemanticProperties.Hint="Opens final weight entry when this batch is ready" />
+                                            <Button Text="READY NOW"
+                                                    Command="{Binding Source={x:Reference Root}, Path=ViewModel.CompleteCoolingCommand, x:DataType=roast:ActiveRoastView}"
+                                                    CommandParameter="{Binding .}" IsVisible="{Binding CanCompleteCooling}"
+                                                    Style="{StaticResource QuietActionStyle}" MinimumHeightRequest="{StaticResource ControlHeightMin}"
+                                                    SemanticProperties.Description="{Binding CompleteCoolingSemanticDescription}"
+                                                    SemanticProperties.Hint="Ends this batch's cooling countdown after you confirm" />
+                                        </VerticalStackLayout>
                                     </Grid>
                                 </Border>
                             </DataTemplate>
