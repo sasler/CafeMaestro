@@ -184,6 +184,7 @@
                                                 ItemsSource="{Binding Source={x:Reference PageRoot}, Path=BindingContext.Headers}"
                                                 SelectedItem="{Binding SelectedHeader, Mode=TwoWay}"
                                                 SemanticProperties.Description="{Binding FieldName}"
+                                                IsEnabled="{Binding Source={x:Reference PageRoot}, Path=BindingContext.IsMappingEnabled}"
                                                 MinimumHeightRequest="{StaticResource ControlHeightMin}" />
                                     </Grid>
                                 </Border>
@@ -221,6 +222,7 @@
                                                 ItemsSource="{Binding Source={x:Reference PageRoot}, Path=BindingContext.Headers}"
                                                 SelectedItem="{Binding SelectedHeader, Mode=TwoWay}"
                                                 SemanticProperties.Description="{Binding FieldName}"
+                                                IsEnabled="{Binding Source={x:Reference PageRoot}, Path=BindingContext.IsMappingEnabled}"
                                                 MinimumHeightRequest="{StaticResource ControlHeightMin}" />
                                     </Grid>
                                 </Border>

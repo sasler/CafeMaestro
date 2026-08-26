@@ -97,8 +97,11 @@ public sealed class ImportService : IImportService
             return new ImportCommitResult(false, 0, plan.RejectedRows.Count, rejectionErrors);
         }
 
+        // Duplicate policy is re-applied inside the mutation, so anything another writer added
+        // between Review and here is reported rather than duplicated.
+        IReadOnlyList<ImportRowOutcome> droppedAtCommit = [];
         bool committed = await _appDataService.UpdateAsync(
-            appData => plan.Session.Commit(appData),
+            appData => droppedAtCommit = plan.Session.Commit(appData),
             cancellationToken);
 
         if (!committed)
@@ -114,9 +117,9 @@ public sealed class ImportService : IImportService
 
         return new ImportCommitResult(
             true,
-            plan.AcceptedRows.Count,
-            plan.RejectedRows.Count,
-            rejectionErrors);
+            plan.AcceptedRows.Count - droppedAtCommit.Count,
+            plan.RejectedRows.Count + droppedAtCommit.Count,
+            [.. rejectionErrors, .. droppedAtCommit.Select(row => $"{row.Title}: {row.ErrorText}")]);
     }
 
     private IImportAdapter GetAdapter(ImportKind kind)

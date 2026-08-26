@@ -33,6 +33,12 @@ public partial class ImportPageViewModel : ObservableObject, IQueryAttributable
     private CancellationTokenSource? _operationCts;
     private string? _temporaryFilePath;
     private bool _isApplyingAutoMap;
+    /// <summary>
+    /// Bumped by anything that invalidates an in-flight plan — a mapping edit, a new file, a kind
+    /// switch. An async review only applies its result if the generation it started under is still
+    /// current, so a slow plan built from a stale mapping can never win.
+    /// </summary>
+    private int _mappingGeneration;
     private bool _mappingsChangedByUser;
     private bool _isLeavingFlow;
 
@@ -272,7 +278,7 @@ public partial class ImportPageViewModel : ObservableObject, IQueryAttributable
 
     // ---------------------------------------------------------------- commands
 
-    [RelayCommand]
+    [RelayCommand(CanExecute = nameof(IsNotBusy))]
     private void SelectKind(ImportKind kind)
     {
         if (IsBusy || kind == Kind)
@@ -289,10 +295,11 @@ public partial class ImportPageViewModel : ObservableObject, IQueryAttributable
         }
 
         _plan = null;
+        _mappingGeneration++;
         Step = ImportStep.SelectFile;
     }
 
-    [RelayCommand]
+    [RelayCommand(CanExecute = nameof(IsNotBusy))]
     private async Task BrowseAsync()
     {
         if (IsBusy)
@@ -348,13 +355,13 @@ public partial class ImportPageViewModel : ObservableObject, IQueryAttributable
 
     private bool CanContinueToMapping() => !IsBusy && HasFile && Headers.Count > 1 && _rows.Count > 0;
 
-    [RelayCommand]
+    [RelayCommand(CanExecute = nameof(IsNotBusy))]
     private void BackToFile()
     {
         Step = ImportStep.SelectFile;
     }
 
-    [RelayCommand]
+    [RelayCommand(CanExecute = nameof(IsNotBusy))]
     private void AutoMap()
     {
         if (Headers.Count == 0)
@@ -364,13 +371,21 @@ public partial class ImportPageViewModel : ObservableObject, IQueryAttributable
 
         ApplyAutoMappings();
         _mappingsChangedByUser = false;
+        _mappingGeneration++;
     }
 
-    [RelayCommand]
+    [RelayCommand(CanExecute = nameof(IsNotBusy))]
     private void ToggleOptionalFields() => IsOptionalExpanded = !IsOptionalExpanded;
 
-    [RelayCommand]
+    [RelayCommand(CanExecute = nameof(IsNotBusy))]
     private void ToggleRejectedRows() => IsRejectedExpanded = !IsRejectedExpanded;
+
+    /// <summary>
+    /// Gate for every control that mutates the mapping or the step. Reading and committing are
+    /// asynchronous, and a change applied underneath them would describe a flow the user is no
+    /// longer looking at.
+    /// </summary>
+    private bool IsNotBusy() => !IsBusy;
 
     [RelayCommand(CanExecute = nameof(CanReview))]
     private async Task ReviewAsync()
@@ -382,7 +397,22 @@ public partial class ImportPageViewModel : ObservableObject, IQueryAttributable
             IsBusy = true;
             StatusMessage = "Checking every row…";
 
-            _plan = await _importService.BuildPlanAsync(Kind, _rows, GetSelectedMappings(), cancellationToken);
+            int generation = _mappingGeneration;
+            ImportPlan plan = await _importService.BuildPlanAsync(
+                Kind,
+                _rows,
+                GetSelectedMappings(),
+                cancellationToken);
+
+            if (generation != _mappingGeneration)
+            {
+                // The mapping changed while this ran; its rows describe a mapping the user has
+                // already moved on from, so it must not become the reviewed plan.
+                StatusMessage = "Mapping changed. Review again to see the updated rows.";
+                return;
+            }
+
+            _plan = plan;
             ApplyPlan(_plan);
             Step = ImportStep.Review;
             StatusMessage = string.Empty;
@@ -408,7 +438,7 @@ public partial class ImportPageViewModel : ObservableObject, IQueryAttributable
 
     private bool CanReview() => !IsBusy && HasFile && !HasMissingRequiredMappings;
 
-    [RelayCommand]
+    [RelayCommand(CanExecute = nameof(IsNotBusy))]
     private void BackToMapping()
     {
         Step = ImportStep.MapColumns;
@@ -563,6 +593,7 @@ public partial class ImportPageViewModel : ObservableObject, IQueryAttributable
         _rows.Clear();
         _plan = null;
         _mappingsChangedByUser = false;
+        _mappingGeneration++;
         PreviewRows.Clear();
         RejectedRows.Clear();
         ResultErrors.Clear();
@@ -650,6 +681,7 @@ public partial class ImportPageViewModel : ObservableObject, IQueryAttributable
         _rows.Clear();
         _plan = null;
         _mappingsChangedByUser = false;
+        _mappingGeneration++;
         SetHeaders([]);
         PreviewRows.Clear();
         RejectedRows.Clear();
@@ -711,6 +743,7 @@ public partial class ImportPageViewModel : ObservableObject, IQueryAttributable
         {
             _mappingsChangedByUser = true;
             _plan = null;
+            _mappingGeneration++;
         }
 
         RefreshMappingCounts();
@@ -870,5 +903,16 @@ public partial class ImportPageViewModel : ObservableObject, IQueryAttributable
         ImportCommand.NotifyCanExecuteChanged();
         RetryCommand.NotifyCanExecuteChanged();
         ShareReportCommand.NotifyCanExecuteChanged();
+        BrowseCommand.NotifyCanExecuteChanged();
+        SelectKindCommand.NotifyCanExecuteChanged();
+        BackToFileCommand.NotifyCanExecuteChanged();
+        BackToMappingCommand.NotifyCanExecuteChanged();
+        AutoMapCommand.NotifyCanExecuteChanged();
+        ToggleOptionalFieldsCommand.NotifyCanExecuteChanged();
+        ToggleRejectedRowsCommand.NotifyCanExecuteChanged();
+        OnPropertyChanged(nameof(IsMappingEnabled));
     }
+
+    /// <summary>Bound by the mapping pickers so they cannot be changed mid-review or mid-commit.</summary>
+    public bool IsMappingEnabled => !IsBusy;
 }

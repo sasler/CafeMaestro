@@ -134,8 +134,14 @@ public interface IImportSession
         IReadOnlyDictionary<string, string> mappings);
 
     /// <summary>
-    /// Appends every accepted row. Runs inside <see cref="IAppDataService.UpdateAsync"/> so the
+    /// Appends the accepted rows. Runs inside <see cref="IAppDataService.UpdateAsync"/> so the
     /// whole import either lands together or not at all.
     /// </summary>
-    void Commit(AppData appData);
+    /// <remarks>
+    /// Review's duplicate check is a snapshot. Another writer — a restore, a second import, a
+    /// finished roast — can add a matching record between Review and commit, so the policy is
+    /// re-applied here against the data actually being written. Rows dropped at this point are
+    /// returned rather than silently skipped.
+    /// </remarks>
+    IReadOnlyList<ImportRowOutcome> Commit(AppData appData);
 }

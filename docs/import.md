@@ -69,8 +69,20 @@ than guessed at.
 - A refused mutation writes nothing and keeps the reviewed plan, so Retry does not ask for the file
   again.
 
+Duplicate policy is re-applied inside the mutation, against the data actually being written. Review's
+check is a snapshot, and another writer — a restore, a second import, a finished roast — can add a
+matching record in between; those rows are reported as skipped rather than duplicated.
+
 Partial row failures do not undo valid rows — those rows were excluded before the mutation ran, not
 rolled back after it.
+
+## Reading is record-aware
+
+`CsvParserService` parses records, not lines. A quoted field may contain commas, doubled quotes
+(`""`), and newlines, so one logical record can span several physical lines — which is exactly what
+CafeMaestro's own export produces, since it quotes every note. A malformed record (an unterminated
+quote) ends with the file rather than throwing, so one bad record can never stop the rest from
+reaching Review.
 
 ## Parsing
 
@@ -81,6 +93,17 @@ as hours, and a bare number is total seconds.
 
 Loss percentage is a derived column: it only reconstructs a final weight that the file did not
 supply. It never overrides one that it did.
+
+### The exporter's missing-weight sentinel
+
+`ExportRoastLogAsync` writes `0` in the final-weight column and `Pending` in the loss column for a
+roast that has not been weighed. Import treats both as "not recorded", so that row round-trips back
+onto the Awaiting weight path. An arbitrary non-numeric percentage is still rejected.
+
+Whether a final weight was *supplied* is tracked separately from `RoastData.HasFinalWeight`, which
+is `FinalWeight > 0`. Conflating them would let a supplied `0` — or a supplied negative weight —
+look absent and be quietly replaced by a value derived from loss. A negative supplied weight is
+rejected outright.
 
 ## Imported roasts join the work queue honestly
 

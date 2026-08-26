@@ -326,6 +326,67 @@ public sealed class ImportPageViewModelTests : IDisposable
         harness.ViewModel.ShowDestinationAction.Should().BeFalse();
     }
 
+    [Fact]
+    public async Task ReviewCommand_DiscardsItsPlanIfTheMappingChangedWhileItRan()
+    {
+        // The user edits a picker while the asynchronous review is still loading its session. That
+        // plan describes a mapping they have already moved on from, so it must not become Review.
+        Harness harness = CreateHarness();
+        harness.StageFile("beans.csv", BeanCsv);
+        await harness.ViewModel.BrowseCommand.ExecuteAsync(null);
+
+        var released = new TaskCompletionSource();
+        harness.AppData.Setup(service => service.LoadAppDataAsync())
+            .Returns(async () =>
+            {
+                await released.Task;
+                return harness.Data;
+            });
+
+        Task review = harness.ViewModel.ReviewCommand.ExecuteAsync(null);
+        harness.ViewModel.OptionalMappings.Single(mapping => mapping.PropertyKey == "Notes")
+            .SelectedHeader = "Country";
+        released.SetResult();
+        await review;
+
+        harness.ViewModel.Step.Should().Be(ImportStep.MapColumns);
+        harness.ViewModel.ValidRowCount.Should().Be(0);
+        harness.ViewModel.StatusMessage.Should().Contain("Review again");
+    }
+
+    [Fact]
+    public async Task MappingAndStepControlsAreDisabledWhileTheFlowIsBusy()
+    {
+        Harness harness = CreateHarness();
+        harness.StageFile("beans.csv", BeanCsv);
+        await harness.ViewModel.BrowseCommand.ExecuteAsync(null);
+
+        var released = new TaskCompletionSource();
+        harness.AppData.Setup(service => service.LoadAppDataAsync())
+            .Returns(async () =>
+            {
+                await released.Task;
+                return harness.Data;
+            });
+
+        Task review = harness.ViewModel.ReviewCommand.ExecuteAsync(null);
+
+        harness.ViewModel.IsBusy.Should().BeTrue();
+        harness.ViewModel.IsMappingEnabled.Should().BeFalse();
+        harness.ViewModel.AutoMapCommand.CanExecute(null).Should().BeFalse();
+        harness.ViewModel.BackToFileCommand.CanExecute(null).Should().BeFalse();
+        harness.ViewModel.BackToMappingCommand.CanExecute(null).Should().BeFalse();
+        harness.ViewModel.ToggleOptionalFieldsCommand.CanExecute(null).Should().BeFalse();
+        harness.ViewModel.SelectKindCommand.CanExecute(ImportKind.Roasts).Should().BeFalse();
+        harness.ViewModel.BrowseCommand.CanExecute(null).Should().BeFalse();
+
+        released.SetResult();
+        await review;
+
+        harness.ViewModel.IsMappingEnabled.Should().BeTrue();
+        harness.ViewModel.AutoMapCommand.CanExecute(null).Should().BeTrue();
+    }
+
     // ------------------------------------------------------------------ abandoning the flow
 
     [Fact]

@@ -12,6 +12,12 @@ public sealed class RoastImportAdapter : IImportAdapter
     /// <summary>Matches the roast console default so an unspecified temperature stays plausible.</summary>
     internal const double DefaultTemperature = 235;
 
+    /// <summary>
+    /// What <c>IRoastDataService.ExportRoastLogAsync</c> writes in the loss column for a roast with
+    /// no final weight. Kept in sync with the exporter so the app's own CSV round-trips.
+    /// </summary>
+    internal const string MissingWeightSentinel = "Pending";
+
     private readonly IAppDataService _appDataService;
     private readonly IRoastLevelService _roastLevelService;
 
@@ -53,7 +59,7 @@ public sealed class RoastImportAdapter : IImportAdapter
 
     private sealed class RoastImportSession : IImportSession
     {
-        private readonly List<RoastData> _accepted = [];
+        private readonly List<(RoastData Roast, ImportRowOutcome Outcome)> _accepted = [];
         private readonly List<RoastLevelData> _roastLevels;
         private readonly HashSet<string> _signatures;
 
@@ -143,20 +149,34 @@ public sealed class RoastImportAdapter : IImportAdapter
 
             string rawFinalWeight = ImportHeaderMatcher.GetMappedValue(row, mappings, "FinalWeight");
 
-            if (!string.IsNullOrWhiteSpace(rawFinalWeight))
+            // "Supplied" is tracked separately from the model's HasFinalWeight predicate, which is
+            // FinalWeight > 0. Conflating them would let a supplied 0 or a supplied negative weight
+            // look like an absent one and be silently replaced by a value derived from loss.
+            bool finalWeightSupplied = false;
+
+            if (!string.IsNullOrWhiteSpace(rawFinalWeight) && !IsAbsentFinalWeight(rawFinalWeight))
             {
                 if (!ImportValueParser.TryParseNumber(rawFinalWeight, out double finalWeight))
                 {
                     return Reject(rowNumber, beanType, $"Final weight '{rawFinalWeight}' is not a number.");
                 }
 
+                if (finalWeight < 0)
+                {
+                    return Reject(rowNumber, beanType, $"Final weight '{rawFinalWeight}' must be zero or greater.");
+                }
+
+                finalWeightSupplied = true;
                 roast.FinalWeight = finalWeight;
             }
 
             string rawWeightLoss = ImportHeaderMatcher.GetMappedValue(row, mappings, "WeightLoss");
 
-            // Loss percentage is a derived column: it only reconstructs a missing final weight.
-            if (!roast.HasFinalWeight && !string.IsNullOrWhiteSpace(rawWeightLoss))
+            // Loss percentage is a derived column: it only reconstructs a final weight the file did
+            // not supply, and never overrides one it did.
+            if (!finalWeightSupplied &&
+                !string.IsNullOrWhiteSpace(rawWeightLoss) &&
+                !IsPendingSentinel(rawWeightLoss))
             {
                 if (!ImportValueParser.TryParseNumber(rawWeightLoss, out double lossPercentage))
                 {
@@ -194,21 +214,56 @@ public sealed class RoastImportAdapter : IImportAdapter
                     $"A {beanType} roast on {roast.RoastDate:d MMM yyyy} with the same weight and time is already logged.");
             }
 
-            _accepted.Add(roast);
-
-            return new ImportRowOutcome(
+            var outcome = new ImportRowOutcome(
                 rowNumber,
                 true,
                 $"{beanType} · {roast.RoastDate:d MMM yyyy}",
                 roast.ResultMetrics);
+            _accepted.Add((roast, outcome));
+
+            return outcome;
         }
 
-        public void Commit(AppData appData)
+        public IReadOnlyList<ImportRowOutcome> Commit(AppData appData)
         {
             ArgumentNullException.ThrowIfNull(appData);
             appData.RoastLogs ??= [];
-            appData.RoastLogs.AddRange(_accepted);
+
+            var current = new HashSet<string>(
+                appData.RoastLogs.Select(CreateSignature),
+                StringComparer.OrdinalIgnoreCase);
+            var droppedAtCommit = new List<ImportRowOutcome>();
+
+            foreach ((RoastData roast, ImportRowOutcome outcome) in _accepted)
+            {
+                if (!current.Add(CreateSignature(roast)))
+                {
+                    droppedAtCommit.Add(outcome with
+                    {
+                        IsAccepted = false,
+                        Detail = $"A matching {roast.BeanType} roast was logged while this import was being reviewed."
+                    });
+                    continue;
+                }
+
+                appData.RoastLogs.Add(roast);
+            }
+
+            return droppedAtCommit;
         }
+
+        /// <summary>
+        /// CafeMaestro's roast-log export writes <c>0</c> in the final-weight column and
+        /// <c>Pending</c> in the loss column for a roast that has no final weight yet. Both mean
+        /// "not recorded", so the row must round-trip back onto the Awaiting weight path rather
+        /// than being read as a real zero or rejected as an unparsable percentage.
+        /// </summary>
+        private static bool IsAbsentFinalWeight(string value) =>
+            IsPendingSentinel(value) ||
+            (ImportValueParser.TryParseNumber(value, out double weight) && weight == 0);
+
+        private static bool IsPendingSentinel(string value) =>
+            string.Equals(value.Trim(), MissingWeightSentinel, StringComparison.OrdinalIgnoreCase);
 
         private static ImportRowOutcome Reject(int rowNumber, string beanType, string error)
         {

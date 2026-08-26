@@ -342,6 +342,62 @@ public sealed class ImportServiceTests : IDisposable
         first.WeightLossPercentage.Should().BeApproximately(13.2, 0.05);
     }
 
+    [Fact]
+    public async Task IncompleteRoastExport_RoundTripsBackOntoTheAwaitingWeightPath()
+    {
+        // The exporter writes 0 in the final-weight column and "Pending" in the loss column for a
+        // roast that has not been weighed. Both mean "not recorded".
+        var target = new AppData();
+        IImportService service = CreateService(target);
+
+        ImportPlan plan = await service.BuildPlanAsync(
+            ImportKind.Roasts,
+            [Row(("Date", "2026-03-01"), ("Bean", "Kenya AA"), ("Batch", "220"), ("Final", "0"), ("Loss", "Pending"))],
+            RoastMappingsWithWeights);
+        ImportCommitResult result = await service.CommitAsync(plan);
+
+        result.Succeeded.Should().BeTrue();
+        plan.RejectedRows.Should().BeEmpty();
+        RoastData roast = target.RoastLogs.Should().ContainSingle().Subject;
+        roast.FinalWeight.Should().BeNull();
+        roast.CompletionStatus.Should().Be(RoastCompletionStatus.AwaitingWeight);
+        roast.RoastLevelName.Should().Be("Pending");
+        roast.CoolingDurationSeconds.Should().Be(0);
+        roast.ReadyToWeighAtUtc.Should().Be(roast.DroppedAtUtc);
+    }
+
+    [Fact]
+    public async Task ArbitraryNonNumericLossIsStillRejected()
+    {
+        IImportService service = CreateService(new AppData());
+
+        ImportPlan plan = await service.BuildPlanAsync(
+            ImportKind.Roasts,
+            [Row(("Date", "2026-03-01"), ("Bean", "Kenya AA"), ("Batch", "220"), ("Final", ""), ("Loss", "roughly a lot"))],
+            RoastMappingsWithWeights);
+
+        plan.AcceptedRows.Should().BeEmpty();
+        plan.RejectedRows.Should().ContainSingle()
+            .Which.Detail.Should().Contain("is not a number");
+    }
+
+    [Fact]
+    public async Task ASuppliedNegativeFinalWeightIsRejectedRatherThanDerivedFromLoss()
+    {
+        // HasFinalWeight is FinalWeight > 0, so a negative supplied weight used to look absent and
+        // be silently replaced by a value reconstructed from the loss column.
+        IImportService service = CreateService(new AppData());
+
+        ImportPlan plan = await service.BuildPlanAsync(
+            ImportKind.Roasts,
+            [Row(("Date", "2026-03-01"), ("Bean", "Kenya AA"), ("Batch", "200"), ("Final", "-5"), ("Loss", "15"))],
+            RoastMappingsWithWeights);
+
+        plan.AcceptedRows.Should().BeEmpty();
+        plan.RejectedRows.Should().ContainSingle()
+            .Which.Detail.Should().Contain("must be zero or greater");
+    }
+
     // ------------------------------------------------------------------ commit
 
     [Fact]
@@ -370,6 +426,76 @@ public sealed class ImportServiceTests : IDisposable
         notifications.Should().Be(1);
         appData.CurrentData.Beans.Should().HaveCount(2);
         (await appData.LoadAppDataAsync()).Beans.Should().HaveCount(2);
+    }
+
+    [Fact]
+    public async Task CommitAsync_RechecksDuplicatesAgainstTheDataItIsActuallyWriting()
+    {
+        // Review's duplicate check is a snapshot. Another writer can add a matching record between
+        // Review and commit, so the policy is re-applied inside the mutation.
+        var target = new AppData();
+        IImportService service = CreateService(target);
+
+        ImportPlan plan = await service.BuildPlanAsync(
+            ImportKind.Beans,
+            [
+                Row(("Name", "Yirgacheffe"), ("Country", "Ethiopia")),
+                Row(("Name", "Huila"), ("Country", "Colombia"))
+            ],
+            BeanMappings);
+
+        plan.AcceptedRows.Should().HaveCount(2);
+
+        // Someone else adds one of the reviewed beans before the commit runs.
+        target.Beans.Add(new BeanData
+        {
+            CoffeeName = "Yirgacheffe",
+            Country = "Ethiopia",
+            Quantity = 1,
+            RemainingQuantity = 1
+        });
+
+        ImportCommitResult result = await service.CommitAsync(plan);
+
+        result.Succeeded.Should().BeTrue();
+        result.Imported.Should().Be(1);
+        result.Skipped.Should().Be(1);
+        result.Errors.Should().Contain(error => error.Contains("while this import was being reviewed"));
+        target.Beans.Where(bean => bean.CoffeeName == "Yirgacheffe").Should().ContainSingle();
+        target.Beans.Should().HaveCount(2);
+    }
+
+    [Fact]
+    public async Task CommitAsync_RechecksRoastDuplicatesAgainstTheDataItIsActuallyWriting()
+    {
+        var target = new AppData();
+        IImportService service = CreateService(target);
+
+        ImportPlan plan = await service.BuildPlanAsync(
+            ImportKind.Roasts,
+            [Row(("Date", "2026-03-01"), ("Bean", "Kenya AA"), ("Batch", "220"), ("Time", "11:30"))],
+            RoastMappings);
+
+        RoastData accepted = new()
+        {
+            BeanType = "Kenya AA",
+            BeanDisplaySnapshot = "Kenya AA",
+            RoastDate = new DateTime(2026, 3, 1),
+            BatchWeight = 220,
+            Temperature = RoastImportAdapter.DefaultTemperature,
+            RoastMinutes = 11,
+            RoastSeconds = 30,
+            CompletionStatus = RoastCompletionStatus.AwaitingWeight,
+            DroppedAtUtc = DateTimeOffset.UtcNow,
+            CoolingDurationSeconds = 0
+        };
+        target.RoastLogs.Add(accepted);
+
+        ImportCommitResult result = await service.CommitAsync(plan);
+
+        result.Imported.Should().Be(0);
+        result.Skipped.Should().Be(1);
+        target.RoastLogs.Should().ContainSingle();
     }
 
     [Fact]

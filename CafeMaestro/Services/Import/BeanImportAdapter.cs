@@ -51,7 +51,7 @@ public sealed class BeanImportAdapter : IImportAdapter
 
     private sealed class BeanImportSession : IImportSession
     {
-        private readonly List<BeanData> _accepted = [];
+        private readonly List<(BeanData Bean, ImportRowOutcome Outcome)> _accepted = [];
         private readonly HashSet<string> _signatures;
 
         public BeanImportSession(IEnumerable<BeanData> existingBeans)
@@ -162,8 +162,6 @@ public sealed class BeanImportAdapter : IImportAdapter
                     $"'{coffeeName}' from {country} is already in the inventory.");
             }
 
-            _accepted.Add(bean);
-
             var details = new List<string>();
 
             if (!string.IsNullOrWhiteSpace(bean.Process))
@@ -178,18 +176,42 @@ public sealed class BeanImportAdapter : IImportAdapter
 
             details.Add(bean.TotalQuantityDisplay);
 
-            return new ImportRowOutcome(
+            var outcome = new ImportRowOutcome(
                 rowNumber,
                 true,
                 $"{coffeeName}",
                 string.Join(" · ", details.Prepend(country)));
+            _accepted.Add((bean, outcome));
+
+            return outcome;
         }
 
-        public void Commit(AppData appData)
+        public IReadOnlyList<ImportRowOutcome> Commit(AppData appData)
         {
             ArgumentNullException.ThrowIfNull(appData);
             appData.Beans ??= [];
-            appData.Beans.AddRange(_accepted);
+
+            var current = new HashSet<string>(
+                appData.Beans.Select(CreateSignature),
+                StringComparer.OrdinalIgnoreCase);
+            var droppedAtCommit = new List<ImportRowOutcome>();
+
+            foreach ((BeanData bean, ImportRowOutcome outcome) in _accepted)
+            {
+                if (!current.Add(CreateSignature(bean)))
+                {
+                    droppedAtCommit.Add(outcome with
+                    {
+                        IsAccepted = false,
+                        Detail = $"'{bean.CoffeeName}' from {bean.Country} was added to the inventory while this import was being reviewed."
+                    });
+                    continue;
+                }
+
+                appData.Beans.Add(bean);
+            }
+
+            return droppedAtCommit;
         }
 
         private static ImportRowOutcome Reject(int rowNumber, string coffeeName, string country, string error)
