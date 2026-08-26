@@ -39,6 +39,24 @@ public class RoastEditPageViewModelTests
         harness.Navigation.Verify(service => service.GoBackAsync(), Times.Once);
     }
 
+    [Fact]
+    public async Task OnAppearing_DoesNotGuessAnAmbiguousLegacyBeanByDisplayName()
+    {
+        Harness harness = new();
+        BeanData duplicate = new()
+        {
+            Id = Guid.NewGuid(), Country = harness.Bean.Country, CoffeeName = harness.Bean.CoffeeName,
+            Variety = harness.Bean.Variety, Quantity = 1, RemainingQuantity = 1
+        };
+        harness.Beans.Setup(service => service.GetSortedAvailableBeansAsync())
+            .ReturnsAsync([harness.Bean, duplicate]);
+        harness.Roast.BeanId = null;
+
+        await harness.ViewModel.OnAppearingAsync();
+
+        harness.ViewModel.SelectedBean.Should().BeNull();
+    }
+
     private sealed class Harness
     {
         public BeanData Bean { get; } = new()
@@ -48,6 +66,7 @@ public class RoastEditPageViewModelTests
 
         public RoastData Roast { get; }
         public Mock<IRoastDataService> Roasts { get; } = new();
+        public Mock<IBeanDataService> Beans { get; } = new();
         public Mock<INavigationService> Navigation { get; } = new();
         public RoastEditPageViewModel ViewModel { get; }
 
@@ -62,8 +81,7 @@ public class RoastEditPageViewModelTests
                 CompletionStatus = RoastCompletionStatus.Complete, RoastLevelName = "Medium"
             };
 
-            var beans = new Mock<IBeanDataService>();
-            beans.Setup(service => service.GetSortedAvailableBeansAsync()).ReturnsAsync([Bean]);
+            Beans.Setup(service => service.GetSortedAvailableBeansAsync()).ReturnsAsync([Bean]);
             Roasts.Setup(service => service.GetRoastLogByIdAsync(Roast.Id)).ReturnsAsync(Roast);
             Roasts.Setup(service => service.UpdateRoastLogAsync(It.IsAny<RoastData>())).ReturnsAsync(true);
             Navigation.Setup(service => service.GoBackAsync()).Returns(Task.CompletedTask);
@@ -72,7 +90,7 @@ public class RoastEditPageViewModelTests
 
             ViewModel = new RoastEditPageViewModel(
                 Roasts.Object,
-                beans.Object,
+                Beans.Object,
                 levels.Object,
                 Navigation.Object,
                 Mock.Of<IAlertService>());

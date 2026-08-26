@@ -94,6 +94,11 @@ as hours, and a bare number is total seconds.
 Loss percentage is a derived column: it only reconstructs a final weight that the file did not
 supply. It never overrides one that it did.
 
+CafeMaestro roast-log exports append an optional `Bean ID` column. Import treats a supplied ID as
+authoritative, which preserves separate histories for inventory entries that share a display name.
+Older exports without the column remain valid; their name-only link is restored only when exactly
+one current bean has that name.
+
 ### The exporter's missing-weight sentinel
 
 `ExportRoastLogAsync` writes `0` in the final-weight column and `Pending` in the loss column for a

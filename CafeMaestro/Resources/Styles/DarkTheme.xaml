@@ -65,6 +65,14 @@
     <Color x:Key="DisabledColor">#5E6C7C</Color>
     <Color x:Key="DisabledSurfaceColor">#171B21</Color>
     <Color x:Key="ScrimColor">#CC05070A</Color>
+
+    <!--
+        Popup chrome. The overlay host draws a container behind the popup card; these keys are
+        what it themes itself from, so a popup never falls back to the platform default plate.
+    -->
+    <Color x:Key="PopupSurfaceColor">#15191E</Color>
+    <Color x:Key="PopupBorderColor">#2A323C</Color>
+    <Color x:Key="PopupScrimColor">#CC05070A</Color>
     <Color x:Key="PlatformStatusBarColor">#0B0D10</Color>
     <Color x:Key="PlatformNavigationBarColor">#15191E</Color>
 

@@ -21,6 +21,7 @@ public sealed class RoastDataStreamExportTests
                 [
                     new RoastData
                     {
+                        BeanId = Guid.Parse("3f7f4e7c-1d16-4df3-8c2d-2b7f9e4b6aa1"),
                         RoastDate = new DateTime(2026, 7, 24, 8, 30, 0),
                         BeanType = "Ethiopia, \"Natural\"",
                         Temperature = 205.5,
@@ -48,5 +49,6 @@ public sealed class RoastDataStreamExportTests
         csv.Should().Contain("\"Ethiopia, \"\"Natural\"\"\"");
         csv.Should().Contain("205.5,500.25,420.5");
         csv.Should().Contain("\"Sweet, \"\"berry\"\"\"");
+        csv.Should().Contain("3f7f4e7c-1d16-4df3-8c2d-2b7f9e4b6aa1");
     }
 }

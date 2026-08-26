@@ -196,6 +196,23 @@ public class VisualSystemTests
         ]);
     }
 
+    [Fact]
+    public void PopupChrome_ResolvesTransparentColorThroughThemeResources()
+    {
+        string overlay = File.ReadAllText(Path.Combine(
+            XamlResourceReader.RepositoryRoot, "CafeMaestro", "Services", "OverlayService.cs"));
+        string program = File.ReadAllText(Path.Combine(
+            XamlResourceReader.RepositoryRoot, "CafeMaestro", "MauiProgram.cs"));
+        string resolver = File.ReadAllText(Path.Combine(
+            XamlResourceReader.RepositoryRoot, "CafeMaestro", "Services", "PopupThemeResources.cs"));
+
+        overlay.Should().Contain("PopupThemeResources.ResolveTransparentColor()");
+        overlay.Should().NotContain("?? Colors.Transparent");
+        program.Should().Contain("PopupThemeResources.ResolveTransparentColor()");
+        resolver.Should().Contain("TransparentColorKey");
+        resolver.Should().Contain("Application.Current?.Resources");
+    }
+
     [Theory]
     [InlineData(ThemePreference.System, AppTheme.Dark, AppTheme.Dark)]
     [InlineData(ThemePreference.System, AppTheme.Light, AppTheme.Light)]

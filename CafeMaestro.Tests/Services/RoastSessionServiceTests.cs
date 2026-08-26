@@ -31,6 +31,7 @@ public sealed class RoastSessionServiceTests
 
         AppData persisted = await harness.AppDataService.LoadAppDataAsync();
         persisted.ActiveRoastSession!.ActiveRoast!.Id.Should().Be(result.Snapshot.ActiveRoast.Id);
+        persisted.ActiveRoastSession.ActiveRoast.BeanId.Should().Be(bean.Id);
         persisted.ActiveRoastSession.ActiveRoast.BeanDisplaySnapshot.Should().Be(bean.DisplayName);
     }
 
@@ -776,6 +777,134 @@ public sealed class RoastSessionServiceTests
         item.RoastId.Should().Be(roastId);
         item.Status.Should().Be(RoastEffectiveStatus.Cooling);
         item.RemainingCoolingSeconds.Should().Be(100);
+    }
+
+    [Fact]
+    public async Task CompleteCoolingAsync_MovesOnlyThatBatchToNeedsWeightWithNoFinalWeight()
+    {
+        using RoastSessionTestHarness harness = await RoastSessionTestHarness.CreateAsync(Start);
+        BeanData bean = await harness.AddBeanAsync(quantityKilograms: 2.0);
+        // A cooling window long enough that both batches are still counting down when the
+        // first one is released, which is the case the action exists for.
+        harness.Preferences.CoolingDurationSeconds = 3600;
+        Guid first = await DropOneBatchAsync(harness, bean);
+        harness.Clock.AdvanceSeconds(60);
+        Guid second = await DropOneBatchAsync(harness, bean);
+
+        TransitionResult result = await harness.Session.CompleteCoolingAsync(first);
+
+        result.Success.Should().BeTrue();
+        IReadOnlyList<RoastWorkItem> work = result.Snapshot.OpenWork;
+        work.Single(item => item.RoastId == first).Status
+            .Should().Be(RoastEffectiveStatus.NeedsWeight);
+        work.Single(item => item.RoastId == first).RemainingCoolingSeconds.Should().Be(0);
+        // The second batch keeps its own countdown; readiness is per batch, never per session.
+        work.Single(item => item.RoastId == second).Status
+            .Should().Be(RoastEffectiveStatus.Cooling);
+        work.Single(item => item.RoastId == second).RemainingCoolingSeconds.Should().Be(3600);
+
+        RoastData released = harness.Current.RoastLogs.Single(roast => roast.Id == first);
+        released.CompletionStatus.Should().Be(RoastCompletionStatus.AwaitingWeight);
+        released.FinalWeight.Should().BeNull();
+        released.HasFinalWeight.Should().BeFalse();
+        harness.Notifications.Cancelled.Should().ContainSingle().Which.Should().Be(first);
+    }
+
+    [Fact]
+    public async Task CompleteCoolingAsync_SurvivesAColdLaunch()
+    {
+        using RoastSessionTestHarness original = await RoastSessionTestHarness.CreateAsync(Start);
+        Guid roastId = await DropOneBatchAsync(original);
+        (await original.Session.CompleteCoolingAsync(roastId)).Success.Should().BeTrue();
+
+        using RoastSessionTestHarness relaunched =
+            await original.RelaunchAsync(original.Clock.UtcNow.AddSeconds(5));
+        RoastWorkItem item = (await relaunched.Session.GetSnapshotAsync()).OpenWork.Single();
+
+        item.RoastId.Should().Be(roastId);
+        item.Status.Should().Be(RoastEffectiveStatus.NeedsWeight);
+        item.IsReadyToWeigh.Should().BeTrue();
+        relaunched.Current.RoastLogs.Single().FinalWeight.Should().BeNull();
+    }
+
+    [Fact]
+    public async Task CompleteCoolingAsync_DoesNotRecreateReminderDuringColdLaunchReconciliation()
+    {
+        using RoastSessionTestHarness original = await RoastSessionTestHarness.CreateAsync(Start);
+        original.Preferences.CoolingNotificationsEnabled = true;
+        Guid roastId = await DropOneBatchAsync(original);
+        (await original.Session.CompleteCoolingAsync(roastId)).Success.Should().BeTrue();
+
+        using RoastSessionTestHarness relaunched =
+            await original.RelaunchAsync(original.Clock.UtcNow.AddSeconds(5));
+        relaunched.Preferences.CoolingNotificationsEnabled = true;
+
+        await relaunched.NotificationWorkflow.ReconcileAsync();
+
+        relaunched.Notifications.Scheduled.Should().NotContain(roastId);
+    }
+
+    [Fact]
+    public async Task CompleteCoolingAsync_WhenClockRollsBehindDrop_PersistsImmediateNeedsWeightProjection()
+    {
+        using RoastSessionTestHarness harness = await RoastSessionTestHarness.CreateAsync(Start);
+        Guid roastId = await DropOneBatchAsync(harness);
+        harness.Clock.UtcNow = Start.AddSeconds(600);
+
+        TransitionResult result = await harness.Session.CompleteCoolingAsync(roastId);
+
+        result.Success.Should().BeTrue();
+        RoastWorkItem released = result.Snapshot.OpenWork.Single();
+        released.Status.Should().Be(RoastEffectiveStatus.NeedsWeight);
+        released.RemainingCoolingSeconds.Should().Be(0);
+
+        using RoastSessionTestHarness relaunched = await harness.RelaunchAsync(harness.Clock.UtcNow);
+        RoastWorkItem restored = (await relaunched.Session.GetSnapshotAsync()).OpenWork.Single();
+        restored.Status.Should().Be(RoastEffectiveStatus.NeedsWeight);
+        restored.RemainingCoolingSeconds.Should().Be(0);
+    }
+
+    [Fact]
+    public async Task CompleteCoolingAsync_OnABatchThatIsAlreadyReady_IsANoOp()
+    {
+        using RoastSessionTestHarness harness = await RoastSessionTestHarness.CreateAsync(Start);
+        Guid roastId = await DropOneBatchAsync(harness);
+        harness.Clock.AdvanceSeconds(RoastPreferenceDefaults.CoolingDurationSeconds);
+        int storedDuration = harness.Current.RoastLogs.Single().CoolingDurationSeconds!.Value;
+
+        TransitionResult result = await harness.Session.CompleteCoolingAsync(roastId);
+
+        result.Success.Should().BeTrue();
+        result.Snapshot.OpenWork.Single().Status.Should().Be(RoastEffectiveStatus.NeedsWeight);
+        harness.Current.RoastLogs.Single().CoolingDurationSeconds.Should().Be(storedDuration);
+    }
+
+    [Fact]
+    public async Task CompleteCoolingAsync_OnAResolvedBatch_IsRejected()
+    {
+        using RoastSessionTestHarness harness = await RoastSessionTestHarness.CreateAsync(Start);
+        Guid roastId = await DropOneBatchAsync(harness);
+        (await harness.Session.MarkUnweighedAsync(roastId)).Success.Should().BeTrue();
+
+        TransitionResult result = await harness.Session.CompleteCoolingAsync(roastId);
+
+        result.Success.Should().BeFalse();
+        result.Error.Should().Be(RoastTransitionError.RoastAlreadyResolved);
+        harness.Current.RoastLogs.Single().CompletionStatus
+            .Should().Be(RoastCompletionStatus.Unweighed);
+    }
+
+    [Fact]
+    public async Task CompleteCoolingAsync_OnAnUnknownRoast_IsRejected()
+    {
+        using RoastSessionTestHarness harness = await RoastSessionTestHarness.CreateAsync(Start);
+        await DropOneBatchAsync(harness);
+
+        TransitionResult result = await harness.Session.CompleteCoolingAsync(Guid.NewGuid());
+
+        result.Success.Should().BeFalse();
+        result.Error.Should().Be(RoastTransitionError.RoastNotFound);
+        harness.Notifications.Cancelled.Should().BeEmpty();
     }
 
     private static async Task<Guid> DropOneBatchAsync(

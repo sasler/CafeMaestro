@@ -5,6 +5,7 @@ using CommunityToolkit.Maui;
 using CommunityToolkit.Maui.Core;
 using CommunityToolkit.Maui.Extensions;
 using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Maui.Controls.Shapes;
 
 namespace CafeMaestro.Services;
 
@@ -79,9 +80,43 @@ public sealed class OverlayService(IServiceProvider services) : IOverlayService
         view.BindingContext = viewModel;
 
         IPopupResult<TResult> result =
-            await GetShell().ShowPopupAsync<TResult>(view, PopupOptions.Empty, null, cancellationToken);
+            await GetShell().ShowPopupAsync<TResult>(view, BuildPopupOptions(), null, cancellationToken);
         return result.WasDismissedByTappingOutsideOfPopup ? default : result.Result;
     }
+
+    /// <summary>
+    /// Themed chrome for every overlay in the app. <c>PopupOptions.Empty</c> is not empty: it
+    /// carries the toolkit's defaults, whose container shape is a light rounded rectangle with a
+    /// 2 px stroke. Against a dark theme that reads as a thick white frame around the popup card,
+    /// so the container is made invisible here and each popup's own Direction B Border supplies
+    /// the surface, stroke and radius. Options are rebuilt per presentation, which is what keeps
+    /// the scrim correct after a light/dark switch.
+    /// </summary>
+    private static PopupOptions BuildPopupOptions() => new()
+    {
+        CanBeDismissedByTappingOutsideOfPopup = true,
+        PageOverlayColor = ThemeColor("PopupScrimColor") ?? PopupThemeResources.ResolveTransparentColor(),
+        Shadow = null,
+        Shape = new RoundRectangle
+        {
+            CornerRadius = new CornerRadius(ThemeDouble("PopupCornerRadiusValue", 20)),
+            Fill = new SolidColorBrush(PopupThemeResources.ResolveTransparentColor()),
+            Stroke = new SolidColorBrush(PopupThemeResources.ResolveTransparentColor()),
+            StrokeThickness = 0
+        }
+    };
+
+    private static Color? ThemeColor(string key) =>
+        Application.Current?.Resources.TryGetValue(key, out object? value) == true && value is Color color
+            ? color
+            : null;
+
+    private static double ThemeDouble(string key, double fallback) =>
+        Application.Current?.Resources.TryGetValue(key, out object? value) == true &&
+        value is double resolved &&
+        double.IsFinite(resolved)
+            ? resolved
+            : fallback;
 
     private static Shell GetShell() =>
         Shell.Current ?? throw new InvalidOperationException("Shell.Current is not available for an overlay.");

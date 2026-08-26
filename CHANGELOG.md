@@ -6,6 +6,12 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased] - Complete Architecture Refactor
+### Fixed
+- Bean selections now resolve previous-roast suggestions by stable Bean ID, so identically named inventory entries retain their own history; legacy name-only rows link only when the name is unambiguous
+- Roast-log CSV exports include an optional Bean ID column that preserves duplicate-name histories on re-import while older CSV files remain compatible
+- Cooling batches now offer a confirmed **Ready now** action that persists the actual cooling duration, cancels the reminder, and moves only that batch to Needs weight
+- Popup hosting now uses theme-aware transparent chrome, removing the platform-default light border and plate around weigh-in and other dialogs in dark mode
+
 ### Added
 - One guided CSV import flow — choose type and file, map columns, review every row, then import — replacing the separate Bean and Roast import pages
 - Beans, Roast Log and Data & Backups open that flow with Beans or Roast Logs already selected, so no contextual action asks a question it already knows the answer to

@@ -32,7 +32,7 @@ public sealed class CoolingNotificationActivationHandler(
 
         if (roast.CompletionStatus == RoastCompletionStatus.AwaitingWeight &&
             roast.ReadyToWeighAtUtc is DateTimeOffset readyAt &&
-            readyAt <= clock.UtcNow)
+            RoastProjection.EffectiveStatus(roast, clock.UtcNow) == RoastEffectiveStatus.NeedsWeight)
         {
             await overlayService.ShowWeighInAsync(new WeighInRequest
             {

@@ -18,5 +18,6 @@ public interface IRoastDataService
     Task<RoastData?> GetRoastLogByIdAsync(Guid id);
     Task<bool> UpdateRoastLogAsync(RoastData updatedRoast);
     Task<bool> DeleteRoastLogAsync(Guid id);
-    Task<RoastData?> GetLastRoastForBeanTypeAsync(string beanType);
+    /// <summary>Returns the newest roast attributable to the stable bean identity.</summary>
+    Task<RoastData?> GetLastRoastForBeanAsync(Guid beanId);
 }

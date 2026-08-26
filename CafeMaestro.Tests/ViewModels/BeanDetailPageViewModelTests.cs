@@ -36,6 +36,36 @@ public sealed class BeanDetailPageViewModelTests
     }
 
     [Fact]
+    public async Task Load_RequestsHistoryByStableBeanIdWhenDisplayNamesMatch()
+    {
+        BeanData selected = CreateBean();
+        BeanData duplicate = CreateBean();
+        RoastData selectedRoast = CreateRoast(selected, RoastCompletionStatus.Complete, new DateTime(2026, 8, 23), 206);
+        RoastData duplicateRoast = CreateRoast(duplicate, RoastCompletionStatus.Complete, new DateTime(2026, 8, 24), 218);
+
+        Mock<IBeanDataService> beans = new();
+        beans.Setup(service => service.GetBeanByIdAsync(selected.Id)).ReturnsAsync(selected);
+
+        Mock<IRoastQueryService> roasts = new();
+        roasts.Setup(service => service.GetRoastsForBeanAsync(selected.Id, It.IsAny<CancellationToken>()))
+            .ReturnsAsync([selectedRoast]);
+
+        BeanDetailPageViewModel viewModel = CreateViewModel(beans, roasts);
+        viewModel.ApplyQueryAttributes(new Dictionary<string, object> { ["BeanId"] = selected.Id });
+
+        await viewModel.OnAppearingAsync();
+
+        viewModel.LatestCompletedRoast.Should().BeSameAs(selectedRoast);
+        viewModel.LatestCompletedRoast.Should().NotBeSameAs(duplicateRoast);
+        roasts.Verify(service => service.GetRoastsForBeanAsync(
+            selected.Id,
+            It.IsAny<CancellationToken>()), Times.Once);
+        roasts.Verify(service => service.GetRoastsForBeanAsync(
+            duplicate.Id,
+            It.IsAny<CancellationToken>()), Times.Never);
+    }
+
+    [Fact]
     public async Task StartRoast_NavigatesWithStableBeanIdIntoConfirmationFlow()
     {
         BeanData bean = CreateBean();

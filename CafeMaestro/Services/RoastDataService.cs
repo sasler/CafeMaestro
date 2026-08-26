@@ -122,7 +122,7 @@ namespace CafeMaestro.Services
                 1024,
                 leaveOpen: true);
             await writer.WriteLineAsync(
-                "Date,Bean Type,Temperature,Batch Weight,Final Weight,Weight Loss %,Roast Time,Roast Level,Notes");
+                "Date,Bean Type,Temperature,Batch Weight,Final Weight,Weight Loss %,Roast Time,Roast Level,Notes,Bean ID");
 
             foreach (RoastData roast in allData)
             {
@@ -140,7 +140,8 @@ namespace CafeMaestro.Services
                     weightLoss,
                     EscapeCsv(roast.FormattedTime),
                     EscapeCsv(roast.RoastLevelName),
-                    EscapeCsv(roast.Notes));
+                    EscapeCsv(roast.Notes),
+                    EscapeCsv(roast.BeanId?.ToString("D")));
                 await writer.WriteLineAsync(line);
             }
 
@@ -268,6 +269,7 @@ namespace CafeMaestro.Services
 
                 if (notificationsEnabled &&
                     savedRoast?.CompletionStatus == RoastCompletionStatus.AwaitingWeight &&
+                    savedRoast is not { CoolingCompletedEarly: true } &&
                     savedRoast.ReadyToWeighAtUtc is DateTimeOffset readyAt)
                 {
                     try
@@ -330,24 +332,27 @@ namespace CafeMaestro.Services
             }
         }
 
-        // Get the most recent roast for a specific bean type
-        public async Task<RoastData?> GetLastRoastForBeanTypeAsync(string beanType)
+        public async Task<RoastData?> GetLastRoastForBeanAsync(Guid beanId)
         {
             try
             {
-                if (string.IsNullOrEmpty(beanType))
+                if (beanId == Guid.Empty)
+                {
                     return null;
+                }
 
-                // Load all roast logs
-                var allRoasts = await LoadRoastLogsAsync();
+                AppData appData = await _appDataService.LoadAppDataAsync();
+                BeanData? bean = (appData.Beans ?? []).FirstOrDefault(candidate => candidate.Id == beanId);
+                if (bean is null)
+                {
+                    return null;
+                }
 
-                // Find the most recent roast with the matching bean type
-                var lastRoast = allRoasts
-                    .Where(r => r.BeanType.Equals(beanType, StringComparison.OrdinalIgnoreCase))
-                    .OrderByDescending(r => r.RoastDate)
+                return (appData.RoastLogs ?? [])
+                    .Where(roast => RoastProjection.BelongsToBean(roast, bean, appData.Beans ?? []))
+                    .OrderByDescending(RoastProjection.DroppedAtUtc)
+                    .ThenByDescending(roast => roast.BatchNumber ?? 0)
                     .FirstOrDefault();
-
-                return lastRoast;
             }
             catch (Exception ex)
             {

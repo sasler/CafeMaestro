@@ -31,6 +31,7 @@ public partial class RoastPageViewModel : ObservableObject, IQueryAttributable
     private DateTimeOffset _snapshotAtUtc;
     private bool _subscribed;
     private bool _suppressBeanSelectionChanged;
+    private long _beanSelectionVersion;
     private Guid _requestedBeanId;
     private Func<Task>? _retryAction;
     private DropProposal? _pendingDropProposal;
@@ -320,17 +321,32 @@ public partial class RoastPageViewModel : ObservableObject, IQueryAttributable
     [RelayCommand]
     public async Task SelectBeanAsync(BeanData? bean)
     {
+        long selectionVersion = Interlocked.Increment(ref _beanSelectionVersion);
         if (bean is null)
         {
             ClearSuggestion();
+            IsBusy = false;
+            OnPropertyChanged(nameof(CanStart));
+            StartCommand.NotifyCanExecuteChanged();
             return;
         }
 
-        SelectedBean = bean;
+        if (SelectedBean?.Id != bean.Id)
+        {
+            _suppressBeanSelectionChanged = true;
+            SelectedBean = bean;
+            _suppressBeanSelectionChanged = false;
+        }
+
         IsBusy = true;
         try
         {
             RoastSetupSuggestion suggestion = await _queryService.GetSetupSuggestionAsync(bean.Id);
+            if (!IsCurrentBeanSelection(bean.Id, selectionVersion) || suggestion.BeanId != bean.Id)
+            {
+                return;
+            }
+
             TemperatureText = suggestion.Temperature?.ToString("0.#", CultureInfo.CurrentCulture) ?? string.Empty;
             BatchWeightText = suggestion.BatchWeight?.ToString("0.#", CultureInfo.CurrentCulture) ?? string.Empty;
             ApplyPreviousResult(suggestion);
@@ -338,6 +354,11 @@ public partial class RoastPageViewModel : ObservableObject, IQueryAttributable
         }
         catch (Exception)
         {
+            if (!IsCurrentBeanSelection(bean.Id, selectionVersion))
+            {
+                return;
+            }
+
             TemperatureText = string.Empty;
             BatchWeightText = string.Empty;
             PreviousResultTitle = "PREVIOUS ROAST UNAVAILABLE";
@@ -346,9 +367,12 @@ public partial class RoastPageViewModel : ObservableObject, IQueryAttributable
         }
         finally
         {
-            IsBusy = false;
-            OnPropertyChanged(nameof(CanStart));
-            StartCommand.NotifyCanExecuteChanged();
+            if (IsCurrentBeanSelection(bean.Id, selectionVersion))
+            {
+                IsBusy = false;
+                OnPropertyChanged(nameof(CanStart));
+                StartCommand.NotifyCanExecuteChanged();
+            }
         }
     }
 
@@ -511,6 +535,42 @@ public partial class RoastPageViewModel : ObservableObject, IQueryAttributable
         {
             await ShowWeighInAsync(item);
         }
+    }
+
+    /// <summary>
+    /// Releases one cooling batch early. The countdown is a convenience, not a measurement, so a
+    /// roaster who can feel the beans are cool confirms once and the batch moves to Needs weight
+    /// with no weight invented on their behalf.
+    /// </summary>
+    [RelayCommand]
+    public async Task CompleteCoolingAsync(RoastChannelPresentation? channel)
+    {
+        if (channel is null || _snapshot is null)
+        {
+            return;
+        }
+
+        RoastWorkItem? item = CurrentSessionWork().FirstOrDefault(work => work.RoastId == channel.RoastId);
+        if (item is null || IsReadyNow(item))
+        {
+            return;
+        }
+
+        string batchLabel = item.BatchNumber is int batch ? $"Batch {batch}" : "This batch";
+        bool confirmed = await _alertService.ShowConfirmationAsync(
+            "Stop cooling?",
+            $"{batchLabel} moves to Needs weight now. Its countdown and cooling reminder end; " +
+                "the final weight is still yours to enter.",
+            "READY NOW",
+            "KEEP COOLING");
+        if (!confirmed)
+        {
+            return;
+        }
+
+        await HandleTransitionAsync(
+            await _sessionService.CompleteCoolingAsync(item.RoastId),
+            () => CompleteCoolingAsync(channel));
     }
 
     [RelayCommand]
@@ -949,6 +1009,7 @@ public partial class RoastPageViewModel : ObservableObject, IQueryAttributable
 
         EnsureBeanAvailable(bean);
 
+        Interlocked.Increment(ref _beanSelectionVersion);
         IReadOnlyList<RoastData> roasts = await _queryService.GetRoastsForBeanAsync(beanId);
         RoastData? dropped = roasts.FirstOrDefault(roast => roast.Id == source.RoastId);
         RoastSetupSuggestion suggestion = await _queryService.GetSetupSuggestionAsync(beanId);
@@ -1055,6 +1116,10 @@ public partial class RoastPageViewModel : ObservableObject, IQueryAttributable
 
     private async Task ApplyPreviousResultForBeanAsync(Guid beanId) =>
         ApplyPreviousResult(await _queryService.GetSetupSuggestionAsync(beanId));
+
+    private bool IsCurrentBeanSelection(Guid beanId, long selectionVersion) =>
+        Volatile.Read(ref _beanSelectionVersion) == selectionVersion &&
+        SelectedBean?.Id == beanId;
 
     private void ClearSuggestion()
     {
