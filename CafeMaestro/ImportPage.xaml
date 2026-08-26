@@ -1,0 +1,389 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<ContentPage xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
+             xmlns:controls="clr-namespace:CafeMaestro.Controls"
+             xmlns:services="clr-namespace:CafeMaestro.Services"
+             xmlns:vm="clr-namespace:CafeMaestro.ViewModels"
+             x:Class="CafeMaestro.ImportPage"
+             x:Name="PageRoot"
+             x:DataType="vm:ImportPageViewModel"
+             BackgroundColor="{DynamicResource SurfaceColor}"
+             Title="Import"
+             SizeChanged="OnPageSizeChanged">
+
+    <ContentPage.Resources>
+        <Style x:Key="StepLabelStyle" TargetType="Label" BasedOn="{StaticResource SectionHeaderStyle}">
+            <Setter Property="HorizontalTextAlignment" Value="Center" />
+        </Style>
+    </ContentPage.Resources>
+
+    <Grid RowDefinitions="Auto,Auto,*,Auto"
+          Padding="{StaticResource PagePadding}"
+          RowSpacing="{StaticResource SpaceMd}">
+
+        <!-- Header -->
+        <Grid Grid.Row="0" ColumnDefinitions="*,Auto" ColumnSpacing="{StaticResource SpaceSm}">
+            <VerticalStackLayout Spacing="{StaticResource SpaceXs}" VerticalOptions="Center">
+                <Label Text="{Binding StepTitle}"
+                       FontFamily="{StaticResource FontFamilyEmphasis}"
+                       FontSize="{StaticResource FontSizeHeadline}"
+                       TextColor="{DynamicResource PrimaryTextColor}" />
+                <Label Text="{Binding Descriptor.TypeTitle}" Style="{StaticResource CardMetaStyle}" />
+            </VerticalStackLayout>
+            <Border Grid.Column="1" Style="{StaticResource StatusChipStyle}" VerticalOptions="Center">
+                <Label Text="CSV" Style="{StaticResource StatusChipLabelStyle}" />
+            </Border>
+        </Grid>
+
+        <!-- Step rail. Colour marks the active step; the number and word carry it without colour. -->
+        <Grid Grid.Row="1"
+              ColumnDefinitions="*,*,*,*"
+              ColumnSpacing="{StaticResource SpaceXs}"
+              SemanticProperties.Description="{Binding StepTitle}">
+            <Label Text="1 File" Style="{StaticResource StepLabelStyle}">
+                <Label.Triggers>
+                    <DataTrigger TargetType="Label" Binding="{Binding IsSelectFileStep}" Value="True">
+                        <Setter Property="TextColor" Value="{DynamicResource RoastColor}" />
+                    </DataTrigger>
+                </Label.Triggers>
+            </Label>
+            <Label Grid.Column="1" Text="2 Map" Style="{StaticResource StepLabelStyle}">
+                <Label.Triggers>
+                    <DataTrigger TargetType="Label" Binding="{Binding IsMapStep}" Value="True">
+                        <Setter Property="TextColor" Value="{DynamicResource RoastColor}" />
+                    </DataTrigger>
+                </Label.Triggers>
+            </Label>
+            <Label Grid.Column="2" Text="3 Review" Style="{StaticResource StepLabelStyle}">
+                <Label.Triggers>
+                    <DataTrigger TargetType="Label" Binding="{Binding IsReviewStep}" Value="True">
+                        <Setter Property="TextColor" Value="{DynamicResource RoastColor}" />
+                    </DataTrigger>
+                </Label.Triggers>
+            </Label>
+            <Label Grid.Column="3" Text="4 Result" Style="{StaticResource StepLabelStyle}">
+                <Label.Triggers>
+                    <DataTrigger TargetType="Label" Binding="{Binding IsResultStep}" Value="True">
+                        <Setter Property="TextColor" Value="{DynamicResource RoastColor}" />
+                    </DataTrigger>
+                </Label.Triggers>
+            </Label>
+        </Grid>
+
+        <ScrollView Grid.Row="2">
+            <VerticalStackLayout Spacing="{StaticResource SpaceMd}">
+
+                <!-- Step 1: type and file -->
+                <VerticalStackLayout IsVisible="{Binding IsSelectFileStep}" Spacing="{StaticResource SpaceMd}">
+                    <Label Text="What are you importing?" Style="{StaticResource SectionHeaderStyle}" />
+
+                    <Border Style="{StaticResource CardStyle}"
+                            SemanticProperties.Description="Import coffee beans">
+                        <Border.GestureRecognizers>
+                            <TapGestureRecognizer Command="{Binding SelectKindCommand}"
+                                                  CommandParameter="{x:Static services:ImportKind.Beans}" />
+                        </Border.GestureRecognizers>
+                        <Grid ColumnDefinitions="*,Auto" ColumnSpacing="{StaticResource SpaceMd}">
+                            <VerticalStackLayout Spacing="{StaticResource SpaceXs}">
+                                <Label Text="Coffee beans" Style="{StaticResource CardTitleStyle}" />
+                                <Label Text="{Binding BeansTypeSummary}" Style="{StaticResource CardMetaStyle}" />
+                            </VerticalStackLayout>
+                            <Border Grid.Column="1"
+                                    Style="{StaticResource RoastChipStyle}"
+                                    VerticalOptions="Center"
+                                    IsVisible="{Binding IsBeansKind}">
+                                <Label Text="Selected" Style="{StaticResource RoastChipLabelStyle}" />
+                            </Border>
+                        </Grid>
+                    </Border>
+
+                    <Border Style="{StaticResource CardStyle}"
+                            SemanticProperties.Description="Import roast logs">
+                        <Border.GestureRecognizers>
+                            <TapGestureRecognizer Command="{Binding SelectKindCommand}"
+                                                  CommandParameter="{x:Static services:ImportKind.Roasts}" />
+                        </Border.GestureRecognizers>
+                        <Grid ColumnDefinitions="*,Auto" ColumnSpacing="{StaticResource SpaceMd}">
+                            <VerticalStackLayout Spacing="{StaticResource SpaceXs}">
+                                <Label Text="Roast logs" Style="{StaticResource CardTitleStyle}" />
+                                <Label Text="{Binding RoastsTypeSummary}" Style="{StaticResource CardMetaStyle}" />
+                            </VerticalStackLayout>
+                            <Border Grid.Column="1"
+                                    Style="{StaticResource RoastChipStyle}"
+                                    VerticalOptions="Center"
+                                    IsVisible="{Binding IsRoastsKind}">
+                                <Label Text="Selected" Style="{StaticResource RoastChipLabelStyle}" />
+                            </Border>
+                        </Grid>
+                    </Border>
+
+                    <Label Text="File" Style="{StaticResource SectionHeaderStyle}" />
+
+                    <Border Style="{StaticResource CardStyle}">
+                        <Grid ColumnDefinitions="Auto,*" ColumnSpacing="{StaticResource SpaceMd}">
+                            <controls:IconView Data="{StaticResource IconImportData}" VerticalOptions="Center" />
+                            <VerticalStackLayout Grid.Column="1" Spacing="{StaticResource SpaceXs}">
+                                <Label Text="{Binding FileDisplayName}"
+                                       Style="{StaticResource CardTitleStyle}"
+                                       IsVisible="{Binding HasFile}" />
+                                <Label Text="No file chosen"
+                                       Style="{StaticResource CardTitleStyle}"
+                                       IsVisible="{Binding HasNoFile}" />
+                                <Label Text="Headers in the first row. The file is only read, never changed."
+                                       Style="{StaticResource CardCaptionStyle}" />
+                            </VerticalStackLayout>
+                        </Grid>
+                    </Border>
+
+                    <Border Style="{StaticResource ErrorBannerStyle}" IsVisible="{Binding HasFileError}">
+                        <VerticalStackLayout Spacing="{StaticResource SpaceSm}">
+                            <Label Text="{Binding FileErrorMessage}" Style="{StaticResource ErrorBannerTextStyle}" />
+                            <Button Text="CHOOSE ANOTHER FILE"
+                                    Style="{StaticResource SecondaryActionStyle}"
+                                    Command="{Binding BrowseCommand}" />
+                        </VerticalStackLayout>
+                    </Border>
+
+                    <Button Text="BROWSE CSV"
+                            Style="{StaticResource SecondaryActionStyle}"
+                            Command="{Binding BrowseCommand}" />
+                </VerticalStackLayout>
+
+                <!-- Step 2: mapping -->
+                <VerticalStackLayout IsVisible="{Binding IsMapStep}" Spacing="{StaticResource SpaceMd}">
+                    <Border Style="{StaticResource ReadyCardStyle}">
+                        <VerticalStackLayout Spacing="{StaticResource SpaceXs}">
+                            <Label Text="{Binding AutoMapSummary}" Style="{StaticResource CardTitleStyle}" />
+                            <Label Text="{Binding FileDisplayName}" Style="{StaticResource CardMetaStyle}" />
+                        </VerticalStackLayout>
+                    </Border>
+
+                    <Border Style="{StaticResource AttentionCardStyle}" IsVisible="{Binding HasMissingRequiredMappings}">
+                        <Label Text="{Binding MissingRequiredSummary}" Style="{StaticResource CardMetaStyle}" />
+                    </Border>
+
+                    <Label Text="Required" Style="{StaticResource SectionHeaderStyle}" />
+                    <VerticalStackLayout x:Name="RequiredMappingList"
+                                         BindableLayout.ItemsSource="{Binding RequiredMappings}"
+                                         Spacing="{StaticResource SpaceSm}">
+                        <BindableLayout.ItemTemplate>
+                            <DataTemplate x:DataType="vm:ImportColumnMapping">
+                                <Border Style="{StaticResource CompactCardStyle}">
+                                    <Grid RowDefinitions="Auto,Auto"
+                                          ColumnDefinitions="*,*"
+                                          ColumnSpacing="{StaticResource SpaceMd}"
+                                          RowSpacing="{StaticResource SpaceXs}">
+                                        <Label Text="{Binding DisplayName}"
+                                               Style="{StaticResource FieldLabelStyle}"
+                                               VerticalOptions="Center"
+                                               Grid.ColumnSpan="{Binding Source={x:Reference PageRoot}, Path=BindingContext.MappingLabelColumnSpan}" />
+                                        <Picker Grid.Row="{Binding Source={x:Reference PageRoot}, Path=BindingContext.MappingPickerRow}"
+                                                Grid.Column="{Binding Source={x:Reference PageRoot}, Path=BindingContext.MappingPickerColumn}"
+                                                Grid.ColumnSpan="{Binding Source={x:Reference PageRoot}, Path=BindingContext.MappingLabelColumnSpan}"
+                                                Title="Choose column"
+                                                ItemsSource="{Binding Source={x:Reference PageRoot}, Path=BindingContext.Headers}"
+                                                SelectedItem="{Binding SelectedHeader, Mode=TwoWay}"
+                                                SemanticProperties.Description="{Binding FieldName}"
+                                                MinimumHeightRequest="{StaticResource ControlHeightMin}" />
+                                    </Grid>
+                                </Border>
+                            </DataTemplate>
+                        </BindableLayout.ItemTemplate>
+                    </VerticalStackLayout>
+
+                    <Grid ColumnDefinitions="*,Auto">
+                        <Label Text="Optional" Style="{StaticResource SectionHeaderStyle}" VerticalOptions="Center" />
+                        <Button Grid.Column="1"
+                                Text="{Binding OptionalSummary}"
+                                Style="{StaticResource SecondaryActionStyle}"
+                                Command="{Binding ToggleOptionalFieldsCommand}" />
+                    </Grid>
+
+                    <VerticalStackLayout x:Name="OptionalMappingList"
+                                         IsVisible="{Binding IsOptionalExpanded}"
+                                         BindableLayout.ItemsSource="{Binding OptionalMappings}"
+                                         Spacing="{StaticResource SpaceSm}">
+                        <BindableLayout.ItemTemplate>
+                            <DataTemplate x:DataType="vm:ImportColumnMapping">
+                                <Border Style="{StaticResource CompactCardStyle}">
+                                    <Grid RowDefinitions="Auto,Auto"
+                                          ColumnDefinitions="*,*"
+                                          ColumnSpacing="{StaticResource SpaceMd}"
+                                          RowSpacing="{StaticResource SpaceXs}">
+                                        <Label Text="{Binding DisplayName}"
+                                               Style="{StaticResource FieldLabelStyle}"
+                                               VerticalOptions="Center"
+                                               Grid.ColumnSpan="{Binding Source={x:Reference PageRoot}, Path=BindingContext.MappingLabelColumnSpan}" />
+                                        <Picker Grid.Row="{Binding Source={x:Reference PageRoot}, Path=BindingContext.MappingPickerRow}"
+                                                Grid.Column="{Binding Source={x:Reference PageRoot}, Path=BindingContext.MappingPickerColumn}"
+                                                Grid.ColumnSpan="{Binding Source={x:Reference PageRoot}, Path=BindingContext.MappingLabelColumnSpan}"
+                                                Title="Choose column"
+                                                ItemsSource="{Binding Source={x:Reference PageRoot}, Path=BindingContext.Headers}"
+                                                SelectedItem="{Binding SelectedHeader, Mode=TwoWay}"
+                                                SemanticProperties.Description="{Binding FieldName}"
+                                                MinimumHeightRequest="{StaticResource ControlHeightMin}" />
+                                    </Grid>
+                                </Border>
+                            </DataTemplate>
+                        </BindableLayout.ItemTemplate>
+                    </VerticalStackLayout>
+
+                    <Button Text="AUTO-MAP AGAIN"
+                            Style="{StaticResource SecondaryActionStyle}"
+                            Command="{Binding AutoMapCommand}" />
+                </VerticalStackLayout>
+
+                <!-- Step 3: review -->
+                <VerticalStackLayout IsVisible="{Binding IsReviewStep}" Spacing="{StaticResource SpaceMd}">
+                    <Grid ColumnDefinitions="*,*,*" ColumnSpacing="{StaticResource SpaceSm}">
+                        <Border Style="{StaticResource ReadyCardStyle}">
+                            <VerticalStackLayout Spacing="{StaticResource SpaceXs}">
+                                <Label Text="Valid" Style="{StaticResource CardCaptionStyle}" />
+                                <Label Text="{Binding ValidRowCount}" Style="{StaticResource NumericValueStyle}" HorizontalTextAlignment="Start" />
+                            </VerticalStackLayout>
+                        </Border>
+                        <Border Grid.Column="1" Style="{StaticResource AttentionCardStyle}">
+                            <VerticalStackLayout Spacing="{StaticResource SpaceXs}">
+                                <Label Text="Needs attention" Style="{StaticResource CardCaptionStyle}" />
+                                <Label Text="{Binding InvalidRowCount}" Style="{StaticResource NumericValueStyle}" HorizontalTextAlignment="Start" />
+                            </VerticalStackLayout>
+                        </Border>
+                        <Border Grid.Column="2" Style="{StaticResource CardStyle}">
+                            <VerticalStackLayout Spacing="{StaticResource SpaceXs}">
+                                <Label Text="Total rows" Style="{StaticResource CardCaptionStyle}" />
+                                <Label Text="{Binding TotalRowCount}" Style="{StaticResource NumericValueStyle}" HorizontalTextAlignment="Start" />
+                            </VerticalStackLayout>
+                        </Border>
+                    </Grid>
+
+                    <Label Text="Preview" Style="{StaticResource SectionHeaderStyle}" />
+                    <VerticalStackLayout BindableLayout.ItemsSource="{Binding PreviewRows}"
+                                         Spacing="{StaticResource SpaceSm}">
+                        <BindableLayout.ItemTemplate>
+                            <DataTemplate x:DataType="vm:ImportRowPreview">
+                                <Border Style="{StaticResource CardStyle}">
+                                    <VerticalStackLayout Spacing="{StaticResource SpaceXs}">
+                                        <Label Text="{Binding Title}" Style="{StaticResource CardTitleStyle}" />
+                                        <Label Text="{Binding Detail}" Style="{StaticResource CardMetaStyle}" />
+                                    </VerticalStackLayout>
+                                </Border>
+                            </DataTemplate>
+                        </BindableLayout.ItemTemplate>
+                    </VerticalStackLayout>
+
+                    <Grid ColumnDefinitions="*,Auto" IsVisible="{Binding HasRejectedRows}">
+                        <Label Text="Excluded rows" Style="{StaticResource SectionHeaderStyle}" VerticalOptions="Center" />
+                        <Button Grid.Column="1"
+                                Text="SHOW OR HIDE"
+                                Style="{StaticResource SecondaryActionStyle}"
+                                Command="{Binding ToggleRejectedRowsCommand}" />
+                    </Grid>
+
+                    <VerticalStackLayout IsVisible="{Binding IsRejectedExpanded}"
+                                         BindableLayout.ItemsSource="{Binding RejectedRows}"
+                                         Spacing="{StaticResource SpaceSm}">
+                        <BindableLayout.ItemTemplate>
+                            <DataTemplate x:DataType="vm:ImportRowPreview">
+                                <Border Style="{StaticResource AttentionCardStyle}">
+                                    <VerticalStackLayout Spacing="{StaticResource SpaceXs}">
+                                        <Label Text="{Binding Title}" Style="{StaticResource CardTitleStyle}" />
+                                        <Label Text="{Binding Detail}" Style="{StaticResource CardMetaStyle}" />
+                                    </VerticalStackLayout>
+                                </Border>
+                            </DataTemplate>
+                        </BindableLayout.ItemTemplate>
+                    </VerticalStackLayout>
+                </VerticalStackLayout>
+
+                <!-- Step 4: result -->
+                <VerticalStackLayout IsVisible="{Binding IsResultStep}" Spacing="{StaticResource SpaceMd}">
+                    <Border Style="{StaticResource ReadyCardStyle}" IsVisible="{Binding ImportSucceeded}">
+                        <VerticalStackLayout Spacing="{StaticResource SpaceXs}">
+                            <Label Text="{Binding ResultHeadline}" Style="{StaticResource CardTitleStyle}" />
+                            <Label Text="{Binding ResultDetail}" Style="{StaticResource CardMetaStyle}" />
+                        </VerticalStackLayout>
+                    </Border>
+
+                    <Border Style="{StaticResource DangerCardStyle}" IsVisible="{Binding ImportFailed}">
+                        <VerticalStackLayout Spacing="{StaticResource SpaceXs}">
+                            <Label Text="{Binding ResultHeadline}" Style="{StaticResource CardTitleStyle}" />
+                            <Label Text="{Binding ResultDetail}" Style="{StaticResource CardMetaStyle}" />
+                        </VerticalStackLayout>
+                    </Border>
+
+                    <Label Text="Details" Style="{StaticResource SectionHeaderStyle}" />
+                    <VerticalStackLayout BindableLayout.ItemsSource="{Binding ResultErrors}"
+                                         Spacing="{StaticResource SpaceSm}">
+                        <BindableLayout.ItemTemplate>
+                            <DataTemplate x:DataType="x:String">
+                                <Border Style="{StaticResource AttentionCardStyle}">
+                                    <Label Text="{Binding .}" Style="{StaticResource CardMetaStyle}" />
+                                </Border>
+                            </DataTemplate>
+                        </BindableLayout.ItemTemplate>
+                    </VerticalStackLayout>
+
+                    <Label Text="{Binding HiddenErrorCount, StringFormat='…and {0} more.'}"
+                           Style="{StaticResource CardCaptionStyle}"
+                           IsVisible="{Binding HasHiddenErrors}" />
+
+                    <Button Text="SHARE REPORT"
+                            Style="{StaticResource SecondaryActionStyle}"
+                            Command="{Binding ShareReportCommand}"
+                            IsVisible="{Binding HasRejectedRows}" />
+                </VerticalStackLayout>
+
+                <ActivityIndicator Style="{StaticResource LoadingIndicatorStyle}"
+                                   IsRunning="{Binding IsBusy}"
+                                   IsVisible="{Binding IsBusy}" />
+
+                <Label Text="{Binding StatusMessage}"
+                       Style="{StaticResource CardCaptionStyle}"
+                       HorizontalTextAlignment="Center" />
+            </VerticalStackLayout>
+        </ScrollView>
+
+        <!-- Action bar -->
+        <VerticalStackLayout Grid.Row="3" Spacing="{StaticResource SpaceSm}">
+            <Button Text="CONTINUE"
+                    Style="{StaticResource PrimaryActionStyle}"
+                    Command="{Binding ContinueToMappingCommand}"
+                    IsVisible="{Binding IsSelectFileStep}" />
+
+            <Button Text="REVIEW ROWS"
+                    Style="{StaticResource PrimaryActionStyle}"
+                    Command="{Binding ReviewCommand}"
+                    IsVisible="{Binding IsMapStep}" />
+
+            <Button Text="{Binding ImportActionLabel}"
+                    Style="{StaticResource PrimaryActionStyle}"
+                    Command="{Binding ImportCommand}"
+                    IsVisible="{Binding IsReviewStep}" />
+
+            <Button Text="{Binding DestinationActionLabel}"
+                    Style="{StaticResource ConfirmActionStyle}"
+                    Command="{Binding OpenDestinationCommand}"
+                    IsVisible="{Binding ImportSucceeded}" />
+
+            <Button Text="TRY IMPORT AGAIN"
+                    Style="{StaticResource PrimaryActionStyle}"
+                    Command="{Binding RetryCommand}"
+                    IsVisible="{Binding ImportFailed}" />
+
+            <Grid ColumnDefinitions="*,*" ColumnSpacing="{StaticResource SpaceSm}">
+                <Button Text="BACK"
+                        Style="{StaticResource SecondaryActionStyle}"
+                        Command="{Binding BackToFileCommand}"
+                        IsVisible="{Binding IsMapStep}" />
+                <Button Text="BACK"
+                        Style="{StaticResource SecondaryActionStyle}"
+                        Command="{Binding BackToMappingCommand}"
+                        IsVisible="{Binding IsReviewStep}" />
+                <Button Grid.Column="1"
+                        Text="CANCEL"
+                        Style="{StaticResource SecondaryActionStyle}"
+                        Command="{Binding CancelCommand}" />
+            </Grid>
+        </VerticalStackLayout>
+    </Grid>
+</ContentPage>

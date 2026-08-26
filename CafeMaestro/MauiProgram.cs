@@ -63,6 +63,9 @@ public static class MauiProgram
         builder.Services.AddSingleton<IAppActivationService, AppActivationService>();
         builder.Services.AddSingleton<IRoastRecoveryAdapter, RoastRecoveryAdapter>();
         builder.Services.AddSingleton<IOverlayService, OverlayService>();
+        builder.Services.AddSingleton<IImportAdapter, BeanImportAdapter>();
+        builder.Services.AddSingleton<IImportAdapter, RoastImportAdapter>();
+        builder.Services.AddSingleton<IImportService, ImportService>();
 
         builder.Services.AddTransientPopup<WeighInPopup, WeighInViewModel>();
         builder.Services.AddTransientPopup<ChooseBatchPopup, ChooseBatchViewModel>();
@@ -82,8 +85,7 @@ public static class MauiProgram
         builder.Services.AddTransient<BeanEditPageViewModel>();
         builder.Services.AddTransient<RoastLogPageViewModel>();
         builder.Services.AddTransient<RoastDetailPageViewModel>();
-        builder.Services.AddTransient<BeanImportPageViewModel>();
-        builder.Services.AddTransient<RoastImportPageViewModel>();
+        builder.Services.AddTransient<ImportPageViewModel>();
         builder.Services.AddTransient<RoastPage>();
         builder.Services.AddTransient<RoastEditPage>();
         builder.Services.AddTransient<BeanInventoryPage>();
@@ -91,8 +93,7 @@ public static class MauiProgram
         builder.Services.AddTransient<BeanEditPage>();
         builder.Services.AddTransient<RoastLogPage>();
         builder.Services.AddTransient<RoastDetailPage>();
-        builder.Services.AddTransient<BeanImportPage>();
-        builder.Services.AddTransient<RoastImportPage>();
+        builder.Services.AddTransient<ImportPage>();
         builder.Services.AddTransient<SettingsPage>();
 
 #if DEBUG

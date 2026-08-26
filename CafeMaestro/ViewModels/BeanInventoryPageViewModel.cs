@@ -298,7 +298,9 @@ public partial class BeanInventoryPageViewModel : ObservableObject
     {
         try
         {
-            await _navigationService.GoToAsync(Routes.BeanImport);
+            await _navigationService.GoToAsync(
+                Routes.Import,
+                new Dictionary<string, object> { [ImportPageViewModel.KindParameter] = ImportKind.Beans });
         }
         catch
         {

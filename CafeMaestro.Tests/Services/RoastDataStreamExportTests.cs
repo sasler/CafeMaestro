@@ -35,7 +35,6 @@ public sealed class RoastDataStreamExportTests
             });
         var service = new RoastDataService(
             appDataService.Object,
-            Mock.Of<ICsvParserService>(),
             Mock.Of<IRoastLevelService>());
         await using var destination = new MemoryStream();
 

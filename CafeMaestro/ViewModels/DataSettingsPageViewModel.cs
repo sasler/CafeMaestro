@@ -332,11 +332,15 @@ public partial class DataSettingsPageViewModel : ObservableObject
 
     [RelayCommand(CanExecute = nameof(CanRunDataOperation))]
     private Task ImportCoffeeBeansAsync() =>
-        _navigationService.GoToAsync(Routes.BeanImport);
+        _navigationService.GoToAsync(
+            Routes.Import,
+            new Dictionary<string, object> { [ImportPageViewModel.KindParameter] = ImportKind.Beans });
 
     [RelayCommand(CanExecute = nameof(CanRunDataOperation))]
     private Task ImportRoastLogsAsync() =>
-        _navigationService.GoToAsync(Routes.RoastImport);
+        _navigationService.GoToAsync(
+            Routes.Import,
+            new Dictionary<string, object> { [ImportPageViewModel.KindParameter] = ImportKind.Roasts });
 
     [RelayCommand(CanExecute = nameof(CanRunDataOperation))]
     private async Task ExportRoastLogCsvAsync()

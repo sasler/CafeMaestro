@@ -12,7 +12,7 @@ public sealed class BeanDataServiceTests
     {
         Mock<IAppDataService> appData = CreateAppDataService();
         appData.Setup(service => service.LoadAppDataAsync()).ThrowsAsync(new IOException("Read failed"));
-        BeanDataService service = new(appData.Object, Mock.Of<ICsvParserService>());
+        BeanDataService service = new(appData.Object);
 
         Func<Task> act = () => service.GetAllBeansAsync();
 
@@ -33,7 +33,7 @@ public sealed class BeanDataServiceTests
             Beans = [outOfStock],
             RoastLogs = []
         });
-        BeanDataService service = new(appData.Object, Mock.Of<ICsvParserService>());
+        BeanDataService service = new(appData.Object);
 
         List<BeanData> beans = await service.GetSortedAvailableBeansAsync();
 

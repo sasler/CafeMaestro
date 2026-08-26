@@ -24,6 +24,9 @@ public static class Routes
     public const string BeanDetail = "BeanDetailPage";
     public const string RoastEdit = "RoastEditPage";
     public const string RoastDetail = "RoastDetailPage";
-    public const string BeanImport = "BeanImportPage";
-    public const string RoastImport = "RoastImportPage";
+    /// <summary>
+    /// The single guided CSV import flow. Callers pass <c>ImportPageViewModel.KindParameter</c>
+    /// to preselect Beans or Roasts.
+    /// </summary>
+    public const string Import = "ImportPage";
 }
