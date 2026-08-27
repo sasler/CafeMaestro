@@ -21,14 +21,6 @@ public partial class RoastLevelSettingsPage : ContentPage
     }
 
     /// <summary>Back closes the editing sheet first rather than leaving the page under it.</summary>
-    protected override bool OnBackButtonPressed()
-    {
-        if (_viewModel.IsEditRoastLevelPopupVisible)
-        {
-            _viewModel.CancelRoastLevelCommand.Execute(null);
-            return true;
-        }
-
-        return base.OnBackButtonPressed();
-    }
+    protected override bool OnBackButtonPressed() =>
+        _viewModel.TryHandleBack() || base.OnBackButtonPressed();
 }

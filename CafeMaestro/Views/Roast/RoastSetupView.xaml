@@ -1,6 +1,7 @@
 <?xml version="1.0" encoding="utf-8" ?>
 <ContentView xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
              xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
+             xmlns:layouts="clr-namespace:CafeMaestro.Layouts"
              xmlns:models="clr-namespace:CafeMaestro.Models"
              xmlns:roast="clr-namespace:CafeMaestro.Views.Roast"
              xmlns:vm="clr-namespace:CafeMaestro.ViewModels"
@@ -8,7 +9,9 @@
              x:DataType="vm:RoastPageViewModel">
     <Grid RowDefinitions="*,Auto">
         <ScrollView Grid.Row="0">
-            <VerticalStackLayout Padding="{StaticResource PagePadding}" Spacing="{StaticResource SpaceLg}">
+            <VerticalStackLayout Padding="{StaticResource PagePadding}"
+                                 Spacing="{StaticResource SpaceLg}"
+                                 layouts:ResponsiveLayout.MaxContentWidth="{StaticResource ReadableContentWidth}">
                 <Grid ColumnDefinitions="*,Auto">
                     <VerticalStackLayout Spacing="2">
                         <Label Text="ROAST CONSOLE" Style="{StaticResource SectionHeaderStyle}" />
@@ -146,7 +149,8 @@
             </VerticalStackLayout>
         </ScrollView>
 
-        <VerticalStackLayout Grid.Row="1" Style="{StaticResource ActionBarStyle}">
+        <VerticalStackLayout Grid.Row="1" Style="{StaticResource ActionBarStyle}"
+                             layouts:ResponsiveLayout.MaxContentWidth="{StaticResource ReadableContentWidth}">
             <Button Text="START ROAST" Command="{Binding StartCommand}" IsEnabled="{Binding CanStart}"
                     Style="{StaticResource PrimaryActionStyle}" SemanticProperties.Hint="Creates the roast draft before starting time" />
         </VerticalStackLayout>

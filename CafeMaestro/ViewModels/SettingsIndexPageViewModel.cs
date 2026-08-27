@@ -20,6 +20,9 @@ public enum SettingsSection
 /// The Settings tab: a short list of destinations, each showing the value it currently holds.
 /// Summaries are rebuilt on every appearance so returning from a detail page shows the change
 /// that was just made.
+///
+/// On a phone a row navigates to that section's page. On a tablet there is room to show the
+/// section beside the list, so the row opens the real editor inline - one tap either way.
 /// </summary>
 public partial class SettingsIndexPageViewModel : ObservableObject
 {
@@ -30,6 +33,17 @@ public partial class SettingsIndexPageViewModel : ObservableObject
     private readonly IDataBackupService _dataBackupService;
     private readonly INavigationService _navigationService;
     private readonly IAppVersionProvider _versionProvider;
+    private readonly ISettingsSectionViewModelFactory _sectionViewModels;
+
+    /*
+     * A layout pass and an appearance can both ask for the same section: SizeChanged fires while
+     * OnAppearingAsync is still awaiting. A section's own load is not re-entrant - the roasting
+     * preferences guard their property writes with a single flag - so identical requests share
+     * one task and different ones queue behind it.
+     */
+    private readonly SemaphoreSlim _activationGate = new(1, 1);
+    private Task _activation = Task.CompletedTask;
+    private SettingsSection? _activatingSection;
 
     public SettingsIndexPageViewModel(
         IRoastPreferencesService roastPreferences,
@@ -38,7 +52,8 @@ public partial class SettingsIndexPageViewModel : ObservableObject
         IRoastLevelService roastLevelService,
         IDataBackupService dataBackupService,
         INavigationService navigationService,
-        IAppVersionProvider versionProvider)
+        IAppVersionProvider versionProvider,
+        ISettingsSectionViewModelFactory sectionViewModels)
     {
         _roastPreferences = roastPreferences ??
                             throw new ArgumentNullException(nameof(roastPreferences));
@@ -52,6 +67,8 @@ public partial class SettingsIndexPageViewModel : ObservableObject
         _navigationService = navigationService ??
                              throw new ArgumentNullException(nameof(navigationService));
         _versionProvider = versionProvider ?? throw new ArgumentNullException(nameof(versionProvider));
+        _sectionViewModels = sectionViewModels ??
+                             throw new ArgumentNullException(nameof(sectionViewModels));
     }
 
     [ObservableProperty]
@@ -72,6 +89,26 @@ public partial class SettingsIndexPageViewModel : ObservableObject
     [ObservableProperty]
     public partial bool IsWideLayout { get; set; }
 
+    /*
+     * The five inline editors. Each stays null until its row is opened on a wide layout, so a
+     * phone - and a tablet the user never takes past the first row - builds none of them.
+     */
+
+    [ObservableProperty]
+    public partial RoastingSettingsPageViewModel? RoastingViewModel { get; set; }
+
+    [ObservableProperty]
+    public partial AppearanceSettingsPageViewModel? AppearanceViewModel { get; set; }
+
+    [ObservableProperty]
+    public partial DataSettingsPageViewModel? DataViewModel { get; set; }
+
+    [ObservableProperty]
+    public partial RoastLevelSettingsPageViewModel? RoastLevelViewModel { get; set; }
+
+    [ObservableProperty]
+    public partial AboutPageViewModel? AboutViewModel { get; set; }
+
     [ObservableProperty]
     public partial SettingsSection SelectedSection { get; set; } = SettingsSection.Roasting;
 
@@ -86,8 +123,36 @@ public partial class SettingsIndexPageViewModel : ObservableObject
     public bool IsRoastLevelsHighlighted => IsWideLayout && IsRoastLevelsSelected;
     public bool IsAboutHighlighted => IsWideLayout && IsAboutSelected;
 
+    /// <summary>Names the open section above the wide pane, which has no navigation bar.</summary>
+    public string SelectedSectionTitle => SelectedSection switch
+    {
+        SettingsSection.Roasting => "Roasting",
+        SettingsSection.Appearance => "Appearance",
+        SettingsSection.Data => "Data & Backups",
+        SettingsSection.RoastLevels => "Roast Levels",
+        _ => "About"
+    };
+
     /// <summary>System Back on the Settings tab root returns to Roast, the launch destination.</summary>
     public Task GoBackAsync() => _navigationService.GoToAsync(Routes.Roast);
+
+    /// <summary>
+    /// Gives the open inline section the first refusal on Back, so a sheet it has open closes
+    /// instead of the whole tab being left - the behaviour its standalone page already had.
+    /// </summary>
+    public bool TryHandleBackInInlineSection() =>
+        IsWideLayout &&
+        SelectedSectionViewModel is IHandlesBackNavigation handler &&
+        handler.TryHandleBack();
+
+    private object? SelectedSectionViewModel => SelectedSection switch
+    {
+        SettingsSection.Roasting => RoastingViewModel,
+        SettingsSection.Appearance => AppearanceViewModel,
+        SettingsSection.Data => DataViewModel,
+        SettingsSection.RoastLevels => RoastLevelViewModel,
+        _ => AboutViewModel
+    };
 
     public async Task OnAppearingAsync()
     {
@@ -97,12 +162,26 @@ public partial class SettingsIndexPageViewModel : ObservableObject
             RefreshDataSummaryAsync(),
             RefreshRoastLevelSummaryAsync());
         RefreshAboutSummary();
+
+        if (IsWideLayout)
+        {
+            await ActivateInlineSectionAsync(SelectedSection);
+        }
     }
 
-    public void SetWideLayout(bool isWideLayout)
+    /// <summary>Releases anything an inline section holds while the Settings tab is away.</summary>
+    public void OnDisappearing() => DataViewModel?.OnDisappearing();
+
+    /// <summary>
+    /// Switches between the phone's navigate-away rows and the tablet's inline pane. Growing
+    /// wide opens whichever section the rows already point at, so the pane is never blank.
+    /// </summary>
+    public Task SetWideLayoutAsync(bool isWideLayout)
     {
+        bool becameWide = isWideLayout && !IsWideLayout;
         IsWideLayout = isWideLayout;
         NotifySelectionState();
+        return becameWide ? ActivateInlineSectionAsync(SelectedSection) : Task.CompletedTask;
     }
 
     [RelayCommand]
@@ -120,6 +199,7 @@ public partial class SettingsIndexPageViewModel : ObservableObject
     [RelayCommand]
     private Task OpenAboutAsync() => OpenSectionAsync(SettingsSection.About, Routes.About);
 
+    /// <summary>The wide pane's escape hatch to the full-screen page for the open section.</summary>
     [RelayCommand]
     private Task OpenSelectedSectionAsync() => _navigationService.GoToAsync(RouteFor(SelectedSection));
 
@@ -130,10 +210,52 @@ public partial class SettingsIndexPageViewModel : ObservableObject
         if (IsWideLayout)
         {
             SelectedSection = section;
-            return Task.CompletedTask;
+            return ActivateInlineSectionAsync(section);
         }
 
         return _navigationService.GoToAsync(route);
+    }
+
+    /// <summary>
+    /// Builds the chosen section's editor if this is its first showing, then gives it the same
+    /// appearance callback the standalone page would have given it.
+    ///
+    /// Two overlapping requests for the same section share one load; requests for different
+    /// sections run in turn, never at the same time.
+    /// </summary>
+    private Task ActivateInlineSectionAsync(SettingsSection section)
+    {
+        if (_activatingSection == section && !_activation.IsCompleted)
+        {
+            return _activation;
+        }
+
+        _activatingSection = section;
+        return _activation = RunActivationAsync(section);
+    }
+
+    private async Task RunActivationAsync(SettingsSection section)
+    {
+        await _activationGate.WaitAsync().ConfigureAwait(false);
+        try
+        {
+            await (section switch
+            {
+                SettingsSection.Roasting =>
+                    (RoastingViewModel ??= _sectionViewModels.CreateRoasting()).OnAppearingAsync(),
+                SettingsSection.Appearance =>
+                    (AppearanceViewModel ??= _sectionViewModels.CreateAppearance()).OnAppearingAsync(),
+                SettingsSection.Data =>
+                    (DataViewModel ??= _sectionViewModels.CreateData()).OnAppearingAsync(),
+                SettingsSection.RoastLevels =>
+                    (RoastLevelViewModel ??= _sectionViewModels.CreateRoastLevels()).OnAppearingAsync(),
+                _ => (AboutViewModel ??= _sectionViewModels.CreateAbout()).OnAppearingAsync()
+            }).ConfigureAwait(false);
+        }
+        finally
+        {
+            _activationGate.Release();
+        }
     }
 
     private void NotifySelectionState()
@@ -148,6 +270,7 @@ public partial class SettingsIndexPageViewModel : ObservableObject
         OnPropertyChanged(nameof(IsDataHighlighted));
         OnPropertyChanged(nameof(IsRoastLevelsHighlighted));
         OnPropertyChanged(nameof(IsAboutHighlighted));
+        OnPropertyChanged(nameof(SelectedSectionTitle));
     }
 
     private static string RouteFor(SettingsSection section) => section switch

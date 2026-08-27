@@ -1,6 +1,7 @@
 <?xml version="1.0" encoding="utf-8" ?>
 <ContentPage xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
              xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
+             xmlns:layouts="clr-namespace:CafeMaestro.Layouts"
              xmlns:models="clr-namespace:CafeMaestro.Models"
              xmlns:vm="clr-namespace:CafeMaestro.ViewModels"
              x:Class="CafeMaestro.RoastEditPage"
@@ -8,7 +9,9 @@
              Title="Edit roast"
              BackgroundColor="{DynamicResource SurfaceColor}">
     <ScrollView>
-        <VerticalStackLayout Padding="{StaticResource PagePadding}" Spacing="{StaticResource SpaceMd}">
+        <VerticalStackLayout Padding="{StaticResource PagePadding}"
+                             Spacing="{StaticResource SpaceMd}"
+                             layouts:ResponsiveLayout.MaxContentWidth="{StaticResource ReadableContentWidth}">
             <Label Text="EDIT ROAST" Style="{StaticResource SectionHeaderStyle}" />
             <Label Text="Correct any recorded value for this roast" FontSize="{StaticResource FontSizeHeadline}"
                    FontAttributes="Bold" TextColor="{DynamicResource PrimaryTextColor}" />

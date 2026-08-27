@@ -35,6 +35,7 @@ MVVM with DI throughout.
 - **Unsubscribe from singleton events** in `OnDisappearing()` to prevent memory leaks.
 - **Use `SuspendNotifications()`** on `IAppDataService` for bulk data operations.
 - **Async/await** for all async operations. Structured logging + proper error handling.
+- **Responsive** — cap full-width forms and reading columns with `layouts:ResponsiveLayout.MaxContentWidth` (see `docs/visual-system.md`); master/detail pages switch structure at `BreakpointMedium` (600 dp).
 - **Accessibility** — dynamic font scaling, color contrast, responsive layouts.
 
 ## Build & Test

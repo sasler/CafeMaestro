@@ -7,6 +7,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased] - Complete Architecture Refactor
 ### Fixed
+- Settings sections on a tablet now open in one tap: the wide pane carries the section's own editor rather than a summary with a second button to open it
+- The Beans tab no longer draws two titles — the page has its own heading, so the Shell navigation bar above it is hidden as on the other tab roots
+- Forms, detail pages and the roast console no longer stretch edge to edge on a tablet; content is capped at a readable measure and centred
+- Search and filter controls on Roast Log and Beans now sit above the list they act on instead of spanning the whole page beside an unrelated detail pane
+- The "Select a roast" and "Select a bean" placeholders now centre in their empty pane instead of hanging from the top of a tall tablet screen
+- Master/detail splits give the list its share of the width up to `ListPaneMaxWidth`, so a large tablet or a maximised desktop window widens the detail side instead of stretching a column of cards
+- System Back in the tablet settings pane now closes an open roast-level editing sheet instead of leaving the Settings tab under it
+- Overlapping layout and appearance passes no longer load the same settings section twice at once, which could let a section's re-entrancy guard clear early and write preferences back
 - Ready-to-weigh batches now keep a stable, tappable **Weigh** action while a later batch is actively roasting on Android, without interrupting the running timer
 - Roast-log editing again supports bean, initial batch weight, final weight, temperature, roast time, First Crack, and notes, while preserving unresolved historical bean identities
 - Recorded bean inventory remains advisory: a low or depleted balance warns but never prevents starting a roast, and editing historical batch weight does not silently rewrite inventory
@@ -16,6 +24,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Popup hosting now uses theme-aware transparent chrome, removing the platform-default light border and plate around weigh-in and other dialogs in dark mode
 
 ### Added
+- `Layouts/ResponsiveLayout` attached property that caps a layout's content width and centres the remainder, so one XAML fills a phone and reads as a column on a tablet
+- Each settings section is now an embeddable `ContentView` shared by its phone page and the tablet settings pane, so a setting has exactly one implementation
 - Roast setup now shows the selected bean's full roast history newest-first, presents five earlier roasts by default, and can reuse a prior roast's temperature and batch weight
 - One guided CSV import flow — choose type and file, map columns, review every row, then import — replacing the separate Bean and Roast import pages
 - Beans, Roast Log and Data & Backups open that flow with Beans or Roast Logs already selected, so no contextual action asks a question it already knows the answer to

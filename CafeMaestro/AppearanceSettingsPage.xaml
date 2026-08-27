@@ -1,121 +1,12 @@
 <?xml version="1.0" encoding="utf-8" ?>
 <ContentPage xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
              xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
-             xmlns:controls="clr-namespace:CafeMaestro.Controls"
-             xmlns:services="clr-namespace:CafeMaestro.Services"
+             xmlns:settings="clr-namespace:CafeMaestro.Views.Settings"
              xmlns:vm="clr-namespace:CafeMaestro.ViewModels"
              x:Class="CafeMaestro.AppearanceSettingsPage"
              x:DataType="vm:AppearanceSettingsPageViewModel"
              BackgroundColor="{DynamicResource SurfaceColor}"
              Title="Appearance">
 
-    <ScrollView>
-        <VerticalStackLayout Padding="{StaticResource PagePadding}" Spacing="{StaticResource SpaceMd}">
-            <Label Text="THEME" Style="{StaticResource SectionHeaderStyle}" />
-
-            <Border Style="{StaticResource CardStyle}"
-                    SemanticProperties.Description="Follow the system theme">
-                <Border.GestureRecognizers>
-                    <TapGestureRecognizer Command="{Binding SelectThemeCommand}"
-                                          CommandParameter="{x:Static services:ThemePreference.System}" />
-                </Border.GestureRecognizers>
-                <Grid ColumnDefinitions="*,Auto" ColumnSpacing="{StaticResource SpaceMd}" MinimumHeightRequest="{StaticResource TouchTargetMin}">
-                    <VerticalStackLayout Spacing="{StaticResource SpaceXs}">
-                        <Label Text="System" Style="{StaticResource CardTitleStyle}" />
-                        <Label Text="Match the device's light or dark setting." Style="{StaticResource CardMetaStyle}" LineBreakMode="WordWrap" />
-                    </VerticalStackLayout>
-                    <Grid Grid.Column="1" VerticalOptions="Center">
-                        <Button Style="{StaticResource IconButtonStyle}"
-                                Command="{Binding SelectThemeCommand}"
-                                CommandParameter="{x:Static services:ThemePreference.System}"
-                                SemanticProperties.Description="Use system theme" />
-                        <controls:IconView Data="{StaticResource IconCheckData}"
-                                           IconColor="{DynamicResource ReadyColor}"
-                                           IsVisible="{Binding IsSystemSelected}"
-                                           InputTransparent="True"
-                                           Description="Selected"
-                                           HorizontalOptions="Center" VerticalOptions="Center" />
-                    </Grid>
-                </Grid>
-            </Border>
-
-            <Border Style="{StaticResource CardStyle}"
-                    SemanticProperties.Description="Always use the light theme">
-                <Border.GestureRecognizers>
-                    <TapGestureRecognizer Command="{Binding SelectThemeCommand}"
-                                          CommandParameter="{x:Static services:ThemePreference.Light}" />
-                </Border.GestureRecognizers>
-                <Grid ColumnDefinitions="*,Auto" ColumnSpacing="{StaticResource SpaceMd}" MinimumHeightRequest="{StaticResource TouchTargetMin}">
-                    <VerticalStackLayout Spacing="{StaticResource SpaceXs}">
-                        <Label Text="Light" Style="{StaticResource CardTitleStyle}" />
-                        <Label Text="Paper surfaces with the same status colours." Style="{StaticResource CardMetaStyle}" LineBreakMode="WordWrap" />
-                    </VerticalStackLayout>
-                    <Grid Grid.Column="1" VerticalOptions="Center">
-                        <Button Style="{StaticResource IconButtonStyle}"
-                                Command="{Binding SelectThemeCommand}"
-                                CommandParameter="{x:Static services:ThemePreference.Light}"
-                                SemanticProperties.Description="Use light theme" />
-                        <controls:IconView Data="{StaticResource IconCheckData}"
-                                           IconColor="{DynamicResource ReadyColor}"
-                                           IsVisible="{Binding IsLightSelected}"
-                                           InputTransparent="True"
-                                           Description="Selected"
-                                           HorizontalOptions="Center" VerticalOptions="Center" />
-                    </Grid>
-                </Grid>
-            </Border>
-
-            <Border Style="{StaticResource CardStyle}"
-                    SemanticProperties.Description="Always use the dark theme">
-                <Border.GestureRecognizers>
-                    <TapGestureRecognizer Command="{Binding SelectThemeCommand}"
-                                          CommandParameter="{x:Static services:ThemePreference.Dark}" />
-                </Border.GestureRecognizers>
-                <Grid ColumnDefinitions="*,Auto" ColumnSpacing="{StaticResource SpaceMd}" MinimumHeightRequest="{StaticResource TouchTargetMin}">
-                    <VerticalStackLayout Spacing="{StaticResource SpaceXs}">
-                        <Label Text="Dark" Style="{StaticResource CardTitleStyle}" />
-                        <Label Text="The roasting console palette, used everywhere." Style="{StaticResource CardMetaStyle}" LineBreakMode="WordWrap" />
-                    </VerticalStackLayout>
-                    <Grid Grid.Column="1" VerticalOptions="Center">
-                        <Button Style="{StaticResource IconButtonStyle}"
-                                Command="{Binding SelectThemeCommand}"
-                                CommandParameter="{x:Static services:ThemePreference.Dark}"
-                                SemanticProperties.Description="Use dark theme" />
-                        <controls:IconView Data="{StaticResource IconCheckData}"
-                                           IconColor="{DynamicResource ReadyColor}"
-                                           IsVisible="{Binding IsDarkSelected}"
-                                           InputTransparent="True"
-                                           Description="Selected"
-                                           HorizontalOptions="Center" VerticalOptions="Center" />
-                    </Grid>
-                </Grid>
-            </Border>
-
-            <Label Text="PREVIEW" Style="{StaticResource SectionHeaderStyle}" />
-
-            <!-- Live sample: every swatch resolves from the active theme dictionary, so the
-                 preview updates the moment a choice is made. -->
-            <Border Style="{StaticResource RaisedCardStyle}">
-                <VerticalStackLayout Spacing="{StaticResource SpaceSm}">
-                    <Label Text="{Binding SelectedThemeDisplay}" Style="{StaticResource CardTitleStyle}" />
-                    <Label Text="{Binding SelectedThemeDetail}" Style="{StaticResource CardMetaStyle}" LineBreakMode="WordWrap" />
-                    <Label Text="12:04" Style="{StaticResource InstrumentValueStyle}" />
-                    <HorizontalStackLayout Spacing="{StaticResource SpaceSm}">
-                        <Border Style="{StaticResource RoastChipStyle}">
-                            <Label Text="Roasting" Style="{StaticResource RoastChipLabelStyle}" />
-                        </Border>
-                        <Border Style="{StaticResource CoolingChipStyle}">
-                            <Label Text="Cooling" Style="{StaticResource CoolingChipLabelStyle}" />
-                        </Border>
-                        <Border Style="{StaticResource ReadyChipStyle}">
-                            <Label Text="Ready" Style="{StaticResource ReadyChipLabelStyle}" />
-                        </Border>
-                    </HorizontalStackLayout>
-                    <Label Text="Secondary text stays readable against this surface."
-                           Style="{StaticResource CardCaptionStyle}"
-                           LineBreakMode="WordWrap" />
-                </VerticalStackLayout>
-            </Border>
-        </VerticalStackLayout>
-    </ScrollView>
+    <settings:AppearanceSettingsView />
 </ContentPage>

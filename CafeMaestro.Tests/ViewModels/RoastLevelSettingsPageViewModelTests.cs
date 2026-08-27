@@ -15,10 +15,13 @@ public sealed class RoastLevelSettingsPageViewModelTests
     [Fact]
     public void EditorLayout_KeepsActionsOutsideScrollableFields()
     {
+        // The editor body now lives in the view the page and the tablet settings pane share.
         string xaml = File.ReadAllText(Path.Combine(
             XamlResourceReader.RepositoryRoot,
             "CafeMaestro",
-            "RoastLevelSettingsPage.xaml"));
+            "Views",
+            "Settings",
+            "RoastLevelSettingsView.xaml"));
 
         xaml.Should().Contain("<ScrollView Grid.Row=\"1\"");
         xaml.Should().Contain("<Grid Grid.Row=\"2\" ColumnDefinitions=\"*,*\"");

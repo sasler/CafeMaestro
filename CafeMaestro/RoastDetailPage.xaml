@@ -1,6 +1,7 @@
 <?xml version="1.0" encoding="utf-8" ?>
 <ContentPage xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
              xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
+             xmlns:layouts="clr-namespace:CafeMaestro.Layouts"
              xmlns:controls="clr-namespace:CafeMaestro.Controls"
              xmlns:vm="clr-namespace:CafeMaestro.ViewModels"
              x:Class="CafeMaestro.RoastDetailPage"
@@ -9,7 +10,9 @@
              BackgroundColor="{DynamicResource SurfaceColor}">
     <Grid RowDefinitions="*,Auto">
         <ScrollView Grid.Row="0">
-            <VerticalStackLayout Padding="{StaticResource PagePadding}" Spacing="{StaticResource SpaceLg}">
+            <VerticalStackLayout Padding="{StaticResource PagePadding}"
+                                 Spacing="{StaticResource SpaceLg}"
+                                 layouts:ResponsiveLayout.MaxContentWidth="{StaticResource ReadableContentWidth}">
                 <Grid ColumnDefinitions="*,Auto" ColumnSpacing="{StaticResource SpaceSm}">
                     <VerticalStackLayout>
                         <Label Text="Roast details"
@@ -75,7 +78,8 @@
             </VerticalStackLayout>
         </ScrollView>
 
-        <VerticalStackLayout Grid.Row="1" Style="{StaticResource ActionBarStyle}" IsVisible="{Binding HasCard}">
+        <VerticalStackLayout Grid.Row="1" Style="{StaticResource ActionBarStyle}" IsVisible="{Binding HasCard}"
+                             layouts:ResponsiveLayout.MaxContentWidth="{StaticResource ReadableContentWidth}">
             <Button Text="{Binding FinalWeightActionText}"
                     Style="{StaticResource ConfirmActionStyle}"
                     IsVisible="{Binding CanEditFinalWeight}"

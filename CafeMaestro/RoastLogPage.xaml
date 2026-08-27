@@ -1,6 +1,7 @@
 <?xml version="1.0" encoding="utf-8" ?>
 <ContentPage xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
              xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
+             xmlns:layouts="clr-namespace:CafeMaestro.Layouts"
              xmlns:controls="clr-namespace:CafeMaestro.Controls"
              xmlns:local="clr-namespace:CafeMaestro"
              xmlns:vm="clr-namespace:CafeMaestro.ViewModels"
@@ -51,60 +52,6 @@
                     </Grid>
                 </HorizontalStackLayout>
             </Grid>
-
-            <SearchBar Placeholder="Search bean, notes, summary, or roast level"
-                       Text="{Binding SearchText, Mode=TwoWay}"
-                       SearchCommand="{Binding SearchCommand}"
-                       BackgroundColor="{DynamicResource ElevatedSurfaceColor}"
-                       TextColor="{DynamicResource PrimaryTextColor}"
-                       PlaceholderColor="{DynamicResource SecondaryTextColor}"
-                       CancelButtonColor="{DynamicResource SecondaryTextColor}"
-                       MinimumHeightRequest="{StaticResource ControlHeightMin}"
-                       SemanticProperties.Description="Search roast log" />
-            <ScrollView Orientation="Horizontal" HorizontalScrollBarVisibility="Never">
-                <HorizontalStackLayout Spacing="{StaticResource SpaceSm}">
-                    <Button Text="All" Style="{StaticResource SecondaryActionStyle}"
-                            Command="{Binding SelectFilterCommand}"
-                            CommandParameter="{x:Static vm:RoastLogFilter.All}">
-                        <Button.Triggers>
-                            <DataTrigger TargetType="Button" Binding="{Binding IsAllSelected}" Value="True">
-                                <Setter Property="BackgroundColor" Value="{DynamicResource RoastSurfaceColor}" />
-                                <Setter Property="TextColor" Value="{DynamicResource RoastColor}" />
-                            </DataTrigger>
-                        </Button.Triggers>
-                    </Button>
-                    <Button Text="Complete" Style="{StaticResource SecondaryActionStyle}"
-                            Command="{Binding SelectFilterCommand}"
-                            CommandParameter="{x:Static vm:RoastLogFilter.Complete}">
-                        <Button.Triggers>
-                            <DataTrigger TargetType="Button" Binding="{Binding IsCompleteSelected}" Value="True">
-                                <Setter Property="BackgroundColor" Value="{DynamicResource RoastSurfaceColor}" />
-                                <Setter Property="TextColor" Value="{DynamicResource RoastColor}" />
-                            </DataTrigger>
-                        </Button.Triggers>
-                    </Button>
-                    <Button Text="Needs weight" Style="{StaticResource SecondaryActionStyle}"
-                            Command="{Binding SelectFilterCommand}"
-                            CommandParameter="{x:Static vm:RoastLogFilter.NeedsWeight}">
-                        <Button.Triggers>
-                            <DataTrigger TargetType="Button" Binding="{Binding IsNeedsWeightSelected}" Value="True">
-                                <Setter Property="BackgroundColor" Value="{DynamicResource ReadySurfaceColor}" />
-                                <Setter Property="TextColor" Value="{DynamicResource ReadyColor}" />
-                            </DataTrigger>
-                        </Button.Triggers>
-                    </Button>
-                    <Button Text="Unweighed" Style="{StaticResource SecondaryActionStyle}"
-                            Command="{Binding SelectFilterCommand}"
-                            CommandParameter="{x:Static vm:RoastLogFilter.Unweighed}">
-                        <Button.Triggers>
-                            <DataTrigger TargetType="Button" Binding="{Binding IsUnweighedSelected}" Value="True">
-                                <Setter Property="BackgroundColor" Value="{DynamicResource ElevatedSurfaceColor}" />
-                                <Setter Property="TextColor" Value="{DynamicResource PrimaryTextColor}" />
-                            </DataTrigger>
-                        </Button.Triggers>
-                    </Button>
-                </HorizontalStackLayout>
-            </ScrollView>
         </VerticalStackLayout>
 
         <Grid x:Name="LogBody"
@@ -114,6 +61,59 @@
               Margin="{StaticResource PagePadding}">
             <Grid Grid.Column="0" RowDefinitions="Auto,*" RowSpacing="{StaticResource SpaceLg}">
                 <VerticalStackLayout Grid.Row="0" Spacing="{StaticResource SpaceLg}">
+                    <SearchBar Placeholder="Search bean, notes, summary, or roast level"
+                               Text="{Binding SearchText, Mode=TwoWay}"
+                               SearchCommand="{Binding SearchCommand}"
+                               BackgroundColor="{DynamicResource ElevatedSurfaceColor}"
+                               TextColor="{DynamicResource PrimaryTextColor}"
+                               PlaceholderColor="{DynamicResource SecondaryTextColor}"
+                               CancelButtonColor="{DynamicResource SecondaryTextColor}"
+                               MinimumHeightRequest="{StaticResource ControlHeightMin}"
+                               SemanticProperties.Description="Search roast log" />
+                    <ScrollView Orientation="Horizontal" HorizontalScrollBarVisibility="Never">
+                        <HorizontalStackLayout Spacing="{StaticResource SpaceSm}">
+                            <Button Text="All" Style="{StaticResource SecondaryActionStyle}"
+                                    Command="{Binding SelectFilterCommand}"
+                                    CommandParameter="{x:Static vm:RoastLogFilter.All}">
+                                <Button.Triggers>
+                                    <DataTrigger TargetType="Button" Binding="{Binding IsAllSelected}" Value="True">
+                                        <Setter Property="BackgroundColor" Value="{DynamicResource RoastSurfaceColor}" />
+                                        <Setter Property="TextColor" Value="{DynamicResource RoastColor}" />
+                                    </DataTrigger>
+                                </Button.Triggers>
+                            </Button>
+                            <Button Text="Complete" Style="{StaticResource SecondaryActionStyle}"
+                                    Command="{Binding SelectFilterCommand}"
+                                    CommandParameter="{x:Static vm:RoastLogFilter.Complete}">
+                                <Button.Triggers>
+                                    <DataTrigger TargetType="Button" Binding="{Binding IsCompleteSelected}" Value="True">
+                                        <Setter Property="BackgroundColor" Value="{DynamicResource RoastSurfaceColor}" />
+                                        <Setter Property="TextColor" Value="{DynamicResource RoastColor}" />
+                                    </DataTrigger>
+                                </Button.Triggers>
+                            </Button>
+                            <Button Text="Needs weight" Style="{StaticResource SecondaryActionStyle}"
+                                    Command="{Binding SelectFilterCommand}"
+                                    CommandParameter="{x:Static vm:RoastLogFilter.NeedsWeight}">
+                                <Button.Triggers>
+                                    <DataTrigger TargetType="Button" Binding="{Binding IsNeedsWeightSelected}" Value="True">
+                                        <Setter Property="BackgroundColor" Value="{DynamicResource ReadySurfaceColor}" />
+                                        <Setter Property="TextColor" Value="{DynamicResource ReadyColor}" />
+                                    </DataTrigger>
+                                </Button.Triggers>
+                            </Button>
+                            <Button Text="Unweighed" Style="{StaticResource SecondaryActionStyle}"
+                                    Command="{Binding SelectFilterCommand}"
+                                    CommandParameter="{x:Static vm:RoastLogFilter.Unweighed}">
+                                <Button.Triggers>
+                                    <DataTrigger TargetType="Button" Binding="{Binding IsUnweighedSelected}" Value="True">
+                                        <Setter Property="BackgroundColor" Value="{DynamicResource ElevatedSurfaceColor}" />
+                                        <Setter Property="TextColor" Value="{DynamicResource PrimaryTextColor}" />
+                                    </DataTrigger>
+                                </Button.Triggers>
+                            </Button>
+                        </HorizontalStackLayout>
+                    </ScrollView>
                     <Border Style="{StaticResource ErrorBannerStyle}" IsVisible="{Binding HasLoadError}">
                         <Grid ColumnDefinitions="*,Auto" ColumnSpacing="{StaticResource SpaceSm}">
                             <Label Text="{Binding LoadErrorMessage}" Style="{StaticResource ErrorBannerTextStyle}" />
@@ -207,13 +207,18 @@
                     Grid.Column="1"
                     Style="{StaticResource RaisedCardStyle}"
                     IsVisible="False">
-                <ScrollView>
-                    <VerticalStackLayout Spacing="{StaticResource SpaceLg}">
-                        <VerticalStackLayout Style="{StaticResource EmptyStateStyle}" IsVisible="{Binding HasNoSelectedCard}">
-                            <Label Text="Select a roast" Style="{StaticResource EmptyStateTitleStyle}" />
-                            <Label Text="Batch facts and result details appear here." Style="{StaticResource EmptyStateBodyStyle}" />
-                        </VerticalStackLayout>
-                        <VerticalStackLayout IsVisible="{Binding HasSelectedCard}" Spacing="{StaticResource SpaceMd}">
+                <!--
+                    The placeholder is a sibling of the scroller, not its first child, so it
+                    centres in the empty pane instead of hanging from the top of a tall tablet.
+                -->
+                <Grid>
+                    <VerticalStackLayout Style="{StaticResource EmptyStateStyle}" IsVisible="{Binding HasNoSelectedCard}">
+                        <Label Text="Select a roast" Style="{StaticResource EmptyStateTitleStyle}" />
+                        <Label Text="Batch facts and result details appear here." Style="{StaticResource EmptyStateBodyStyle}" />
+                    </VerticalStackLayout>
+                    <ScrollView IsVisible="{Binding HasSelectedCard}">
+                        <VerticalStackLayout Spacing="{StaticResource SpaceMd}"
+                                             layouts:ResponsiveLayout.MaxContentWidth="{StaticResource ReadableContentWidth}">
                             <Label Text="ROAST DETAIL" Style="{StaticResource SectionHeaderStyle}" />
                             <controls:RoastStatusCard Card="{Binding SelectedCard}" />
                             <Grid ColumnDefinitions="*,*" ColumnSpacing="{StaticResource SpaceMd}">
@@ -237,8 +242,8 @@
                             <Button Text="OPEN FULL DETAILS" Style="{StaticResource SecondaryActionStyle}"
                                     Command="{Binding OpenSelectedDetailCommand}" />
                         </VerticalStackLayout>
-                    </VerticalStackLayout>
-                </ScrollView>
+                    </ScrollView>
+                </Grid>
             </Border>
         </Grid>
     </Grid>

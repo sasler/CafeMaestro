@@ -82,21 +82,114 @@ public sealed class SettingsIndexPageViewModelTests
     }
 
     [Fact]
-    public async Task WideLayout_SelectsRailSectionBeforeOpeningItsDetailPage()
+    public async Task WideLayout_OpensTheSectionInlineInsteadOfNavigating()
     {
         var navigation = new Mock<INavigationService>();
         SettingsIndexPageViewModel viewModel = CreateViewModel(navigation: navigation);
-        viewModel.SetWideLayout(true);
+        await viewModel.SetWideLayoutAsync(true);
 
         await viewModel.OpenDataCommand.ExecuteAsync(null);
 
         viewModel.SelectedSection.Should().Be(SettingsSection.Data);
         viewModel.IsDataHighlighted.Should().BeTrue();
         navigation.Verify(service => service.GoToAsync(It.IsAny<string>()), Times.Never);
+    }
 
-        await viewModel.OpenSelectedSectionCommand.ExecuteAsync(null);
+    [Fact]
+    public async Task WideLayout_TappingASection_MaterialisesThatSectionsEditorInOneTap()
+    {
+        SettingsIndexPageViewModel viewModel = CreateViewModel();
+        await viewModel.SetWideLayoutAsync(true);
+
+        await viewModel.OpenRoastLevelsCommand.ExecuteAsync(null);
+
+        viewModel.RoastLevelViewModel.Should().NotBeNull(
+            "the tablet pane shows the real editor, not a summary with an extra button");
+    }
+
+    [Fact]
+    public async Task WideLayout_OnlyBuildsTheSectionsTheUserActuallyOpened()
+    {
+        SettingsIndexPageViewModel viewModel = CreateViewModel();
+        await viewModel.SetWideLayoutAsync(true);
+
+        await viewModel.OpenAboutCommand.ExecuteAsync(null);
+
+        viewModel.AboutViewModel.Should().NotBeNull();
+        viewModel.DataViewModel.Should().BeNull();
+        viewModel.AppearanceViewModel.Should().BeNull();
+    }
+
+    [Fact]
+    public async Task NarrowLayout_StillNavigatesToTheSectionPageAndBuildsNothingInline()
+    {
+        var navigation = new Mock<INavigationService>();
+        SettingsIndexPageViewModel viewModel = CreateViewModel(navigation: navigation);
+        await viewModel.SetWideLayoutAsync(false);
+
+        await viewModel.OpenDataCommand.ExecuteAsync(null);
 
         navigation.Verify(service => service.GoToAsync(Routes.DataSettings), Times.Once);
+        viewModel.DataViewModel.Should().BeNull();
+    }
+
+    [Fact]
+    public async Task WideLayout_WhenALayoutPassAndAnAppearanceRaceForTheSameSection_LoadsItOnce()
+    {
+        var roastLevels = new Mock<IRoastLevelService>();
+        roastLevels
+            .Setup(service => service.GetRoastLevelsAsync())
+            .Returns(async () =>
+            {
+                // Long enough that a second caller arrives while the first is still awaiting.
+                await Task.Delay(30);
+                return AppDataFactory.CreateDefault().RoastLevels;
+            });
+        SettingsIndexPageViewModel viewModel = CreateViewModel(roastLevels: roastLevels);
+        await viewModel.SetWideLayoutAsync(true);
+
+        // SizeChanged and OnAppearing both activate the selected section on a wide layout.
+        await Task.WhenAll(
+            viewModel.OpenRoastLevelsCommand.ExecuteAsync(null),
+            viewModel.OpenRoastLevelsCommand.ExecuteAsync(null));
+
+        roastLevels.Verify(service => service.GetRoastLevelsAsync(), Times.Once);
+    }
+
+    [Fact]
+    public async Task WideLayout_WithARoastLevelSheetOpen_BackClosesTheSheetInsteadOfLeavingTheTab()
+    {
+        var navigation = new Mock<INavigationService>();
+        SettingsIndexPageViewModel viewModel = CreateViewModel(navigation: navigation);
+        await viewModel.SetWideLayoutAsync(true);
+        await viewModel.OpenRoastLevelsCommand.ExecuteAsync(null);
+        viewModel.RoastLevelViewModel!.AddRoastLevelCommand.Execute(null);
+        viewModel.RoastLevelViewModel.IsEditRoastLevelPopupVisible.Should().BeTrue();
+
+        bool handled = viewModel.TryHandleBackInInlineSection();
+
+        handled.Should().BeTrue();
+        viewModel.RoastLevelViewModel.IsEditRoastLevelPopupVisible.Should().BeFalse();
+        navigation.Verify(service => service.GoToAsync(It.IsAny<string>()), Times.Never);
+    }
+
+    [Fact]
+    public async Task WideLayout_WithNoSheetOpen_BackIsLeftToThePageSoTheTabStillExits()
+    {
+        SettingsIndexPageViewModel viewModel = CreateViewModel();
+        await viewModel.SetWideLayoutAsync(true);
+        await viewModel.OpenRoastLevelsCommand.ExecuteAsync(null);
+
+        viewModel.TryHandleBackInInlineSection().Should().BeFalse();
+    }
+
+    [Fact]
+    public async Task NarrowLayout_NeverConsumesBack_BecauseNoSectionIsHostedInline()
+    {
+        SettingsIndexPageViewModel viewModel = CreateViewModel();
+        await viewModel.SetWideLayoutAsync(false);
+
+        viewModel.TryHandleBackInInlineSection().Should().BeFalse();
     }
 
     [Fact]
@@ -138,7 +231,8 @@ public sealed class SettingsIndexPageViewModelTests
         Mock<IRoastLevelService>? roastLevels = null,
         Mock<IDataBackupService>? backups = null,
         AppData? data = null,
-        Mock<INavigationService>? navigation = null)
+        Mock<INavigationService>? navigation = null,
+        ISettingsSectionViewModelFactory? sectionViewModels = null)
     {
         if (roastPreferences is null)
         {
@@ -177,7 +271,59 @@ public sealed class SettingsIndexPageViewModelTests
             roastLevels.Object,
             backups.Object,
             navigation?.Object ?? Mock.Of<INavigationService>(),
-            new StubVersionProvider());
+            new StubVersionProvider(),
+            sectionViewModels ?? StubSectionFactory(
+                roastPreferences,
+                preferences,
+                roastLevels,
+                backups,
+                appData));
+    }
+
+    /// <summary>
+    /// Real section ViewModels over mocked services: the index only has to hand the pane a
+    /// live editor, so the sections keep their own tests rather than being doubled here.
+    /// </summary>
+    private static ISettingsSectionViewModelFactory StubSectionFactory(
+        Mock<IRoastPreferencesService> roastPreferences,
+        Mock<IPreferencesService> preferences,
+        Mock<IRoastLevelService> roastLevels,
+        Mock<IDataBackupService> backups,
+        Mock<IAppDataService> appData) =>
+        new SectionFactory(roastPreferences, preferences, roastLevels, backups, appData);
+
+    private sealed class SectionFactory(
+        Mock<IRoastPreferencesService> roastPreferences,
+        Mock<IPreferencesService> preferences,
+        Mock<IRoastLevelService> roastLevels,
+        Mock<IDataBackupService> backups,
+        Mock<IAppDataService> appData) : ISettingsSectionViewModelFactory
+    {
+        public RoastingSettingsPageViewModel CreateRoasting() => new(
+            roastPreferences.Object,
+            Mock.Of<ICoolingNotificationService>(),
+            Mock.Of<IAlertService>(),
+            Mock.Of<ICoolingNotificationWorkflow>());
+
+        public AppearanceSettingsPageViewModel CreateAppearance() => new(
+            preferences.Object,
+            Mock.Of<IThemeService>());
+
+        public DataSettingsPageViewModel CreateData() => new(
+            appData.Object,
+            backups.Object,
+            Mock.Of<IUserFileService>(),
+            Mock.Of<IRoastDataService>(),
+            Mock.Of<IRoastSessionService>(),
+            Mock.Of<INavigationService>(),
+            Mock.Of<IShareService>(),
+            Mock.Of<IAlertService>());
+
+        public RoastLevelSettingsPageViewModel CreateRoastLevels() => new(
+            roastLevels.Object,
+            Mock.Of<IAlertService>());
+
+        public AboutPageViewModel CreateAbout() => new(new StubVersionProvider());
     }
 
     private sealed class StubVersionProvider : IAppVersionProvider
