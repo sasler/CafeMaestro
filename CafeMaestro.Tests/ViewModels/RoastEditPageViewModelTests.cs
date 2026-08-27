@@ -74,6 +74,84 @@ public class RoastEditPageViewModelTests
     }
 
     [Fact]
+    public async Task Save_InvalidTotalTimeDoesNotReportFirstCrackWithinRoastError()
+    {
+        Harness harness = new();
+        await harness.ViewModel.OnAppearingAsync();
+        harness.ViewModel.RoastTimeText = "bad:42";
+        harness.ViewModel.FirstCrackTimeText = "10:00";
+
+        await harness.ViewModel.SaveCommand.ExecuteAsync(null);
+
+        harness.ViewModel.RoastTimeError.Should().Be("Enter roast time as mm:ss.");
+        harness.ViewModel.FirstCrackError.Should().BeEmpty();
+        harness.Roasts.Verify(service => service.UpdateRoastLogAsync(It.IsAny<RoastData>()), Times.Never);
+    }
+
+    [Fact]
+    public async Task Save_ValidTotalTimeStillValidatesFirstCrackWithinRoast()
+    {
+        Harness harness = new();
+        await harness.ViewModel.OnAppearingAsync();
+        harness.ViewModel.RoastTimeText = "10:00";
+        harness.ViewModel.FirstCrackTimeText = "10:01";
+
+        await harness.ViewModel.SaveCommand.ExecuteAsync(null);
+
+        harness.ViewModel.RoastTimeError.Should().BeEmpty();
+        harness.ViewModel.FirstCrackError.Should().Contain("within the total roast time");
+        harness.Roasts.Verify(service => service.UpdateRoastLogAsync(It.IsAny<RoastData>()), Times.Never);
+    }
+
+    [Fact]
+    public async Task Save_WithRenamedCurrentBean_PreservesHistoricalIdentitySnapshot()
+    {
+        Harness harness = new();
+        string historicalBeanType = harness.Roast.BeanType;
+        string historicalSnapshot = harness.Roast.BeanDisplaySnapshot;
+        BeanData renamedBean = new()
+        {
+            Id = harness.Bean.Id, Country = harness.Bean.Country, CoffeeName = "Renamed Guji",
+            Variety = harness.Bean.Variety, Quantity = 1, RemainingQuantity = 1
+        };
+        harness.Beans.Setup(service => service.GetSortedAvailableBeansAsync())
+            .ReturnsAsync([renamedBean]);
+
+        await harness.ViewModel.OnAppearingAsync();
+        harness.ViewModel.SelectedBean.Should().BeSameAs(renamedBean);
+        harness.ViewModel.Notes = "  note correction  ";
+        await harness.ViewModel.SaveCommand.ExecuteAsync(null);
+
+        harness.Roasts.Verify(service => service.UpdateRoastLogAsync(It.Is<RoastData>(roast =>
+            roast.BeanId == harness.Bean.Id &&
+            roast.BeanType == historicalBeanType &&
+            roast.BeanDisplaySnapshot == historicalSnapshot &&
+            roast.Notes == "note correction")), Times.Once);
+    }
+
+    [Fact]
+    public async Task Save_WithExplicitDifferentBeanSelection_UpdatesIdentity()
+    {
+        Harness harness = new();
+        BeanData replacement = new()
+        {
+            Id = Guid.NewGuid(), Country = "Colombia", CoffeeName = "Huila",
+            Variety = "Caturra", Quantity = 1, RemainingQuantity = 1
+        };
+        harness.Beans.Setup(service => service.GetSortedAvailableBeansAsync())
+            .ReturnsAsync([harness.Bean, replacement]);
+
+        await harness.ViewModel.OnAppearingAsync();
+        harness.ViewModel.SelectedBean = replacement;
+        await harness.ViewModel.SaveCommand.ExecuteAsync(null);
+
+        harness.Roasts.Verify(service => service.UpdateRoastLogAsync(It.Is<RoastData>(roast =>
+            roast.BeanId == replacement.Id &&
+            roast.BeanType == replacement.DisplayName &&
+            roast.BeanDisplaySnapshot == replacement.DisplayName)), Times.Once);
+    }
+
+    [Fact]
     public async Task Save_WithDeletedBean_PreservesHistoricalIdentity()
     {
         Harness harness = new();

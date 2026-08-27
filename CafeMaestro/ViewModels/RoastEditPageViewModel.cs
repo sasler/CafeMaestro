@@ -130,8 +130,11 @@ public partial class RoastEditPageViewModel : ObservableObject
         try
         {
             RoastData updated = CopyForEdit(_roast);
-            if (SelectedBean is not null)
+            if (SelectedBean is not null &&
+                (!_roast.BeanId.HasValue || _roast.BeanId.Value != SelectedBean.Id))
             {
+                // Keep the recorded name/snapshot stable when the picker resolved the same
+                // bean ID. Only an explicit different-bean selection should rewrite provenance.
                 updated.BeanId = SelectedBean.Id;
                 updated.BeanType = SelectedBean.DisplayName;
                 updated.BeanDisplaySnapshot = SelectedBean.DisplayName;
@@ -250,7 +253,7 @@ public partial class RoastEditPageViewModel : ObservableObject
 
         bool firstCrackValid = TryParseOptionalTime(
             FirstCrackTimeText, out firstCrackMinutes, out firstCrackSeconds);
-        bool firstCrackWithinRoast = firstCrackValid &&
+        bool firstCrackWithinRoast = roastTimeValid && firstCrackValid &&
             (!firstCrackMinutes.HasValue ||
              (firstCrackMinutes.Value * 60 + firstCrackSeconds.GetValueOrDefault()) <=
              (roastMinutes * 60 + roastSeconds));
@@ -258,7 +261,7 @@ public partial class RoastEditPageViewModel : ObservableObject
         {
             FirstCrackError = "Enter First Crack as mm:ss, or leave it blank.";
         }
-        else if (!firstCrackWithinRoast)
+        else if (roastTimeValid && !firstCrackWithinRoast)
         {
             FirstCrackError = "First Crack must be within the total roast time.";
         }
