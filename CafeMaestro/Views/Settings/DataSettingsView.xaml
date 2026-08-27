@@ -1,0 +1,158 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<!--
+    The Data & Backups body, hosted either by DataSettingsPage (phone) or by the Settings
+    detail pane (tablet). The host supplies the DataSettingsPageViewModel.
+-->
+<ContentView xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
+             xmlns:layouts="clr-namespace:CafeMaestro.Layouts"
+             xmlns:services="clr-namespace:CafeMaestro.Services"
+             xmlns:settings="clr-namespace:CafeMaestro.Views.Settings"
+             xmlns:vm="clr-namespace:CafeMaestro.ViewModels"
+             x:Class="CafeMaestro.Views.Settings.DataSettingsView"
+             x:Name="Root"
+             x:DataType="vm:DataSettingsPageViewModel">
+
+    <ScrollView>
+        <VerticalStackLayout Padding="{StaticResource PagePadding}"
+                             Spacing="{StaticResource SpaceMd}"
+                             layouts:ResponsiveLayout.MaxContentWidth="{StaticResource ReadableContentWidth}">
+            <Grid ColumnDefinitions="*,Auto">
+                <Label Text="CURRENT DATA" Style="{StaticResource SectionHeaderStyle}" VerticalOptions="Center" />
+                <ActivityIndicator Grid.Column="1"
+                                   Style="{StaticResource LoadingIndicatorStyle}"
+                                   IsRunning="{Binding IsDataOperationInProgress}"
+                                   IsVisible="{Binding IsDataOperationInProgress}" />
+            </Grid>
+
+            <Border Style="{StaticResource CardStyle}">
+                <VerticalStackLayout Spacing="{StaticResource SpaceXs}">
+                    <Label Text="{Binding DataStatusDisplay}" Style="{StaticResource CardTitleStyle}" LineBreakMode="WordWrap" />
+                    <Label Text="{Binding DataSummaryDisplay}" Style="{StaticResource CardMetaStyle}" LineBreakMode="WordWrap" />
+                    <Label Text="{Binding LastModifiedDisplay}" Style="{StaticResource CardCaptionStyle}" LineBreakMode="WordWrap" />
+                </VerticalStackLayout>
+            </Border>
+
+            <Label Text="BACKUPS" Style="{StaticResource SectionHeaderStyle}" />
+            <Label Text="Saving creates a copy. Restoring validates and copies a backup; the selected source is never changed."
+                   Style="{StaticResource CardCaptionStyle}"
+                   LineBreakMode="WordWrap" />
+
+            <Grid ColumnDefinitions="*,*" RowDefinitions="Auto,Auto"
+                  ColumnSpacing="{StaticResource SpaceSm}" RowSpacing="{StaticResource SpaceSm}">
+                <Button Grid.Row="0" Grid.Column="0"
+                        Text="SAVE BACKUP"
+                        Style="{StaticResource SecondaryActionStyle}"
+                        Command="{Binding SaveBackupCommand}"
+                        IsEnabled="{Binding CanRunDataOperation}"
+                        SemanticProperties.Description="Save a JSON backup copy" />
+                <Button Grid.Row="0" Grid.Column="1"
+                        Text="RESTORE"
+                        Style="{StaticResource SecondaryActionStyle}"
+                        Command="{Binding RestoreFromBackupCommand}"
+                        IsEnabled="{Binding CanRunDataOperation}"
+                        SemanticProperties.Description="Validate and restore a JSON backup without modifying the selected file" />
+                <Button Grid.Row="1" Grid.Column="0" Grid.ColumnSpan="2"
+                        Text="SHARE BACKUP"
+                        Style="{StaticResource SecondaryActionStyle}"
+                        Command="{Binding ShareBackupCommand}"
+                        IsEnabled="{Binding CanRunDataOperation}"
+                        SemanticProperties.Description="Share a copy of the current CafeMaestro data" />
+            </Grid>
+
+            <VerticalStackLayout IsVisible="{Binding HasAutomaticBackups}" Spacing="{StaticResource SpaceSm}">
+                <Label Text="AUTOMATIC BACKUPS" Style="{StaticResource SectionHeaderStyle}" />
+                <Label Text="The five most recent recovery copies are kept on this device."
+                       Style="{StaticResource CardCaptionStyle}"
+                       LineBreakMode="WordWrap" />
+                <VerticalStackLayout BindableLayout.ItemsSource="{Binding AutomaticBackups}" Spacing="{StaticResource SpaceSm}">
+                    <BindableLayout.ItemTemplate>
+                        <DataTemplate x:DataType="services:DataBackupSummary">
+                            <Border Style="{StaticResource CardStyle}">
+                                <Grid ColumnDefinitions="*,Auto" ColumnSpacing="{StaticResource SpaceMd}">
+                                    <VerticalStackLayout Spacing="{StaticResource SpaceXs}">
+                                        <Label Text="{Binding CreatedAt, StringFormat='{}{0:g}'}" Style="{StaticResource CardTitleStyle}" />
+                                        <Label Text="{Binding BeanCount, StringFormat='Beans: {0}'}"
+                                               IsVisible="{Binding IsRestorable}"
+                                               Style="{StaticResource CardMetaStyle}" />
+                                        <Label Text="{Binding RoastCount, StringFormat='Roasts: {0}'}"
+                                               IsVisible="{Binding IsRestorable}"
+                                               Style="{StaticResource CardMetaStyle}" />
+                                        <Label Text="Original data needs manual recovery"
+                                               IsVisible="{Binding IsRawRecovery}"
+                                               Style="{StaticResource CardMetaStyle}"
+                                               TextColor="{DynamicResource AttentionColor}"
+                                               LineBreakMode="WordWrap" />
+                                    </VerticalStackLayout>
+                                    <Button Grid.Column="1"
+                                            Text="RESTORE"
+                                            IsVisible="{Binding IsRestorable}"
+                                            Style="{StaticResource SecondaryActionStyle}"
+                                             Command="{Binding Source={x:Reference Root}, Path=ViewModel.RestoreSafetyBackupCommand, x:DataType=settings:DataSettingsView}"
+                                            CommandParameter="{Binding .}"
+                                            SemanticProperties.Description="Restore this automatic backup" />
+                                    <Button Grid.Column="1"
+                                            Text="SAVE COPY"
+                                            IsVisible="{Binding IsRawRecovery}"
+                                            Style="{StaticResource SecondaryActionStyle}"
+                                             Command="{Binding Source={x:Reference Root}, Path=ViewModel.SaveRecoveryCopyCommand, x:DataType=settings:DataSettingsView}"
+                                            CommandParameter="{Binding .}"
+                                            SemanticProperties.Description="Save the original raw recovery JSON" />
+                                </Grid>
+                            </Border>
+                        </DataTemplate>
+                    </BindableLayout.ItemTemplate>
+                </VerticalStackLayout>
+            </VerticalStackLayout>
+
+            <Label Text="CSV TRANSFER" Style="{StaticResource SectionHeaderStyle}" />
+            <Label Text="Import selected records or export a roast-log spreadsheet without replacing your CafeMaestro backup."
+                   Style="{StaticResource CardCaptionStyle}"
+                   LineBreakMode="WordWrap" />
+            <Grid ColumnDefinitions="*,*" RowDefinitions="Auto,Auto"
+                  ColumnSpacing="{StaticResource SpaceSm}" RowSpacing="{StaticResource SpaceSm}">
+                <Button Grid.Row="0" Grid.Column="0"
+                        Text="IMPORT BEANS"
+                        Style="{StaticResource SecondaryActionStyle}"
+                        Command="{Binding ImportCoffeeBeansCommand}"
+                        IsEnabled="{Binding CanRunDataOperation}"
+                        SemanticProperties.Description="Open the coffee bean CSV import screen" />
+                <Button Grid.Row="0" Grid.Column="1"
+                        Text="IMPORT ROASTS"
+                        Style="{StaticResource SecondaryActionStyle}"
+                        Command="{Binding ImportRoastLogsCommand}"
+                        IsEnabled="{Binding CanRunDataOperation}"
+                        SemanticProperties.Description="Open the roast log CSV import screen" />
+                <Button Grid.Row="1" Grid.Column="0"
+                        Text="EXPORT CSV"
+                        Style="{StaticResource SecondaryActionStyle}"
+                        Command="{Binding ExportRoastLogCsvCommand}"
+                        IsEnabled="{Binding CanRunDataOperation}"
+                        SemanticProperties.Description="Save the roast log as a CSV document" />
+                <Button Grid.Row="1" Grid.Column="1"
+                        Text="SHARE CSV"
+                        Style="{StaticResource SecondaryActionStyle}"
+                        Command="{Binding ShareRoastLogCsvCommand}"
+                        IsEnabled="{Binding CanRunDataOperation}"
+                        SemanticProperties.Description="Share the roast log as a CSV document" />
+            </Grid>
+
+            <!-- Destructive reset stays last and visually separate from everything above it. -->
+            <BoxView HeightRequest="{StaticResource SpaceLg}" Color="Transparent" />
+            <Label Text="DANGER ZONE" Style="{StaticResource SectionHeaderStyle}" TextColor="{DynamicResource DangerColor}" />
+            <Border Style="{StaticResource DangerCardStyle}">
+                <VerticalStackLayout Spacing="{StaticResource SpaceSm}">
+                    <Label Text="Start new data" Style="{StaticResource CardTitleStyle}" TextColor="{DynamicResource DangerColor}" />
+                    <Label Text="Replaces your beans and roasts with an empty dataset. CafeMaestro keeps an automatic recovery copy first."
+                           Style="{StaticResource CardMetaStyle}"
+                           LineBreakMode="WordWrap" />
+                    <Button Text="START NEW DATA"
+                            Style="{StaticResource DestructiveActionStyle}"
+                            Command="{Binding StartNewDataCommand}"
+                            IsEnabled="{Binding CanRunDataOperation}"
+                            SemanticProperties.Description="Start a new empty dataset after confirmation and automatic backup" />
+                </VerticalStackLayout>
+            </Border>
+        </VerticalStackLayout>
+    </ScrollView>
+</ContentView>

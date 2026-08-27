@@ -112,4 +112,16 @@
     <x:Double x:Key="BreakpointMedium">600</x:Double>
     <x:Double x:Key="BreakpointExpanded">900</x:Double>
 
+    <!-- ===== Content measures (dp) =====
+        A tablet gives a page far more width than a form or a reading column can use. These
+        caps are applied through Layouts/ResponsiveLayout so a page fills a phone and centres
+        a comfortable column on anything wider.
+    -->
+    <!-- Forms, settings and reading columns: roughly 60-75 characters at body size. -->
+    <x:Double x:Key="ReadableContentWidth">680</x:Double>
+    <!-- Console screens that pair a large instrument readout with its controls. -->
+    <x:Double x:Key="ConsoleContentWidth">840</x:Double>
+    <!-- The list side of a master/detail split never needs to grow past this. -->
+    <x:Double x:Key="ListPaneMaxWidth">460</x:Double>
+
 </ResourceDictionary>

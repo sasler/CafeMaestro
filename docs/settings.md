@@ -17,6 +17,25 @@ shows the value that section currently holds, and pushes a focused page.
 page shows the change that was just made. The five detail routes are registered in
 `AppShell.RegisterRoutes` and named in `Navigation/Routes.cs`; none of them is a tab.
 
+## One tap on any width
+
+Each section's body lives in a `ContentView` under `Views/Settings/`, and the section's page is
+only a Shell wrapper around it. That single body is what both layouts show:
+
+| Width | Behaviour |
+| --- | --- |
+| Below 600 dp | A row navigates to its page; the rows are the whole screen |
+| 600 dp and above | The rows become a rail and the section's body opens in the pane beside them |
+
+The pane never summarises a section behind a second button — it hosts the editor itself, so a
+tablet reaches any setting in the same single tap a phone does. `FULL SCREEN` in the pane header
+is an escape hatch to the standalone page, not the way in.
+
+`ISettingsSectionViewModelFactory` builds a section's ViewModel the first time that section is
+opened on a wide layout, so a phone builds none of them and a tablet builds only what was used.
+`SettingsPage` keeps each built body and swaps `SectionHost.Content`, which also means no body
+ever renders against an empty binding context.
+
 ## Roasting preferences
 
 Preferences are read and written through `IRoastPreferencesService`. The session domain snapshots

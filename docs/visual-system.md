@@ -7,7 +7,7 @@ a vector icon set. Pages consume it; they never invent colours, spacing or glyph
 
 | File | Holds |
 | --- | --- |
-| `Resources/Styles/DesignTokens.xaml` | Spacing, radii, type scale, control sizing, icon sizes, breakpoints |
+| `Resources/Styles/DesignTokens.xaml` | Spacing, radii, type scale, control sizing, icon sizes, breakpoints, content measures |
 | `Resources/Styles/DarkTheme.xaml` | Semantic colours, dark |
 | `Resources/Styles/LightTheme.xaml` | The same keys, light |
 | `Resources/Styles/ComponentStyles.xaml` | Cards, fields, action bars, chips, icon buttons, empty/error/loading, Shell tinting |
@@ -176,3 +176,24 @@ the locked desktop session and is not represented in the retained evidence:
 
 `dotnet build -c Release` is exercised in CI rather than locally: a Release restore needs
 the iOS and MacCatalyst workloads, which are not installed on every dev machine.
+
+## Content measures on wide screens
+
+A phone page that fills its width becomes a stretched band on a tablet. `Layouts/ResponsiveLayout`
+is an attached property that caps a layout's content and centres the remainder as symmetric
+padding, on top of whatever padding the layout already declares:
+
+```xml
+<VerticalStackLayout Padding="{StaticResource PagePadding}"
+                     layouts:ResponsiveLayout.MaxContentWidth="{StaticResource ReadableContentWidth}">
+```
+
+| Token | Value | Use |
+| --- | --- | --- |
+| `ReadableContentWidth` | 680 | Forms, settings and reading columns |
+| `ConsoleContentWidth` | 840 | Console screens pairing a large readout with its controls |
+| `ListPaneMaxWidth` | 460 | The list side of a master/detail split |
+
+Below the cap nothing changes, so phone layouts are untouched. Master/detail pages keep using
+their own `SizeChanged` handler and the 600 dp `BreakpointMedium`, because they switch structure
+rather than just measure.

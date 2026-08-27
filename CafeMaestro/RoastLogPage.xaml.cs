@@ -4,6 +4,9 @@ namespace CafeMaestro;
 
 public partial class RoastLogPage : ContentPage
 {
+    /// <summary>Above this width the log shows a batch beside the list instead of navigating.</summary>
+    private const double WideLayoutThreshold = 600;
+
     private readonly RoastLogPageViewModel _viewModel;
     private IDispatcherTimer? _ticker;
 
@@ -60,9 +63,14 @@ public partial class RoastLogPage : ContentPage
 
     private void OnPageSizeChanged(object? sender, EventArgs e)
     {
-        bool isWide = Width >= 600;
+        bool isWide = Width >= WideLayoutThreshold;
+        // 3:4 keeps the batch cards readable rather than squeezing them into a third of the
+        // page just to give the detail pane room it does not need.
+        LogBody.ColumnDefinitions[0].Width = isWide
+            ? new GridLength(3, GridUnitType.Star)
+            : GridLength.Star;
         LogBody.ColumnDefinitions[1].Width = isWide
-            ? new GridLength(2, GridUnitType.Star)
+            ? new GridLength(4, GridUnitType.Star)
             : new GridLength(0);
         DetailPane.IsVisible = isWide;
         _viewModel.SetWideLayout(isWide);

@@ -93,6 +93,7 @@ public static class MauiProgram
         builder.Services.AddTransient<AppShell>();
         builder.Services.AddTransient<LoadingPage>();
         builder.Services.AddSingleton<IAppVersionProvider, PlatformAppVersionProvider>();
+        builder.Services.AddSingleton<ISettingsSectionViewModelFactory, SettingsSectionViewModelFactory>();
         builder.Services.AddTransient<SettingsIndexPageViewModel>();
         builder.Services.AddTransient<DataSettingsPageViewModel>();
         builder.Services.AddTransient<RoastingSettingsPageViewModel>();

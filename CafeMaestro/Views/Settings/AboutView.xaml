@@ -1,0 +1,47 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<!--
+    The About body, hosted either by AboutPage (phone) or by the Settings detail pane
+    (tablet). Nothing here knows which - the host supplies the AboutPageViewModel.
+-->
+<ContentView xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
+             xmlns:layouts="clr-namespace:CafeMaestro.Layouts"
+             xmlns:vm="clr-namespace:CafeMaestro.ViewModels"
+             x:Class="CafeMaestro.Views.Settings.AboutView"
+             x:DataType="vm:AboutPageViewModel">
+
+    <ScrollView>
+        <VerticalStackLayout Padding="{StaticResource PagePadding}"
+                             Spacing="{StaticResource SpaceMd}"
+                             layouts:ResponsiveLayout.MaxContentWidth="{StaticResource ReadableContentWidth}">
+            <Border Style="{StaticResource RaisedCardStyle}">
+                <VerticalStackLayout Spacing="{StaticResource SpaceXs}">
+                    <Label Text="{Binding ProductName}"
+                           FontFamily="{StaticResource FontFamilyEmphasis}"
+                           FontSize="{StaticResource FontSizeHeadline}"
+                           TextColor="{DynamicResource PrimaryTextColor}" />
+                    <Label Text="{Binding ProductTagline}" Style="{StaticResource CardMetaStyle}" LineBreakMode="WordWrap" />
+                    <Label Text="{Binding VersionDisplay}" Style="{StaticResource NumericValueStyle}" />
+                </VerticalStackLayout>
+            </Border>
+
+            <Label Text="VERSION HISTORY" Style="{StaticResource SectionHeaderStyle}" />
+            <Border Style="{StaticResource CardStyle}">
+                <VerticalStackLayout Spacing="{StaticResource SpaceXs}">
+                    <Label Text="{Binding FirstInstalledVersionDisplay}" Style="{StaticResource CardMetaStyle}" LineBreakMode="WordWrap" />
+                    <Label Text="{Binding VersionHistoryDisplay}" Style="{StaticResource CardCaptionStyle}" LineBreakMode="WordWrap" />
+                </VerticalStackLayout>
+            </Border>
+
+            <Label Text="PRIVACY" Style="{StaticResource SectionHeaderStyle}" />
+            <Border Style="{StaticResource CardStyle}">
+                <Label Text="{Binding PrivacyDisplay}" Style="{StaticResource CardMetaStyle}" LineBreakMode="WordWrap" />
+            </Border>
+
+            <Label Text="LICENCE" Style="{StaticResource SectionHeaderStyle}" />
+            <Border Style="{StaticResource CardStyle}">
+                <Label Text="{Binding LicenseDisplay}" Style="{StaticResource CardMetaStyle}" LineBreakMode="WordWrap" />
+            </Border>
+        </VerticalStackLayout>
+    </ScrollView>
+</ContentView>

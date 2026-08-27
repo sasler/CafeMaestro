@@ -2,8 +2,11 @@
 <ContentPage xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
              xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
              xmlns:controls="clr-namespace:CafeMaestro.Controls"
+             xmlns:local="clr-namespace:CafeMaestro"
+             xmlns:settings="clr-namespace:CafeMaestro.Views.Settings"
              xmlns:vm="clr-namespace:CafeMaestro.ViewModels"
              x:Class="CafeMaestro.SettingsPage"
+             x:Name="RootPage"
              x:DataType="vm:SettingsIndexPageViewModel"
              BackgroundColor="{DynamicResource SurfaceColor}"
              Shell.NavBarIsVisible="False"
@@ -33,6 +36,11 @@
                                VerticalOptions="Center" />
         </Grid>
 
+        <!--
+            Narrow: the rows are the whole page and each one navigates away.
+            Wide: the rows become a rail and the chosen section opens beside them, so a tablet
+            reaches any setting in the same single tap a phone does.
+        -->
         <Grid x:Name="SettingsBody"
               Grid.Row="1"
               ColumnDefinitions="*,0"
@@ -176,60 +184,35 @@
                 </VerticalStackLayout>
             </ScrollView>
 
+            <!--
+                The wide pane carries the section's own editor, not a description of it. The
+                host is filled from code-behind with the very ContentView that section's page
+                uses, so every setting has exactly one implementation, and only the sections
+                actually opened are ever built.
+            -->
             <Border x:Name="WideDetailPane"
                     Grid.Column="1"
                     Style="{StaticResource RaisedCardStyle}"
+                    Padding="0"
                     IsVisible="False">
-                <ScrollView>
-                    <VerticalStackLayout Spacing="{StaticResource SpaceLg}">
-                        <VerticalStackLayout IsVisible="{Binding IsRoastingSelected}" Spacing="{StaticResource SpaceMd}">
-                            <Label Text="ROASTING" Style="{StaticResource SectionHeaderStyle}" />
-                            <Label Text="Future-roast defaults" Style="{StaticResource CardTitleStyle}" />
-                            <Label Text="{Binding RoastingSummary}" Style="{StaticResource NumericValueStyle}" LineBreakMode="WordWrap" />
-                            <Label Text="First Crack remains optional. First Crack and cooling duration are captured when a roast starts; notification changes apply immediately."
-                                   Style="{StaticResource CardMetaStyle}" LineBreakMode="WordWrap" />
-                            <Button Text="EDIT ROASTING SETTINGS" Style="{StaticResource PrimaryActionStyle}"
-                                    Command="{Binding OpenSelectedSectionCommand}" />
-                        </VerticalStackLayout>
+                <Grid RowDefinitions="Auto,*">
+                    <Grid ColumnDefinitions="*,Auto"
+                          Padding="{StaticResource CardPadding}"
+                          ColumnSpacing="{StaticResource SpaceMd}">
+                        <Label Text="{Binding SelectedSectionTitle}"
+                               Style="{StaticResource CardTitleStyle}"
+                               FontSize="{StaticResource FontSizeTitle}"
+                               VerticalOptions="Center" />
+                        <Button Grid.Column="1"
+                                Text="FULL SCREEN"
+                                Style="{StaticResource QuietActionStyle}"
+                                Command="{Binding OpenSelectedSectionCommand}"
+                                MinimumHeightRequest="{StaticResource ControlHeightMin}"
+                                SemanticProperties.Hint="Opens this section as its own page" />
+                    </Grid>
 
-                        <VerticalStackLayout IsVisible="{Binding IsAppearanceSelected}" Spacing="{StaticResource SpaceMd}">
-                            <Label Text="APPEARANCE" Style="{StaticResource SectionHeaderStyle}" />
-                            <Label Text="{Binding AppearanceSummary}" Style="{StaticResource CardTitleStyle}" />
-                            <Label Text="System, light, and dark all use the same status colours and accessible contrast."
-                                   Style="{StaticResource CardMetaStyle}" LineBreakMode="WordWrap" />
-                            <Button Text="CHOOSE THEME" Style="{StaticResource PrimaryActionStyle}"
-                                    Command="{Binding OpenSelectedSectionCommand}" />
-                        </VerticalStackLayout>
-
-                        <VerticalStackLayout IsVisible="{Binding IsDataSelected}" Spacing="{StaticResource SpaceMd}">
-                            <Label Text="DATA &amp; BACKUPS" Style="{StaticResource SectionHeaderStyle}" />
-                            <Label Text="{Binding DataSummary}" Style="{StaticResource CardTitleStyle}" LineBreakMode="WordWrap" />
-                            <Label Text="Back up, restore, import, export, or start a clean dataset from the guarded data tools."
-                                   Style="{StaticResource CardMetaStyle}" LineBreakMode="WordWrap" />
-                            <Button Text="OPEN DATA TOOLS" Style="{StaticResource PrimaryActionStyle}"
-                                    Command="{Binding OpenSelectedSectionCommand}" />
-                        </VerticalStackLayout>
-
-                        <VerticalStackLayout IsVisible="{Binding IsRoastLevelsSelected}" Spacing="{StaticResource SpaceMd}">
-                            <Label Text="ROAST LEVELS" Style="{StaticResource SectionHeaderStyle}" />
-                            <Label Text="{Binding RoastLevelSummary}" Style="{StaticResource CardTitleStyle}" />
-                            <Label Text="These weight-loss ranges name completed roast results."
-                                   Style="{StaticResource CardMetaStyle}" LineBreakMode="WordWrap" />
-                            <Button Text="EDIT ROAST LEVELS" Style="{StaticResource PrimaryActionStyle}"
-                                    Command="{Binding OpenSelectedSectionCommand}" />
-                        </VerticalStackLayout>
-
-                        <VerticalStackLayout IsVisible="{Binding IsAboutSelected}" Spacing="{StaticResource SpaceMd}">
-                            <Label Text="ABOUT" Style="{StaticResource SectionHeaderStyle}" />
-                            <Label Text="CafeMaestro" Style="{StaticResource CardTitleStyle}" FontSize="{StaticResource FontSizeHeadline}" />
-                            <Label Text="{Binding AboutSummary}" Style="{StaticResource NumericValueStyle}" />
-                            <Label Text="Your beans and roasts stay on this device. CafeMaestro has no account, cloud sync, or analytics."
-                                   Style="{StaticResource CardMetaStyle}" LineBreakMode="WordWrap" />
-                            <Button Text="VERSION &amp; LICENCE" Style="{StaticResource SecondaryActionStyle}"
-                                    Command="{Binding OpenSelectedSectionCommand}" />
-                        </VerticalStackLayout>
-                    </VerticalStackLayout>
-                </ScrollView>
+                    <ContentView x:Name="SectionHost" Grid.Row="1" />
+                </Grid>
             </Border>
         </Grid>
     </Grid>

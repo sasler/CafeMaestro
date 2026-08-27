@@ -8,10 +8,11 @@
              x:Class="CafeMaestro.BeanInventoryPage"
              x:DataType="vm:BeanInventoryPageViewModel"
              BackgroundColor="{DynamicResource SurfaceColor}"
+             Shell.NavBarIsVisible="False"
              Title="Beans"
              SizeChanged="OnPageSizeChanged">
 
-    <Grid RowDefinitions="Auto,Auto,Auto,Auto,*" Padding="{StaticResource PagePadding}" RowSpacing="{StaticResource SpaceMd}">
+    <Grid RowDefinitions="Auto,Auto,*" Padding="{StaticResource PagePadding}" RowSpacing="{StaticResource SpaceMd}">
         <Grid Grid.Row="0" ColumnDefinitions="*,Auto,Auto,Auto" ColumnSpacing="{StaticResource SpaceSm}">
             <VerticalStackLayout Grid.Column="0" Spacing="{StaticResource SpaceXs}" VerticalOptions="Center">
                 <Label Text="Beans"
@@ -45,40 +46,42 @@
             </Grid>
         </Grid>
 
-        <SearchBar Grid.Row="1"
-                   Placeholder="Search name, origin, variety, process, or notes"
-                   Text="{Binding SearchText, Mode=TwoWay}"
-                   SearchCommand="{Binding SearchCommand}"
-                   BackgroundColor="{DynamicResource ElevatedSurfaceColor}"
-                   TextColor="{DynamicResource PrimaryTextColor}"
-                   PlaceholderColor="{DynamicResource SecondaryTextColor}"
-                   CancelButtonColor="{DynamicResource SecondaryTextColor}"
-                   MinimumHeightRequest="{StaticResource ControlHeightMin}" />
-
-        <ScrollView Grid.Row="2" Orientation="Horizontal" HorizontalScrollBarVisibility="Never">
-            <HorizontalStackLayout Spacing="{StaticResource SpaceSm}">
-                <Button Text="All" Style="{StaticResource SecondaryActionStyle}" Command="{Binding SelectFilterCommand}" CommandParameter="{x:Static vm:BeanInventoryFilter.All}" />
-                <Button Text="Available" Style="{StaticResource SecondaryActionStyle}" Command="{Binding SelectFilterCommand}" CommandParameter="{x:Static vm:BeanInventoryFilter.Available}" />
-                <Button Text="Low" Style="{StaticResource SecondaryActionStyle}" Command="{Binding SelectFilterCommand}" CommandParameter="{x:Static vm:BeanInventoryFilter.Low}" />
-                <Button Text="Out of stock" Style="{StaticResource SecondaryActionStyle}" Command="{Binding SelectFilterCommand}" CommandParameter="{x:Static vm:BeanInventoryFilter.OutOfStock}" />
-            </HorizontalStackLayout>
-        </ScrollView>
-
-        <Border Grid.Row="3" Style="{StaticResource ErrorBannerStyle}" IsVisible="{Binding HasLoadError}">
+        <Border Grid.Row="1" Style="{StaticResource ErrorBannerStyle}" IsVisible="{Binding HasLoadError}">
             <Grid ColumnDefinitions="*,Auto" ColumnSpacing="{StaticResource SpaceSm}">
                 <Label Text="{Binding LoadErrorMessage}" Style="{StaticResource ErrorBannerTextStyle}" VerticalOptions="Center" />
                 <Button Grid.Column="1" Text="Retry" Style="{StaticResource SecondaryActionStyle}" Command="{Binding RefreshCommand}" />
             </Grid>
         </Border>
 
-        <Grid x:Name="InventoryBody" Grid.Row="4" ColumnDefinitions="*,0" ColumnSpacing="{StaticResource SpaceLg}">
-            <Grid Grid.Column="0" RowDefinitions="Auto,*">
-                <Grid Grid.Row="0" ColumnDefinitions="*,Auto" Margin="0,0,0,8">
+        <Grid x:Name="InventoryBody" Grid.Row="2" ColumnDefinitions="*,0" ColumnSpacing="{StaticResource SpaceLg}">
+            <Grid Grid.Column="0" RowDefinitions="Auto,Auto,*" RowSpacing="{StaticResource SpaceMd}">
+                <!-- Search and filters act on the list, so on a tablet they sit above it, not across the page. -->
+                <VerticalStackLayout Grid.Row="0" Spacing="{StaticResource SpaceMd}">
+                    <SearchBar Placeholder="Search name, origin, variety, process, or notes"
+                               Text="{Binding SearchText, Mode=TwoWay}"
+                               SearchCommand="{Binding SearchCommand}"
+                               BackgroundColor="{DynamicResource ElevatedSurfaceColor}"
+                               TextColor="{DynamicResource PrimaryTextColor}"
+                               PlaceholderColor="{DynamicResource SecondaryTextColor}"
+                               CancelButtonColor="{DynamicResource SecondaryTextColor}"
+                               MinimumHeightRequest="{StaticResource ControlHeightMin}" />
+
+                    <ScrollView Orientation="Horizontal" HorizontalScrollBarVisibility="Never">
+                        <HorizontalStackLayout Spacing="{StaticResource SpaceSm}">
+                            <Button Text="All" Style="{StaticResource SecondaryActionStyle}" Command="{Binding SelectFilterCommand}" CommandParameter="{x:Static vm:BeanInventoryFilter.All}" />
+                            <Button Text="Available" Style="{StaticResource SecondaryActionStyle}" Command="{Binding SelectFilterCommand}" CommandParameter="{x:Static vm:BeanInventoryFilter.Available}" />
+                            <Button Text="Low" Style="{StaticResource SecondaryActionStyle}" Command="{Binding SelectFilterCommand}" CommandParameter="{x:Static vm:BeanInventoryFilter.Low}" />
+                            <Button Text="Out of stock" Style="{StaticResource SecondaryActionStyle}" Command="{Binding SelectFilterCommand}" CommandParameter="{x:Static vm:BeanInventoryFilter.OutOfStock}" />
+                        </HorizontalStackLayout>
+                    </ScrollView>
+                </VerticalStackLayout>
+
+                <Grid Grid.Row="1" ColumnDefinitions="*,Auto">
                     <Label Text="INVENTORY" Style="{StaticResource SectionHeaderStyle}" />
                     <Label Grid.Column="1" Text="{Binding FilterSummary}" Style="{StaticResource CardCaptionStyle}" />
                 </Grid>
 
-                <RefreshView Grid.Row="1" IsRefreshing="{Binding IsLoading}" Command="{Binding RefreshCommand}">
+                <RefreshView Grid.Row="2" IsRefreshing="{Binding IsLoading}" Command="{Binding RefreshCommand}">
                     <CollectionView ItemsSource="{Binding Beans}" SelectionMode="None">
                         <CollectionView.ItemsLayout>
                             <LinearItemsLayout Orientation="Vertical" ItemSpacing="12" />
@@ -137,17 +140,17 @@
                     </CollectionView>
                 </RefreshView>
 
-                <VerticalStackLayout Grid.Row="1" Style="{StaticResource EmptyStateStyle}" IsVisible="{Binding IsEmptyInventory}">
+                <VerticalStackLayout Grid.Row="2" Style="{StaticResource EmptyStateStyle}" IsVisible="{Binding IsEmptyInventory}">
                     <Label Text="No beans yet" Style="{StaticResource EmptyStateTitleStyle}" />
                     <Label Text="Add your first green coffee to begin tracking inventory." Style="{StaticResource EmptyStateBodyStyle}" />
                     <Button Text="ADD YOUR FIRST BEAN" Style="{StaticResource PrimaryActionStyle}" Command="{Binding AddBeanCommand}" />
                 </VerticalStackLayout>
-                <VerticalStackLayout Grid.Row="1" Style="{StaticResource EmptyStateStyle}" IsVisible="{Binding IsSearchNoResults}">
+                <VerticalStackLayout Grid.Row="2" Style="{StaticResource EmptyStateStyle}" IsVisible="{Binding IsSearchNoResults}">
                     <Label Text="No beans match your search" Style="{StaticResource EmptyStateTitleStyle}" />
                     <Label Text="Try another name, origin, variety, process, or note." Style="{StaticResource EmptyStateBodyStyle}" />
                     <Button Text="CLEAR SEARCH" Style="{StaticResource SecondaryActionStyle}" Command="{Binding ClearSearchCommand}" />
                 </VerticalStackLayout>
-                <VerticalStackLayout Grid.Row="1" Style="{StaticResource EmptyStateStyle}" IsVisible="{Binding IsFilterNoResults}">
+                <VerticalStackLayout Grid.Row="2" Style="{StaticResource EmptyStateStyle}" IsVisible="{Binding IsFilterNoResults}">
                     <Label Text="No beans in this state" Style="{StaticResource EmptyStateTitleStyle}" />
                     <Label Text="Choose All to return to the full inventory." Style="{StaticResource EmptyStateBodyStyle}" />
                     <Button Text="SHOW ALL" Style="{StaticResource SecondaryActionStyle}" Command="{Binding SelectFilterCommand}" CommandParameter="{x:Static vm:BeanInventoryFilter.All}" />
@@ -155,13 +158,17 @@
             </Grid>
 
             <Border x:Name="DetailPane" Grid.Column="1" Style="{StaticResource RaisedCardStyle}" IsVisible="False">
-                <ScrollView>
-                    <VerticalStackLayout Spacing="{StaticResource SpaceLg}">
-                        <VerticalStackLayout Style="{StaticResource EmptyStateStyle}" IsVisible="{Binding HasNoSelectedBean}">
-                            <Label Text="Select a bean" Style="{StaticResource EmptyStateTitleStyle}" />
-                            <Label Text="Inventory facts and recent roast results appear here." Style="{StaticResource EmptyStateBodyStyle}" />
-                        </VerticalStackLayout>
-                        <VerticalStackLayout IsVisible="{Binding HasSelectedBean}" Spacing="{StaticResource SpaceMd}">
+                <!--
+                    The placeholder is a sibling of the scroller, not its first child, so it
+                    centres in the empty pane instead of hanging from the top of a tall tablet.
+                -->
+                <Grid>
+                    <VerticalStackLayout Style="{StaticResource EmptyStateStyle}" IsVisible="{Binding HasNoSelectedBean}">
+                        <Label Text="Select a bean" Style="{StaticResource EmptyStateTitleStyle}" />
+                        <Label Text="Inventory facts and recent roast results appear here." Style="{StaticResource EmptyStateBodyStyle}" />
+                    </VerticalStackLayout>
+                    <ScrollView IsVisible="{Binding HasSelectedBean}">
+                        <VerticalStackLayout Spacing="{StaticResource SpaceMd}">
                             <Label Text="{Binding SelectedBean.CoffeeName}" Style="{StaticResource CardTitleStyle}" FontSize="{StaticResource FontSizeHeadline}" LineBreakMode="WordWrap" />
                             <Label Text="{Binding SelectedBean.Country}" Style="{StaticResource CardMetaStyle}" />
                             <Label Text="{Binding SelectedBean.DetailMetadataDisplay}" Style="{StaticResource CardCaptionStyle}" LineBreakMode="WordWrap" />
@@ -202,8 +209,8 @@
                             <Button Text="START ROAST" Style="{StaticResource PrimaryActionStyle}" Command="{Binding StartSelectedRoastCommand}" />
                             <Button Text="OPEN FULL DETAILS" Style="{StaticResource SecondaryActionStyle}" Command="{Binding OpenSelectedDetailCommand}" />
                         </VerticalStackLayout>
-                    </VerticalStackLayout>
-                </ScrollView>
+                    </ScrollView>
+                </Grid>
             </Border>
         </Grid>
     </Grid>
