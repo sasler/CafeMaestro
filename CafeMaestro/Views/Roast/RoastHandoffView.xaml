@@ -5,7 +5,6 @@
              xmlns:models="clr-namespace:CafeMaestro.Models"
              xmlns:roast="clr-namespace:CafeMaestro.Views.Roast"
              x:Class="CafeMaestro.Views.Roast.RoastHandoffView"
-             x:Name="Root"
              x:DataType="vm:RoastPageViewModel">
     <Grid RowDefinitions="Auto,*,Auto" Padding="{StaticResource PagePadding}" RowSpacing="{StaticResource SpaceLg}">
         <VerticalStackLayout>
@@ -21,7 +20,7 @@
                     <Border Style="{StaticResource CoolingCardStyle}" Margin="0,0,0,12"
                             SemanticProperties.Description="{Binding SemanticDescription}">
                         <Border.GestureRecognizers>
-                            <TapGestureRecognizer Command="{Binding Source={x:Reference Root}, Path=ViewModel.WeighChannelCommand, x:DataType=roast:RoastHandoffView}"
+                            <TapGestureRecognizer Command="{Binding Source={RelativeSource AncestorType={x:Type roast:RoastHandoffView}}, Path=ViewModel.WeighChannelCommand, x:DataType=roast:RoastHandoffView}"
                                                   CommandParameter="{Binding .}" />
                         </Border.GestureRecognizers>
                         <Grid ColumnDefinitions="Auto,Auto,*,Auto" ColumnSpacing="{StaticResource SpaceMd}">
@@ -33,13 +32,13 @@
                             </VerticalStackLayout>
                             <VerticalStackLayout Grid.Column="3" Spacing="{StaticResource SpaceSm}">
                                 <Button Text="{Binding TimeDisplay}"
-                                        Command="{Binding Source={x:Reference Root}, Path=ViewModel.WeighChannelCommand, x:DataType=roast:RoastHandoffView}"
+                                        Command="{Binding Source={RelativeSource AncestorType={x:Type roast:RoastHandoffView}}, Path=ViewModel.WeighChannelCommand, x:DataType=roast:RoastHandoffView}"
                                         CommandParameter="{Binding .}" IsEnabled="{Binding IsReady}"
                                         Style="{StaticResource SecondaryActionStyle}" MinimumHeightRequest="{StaticResource ControlHeightMin}"
                                         SemanticProperties.Description="{Binding SemanticDescription}"
                                         SemanticProperties.Hint="Opens final weight entry when this batch is ready" />
                                 <Button Text="READY NOW"
-                                        Command="{Binding Source={x:Reference Root}, Path=ViewModel.CompleteCoolingCommand, x:DataType=roast:RoastHandoffView}"
+                                        Command="{Binding Source={RelativeSource AncestorType={x:Type roast:RoastHandoffView}}, Path=ViewModel.CompleteCoolingCommand, x:DataType=roast:RoastHandoffView}"
                                         CommandParameter="{Binding .}" IsVisible="{Binding CanCompleteCooling}"
                                         Style="{StaticResource QuietActionStyle}" MinimumHeightRequest="{StaticResource ControlHeightMin}"
                                         SemanticProperties.Description="{Binding CompleteCoolingSemanticDescription}"

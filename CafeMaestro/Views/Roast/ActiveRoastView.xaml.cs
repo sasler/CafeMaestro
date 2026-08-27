@@ -43,6 +43,7 @@ public partial class ActiveRoastView : ContentView
 
     private void OnBindingContextChanged(object? sender, EventArgs e)
     {
+        OnPropertyChanged(nameof(ViewModel));
         Unsubscribe();
         _viewModel = BindingContext as RoastPageViewModel;
         Subscribe();

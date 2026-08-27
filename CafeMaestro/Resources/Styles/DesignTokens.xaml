@@ -85,6 +85,12 @@
     <x:Double x:Key="EditorHeightMin">120</x:Double>
     <x:Double x:Key="PrimaryActionHeight">56</x:Double>
     <x:Double x:Key="DropBarHeight">66</x:Double>
+    <!--
+        Width of one card in the Active console's horizontal open-batch strip. A width, not a
+        height: the strip stays a single card tall for any number of batches, so the running
+        roast timer is never pushed off screen. Cards grow taller with dynamic text as usual.
+    -->
+    <x:Double x:Key="ChannelStripCardWidth">260</x:Double>
     <x:Double x:Key="PopupMaxWidth">420</x:Double>
     <!-- Matches CornerRadiusXl, as a double for the overlay host's container shape. -->
     <x:Double x:Key="PopupCornerRadiusValue">20</x:Double>

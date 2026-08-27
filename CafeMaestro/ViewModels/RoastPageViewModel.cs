@@ -13,6 +13,8 @@ namespace CafeMaestro.ViewModels;
 
 public partial class RoastPageViewModel : ObservableObject, IQueryAttributable
 {
+    private const int DefaultBeanHistoryCount = 5;
+
     private readonly IRoastSessionService _sessionService;
     private readonly IRoastQueryService _queryService;
     private readonly IBeanDataService _beanService;
@@ -33,6 +35,7 @@ public partial class RoastPageViewModel : ObservableObject, IQueryAttributable
     private bool _suppressBeanSelectionChanged;
     private long _beanSelectionVersion;
     private Guid _requestedBeanId;
+    private List<BeanRoastHistoryEntry> _allBeanHistory = [];
     private Func<Task>? _retryAction;
     private DropProposal? _pendingDropProposal;
     private long _lifecycleGeneration;
@@ -119,8 +122,12 @@ public partial class RoastPageViewModel : ObservableObject, IQueryAttributable
     [ObservableProperty]
     public partial string DtrDisplay { get; set; } = string.Empty;
 
+    public ObservableCollection<RoastChannelPresentation> Channels { get; } = [];
+
+    public ObservableCollection<BeanRoastHistoryEntry> BeanHistory { get; } = [];
+
     [ObservableProperty]
-    public partial ObservableCollection<RoastChannelPresentation> Channels { get; set; } = [];
+    public partial bool IsBeanHistoryExpanded { get; set; }
 
     [ObservableProperty]
     public partial string PrimaryActionText { get; set; } = "SET UP BATCH 2";
@@ -153,6 +160,9 @@ public partial class RoastPageViewModel : ObservableObject, IQueryAttributable
     public string ActiveStateLabel => IsPaused ? "PAUSED" : "ROASTING";
     public bool HasInventoryWarning => !string.IsNullOrWhiteSpace(InventoryWarning);
     public bool HasChannels => Channels.Count > 0;
+    public bool HasBeanHistory => BeanHistory.Count > 0;
+    public bool HasMoreBeanHistory => _allBeanHistory.Count > DefaultBeanHistoryCount;
+    public string BeanHistoryToggleText => IsBeanHistoryExpanded ? "SHOW FEWER" : "SHOW ALL";
     public bool CanMarkFirstCrack => IsFirstCrackVisible;
     public bool CanKeepRoastingAfterRecovery => !RecoveryRequiresCorrectedTime;
 
@@ -176,6 +186,8 @@ public partial class RoastPageViewModel : ObservableObject, IQueryAttributable
         _navigationService = navigationService ?? throw new ArgumentNullException(nameof(navigationService));
         _alertService = alertService ?? throw new ArgumentNullException(nameof(alertService));
         _clock = clock ?? throw new ArgumentNullException(nameof(clock));
+        Channels.CollectionChanged += (_, _) => OnPropertyChanged(nameof(HasChannels));
+        BeanHistory.CollectionChanged += (_, _) => OnPropertyChanged(nameof(HasBeanHistory));
     }
 
     partial void OnPresentationStateChanged(RoastPresentationState value)
@@ -214,8 +226,11 @@ public partial class RoastPageViewModel : ObservableObject, IQueryAttributable
 
     partial void OnInventoryWarningChanged(string value) => OnPropertyChanged(nameof(HasInventoryWarning));
 
-    partial void OnChannelsChanged(ObservableCollection<RoastChannelPresentation> value) =>
-        OnPropertyChanged(nameof(HasChannels));
+    partial void OnIsBeanHistoryExpandedChanged(bool value)
+    {
+        OnPropertyChanged(nameof(BeanHistoryToggleText));
+        RefreshBeanHistoryProjection();
+    }
 
     partial void OnIsFirstCrackVisibleChanged(bool value)
     {
@@ -338,6 +353,7 @@ public partial class RoastPageViewModel : ObservableObject, IQueryAttributable
             _suppressBeanSelectionChanged = false;
         }
 
+        ClearBeanHistory();
         IsBusy = true;
         try
         {
@@ -347,9 +363,16 @@ public partial class RoastPageViewModel : ObservableObject, IQueryAttributable
                 return;
             }
 
+            IReadOnlyList<RoastData> history = await _queryService.GetRoastsForBeanAsync(bean.Id) ?? [];
+            if (!IsCurrentBeanSelection(bean.Id, selectionVersion))
+            {
+                return;
+            }
+
             TemperatureText = suggestion.Temperature?.ToString("0.#", CultureInfo.CurrentCulture) ?? string.Empty;
             BatchWeightText = suggestion.BatchWeight?.ToString("0.#", CultureInfo.CurrentCulture) ?? string.Empty;
             ApplyPreviousResult(suggestion);
+            ApplyBeanHistory(history, suggestion.LastCompletedRoast?.Id);
             UpdateInventoryWarning();
         }
         catch (Exception)
@@ -364,6 +387,8 @@ public partial class RoastPageViewModel : ObservableObject, IQueryAttributable
             PreviousResultTitle = "PREVIOUS ROAST UNAVAILABLE";
             PreviousResultTime = "—";
             PreviousResultDetails = "Enter temperature and batch weight manually, or retry history.";
+            ClearBeanHistory();
+            InventoryWarning = string.Empty;
         }
         finally
         {
@@ -374,6 +399,35 @@ public partial class RoastPageViewModel : ObservableObject, IQueryAttributable
                 StartCommand.NotifyCanExecuteChanged();
             }
         }
+    }
+
+    [RelayCommand]
+    private Task ToggleBeanHistoryAsync()
+    {
+        if (!HasMoreBeanHistory)
+        {
+            return Task.CompletedTask;
+        }
+
+        IsBeanHistoryExpanded = !IsBeanHistoryExpanded;
+        return Task.CompletedTask;
+    }
+
+    [RelayCommand]
+    private Task ReuseBeanHistoryAsync(BeanRoastHistoryEntry? entry)
+    {
+        if (entry is null || SelectedBean is null ||
+            (entry.BeanId is Guid beanId && beanId != SelectedBean.Id))
+        {
+            return Task.CompletedTask;
+        }
+
+        TemperatureText = entry.Temperature.ToString("0.#", CultureInfo.CurrentCulture);
+        BatchWeightText = entry.BatchWeight.ToString("0.#", CultureInfo.CurrentCulture);
+        UpdateInventoryWarning();
+        OnPropertyChanged(nameof(CanStart));
+        StartCommand.NotifyCanExecuteChanged();
+        return Task.CompletedTask;
     }
 
     [RelayCommand(CanExecute = nameof(CanStart))]
@@ -960,26 +1014,50 @@ public partial class RoastPageViewModel : ObservableObject, IQueryAttributable
             return;
         }
 
-        var channels = new ObservableCollection<RoastChannelPresentation>();
-        foreach (RoastWorkItem item in CurrentSessionWork().OrderBy(work => work.BatchNumber ?? int.MaxValue))
+        IReadOnlyList<RoastWorkItem> work = CurrentSessionWork()
+            .OrderBy(item => item.BatchNumber ?? int.MaxValue)
+            .ToList();
+        HashSet<Guid> workIds = work.Select(item => item.RoastId).ToHashSet();
+
+        for (int index = 0; index < work.Count; index++)
         {
+            RoastWorkItem item = work[index];
+            RoastChannelPresentation? channel = Channels.FirstOrDefault(candidate => candidate.RoastId == item.RoastId);
+            if (channel is null)
+            {
+                channel = new RoastChannelPresentation { RoastId = item.RoastId };
+                Channels.Insert(Math.Min(index, Channels.Count), channel);
+            }
+            else
+            {
+                int currentIndex = Channels.IndexOf(channel);
+                if (currentIndex != index)
+                {
+                    Channels.Move(currentIndex, Math.Min(index, Channels.Count - 1));
+                }
+            }
+
             double remaining = Math.Max(0, (item.ReadyToWeighAtUtc - _clock.UtcNow).TotalSeconds);
             bool ready = IsReadyNow(item);
-            channels.Add(new RoastChannelPresentation
-            {
-                RoastId = item.RoastId,
-                BatchLabel = item.BatchNumber is int batch ? $"B{batch}" : "BATCH",
-                BeanDisplaySnapshot = item.BeanDisplaySnapshot,
-                StatusLabel = ready ? "READY TO WEIGH" : "COOLING",
-                TimeDisplay = ready ? "WEIGH" : FormatElapsed(remaining),
-                CoolingProgress = RoastInstrumentGeometry.CoolingProgress(
-                    remaining,
-                    Math.Max(0, (item.ReadyToWeighAtUtc - item.DroppedAtUtc).TotalSeconds)),
-                IsReady = ready
-            });
+            channel.BatchLabel = item.BatchNumber is int batch ? $"B{batch}" : "BATCH";
+            channel.BeanDisplaySnapshot = item.BeanDisplaySnapshot;
+            channel.StatusLabel = ready ? "READY TO WEIGH" : "COOLING";
+            channel.TimeDisplay = ready ? "WEIGH" : FormatElapsed(remaining);
+            channel.CoolingRemainingLabel =
+                RoastChannelPresentation.DescribeCoolingRemaining(remaining, ready);
+            channel.CoolingProgress = RoastInstrumentGeometry.CoolingProgress(
+                remaining,
+                Math.Max(0, (item.ReadyToWeighAtUtc - item.DroppedAtUtc).TotalSeconds));
+            channel.IsReady = ready;
         }
 
-        Channels = channels;
+        for (int index = Channels.Count - 1; index >= 0; index--)
+        {
+            if (!workIds.Contains(Channels[index].RoastId))
+            {
+                Channels.RemoveAt(index);
+            }
+        }
     }
 
     private async Task SetUpNextBatchAsync()
@@ -1020,6 +1098,7 @@ public partial class RoastPageViewModel : ObservableObject, IQueryAttributable
             ?.ToString("0.#", CultureInfo.CurrentCulture) ?? string.Empty;
         BatchWeightText = source.BatchWeight.ToString("0.#", CultureInfo.CurrentCulture);
         ApplyPreviousResult(suggestion);
+        ApplyBeanHistory(roasts, suggestion.LastCompletedRoast?.Id);
         UpdateInventoryWarning();
         PresentationState = RoastPresentationState.Setup;
     }
@@ -1130,6 +1209,47 @@ public partial class RoastPageViewModel : ObservableObject, IQueryAttributable
         PreviousResultDetails = "Choose a bean to load its last completed result.";
         NewerAwaitingWeightNote = string.Empty;
         InventoryWarning = string.Empty;
+        ClearBeanHistory();
+    }
+
+    /// <summary>
+    /// Projects the bean's history for setup. The roast already shown in the LAST ROAST hero is
+    /// left out by identity only, so newer batches that still await weight — and unweighed or
+    /// discarded rows — stay in the list and the section keeps offering five further roasts.
+    /// </summary>
+    private void ApplyBeanHistory(IReadOnlyList<RoastData>? roasts, Guid? heroRoastId = null)
+    {
+        _allBeanHistory = (roasts ?? [])
+            .Where(roast => heroRoastId is not Guid hero || roast.Id != hero)
+            .Select(BeanRoastHistoryEntry.FromHistory)
+            .ToList();
+        IsBeanHistoryExpanded = false;
+        RefreshBeanHistoryProjection();
+    }
+
+    private void ClearBeanHistory()
+    {
+        _allBeanHistory = [];
+        IsBeanHistoryExpanded = false;
+        BeanHistory.Clear();
+        OnPropertyChanged(nameof(HasMoreBeanHistory));
+        OnPropertyChanged(nameof(BeanHistoryToggleText));
+    }
+
+    private void RefreshBeanHistoryProjection()
+    {
+        int count = IsBeanHistoryExpanded
+            ? _allBeanHistory.Count
+            : Math.Min(DefaultBeanHistoryCount, _allBeanHistory.Count);
+        BeanHistory.Clear();
+        foreach (BeanRoastHistoryEntry entry in _allBeanHistory.Take(count))
+        {
+            BeanHistory.Add(entry);
+        }
+
+        OnPropertyChanged(nameof(HasBeanHistory));
+        OnPropertyChanged(nameof(HasMoreBeanHistory));
+        OnPropertyChanged(nameof(BeanHistoryToggleText));
     }
 
     private void UpdateInventoryWarning()

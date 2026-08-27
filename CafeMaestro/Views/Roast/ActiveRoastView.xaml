@@ -5,9 +5,8 @@
              xmlns:models="clr-namespace:CafeMaestro.Models"
              xmlns:roast="clr-namespace:CafeMaestro.Views.Roast"
              x:Class="CafeMaestro.Views.Roast.ActiveRoastView"
-             x:Name="Root"
              x:DataType="vm:RoastPageViewModel">
-    <Grid RowDefinitions="Auto,*,Auto" Padding="{StaticResource PagePadding}" RowSpacing="{StaticResource SpaceMd}">
+    <Grid RowDefinitions="Auto,*,Auto,Auto" Padding="{StaticResource PagePadding}" RowSpacing="{StaticResource SpaceMd}">
         <Grid Grid.Row="0" ColumnDefinitions="*,Auto">
             <VerticalStackLayout>
                 <Label Text="{Binding ActiveBatchLabel}" Style="{StaticResource SectionHeaderStyle}" />
@@ -37,40 +36,6 @@
                     </VerticalStackLayout>
                 </Grid>
 
-                <VerticalStackLayout Spacing="{StaticResource SpaceSm}" IsVisible="{Binding HasChannels}">
-                    <Label Text="OTHER BATCHES" Style="{StaticResource SectionHeaderStyle}" />
-                    <CollectionView ItemsSource="{Binding Channels}" SelectionMode="None">
-                        <CollectionView.ItemTemplate>
-                            <DataTemplate x:DataType="models:RoastChannelPresentation">
-                                <Border Style="{StaticResource CoolingCardStyle}" Margin="0,0,0,8">
-                                    <Grid ColumnDefinitions="Auto,Auto,*,Auto" ColumnSpacing="{StaticResource SpaceSm}">
-                                        <roast:CoolingArcView Progress="{Binding CoolingProgress}" />
-                                        <Label Grid.Column="1" Text="{Binding BatchLabel}" Style="{StaticResource NumericValueStyle}" />
-                                        <VerticalStackLayout Grid.Column="2">
-                                            <Label Text="{Binding BeanDisplaySnapshot}" Style="{StaticResource CardTitleStyle}" />
-                                            <Label Text="{Binding StatusLabel}" Style="{StaticResource CardMetaStyle}" />
-                                        </VerticalStackLayout>
-                                        <VerticalStackLayout Grid.Column="3" Spacing="{StaticResource SpaceSm}">
-                                            <Button Text="{Binding TimeDisplay}"
-                                                    Command="{Binding Source={x:Reference Root}, Path=ViewModel.WeighChannelCommand, x:DataType=roast:ActiveRoastView}"
-                                                    CommandParameter="{Binding .}" IsEnabled="{Binding IsReady}"
-                                                    Style="{StaticResource SecondaryActionStyle}" MinimumHeightRequest="{StaticResource ControlHeightMin}"
-                                                    SemanticProperties.Description="{Binding SemanticDescription}"
-                                                    SemanticProperties.Hint="Opens final weight entry when this batch is ready" />
-                                            <Button Text="READY NOW"
-                                                    Command="{Binding Source={x:Reference Root}, Path=ViewModel.CompleteCoolingCommand, x:DataType=roast:ActiveRoastView}"
-                                                    CommandParameter="{Binding .}" IsVisible="{Binding CanCompleteCooling}"
-                                                    Style="{StaticResource QuietActionStyle}" MinimumHeightRequest="{StaticResource ControlHeightMin}"
-                                                    SemanticProperties.Description="{Binding CompleteCoolingSemanticDescription}"
-                                                    SemanticProperties.Hint="Ends this batch's cooling countdown after you confirm" />
-                                        </VerticalStackLayout>
-                                    </Grid>
-                                </Border>
-                            </DataTemplate>
-                        </CollectionView.ItemTemplate>
-                    </CollectionView>
-                </VerticalStackLayout>
-
                 <Border Style="{StaticResource RoastCardStyle}">
                     <Grid ColumnDefinitions="*,Auto">
                         <VerticalStackLayout>
@@ -94,7 +59,54 @@
             </VerticalStackLayout>
         </ScrollView>
 
-        <VerticalStackLayout Grid.Row="2" Spacing="{StaticResource SpaceSm}">
+        <!--
+            Open batches are pinned outside the scroller so they stay reachable while a roast
+            runs, but they scroll sideways rather than stacking. The strip is therefore exactly
+            one card tall whether one batch is cooling or four, which is what keeps the running
+            timer above it on screen. Every channel keeps both actions, cooling ones included.
+        -->
+        <VerticalStackLayout Grid.Row="2" Spacing="{StaticResource SpaceSm}" IsVisible="{Binding HasChannels}">
+            <Label Text="OTHER BATCHES" Style="{StaticResource SectionHeaderStyle}" />
+            <ScrollView Orientation="Horizontal" HorizontalScrollBarVisibility="Never">
+                <HorizontalStackLayout BindableLayout.ItemsSource="{Binding Channels}" Spacing="{StaticResource SpaceSm}">
+                    <BindableLayout.ItemTemplate>
+                        <DataTemplate x:DataType="models:RoastChannelPresentation">
+                            <Border Style="{StaticResource CoolingCardStyle}" Padding="{StaticResource CompactCardPadding}"
+                                    WidthRequest="{StaticResource ChannelStripCardWidth}">
+                                <Grid ColumnDefinitions="Auto,*" RowDefinitions="Auto,Auto"
+                                      ColumnSpacing="{StaticResource SpaceSm}" RowSpacing="{StaticResource SpaceSm}">
+                                    <roast:CoolingArcView Progress="{Binding CoolingProgress}" />
+                                    <VerticalStackLayout Grid.Column="1" VerticalOptions="Center">
+                                        <Label Text="{Binding BatchLabel}" Style="{StaticResource CardTitleStyle}" />
+                                        <Label Text="{Binding BeanDisplaySnapshot}" Style="{StaticResource CardMetaStyle}"
+                                               LineBreakMode="TailTruncation" MaxLines="1" />
+                                        <Label Text="{Binding StatusLabel}" Style="{StaticResource CardCaptionStyle}"
+                                               LineBreakMode="TailTruncation" MaxLines="1" />
+                                    </VerticalStackLayout>
+                                    <Grid Grid.Row="1" Grid.ColumnSpan="2" ColumnDefinitions="*,*"
+                                          ColumnSpacing="{StaticResource SpaceSm}">
+                                        <Button Text="{Binding TimeDisplay}"
+                                                Command="{Binding Source={RelativeSource AncestorType={x:Type roast:ActiveRoastView}}, Path=ViewModel.WeighChannelCommand, x:DataType=roast:ActiveRoastView}"
+                                                CommandParameter="{Binding .}" IsEnabled="{Binding IsReady}"
+                                                Style="{StaticResource SecondaryActionStyle}" MinimumHeightRequest="{StaticResource ControlHeightMin}"
+                                                SemanticProperties.Description="{Binding SemanticDescription}"
+                                                SemanticProperties.Hint="Opens final weight entry when this batch is ready" />
+                                        <Button Grid.Column="1" Text="READY NOW"
+                                                Command="{Binding Source={RelativeSource AncestorType={x:Type roast:ActiveRoastView}}, Path=ViewModel.CompleteCoolingCommand, x:DataType=roast:ActiveRoastView}"
+                                                CommandParameter="{Binding .}" IsVisible="{Binding CanCompleteCooling}"
+                                                Style="{StaticResource QuietActionStyle}" MinimumHeightRequest="{StaticResource ControlHeightMin}"
+                                                SemanticProperties.Description="{Binding CompleteCoolingSemanticDescription}"
+                                                SemanticProperties.Hint="Ends this batch's cooling countdown after you confirm" />
+                                    </Grid>
+                                </Grid>
+                            </Border>
+                        </DataTemplate>
+                    </BindableLayout.ItemTemplate>
+                </HorizontalStackLayout>
+            </ScrollView>
+        </VerticalStackLayout>
+
+        <VerticalStackLayout Grid.Row="3" Spacing="{StaticResource SpaceSm}">
             <Grid ColumnDefinitions="*,2*" ColumnSpacing="{StaticResource SpaceMd}">
                 <Button Text="{Binding PauseResumeText}" Command="{Binding PauseOrResumeCommand}"
                         Style="{StaticResource SecondaryActionStyle}" MinimumHeightRequest="{StaticResource ControlHeightMin}" />

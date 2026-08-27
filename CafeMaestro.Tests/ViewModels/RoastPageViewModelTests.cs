@@ -287,6 +287,248 @@ public class RoastPageViewModelTests
     }
 
     [Fact]
+    public async Task Tick_UpdatesChannelsInPlaceWithoutReplacingCollectionOrRows()
+    {
+        Harness harness = new();
+        RoastWorkItem cooling = harness.Work(batch: 1, remaining: 120);
+        harness.SetSnapshot(harness.HandoffSnapshot(nextBatch: 3, cooling));
+        await harness.ViewModel.OnAppearingAsync();
+
+        var channels = harness.ViewModel.Channels;
+        RoastChannelPresentation channel = channels.Single();
+        string initialTime = channel.TimeDisplay;
+        channel.SemanticDescription.Should().NotContain(initialTime);
+
+        harness.Clock.Advance(TimeSpan.FromSeconds(1));
+        harness.ViewModel.Tick();
+
+        harness.ViewModel.Channels.Should().BeSameAs(channels);
+        harness.ViewModel.Channels.Single().Should().BeSameAs(channel);
+        channel.TimeDisplay.Should().NotBe(initialTime);
+    }
+
+    [Fact]
+    public async Task CoolingChannel_AnnouncesCoarseRemainingTimeAndNotThePerSecondCountdown()
+    {
+        Harness harness = new();
+        harness.SetSnapshot(harness.HandoffSnapshot(nextBatch: 3, harness.Work(batch: 1, remaining: 150)));
+        await harness.ViewModel.OnAppearingAsync();
+
+        RoastChannelPresentation channel = harness.ViewModel.Channels.Single();
+        int semanticChanges = 0;
+        channel.PropertyChanged += (_, args) =>
+        {
+            if (args.PropertyName == nameof(RoastChannelPresentation.SemanticDescription))
+            {
+                semanticChanges++;
+            }
+        };
+
+        channel.SemanticDescription.Should().Contain("about 3 minutes left");
+        channel.SemanticDescription.Should().NotContain(channel.TimeDisplay);
+
+        // Ten seconds of ticking moves the visible countdown but never leaves the 3-minute
+        // bucket, so a focused card is not re-announced.
+        for (int second = 0; second < 10; second++)
+        {
+            harness.Clock.Advance(TimeSpan.FromSeconds(1));
+            harness.ViewModel.Tick();
+        }
+
+        semanticChanges.Should().Be(0);
+        channel.SemanticDescription.Should().Contain("about 3 minutes left");
+
+        harness.Clock.Advance(TimeSpan.FromSeconds(50));
+        harness.ViewModel.Tick();
+
+        semanticChanges.Should().Be(1);
+        channel.SemanticDescription.Should().Contain("about 2 minutes left");
+    }
+
+    [Fact]
+    public async Task ReadyChannel_DropsTheCoolingDurationFromItsAnnouncement()
+    {
+        Harness harness = new();
+        harness.SetSnapshot(harness.HandoffSnapshot(nextBatch: 3, harness.Work(batch: 1, remaining: 0)));
+        await harness.ViewModel.OnAppearingAsync();
+
+        RoastChannelPresentation channel = harness.ViewModel.Channels.Single();
+
+        channel.IsReady.Should().BeTrue();
+        channel.CoolingRemainingLabel.Should().BeEmpty();
+        channel.SemanticDescription.Should().Contain("READY TO WEIGH").And.NotContain("left");
+    }
+
+    [Fact]
+    public async Task BeanHistory_ExcludesOnlyTheHeroRoastAndKeepsFiveFurtherRows()
+    {
+        Harness harness = new();
+        RoastData hero = harness.HistoryRoast(3);
+        RoastData awaitingWeight = harness.HistoryRoast(1);
+        awaitingWeight.FinalWeight = null;
+        awaitingWeight.CompletionStatus = RoastCompletionStatus.AwaitingWeight;
+        RoastData unweighed = harness.HistoryRoast(2);
+        unweighed.FinalWeight = null;
+        unweighed.CompletionStatus = RoastCompletionStatus.Unweighed;
+        RoastData discarded = harness.HistoryRoast(4);
+        discarded.FinalWeight = null;
+        discarded.CompletionStatus = RoastCompletionStatus.Discarded;
+
+        // Newest first, with the hero sitting in the middle of the run.
+        List<RoastData> history =
+        [
+            awaitingWeight, unweighed, hero, discarded,
+            harness.HistoryRoast(5), harness.HistoryRoast(6), harness.HistoryRoast(7)
+        ];
+        harness.Query.Setup(service => service.GetSetupSuggestionAsync(
+                harness.Bean.Id, It.IsAny<CancellationToken>()))
+            .ReturnsAsync(new RoastSetupSuggestion
+            {
+                BeanId = harness.Bean.Id, Temperature = 218, BatchWeight = 240,
+                LastCompletedRoast = hero, NewerAwaitingWeightCount = 1
+            });
+        harness.Query.Setup(service => service.GetRoastsForBeanAsync(
+                harness.Bean.Id, It.IsAny<CancellationToken>()))
+            .ReturnsAsync(history);
+
+        await harness.ViewModel.SelectBeanAsync(harness.Bean);
+
+        // The hero is already shown above the list, so it does not spend one of the five slots.
+        harness.ViewModel.BeanHistory.Should().HaveCount(5);
+        harness.ViewModel.BeanHistory.Select(entry => entry.RoastId)
+            .Should().NotContain(hero.Id)
+            .And.Equal(
+                awaitingWeight.Id, unweighed.Id, discarded.Id, history[4].Id, history[5].Id);
+
+        // Records with no completed result still belong here: they inform the next setting.
+        harness.ViewModel.BeanHistory.Take(3).Should().OnlyContain(entry => entry.IsMuted);
+        harness.ViewModel.HasMoreBeanHistory.Should().BeTrue();
+
+        await harness.ViewModel.ToggleBeanHistoryCommand.ExecuteAsync(null);
+
+        harness.ViewModel.BeanHistory.Should().HaveCount(6);
+        harness.ViewModel.BeanHistory.Select(entry => entry.RoastId).Should().NotContain(hero.Id);
+    }
+
+    [Fact]
+    public async Task BeanHistory_WithNoCompletedHeroRoast_KeepsEveryRecord()
+    {
+        Harness harness = new();
+        List<RoastData> history = [harness.HistoryRoast(1), harness.HistoryRoast(2)];
+        harness.Query.Setup(service => service.GetSetupSuggestionAsync(
+                harness.Bean.Id, It.IsAny<CancellationToken>()))
+            .ReturnsAsync(new RoastSetupSuggestion
+            {
+                BeanId = harness.Bean.Id, Temperature = 218, BatchWeight = 240,
+                LastCompletedRoast = null, NewerAwaitingWeightCount = 0
+            });
+        harness.Query.Setup(service => service.GetRoastsForBeanAsync(
+                harness.Bean.Id, It.IsAny<CancellationToken>()))
+            .ReturnsAsync(history);
+
+        await harness.ViewModel.SelectBeanAsync(harness.Bean);
+
+        harness.ViewModel.BeanHistory.Select(entry => entry.RoastId)
+            .Should().Equal(history.Select(roast => roast.Id));
+    }
+
+    [Fact]
+    public async Task SelectingBean_LoadsNewestFiveHistoryEntriesAndCanShowAll()
+    {
+        Harness harness = new();
+        List<RoastData> history = Enumerable.Range(1, 7)
+            .Select(index => harness.HistoryRoast(index))
+            .ToList();
+        harness.Query.Setup(service => service.GetRoastsForBeanAsync(
+                harness.Bean.Id, It.IsAny<CancellationToken>()))
+            .ReturnsAsync(history);
+
+        await harness.ViewModel.SelectBeanAsync(harness.Bean);
+
+        harness.ViewModel.BeanHistory.Should().HaveCount(5);
+        harness.ViewModel.BeanHistory.Select(entry => entry.RoastId)
+            .Should().Equal(history.Take(5).Select(roast => roast.Id));
+        harness.ViewModel.HasBeanHistory.Should().BeTrue();
+        harness.ViewModel.HasMoreBeanHistory.Should().BeTrue();
+        harness.ViewModel.BeanHistoryToggleText.Should().Be("SHOW ALL");
+
+        await harness.ViewModel.ToggleBeanHistoryCommand.ExecuteAsync(null);
+
+        harness.ViewModel.BeanHistory.Should().HaveCount(7);
+        harness.ViewModel.BeanHistoryToggleText.Should().Be("SHOW FEWER");
+    }
+
+    [Fact]
+    public async Task SelectingBean_DoesNotRenderStaleHistoryAfterAQuickSecondSelection()
+    {
+        Harness harness = new();
+        BeanData second = new()
+        {
+            Id = Guid.NewGuid(), Country = harness.Bean.Country, CoffeeName = "Sidamo",
+            Variety = "Heirloom", Quantity = 1, RemainingQuantity = 1
+        };
+        harness.Beans.Setup(service => service.GetSortedAvailableBeansAsync())
+            .ReturnsAsync([harness.Bean, second]);
+
+        var firstSuggestion = new TaskCompletionSource<RoastSetupSuggestion>(
+            TaskCreationOptions.RunContinuationsAsynchronously);
+        var secondSuggestion = new TaskCompletionSource<RoastSetupSuggestion>(
+            TaskCreationOptions.RunContinuationsAsynchronously);
+        var firstHistory = new TaskCompletionSource<IReadOnlyList<RoastData>>(
+            TaskCreationOptions.RunContinuationsAsynchronously);
+        var secondHistory = new TaskCompletionSource<IReadOnlyList<RoastData>>(
+            TaskCreationOptions.RunContinuationsAsynchronously);
+        harness.Query.Setup(service => service.GetSetupSuggestionAsync(
+                harness.Bean.Id, It.IsAny<CancellationToken>()))
+            .Returns((Guid _, CancellationToken _) => firstSuggestion.Task);
+        harness.Query.Setup(service => service.GetSetupSuggestionAsync(
+                second.Id, It.IsAny<CancellationToken>()))
+            .Returns((Guid _, CancellationToken _) => secondSuggestion.Task);
+        harness.Query.Setup(service => service.GetRoastsForBeanAsync(
+                harness.Bean.Id, It.IsAny<CancellationToken>()))
+            .Returns((Guid _, CancellationToken _) => firstHistory.Task);
+        harness.Query.Setup(service => service.GetRoastsForBeanAsync(
+                second.Id, It.IsAny<CancellationToken>()))
+            .Returns((Guid _, CancellationToken _) => secondHistory.Task);
+
+        Task firstSelection = harness.ViewModel.SelectBeanAsync(harness.Bean);
+        Task secondSelection = harness.ViewModel.SelectBeanAsync(second);
+
+        secondSuggestion.SetResult(Harness.Suggestion(second, temperature: 225, batchWeight: 260));
+        RoastData secondRoast = harness.HistoryRoast(20, second);
+        secondHistory.SetResult([secondRoast]);
+        await secondSelection;
+        firstSuggestion.SetResult(Harness.Suggestion(harness.Bean, temperature: 210, batchWeight: 200));
+        firstHistory.SetResult([harness.HistoryRoast(10)]);
+        await firstSelection;
+
+        harness.ViewModel.SelectedBean.Should().BeSameAs(second);
+        harness.ViewModel.BeanHistory.Should().ContainSingle();
+        harness.ViewModel.BeanHistory.Single().RoastId.Should().Be(secondRoast.Id);
+    }
+
+    [Fact]
+    public async Task TappingHistoryEntry_ReusesItsSetupValuesAndKeepsInventoryAdvisory()
+    {
+        Harness harness = new();
+        harness.Bean.RemainingQuantity = 0;
+        RoastData history = harness.HistoryRoast(1);
+        history.Temperature = 226;
+        history.BatchWeight = 275;
+        harness.Query.Setup(service => service.GetRoastsForBeanAsync(
+                harness.Bean.Id, It.IsAny<CancellationToken>()))
+            .ReturnsAsync([history]);
+
+        await harness.ViewModel.SelectBeanAsync(harness.Bean);
+        await harness.ViewModel.ReuseBeanHistoryCommand.ExecuteAsync(harness.ViewModel.BeanHistory.Single());
+
+        harness.ViewModel.TemperatureText.Should().Be("226");
+        harness.ViewModel.BatchWeightText.Should().Be("275");
+        harness.ViewModel.InventoryWarning.Should().Contain("you can still start");
+        harness.ViewModel.CanStart.Should().BeTrue();
+    }
+
+    [Fact]
     public async Task BatchTwoSetup_ResolvesDepletedBeanFromFullStoreAndKeepsStartNonBlocking()
     {
         Harness harness = new();
@@ -618,6 +860,20 @@ public class RoastPageViewModelTests
             Status = remaining <= 0 ? RoastEffectiveStatus.NeedsWeight : RoastEffectiveStatus.Cooling,
             TotalSeconds = 665
         };
+
+        public RoastData HistoryRoast(int index, BeanData? bean = null)
+        {
+            bean ??= Bean;
+            return new RoastData
+            {
+                Id = Guid.NewGuid(), BeanId = bean.Id, BeanType = bean.DisplayName,
+                BeanDisplaySnapshot = bean.DisplayName, Temperature = 210 + index,
+                BatchWeight = 200 + index, FinalWeight = 180 + index,
+                RoastMinutes = 10, RoastSeconds = index, RoastDate = FixedClock.Now.AddDays(-index).UtcDateTime,
+                DroppedAtUtc = FixedClock.Now.AddDays(-index),
+                CompletionStatus = RoastCompletionStatus.Complete, RoastLevelName = "Medium"
+            };
+        }
 
         private RoastData CompletedRoast() => new()
         {

@@ -1,6 +1,7 @@
 <?xml version="1.0" encoding="utf-8" ?>
 <ContentPage xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
              xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
+             xmlns:models="clr-namespace:CafeMaestro.Models"
              xmlns:vm="clr-namespace:CafeMaestro.ViewModels"
              x:Class="CafeMaestro.RoastEditPage"
              x:DataType="vm:RoastEditPageViewModel"
@@ -9,50 +10,84 @@
     <ScrollView>
         <VerticalStackLayout Padding="{StaticResource PagePadding}" Spacing="{StaticResource SpaceMd}">
             <Label Text="EDIT ROAST" Style="{StaticResource SectionHeaderStyle}" />
-            <Label Text="Correct notes and recorded roast events" FontSize="{StaticResource FontSizeHeadline}"
+            <Label Text="Correct any recorded value for this roast" FontSize="{StaticResource FontSizeHeadline}"
                    FontAttributes="Bold" TextColor="{DynamicResource PrimaryTextColor}" />
 
-            <Border Style="{StaticResource CardStyle}">
-                <Grid ColumnDefinitions="*,Auto" ColumnSpacing="{StaticResource SpaceLg}">
-                    <VerticalStackLayout>
-                        <Label Text="{Binding SelectedBean.DisplayName, TargetNullValue='Historical roast'}"
-                               Style="{StaticResource CardTitleStyle}" />
-                        <Label Text="Batch identity and weights are read-only here"
-                               Style="{StaticResource CardCaptionStyle}" />
-                    </VerticalStackLayout>
-                    <VerticalStackLayout Grid.Column="1" HorizontalOptions="End">
-                        <Label Text="{Binding BatchWeightText, StringFormat='{0} g in'}"
-                               Style="{StaticResource NumericValueStyle}" HorizontalTextAlignment="End" />
-                        <Label Text="{Binding FinalWeightDisplay}"
-                               Style="{StaticResource CardMetaStyle}" HorizontalTextAlignment="End" />
-                    </VerticalStackLayout>
-                </Grid>
-            </Border>
+            <VerticalStackLayout Spacing="{StaticResource SpaceSm}">
+                <Label Text="BEAN" Style="{StaticResource FieldLabelStyle}" />
+                <Border Style="{StaticResource FieldContainerStyle}">
+                    <Picker x:Name="BeanPicker" ItemsSource="{Binding AvailableBeans}"
+                            SelectedItem="{Binding SelectedBean, Mode=TwoWay}"
+                            ItemDisplayBinding="{Binding DisplayName, x:DataType=models:BeanData}"
+                            Title="Choose a bean" TextColor="{DynamicResource PrimaryTextColor}"
+                            BackgroundColor="{DynamicResource TransparentColor}"
+                            MinimumHeightRequest="{StaticResource ControlHeightMin}"
+                            SemanticProperties.Description="Bean selector" />
+                </Border>
+                <Label Text="{Binding BeanError}" Style="{StaticResource FieldErrorStyle}"
+                       SemanticProperties.Description="{Binding BeanError}" />
+            </VerticalStackLayout>
 
-            <Grid ColumnDefinitions="*,*" ColumnSpacing="{StaticResource SpaceMd}">
-                <VerticalStackLayout>
+            <Grid ColumnDefinitions="*,*" RowDefinitions="Auto,Auto" ColumnSpacing="{StaticResource SpaceMd}"
+                  RowSpacing="{StaticResource SpaceMd}">
+                <VerticalStackLayout Grid.Row="0" Grid.Column="0" Spacing="{StaticResource SpaceSm}">
                     <Label Text="TEMPERATURE (°C)" Style="{StaticResource CardMetaStyle}" />
-                    <Entry Text="{Binding TemperatureText}" Keyboard="Numeric"
-                           Style="{StaticResource FieldEntryStyle}"
-                           SemanticProperties.Description="Roasting temperature in degrees Celsius" />
+                    <Border Style="{StaticResource FieldContainerStyle}">
+                        <Entry x:Name="TemperatureEntry" Text="{Binding TemperatureText, Mode=TwoWay}" Keyboard="Numeric"
+                               Style="{StaticResource FieldEntryStyle}"
+                               SemanticProperties.Description="Roasting temperature in degrees Celsius" />
+                    </Border>
+                    <Label Text="{Binding TemperatureError}" Style="{StaticResource FieldErrorStyle}"
+                           SemanticProperties.Description="{Binding TemperatureError}" />
                 </VerticalStackLayout>
-                <VerticalStackLayout Grid.Column="1">
+                <VerticalStackLayout Grid.Row="0" Grid.Column="1" Spacing="{StaticResource SpaceSm}">
                     <Label Text="TOTAL TIME (mm:ss)" Style="{StaticResource CardMetaStyle}" />
-                    <Entry Text="{Binding RoastTimeText}" Keyboard="Numeric" Placeholder="10:42"
-                           Style="{StaticResource FieldEntryStyle}"
-                           SemanticProperties.Description="Total roast time in minutes and seconds" />
+                    <Border Style="{StaticResource FieldContainerStyle}">
+                        <!-- mm:ss needs a colon, which the Android numeric keypad does not offer. -->
+                        <Entry x:Name="RoastTimeEntry" Text="{Binding RoastTimeText, Mode=TwoWay}" Keyboard="Text"
+                               Placeholder="10:42" Style="{StaticResource FieldEntryStyle}"
+                               SemanticProperties.Description="Total roast time in minutes and seconds" />
+                    </Border>
+                    <Label Text="{Binding RoastTimeError}" Style="{StaticResource FieldErrorStyle}"
+                           SemanticProperties.Description="{Binding RoastTimeError}" />
+                </VerticalStackLayout>
+                <VerticalStackLayout Grid.Row="1" Grid.Column="0" Spacing="{StaticResource SpaceSm}">
+                    <Label Text="BATCH WEIGHT (g)" Style="{StaticResource CardMetaStyle}" />
+                    <Border Style="{StaticResource FieldContainerStyle}">
+                        <Entry x:Name="BatchWeightEntry" Text="{Binding BatchWeightText, Mode=TwoWay}" Keyboard="Numeric"
+                               Style="{StaticResource FieldEntryStyle}"
+                               SemanticProperties.Description="Batch weight in grams" />
+                    </Border>
+                    <Label Text="{Binding BatchWeightError}" Style="{StaticResource FieldErrorStyle}"
+                           SemanticProperties.Description="{Binding BatchWeightError}" />
+                    <Label Text="Editing this does not adjust bean inventory" Style="{StaticResource FieldHintStyle}"
+                           LineBreakMode="WordWrap" />
+                </VerticalStackLayout>
+                <VerticalStackLayout Grid.Row="1" Grid.Column="1" Spacing="{StaticResource SpaceSm}">
+                    <Label Text="FINAL WEIGHT (g, optional)" Style="{StaticResource CardMetaStyle}" />
+                    <Border Style="{StaticResource FieldContainerStyle}">
+                        <Entry x:Name="FinalWeightEntry" Text="{Binding FinalWeightText, Mode=TwoWay}" Keyboard="Numeric"
+                               Placeholder="Leave blank when unweighed" Style="{StaticResource FieldEntryStyle}"
+                               SemanticProperties.Description="Final roasted weight in grams, optional" />
+                    </Border>
+                    <Label Text="{Binding FinalWeightError}" Style="{StaticResource FieldErrorStyle}"
+                           SemanticProperties.Description="{Binding FinalWeightError}" />
                 </VerticalStackLayout>
             </Grid>
 
-            <Label Text="Bean, batch identity, input weight, and final weight are edited only in their focused workflows."
-                   Style="{StaticResource FieldHintStyle}" />
-
-            <Label Text="FIRST CRACK (mm:ss, optional)" Style="{StaticResource CardMetaStyle}" />
-            <Entry Text="{Binding FirstCrackTimeText}" Keyboard="Numeric" Placeholder="Leave blank when unmarked"
-                   Style="{StaticResource FieldEntryStyle}"
-                   SemanticProperties.Description="First Crack time in minutes and seconds" />
+            <VerticalStackLayout Spacing="{StaticResource SpaceSm}">
+                <Label Text="FIRST CRACK (mm:ss, optional)" Style="{StaticResource CardMetaStyle}" />
+                <Border Style="{StaticResource FieldContainerStyle}">
+                    <!-- mm:ss needs a colon, which the Android numeric keypad does not offer. -->
+                    <Entry x:Name="FirstCrackEntry" Text="{Binding FirstCrackTimeText, Mode=TwoWay}" Keyboard="Text"
+                           Placeholder="Leave blank when unmarked" Style="{StaticResource FieldEntryStyle}"
+                           SemanticProperties.Description="First Crack time in minutes and seconds, optional" />
+                </Border>
+                <Label Text="{Binding FirstCrackError}" Style="{StaticResource FieldErrorStyle}"
+                       SemanticProperties.Description="{Binding FirstCrackError}" />
+            </VerticalStackLayout>
             <Label Text="NOTES" Style="{StaticResource CardMetaStyle}" />
-            <Editor Text="{Binding Notes}" AutoSize="TextChanges"
+            <Editor Text="{Binding Notes, Mode=TwoWay}" AutoSize="TextChanges"
                     Style="{StaticResource FieldEditorStyle}"
                     SemanticProperties.Description="Roast notes" />
 

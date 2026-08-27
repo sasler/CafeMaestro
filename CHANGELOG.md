@@ -7,12 +7,16 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased] - Complete Architecture Refactor
 ### Fixed
+- Ready-to-weigh batches now keep a stable, tappable **Weigh** action while a later batch is actively roasting on Android, without interrupting the running timer
+- Roast-log editing again supports bean, initial batch weight, final weight, temperature, roast time, First Crack, and notes, while preserving unresolved historical bean identities
+- Recorded bean inventory remains advisory: a low or depleted balance warns but never prevents starting a roast, and editing historical batch weight does not silently rewrite inventory
 - Bean selections now resolve previous-roast suggestions by stable Bean ID, so identically named inventory entries retain their own history; legacy name-only rows link only when the name is unambiguous
 - Roast-log CSV exports include an optional Bean ID column that preserves duplicate-name histories on re-import while older CSV files remain compatible
 - Cooling batches now offer a confirmed **Ready now** action that persists the actual cooling duration, cancels the reminder, and moves only that batch to Needs weight
 - Popup hosting now uses theme-aware transparent chrome, removing the platform-default light border and plate around weigh-in and other dialogs in dark mode
 
 ### Added
+- Roast setup now shows the selected bean's full roast history newest-first, presents five earlier roasts by default, and can reuse a prior roast's temperature and batch weight
 - One guided CSV import flow — choose type and file, map columns, review every row, then import — replacing the separate Bean and Roast import pages
 - Beans, Roast Log and Data & Backups open that flow with Beans or Roast Logs already selected, so no contextual action asks a question it already knows the answer to
 - Review reports valid, needs-attention and total counts, names every excluded row and its reason, and states exactly what the import will write before anything is saved

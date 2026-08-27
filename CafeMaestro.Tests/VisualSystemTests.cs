@@ -1,4 +1,5 @@
 using System.Globalization;
+using System.Text.RegularExpressions;
 using CafeMaestro.Services;
 using CafeMaestro.Views;
 using FluentAssertions;
@@ -286,6 +287,70 @@ public class VisualSystemTests
             .ToList();
 
         offenders.Should().BeEmpty("XAML and C# reference MauiImage output as .png, never the .svg input");
+    }
+
+    [Fact]
+    public void RoastConsoleTemplates_KeepActionsStableAndAvoidNestedCollectionViews()
+    {
+        string active = File.ReadAllText(Path.Combine(
+            XamlResourceReader.RepositoryRoot, "CafeMaestro", "Views", "Roast", "ActiveRoastView.xaml"));
+        string handoff = File.ReadAllText(Path.Combine(
+            XamlResourceReader.RepositoryRoot, "CafeMaestro", "Views", "Roast", "RoastHandoffView.xaml"));
+
+        active.Should().NotContain("x:Reference Root");
+        handoff.Should().NotContain("x:Reference Root");
+        active.Should().NotContain("<CollectionView");
+        active.Should().Contain("BindableLayout.ItemsSource=\"{Binding Channels}\"");
+        active.Should().Contain("RowDefinitions=\"Auto,*,Auto,Auto\"");
+    }
+
+    [Fact]
+    public void ActiveConsoleChannelStrip_StaysOneCardTallAndKeepsCoolingActionsReachable()
+    {
+        string active = File.ReadAllText(Path.Combine(
+            XamlResourceReader.RepositoryRoot, "CafeMaestro", "Views", "Roast", "ActiveRoastView.xaml"));
+
+        // A horizontal strip of fixed-width cards: batch count changes the scroll extent, never
+        // the height, so the running roast timer cannot be pushed off screen.
+        active.Should().Contain("Orientation=\"Horizontal\"");
+        active.Should().Contain("<HorizontalStackLayout BindableLayout.ItemsSource=\"{Binding Channels}\"");
+        active.Should().Contain("WidthRequest=\"{StaticResource ChannelStripCardWidth}\"");
+
+        // Cooling batches stay in the strip with their early-release action intact.
+        active.Should().Contain("IsVisible=\"{Binding CanCompleteCooling}\"");
+        active.Should().Contain("Text=\"READY NOW\"");
+    }
+
+    [Fact]
+    public void RoastEditPage_UsesTextKeyboardForTimeFieldsSoTheColonCanBeTyped()
+    {
+        string page = File.ReadAllText(Path.Combine(
+            XamlResourceReader.RepositoryRoot, "CafeMaestro", "RoastEditPage.xaml"));
+
+        // The Android numeric keypad has no colon, and both fields are parsed as mm:ss. Every
+        // other mm:ss entry in the app already uses the text keyboard.
+        page.Should().Contain("x:Name=\"RoastTimeEntry\"");
+        page.Should().Contain("x:Name=\"FirstCrackEntry\"");
+        foreach (string field in new[] { "RoastTimeEntry", "FirstCrackEntry" })
+        {
+            int start = page.IndexOf($"x:Name=\"{field}\"", StringComparison.Ordinal);
+            int end = page.IndexOf("/>", start, StringComparison.Ordinal);
+            page[start..end].Should().Contain("Keyboard=\"Text\"").And.NotContain("Keyboard=\"Numeric\"");
+        }
+    }
+
+    [Fact]
+    public void SetupHistoryRow_SplitsSettingsFromResultAndMutesEveryLineTogether()
+    {
+        string setup = File.ReadAllText(Path.Combine(
+            XamlResourceReader.RepositoryRoot, "CafeMaestro", "Views", "Roast", "RoastSetupView.xaml"));
+
+        setup.Should().Contain("{Binding SettingsDisplay}");
+        setup.Should().Contain("{Binding ResultDisplay}");
+        setup.Should().NotContain("{Binding DetailsDisplay}");
+
+        // Date, settings, result and the reuse affordance all dim together on an incomplete row.
+        Regex.Matches(setup, @"Binding=""\{Binding IsMuted\}"" Value=""True""").Should().HaveCount(4);
     }
 
     [Theory]
