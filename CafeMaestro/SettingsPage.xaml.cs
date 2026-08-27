@@ -1,4 +1,5 @@
 using System.ComponentModel;
+using CafeMaestro.Layouts;
 using CafeMaestro.ViewModels;
 using CafeMaestro.Views.Settings;
 
@@ -11,6 +12,12 @@ public partial class SettingsPage : ContentPage
     /// chosen section opens beside them instead.
     /// </summary>
     private const double WideLayoutThreshold = 600;
+
+    /// <summary>
+    /// The rail's share of a wide split before <c>ListPaneMaxWidth</c> caps it. Two fifths keeps
+    /// each row's summary line readable at tablet-portrait widths.
+    /// </summary>
+    private const double RailShare = 2d / 5d;
 
     /// <summary>
     /// Section bodies already shown once, kept so switching back to a section does not rebuild
@@ -46,22 +53,44 @@ public partial class SettingsPage : ContentPage
 
     protected override bool OnBackButtonPressed()
     {
+        // An inline section may have a sheet open; leaving the tab under it would lose the edit.
+        if (_viewModel.TryHandleBackInInlineSection())
+        {
+            return true;
+        }
+
         _ = _viewModel.GoBackAsync();
         return true;
     }
 
-    private void OnPageSizeChanged(object? sender, EventArgs e)
+    private async void OnPageSizeChanged(object? sender, EventArgs e)
     {
         bool isWide = Width >= WideLayoutThreshold;
+        // The rail takes its share up to ListPaneMaxWidth so a very wide window grows the section
+        // side rather than stretching five short rows across it.
         SettingsBody.ColumnDefinitions[0].Width = isWide
-            ? new GridLength(2, GridUnitType.Star)
+            ? new GridLength(
+                ResponsiveLayout.ComputeListPaneWidth(
+                    Width,
+                    RailShare,
+                    ResponsiveLayout.TokenOrDefault("ListPaneMaxWidth", 460)),
+                GridUnitType.Absolute)
             : GridLength.Star;
         SettingsBody.ColumnDefinitions[1].Width = isWide
-            ? new GridLength(3, GridUnitType.Star)
+            ? GridLength.Star
             : new GridLength(0);
         WideDetailPane.IsVisible = isWide;
-        _ = _viewModel.SetWideLayoutAsync(isWide);
         ShowSelectedSection();
+
+        try
+        {
+            await _viewModel.SetWideLayoutAsync(isWide);
+        }
+        catch (Exception ex)
+        {
+            // A layout pass must never surface a section's load failure as a crash.
+            System.Diagnostics.Debug.WriteLine($"Settings section activation failed: {ex.Message}");
+        }
     }
 
     /// <summary>

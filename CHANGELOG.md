@@ -12,7 +12,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Forms, detail pages and the roast console no longer stretch edge to edge on a tablet; content is capped at a readable measure and centred
 - Search and filter controls on Roast Log and Beans now sit above the list they act on instead of spanning the whole page beside an unrelated detail pane
 - The "Select a roast" and "Select a bean" placeholders now centre in their empty pane instead of hanging from the top of a tall tablet screen
-- Master/detail splits give the list a 3:4 share instead of 1:3, so batch and bean rows stay readable on a tablet
+- Master/detail splits give the list its share of the width up to `ListPaneMaxWidth`, so a large tablet or a maximised desktop window widens the detail side instead of stretching a column of cards
+- System Back in the tablet settings pane now closes an open roast-level editing sheet instead of leaving the Settings tab under it
+- Overlapping layout and appearance passes no longer load the same settings section twice at once, which could let a section's re-entrancy guard clear early and write preferences back
 - Ready-to-weigh batches now keep a stable, tappable **Weigh** action while a later batch is actively roasting on Android, without interrupting the running timer
 - Roast-log editing again supports bean, initial batch weight, final weight, temperature, roast time, First Crack, and notes, while preserving unresolved historical bean identities
 - Recorded bean inventory remains advisory: a low or depleted balance warns but never prevents starting a roast, and editing historical batch weight does not silently rewrite inventory

@@ -35,6 +35,16 @@ public partial class SettingsIndexPageViewModel : ObservableObject
     private readonly IAppVersionProvider _versionProvider;
     private readonly ISettingsSectionViewModelFactory _sectionViewModels;
 
+    /*
+     * A layout pass and an appearance can both ask for the same section: SizeChanged fires while
+     * OnAppearingAsync is still awaiting. A section's own load is not re-entrant - the roasting
+     * preferences guard their property writes with a single flag - so identical requests share
+     * one task and different ones queue behind it.
+     */
+    private readonly SemaphoreSlim _activationGate = new(1, 1);
+    private Task _activation = Task.CompletedTask;
+    private SettingsSection? _activatingSection;
+
     public SettingsIndexPageViewModel(
         IRoastPreferencesService roastPreferences,
         IPreferencesService preferencesService,
@@ -126,6 +136,24 @@ public partial class SettingsIndexPageViewModel : ObservableObject
     /// <summary>System Back on the Settings tab root returns to Roast, the launch destination.</summary>
     public Task GoBackAsync() => _navigationService.GoToAsync(Routes.Roast);
 
+    /// <summary>
+    /// Gives the open inline section the first refusal on Back, so a sheet it has open closes
+    /// instead of the whole tab being left - the behaviour its standalone page already had.
+    /// </summary>
+    public bool TryHandleBackInInlineSection() =>
+        IsWideLayout &&
+        SelectedSectionViewModel is IHandlesBackNavigation handler &&
+        handler.TryHandleBack();
+
+    private object? SelectedSectionViewModel => SelectedSection switch
+    {
+        SettingsSection.Roasting => RoastingViewModel,
+        SettingsSection.Appearance => AppearanceViewModel,
+        SettingsSection.Data => DataViewModel,
+        SettingsSection.RoastLevels => RoastLevelViewModel,
+        _ => AboutViewModel
+    };
+
     public async Task OnAppearingAsync()
     {
         await Task.WhenAll(
@@ -189,21 +217,46 @@ public partial class SettingsIndexPageViewModel : ObservableObject
     }
 
     /// <summary>
-    /// Builds the chosen section's editor if this is its first showing, then gives it the
-    /// same appearance callback the standalone page would have given it.
+    /// Builds the chosen section's editor if this is its first showing, then gives it the same
+    /// appearance callback the standalone page would have given it.
+    ///
+    /// Two overlapping requests for the same section share one load; requests for different
+    /// sections run in turn, never at the same time.
     /// </summary>
-    private Task ActivateInlineSectionAsync(SettingsSection section) => section switch
+    private Task ActivateInlineSectionAsync(SettingsSection section)
     {
-        SettingsSection.Roasting =>
-            (RoastingViewModel ??= _sectionViewModels.CreateRoasting()).OnAppearingAsync(),
-        SettingsSection.Appearance =>
-            (AppearanceViewModel ??= _sectionViewModels.CreateAppearance()).OnAppearingAsync(),
-        SettingsSection.Data =>
-            (DataViewModel ??= _sectionViewModels.CreateData()).OnAppearingAsync(),
-        SettingsSection.RoastLevels =>
-            (RoastLevelViewModel ??= _sectionViewModels.CreateRoastLevels()).OnAppearingAsync(),
-        _ => (AboutViewModel ??= _sectionViewModels.CreateAbout()).OnAppearingAsync()
-    };
+        if (_activatingSection == section && !_activation.IsCompleted)
+        {
+            return _activation;
+        }
+
+        _activatingSection = section;
+        return _activation = RunActivationAsync(section);
+    }
+
+    private async Task RunActivationAsync(SettingsSection section)
+    {
+        await _activationGate.WaitAsync().ConfigureAwait(false);
+        try
+        {
+            await (section switch
+            {
+                SettingsSection.Roasting =>
+                    (RoastingViewModel ??= _sectionViewModels.CreateRoasting()).OnAppearingAsync(),
+                SettingsSection.Appearance =>
+                    (AppearanceViewModel ??= _sectionViewModels.CreateAppearance()).OnAppearingAsync(),
+                SettingsSection.Data =>
+                    (DataViewModel ??= _sectionViewModels.CreateData()).OnAppearingAsync(),
+                SettingsSection.RoastLevels =>
+                    (RoastLevelViewModel ??= _sectionViewModels.CreateRoastLevels()).OnAppearingAsync(),
+                _ => (AboutViewModel ??= _sectionViewModels.CreateAbout()).OnAppearingAsync()
+            }).ConfigureAwait(false);
+        }
+        finally
+        {
+            _activationGate.Release();
+        }
+    }
 
     private void NotifySelectionState()
     {

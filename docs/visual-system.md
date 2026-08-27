@@ -197,3 +197,8 @@ padding, on top of whatever padding the layout already declares:
 Below the cap nothing changes, so phone layouts are untouched. Master/detail pages keep using
 their own `SizeChanged` handler and the 600 dp `BreakpointMedium`, because they switch structure
 rather than just measure.
+
+Those pages size the list side with `ResponsiveLayout.ComputeListPaneWidth`: the list takes its
+share of the width until `ListPaneMaxWidth` caps it, and the detail pane keeps the remainder. A
+star ratio alone would keep widening the list forever, so a large tablet or a maximised desktop
+window widens the detail side instead of stretching a column of cards.

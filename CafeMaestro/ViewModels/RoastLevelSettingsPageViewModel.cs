@@ -11,7 +11,7 @@ namespace CafeMaestro.ViewModels;
 /// Roast-level editing in its own destination. The validation, ordering and service calls are
 /// the ones the previous settings page shipped with; only the surface around them changed.
 /// </summary>
-public partial class RoastLevelSettingsPageViewModel : ObservableObject
+public partial class RoastLevelSettingsPageViewModel : ObservableObject, IHandlesBackNavigation
 {
     private readonly IRoastLevelService _roastLevelService;
     private readonly IAlertService _alertService;
@@ -52,6 +52,18 @@ public partial class RoastLevelSettingsPageViewModel : ObservableObject
     public string RoastLevelSummary => DescribeCount(RoastLevels.Count);
 
     public Task OnAppearingAsync() => LoadRoastLevelsAsync();
+
+    /// <summary>Back closes the editing sheet first rather than leaving the screen under it.</summary>
+    public bool TryHandleBack()
+    {
+        if (!IsEditRoastLevelPopupVisible)
+        {
+            return false;
+        }
+
+        CancelRoastLevelCommand.Execute(null);
+        return true;
+    }
 
     /// <summary>Summary text shared with the Settings index row.</summary>
     public static string DescribeCount(int count) =>

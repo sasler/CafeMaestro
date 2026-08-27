@@ -36,6 +36,16 @@ opened on a wide layout, so a phone builds none of them and a tablet builds only
 `SettingsPage` keeps each built body and swaps `SectionHost.Content`, which also means no body
 ever renders against an empty binding context.
 
+A layout pass and an appearance can both ask for the same section — `SizeChanged` fires while
+`OnAppearingAsync` is still awaiting — so activation shares one task for identical requests and
+queues different ones behind a gate. A section's own load is not re-entrant: the roasting
+preferences guard their property writes with a single flag, and running that load twice at once
+would let the guard clear early and write preferences back.
+
+System Back is offered to the open inline section first, through `IHandlesBackNavigation`. The
+roast-level editor implements it so Back closes its editing sheet instead of leaving the tab —
+the same rule its standalone page applies, now written once.
+
 ## Roasting preferences
 
 Preferences are read and written through `IRoastPreferencesService`. The session domain snapshots

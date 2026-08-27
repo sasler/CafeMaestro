@@ -69,6 +69,36 @@ public static class ResponsiveLayout
         return Math.Max(0, (availableWidth - maxContentWidth) / 2);
     }
 
+    /// <summary>
+    /// Width for the list side of a master/detail split: its share of the available width, but
+    /// never wider than <paramref name="maxListWidth"/>.
+    ///
+    /// A plain star ratio keeps growing with the screen, so on a large tablet or a maximised
+    /// desktop window the list ends up far wider than a row of cards can use. The cap stops it
+    /// there and hands everything beyond it to the detail pane.
+    /// </summary>
+    public static double ComputeListPaneWidth(double availableWidth, double listShare, double maxListWidth)
+    {
+        if (double.IsNaN(availableWidth) || availableWidth <= 0)
+        {
+            return 0;
+        }
+
+        double share = availableWidth * listShare;
+        return maxListWidth > 0 && !double.IsNaN(maxListWidth)
+            ? Math.Min(share, maxListWidth)
+            : share;
+    }
+
+    /// <summary>
+    /// Reads a <c>double</c> design token, so layout code sizes itself from the same scale the
+    /// XAML uses rather than repeating the number.
+    /// </summary>
+    public static double TokenOrDefault(string key, double fallback) =>
+        Application.Current?.Resources.TryGetValue(key, out object? value) == true && value is double token
+            ? token
+            : fallback;
+
     private static void OnMaxContentWidthChanged(BindableObject bindable, object oldValue, object newValue)
     {
         if (bindable is not Layout layout)

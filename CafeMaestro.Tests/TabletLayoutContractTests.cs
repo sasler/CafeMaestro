@@ -10,7 +10,11 @@ namespace CafeMaestro.Tests;
 /// </summary>
 public class TabletLayoutContractTests
 {
-    private static readonly XNamespace Maui = "http://schemas.microsoft.com/dotnet/2021/maui";
+    /// <summary>
+    /// XAML writes attached properties as plain, unprefixed attributes, so the parsed attribute
+    /// carries no namespace and its local name is the whole dotted string.
+    /// </summary>
+    private const string NavBarIsVisibleAttribute = "Shell.NavBarIsVisible";
 
     /// <summary>Tab roots that draw their own heading inside the page.</summary>
     private static readonly string[] TabRootPages =
@@ -35,17 +39,17 @@ public class TabletLayoutContractTests
     ];
 
     [Theory]
-    [InlineData("RoastPage.xaml")]
-    [InlineData("RoastLogPage.xaml")]
-    [InlineData("BeanInventoryPage.xaml")]
-    [InlineData("SettingsPage.xaml")]
+    [MemberData(nameof(TabRootPageFiles))]
     public void TabRootPages_HideTheShellNavigationBar(string pageFile)
     {
         XDocument page = XDocument.Load(Path.Combine(
             XamlResourceReader.RepositoryRoot, "CafeMaestro", pageFile));
 
-        page.Root!.Attribute(Maui + "NavBarIsVisible")?.Value
-            .Should().Be("False", "the page already draws its own title, so Shell must not draw a second one");
+        XAttribute? navBarIsVisible = page.Root!.Attribute(NavBarIsVisibleAttribute);
+
+        navBarIsVisible.Should().NotBeNull(
+            "the page already draws its own title, so Shell must not draw a second one");
+        navBarIsVisible!.Value.Should().Be("False");
     }
 
     [Theory]
@@ -112,6 +116,23 @@ public class TabletLayoutContractTests
                 $"{relativePath} runs edge to edge and would stretch on a tablet");
         }
     }
+
+    [Theory]
+    [InlineData("RoastLogPage.xaml.cs")]
+    [InlineData("BeanInventoryPage.xaml.cs")]
+    [InlineData("SettingsPage.xaml.cs")]
+    public void MasterDetailPages_CapTheListSideRatherThanLettingAStarRatioStretchIt(string pageFile)
+    {
+        string code = File.ReadAllText(Path.Combine(
+            XamlResourceReader.RepositoryRoot, "CafeMaestro", pageFile));
+
+        code.Should().Contain(
+            "ListPaneMaxWidth",
+            $"{pageFile} would otherwise widen its list without limit on a large display");
+        code.Should().Contain("ComputeListPaneWidth");
+    }
+
+    public static TheoryData<string> TabRootPageFiles() => [.. TabRootPages];
 
     public static TheoryData<string> SettingsSectionViewFiles() => [.. SettingsSectionViews];
 

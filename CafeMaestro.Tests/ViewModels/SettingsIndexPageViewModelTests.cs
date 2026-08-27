@@ -134,6 +134,65 @@ public sealed class SettingsIndexPageViewModelTests
     }
 
     [Fact]
+    public async Task WideLayout_WhenALayoutPassAndAnAppearanceRaceForTheSameSection_LoadsItOnce()
+    {
+        var roastLevels = new Mock<IRoastLevelService>();
+        roastLevels
+            .Setup(service => service.GetRoastLevelsAsync())
+            .Returns(async () =>
+            {
+                // Long enough that a second caller arrives while the first is still awaiting.
+                await Task.Delay(30);
+                return AppDataFactory.CreateDefault().RoastLevels;
+            });
+        SettingsIndexPageViewModel viewModel = CreateViewModel(roastLevels: roastLevels);
+        await viewModel.SetWideLayoutAsync(true);
+
+        // SizeChanged and OnAppearing both activate the selected section on a wide layout.
+        await Task.WhenAll(
+            viewModel.OpenRoastLevelsCommand.ExecuteAsync(null),
+            viewModel.OpenRoastLevelsCommand.ExecuteAsync(null));
+
+        roastLevels.Verify(service => service.GetRoastLevelsAsync(), Times.Once);
+    }
+
+    [Fact]
+    public async Task WideLayout_WithARoastLevelSheetOpen_BackClosesTheSheetInsteadOfLeavingTheTab()
+    {
+        var navigation = new Mock<INavigationService>();
+        SettingsIndexPageViewModel viewModel = CreateViewModel(navigation: navigation);
+        await viewModel.SetWideLayoutAsync(true);
+        await viewModel.OpenRoastLevelsCommand.ExecuteAsync(null);
+        viewModel.RoastLevelViewModel!.AddRoastLevelCommand.Execute(null);
+        viewModel.RoastLevelViewModel.IsEditRoastLevelPopupVisible.Should().BeTrue();
+
+        bool handled = viewModel.TryHandleBackInInlineSection();
+
+        handled.Should().BeTrue();
+        viewModel.RoastLevelViewModel.IsEditRoastLevelPopupVisible.Should().BeFalse();
+        navigation.Verify(service => service.GoToAsync(It.IsAny<string>()), Times.Never);
+    }
+
+    [Fact]
+    public async Task WideLayout_WithNoSheetOpen_BackIsLeftToThePageSoTheTabStillExits()
+    {
+        SettingsIndexPageViewModel viewModel = CreateViewModel();
+        await viewModel.SetWideLayoutAsync(true);
+        await viewModel.OpenRoastLevelsCommand.ExecuteAsync(null);
+
+        viewModel.TryHandleBackInInlineSection().Should().BeFalse();
+    }
+
+    [Fact]
+    public async Task NarrowLayout_NeverConsumesBack_BecauseNoSectionIsHostedInline()
+    {
+        SettingsIndexPageViewModel viewModel = CreateViewModel();
+        await viewModel.SetWideLayoutAsync(false);
+
+        viewModel.TryHandleBackInInlineSection().Should().BeFalse();
+    }
+
+    [Fact]
     public async Task RootBackRoute_ReturnsToRoastTab()
     {
         var navigation = new Mock<INavigationService>();
